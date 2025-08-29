@@ -35,11 +35,36 @@ const FamilyMatchingPage = () => {
   const bestMatch = matches[0];
 
   const handleStartChat = async (caregiverId?: string) => {
+    console.log('[FamilyMatchingPage] DEBUG - handleStartChat called:', {
+      caregiverId,
+      totalMatches: matches.length,
+      matchesData: matches.map(m => ({ id: m.id, name: m.full_name, hasData: !!(m.id && m.full_name) })),
+      component: 'FamilyMatchingPage',
+      timestamp: new Date().toISOString()
+    });
+
     const caregiver = caregiverId 
       ? matches.find(m => m.id === caregiverId) || bestMatch
       : bestMatch;
     
-    if (!caregiver) return;
+    if (!caregiver) {
+      console.error('[FamilyMatchingPage] ERROR - No caregiver found:', {
+        searchedId: caregiverId,
+        hasBestMatch: !!bestMatch,
+        totalMatches: matches.length,
+        availableIds: matches.map(m => m.id)
+      });
+      return;
+    }
+
+    console.log('[FamilyMatchingPage] DEBUG - Found caregiver:', {
+      caregiver,
+      hasId: !!caregiver.id,
+      hasName: !!caregiver.full_name,
+      hasLocation: !!caregiver.location,
+      hasCareTypes: !!(caregiver.care_types?.length),
+      component: 'FamilyMatchingPage'
+    });
     
     setSelectedCaregiver(caregiver);
     

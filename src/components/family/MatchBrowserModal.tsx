@@ -146,13 +146,32 @@ export const MatchBrowserModal = ({
                   </div>
                 ) : (
                   <div className="grid gap-4">
-                    {filteredMatches.map(match => (
+                     {filteredMatches.map(match => (
                       <SimpleMatchCard
                         key={match.id}
                         caregiver={match}
                         variant="modal"
-                        onChatClick={() => onStartChat?.(match.id)}
-                        onViewDetails={() => onSelectMatch?.(match.id)}
+                        onChatClick={() => {
+                          console.log('[MatchBrowserModal] DEBUG - Chat clicked for match:', {
+                            matchId: match.id,
+                            matchObject: match,
+                            caregiverName: match.full_name,
+                            location: match.location,
+                            careTypes: match.care_types,
+                            hasCompleteData: !!(match.id && match.full_name),
+                            component: 'MatchBrowserModal',
+                            timestamp: new Date().toISOString()
+                          });
+                          onStartChat?.(match.id);
+                        }}
+                        onViewDetails={() => {
+                          console.log('[MatchBrowserModal] DEBUG - View details clicked for match:', {
+                            matchId: match.id,
+                            matchObject: match,
+                            component: 'MatchBrowserModal'
+                          });
+                          onSelectMatch?.(match.id);
+                        }}
                         className="hover:shadow-md transition-shadow"
                       />
                     ))}
