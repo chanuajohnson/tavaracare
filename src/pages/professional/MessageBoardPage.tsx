@@ -133,11 +133,17 @@ const MessageBoardPage = () => {
       
       for (const session of sessionsData) {
         // Get family profile
-        const { data: familyProfile } = await supabase
+        const { data: familyProfile, error: profileError } = await supabase
           .from('profiles')
           .select('id, full_name, avatar_url')
           .eq('id', session.family_user_id)
-          .single();
+          .maybeSingle();
+
+        // Skip sessions where family profile is not found
+        if (profileError || !familyProfile) {
+          console.warn('[MessageBoard] Family profile not found for session:', session.id, 'family_user_id:', session.family_user_id);
+          continue;
+        }
 
         // Get latest message for this session
         const { data: latestMessage } = await supabase
