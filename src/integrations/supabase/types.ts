@@ -4640,6 +4640,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_family_profiles_for_professional_chat: {
+        Args: { professional_user_id: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          id: string
+        }[]
+      }
       get_feature_vote_count: {
         Args: { feature_id: string }
         Returns: number

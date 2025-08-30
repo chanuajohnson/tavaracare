@@ -128,19 +128,28 @@ const MessageBoardPage = () => {
         return;
       }
 
+      // Get all family profiles for this professional's chat sessions
+      const { data: familyProfiles, error: profilesError } = await supabase
+        .rpc('get_family_profiles_for_professional_chat', { 
+          professional_user_id: user.id 
+        });
+
+      if (profilesError) {
+        console.error('[MessageBoard] Error fetching family profiles:', profilesError);
+        setActiveChatSessions([]);
+        return;
+      }
+
+      console.log('[MessageBoard] Found family profiles:', familyProfiles?.length || 0);
+
       // Get family profiles and latest messages for each session
       const enrichedSessions: ActiveChatSession[] = [];
       
       for (const session of sessionsData) {
-        // Get family profile
-        const { data: familyProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url')
-          .eq('id', session.family_user_id)
-          .maybeSingle();
+        // Find the family profile for this session
+        const familyProfile = familyProfiles?.find(profile => profile.id === session.family_user_id);
 
-        // Skip sessions where family profile is not found
-        if (profileError || !familyProfile) {
+        if (!familyProfile) {
           console.warn('[MessageBoard] Family profile not found for session:', session.id, 'family_user_id:', session.family_user_id);
           continue;
         }
