@@ -4225,6 +4225,242 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_api_care_notes: {
+        Row: {
+          care_plan_id: string | null
+          caregiver_id: string | null
+          created_at: string
+          family_id: string | null
+          id: string
+          media_urls: Json | null
+          note_content: string
+          note_type: string
+          processed_at: string | null
+          structured_data: Json | null
+          submitted_via_whatsapp: boolean | null
+          whatsapp_message_id: string | null
+        }
+        Insert: {
+          care_plan_id?: string | null
+          caregiver_id?: string | null
+          created_at?: string
+          family_id?: string | null
+          id?: string
+          media_urls?: Json | null
+          note_content: string
+          note_type?: string
+          processed_at?: string | null
+          structured_data?: Json | null
+          submitted_via_whatsapp?: boolean | null
+          whatsapp_message_id?: string | null
+        }
+        Update: {
+          care_plan_id?: string | null
+          caregiver_id?: string | null
+          created_at?: string
+          family_id?: string | null
+          id?: string
+          media_urls?: Json | null
+          note_content?: string
+          note_type?: string
+          processed_at?: string | null
+          structured_data?: Json | null
+          submitted_via_whatsapp?: boolean | null
+          whatsapp_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_api_care_notes_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_api_consent: {
+        Row: {
+          consent_date: string | null
+          consent_given: boolean
+          consent_method: string | null
+          created_at: string
+          formatted_phone: string
+          id: string
+          message_categories: Json | null
+          opt_out_date: string | null
+          opt_out_reason: string | null
+          phone_number: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          consent_date?: string | null
+          consent_given?: boolean
+          consent_method?: string | null
+          created_at?: string
+          formatted_phone: string
+          id?: string
+          message_categories?: Json | null
+          opt_out_date?: string | null
+          opt_out_reason?: string | null
+          phone_number: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          consent_date?: string | null
+          consent_given?: boolean
+          consent_method?: string | null
+          created_at?: string
+          formatted_phone?: string
+          id?: string
+          message_categories?: Json | null
+          opt_out_date?: string | null
+          opt_out_reason?: string | null
+          phone_number?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_api_message_delivery: {
+        Row: {
+          delivered_at: string | null
+          delivery_status: string
+          failure_reason: string | null
+          id: string
+          message_content: string | null
+          message_id: string
+          message_type: string
+          read_at: string | null
+          recipient_phone: string
+          sent_at: string
+          sent_by: string | null
+          template_name: string | null
+          template_variables: Json | null
+          webhook_data: Json | null
+        }
+        Insert: {
+          delivered_at?: string | null
+          delivery_status?: string
+          failure_reason?: string | null
+          id?: string
+          message_content?: string | null
+          message_id: string
+          message_type?: string
+          read_at?: string | null
+          recipient_phone: string
+          sent_at?: string
+          sent_by?: string | null
+          template_name?: string | null
+          template_variables?: Json | null
+          webhook_data?: Json | null
+        }
+        Update: {
+          delivered_at?: string | null
+          delivery_status?: string
+          failure_reason?: string | null
+          id?: string
+          message_content?: string | null
+          message_id?: string
+          message_type?: string
+          read_at?: string | null
+          recipient_phone?: string
+          sent_at?: string
+          sent_by?: string | null
+          template_name?: string | null
+          template_variables?: Json | null
+          webhook_data?: Json | null
+        }
+        Relationships: []
+      }
+      whatsapp_api_templates: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          language_code: string
+          meta_template_id: string | null
+          rejection_reason: string | null
+          status: string
+          template_category: string
+          template_content: Json
+          template_name: string
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          language_code?: string
+          meta_template_id?: string | null
+          rejection_reason?: string | null
+          status?: string
+          template_category: string
+          template_content: Json
+          template_name: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          language_code?: string
+          meta_template_id?: string | null
+          rejection_reason?: string | null
+          status?: string
+          template_category?: string
+          template_content?: Json
+          template_name?: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Relationships: []
+      }
+      whatsapp_api_webhook_events: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_type: string
+          id: string
+          message_id: string | null
+          phone_number: string | null
+          processed: boolean | null
+          processed_at: string | null
+          raw_payload: Json
+          webhook_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_type: string
+          id?: string
+          message_id?: string | null
+          phone_number?: string | null
+          processed?: boolean | null
+          processed_at?: string | null
+          raw_payload: Json
+          webhook_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          message_id?: string | null
+          phone_number?: string | null
+          processed?: boolean | null
+          processed_at?: string | null
+          raw_payload?: Json
+          webhook_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_auth: {
         Row: {
           code_expires_at: string | null
