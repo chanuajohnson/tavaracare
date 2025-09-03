@@ -13,7 +13,7 @@ interface CareNeedsAssessmentPageProps {
 const CareNeedsAssessmentPage = ({ isDemo: isExternalDemo = false }: CareNeedsAssessmentPageProps = {}) => {
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('mode') === 'edit';
-  const isDemo = searchParams.get('demo') === 'true';
+  const isDemo = isExternalDemo || searchParams.get('demo') === 'true';
 
   // Set breadcrumb items based on demo mode
   const breadcrumbItems = [
