@@ -26,6 +26,7 @@ interface RoleBasedContentProps {
   onMinimize: () => void;
   isLoudMode?: boolean;
   dashboardRole?: 'family' | 'professional' | null;
+  isDemoRoute?: boolean;
 }
 
 export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
@@ -39,7 +40,8 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
   onClose,
   onMinimize,
   isLoudMode = false,
-  dashboardRole = null
+  dashboardRole = null,
+  isDemoRoute = false
 }) => {
   const { user } = useAuth();
   const [showCaregiverMatchingModal, setShowCaregiverMatchingModal] = useState(false);
@@ -255,8 +257,121 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           {/* SUPER MAGICAL GUEST WELCOME for DASHBOARD PAGES */}
           {(!user || role === 'guest') && (
             <div className="space-y-4">
-              {/* LOUD MODE: Enhanced dashboard-specific magical messaging */}
-              {isLoudMode && dashboardRole ? (
+              {/* DEMO MODE: Special demo content for /tav-demo and demo routes */}
+              {isDemoRoute && !user ? (
+                <div className="space-y-4">
+                  {/* DEMO WELCOME HEADER */}
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-6 border-2 border-primary/30 relative overflow-hidden"
+                  >
+                    <div className="absolute inset-0">
+                      <Sparkles className="absolute top-2 right-2 h-4 w-4 text-primary/40 animate-pulse" />
+                      <Star className="absolute top-6 right-8 h-3 w-3 text-amber-400/50 animate-pulse" style={{ animationDelay: '0.5s' }} />
+                      <Sparkles className="absolute bottom-4 left-4 h-3 w-3 text-blue-400/40 animate-pulse" style={{ animationDelay: '1s' }} />
+                    </div>
+                    
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-3 mb-4">
+                        <motion.div
+                          animate={{ rotate: [0, 10, -10, 0] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        >
+                          <Sparkles className="h-8 w-8 text-primary" />
+                        </motion.div>
+                        <div>
+                          <h3 className="text-2xl font-bold text-primary">Welcome TAV Demo Experience</h3>
+                          <p className="text-lg font-semibold text-gray-700">I'm here to help you Demo various features</p>
+                        </div>
+                      </div>
+                      
+                      <p className="text-base font-medium text-gray-800 mb-4">
+                        🌟 Explore how families and professionals use Tavara to connect and coordinate care. Click any demo below to experience our AI-guided workflows!
+                      </p>
+                    </div>
+                  </motion.div>
+
+                  {/* DEMO OPTIONS GRID */}
+                  <div className="grid grid-cols-1 gap-3">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="bg-white rounded-xl p-4 border-2 border-blue-200 hover:border-blue-400 transition-colors cursor-pointer"
+                      onClick={() => window.location.href = '/demo/registration/family'}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Heart className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-blue-800">Family Registration</h4>
+                          <p className="text-sm text-blue-600">Experience how families find and connect with perfect caregivers</p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-blue-400 ml-auto" />
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="bg-white rounded-xl p-4 border-2 border-purple-200 hover:border-purple-400 transition-colors cursor-pointer"
+                      onClick={() => window.location.href = '/demo/family/care-assessment'}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                          <Target className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-purple-800">Care Needs Assessment</h4>
+                          <p className="text-sm text-purple-600">Walk through our intelligent care planning process</p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-purple-400 ml-auto" />
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 }}
+                      className="bg-white rounded-xl p-4 border-2 border-pink-200 hover:border-pink-400 transition-colors cursor-pointer"
+                      onClick={() => window.location.href = '/demo/family/story'}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-pink-100 rounded-lg">
+                          <Star className="h-5 w-5 text-pink-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-pink-800">Legacy Stories</h4>
+                          <p className="text-sm text-pink-600">Experience our family story capture and sharing platform</p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-pink-400 ml-auto" />
+                      </div>
+                    </motion.div>
+                  </div>
+
+                  {/* CHAT WITH TAV BUTTON */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="bg-gradient-to-r from-primary to-blue-600 rounded-xl p-4 text-center"
+                  >
+                    <Button 
+                      size="lg" 
+                      className="w-full bg-white text-primary hover:bg-gray-50 font-bold py-3 px-8 rounded-xl"
+                      onClick={() => {/* This will be handled by the expandable chat section */}}
+                    >
+                      Chat with TAV
+                    </Button>
+                  </motion.div>
+                </div>
+              ) : 
+              /* LOUD MODE: Enhanced dashboard-specific magical messaging */
+              isLoudMode && dashboardRole ? (
                 <div className="space-y-4">
                   {/* MAGICAL ATTENTION-GRABBING HEADER */}
                   <motion.div

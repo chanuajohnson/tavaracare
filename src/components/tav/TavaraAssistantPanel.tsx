@@ -678,19 +678,20 @@ export const TavaraAssistantPanel: React.FC = () => {
 
       {/* Scrollable content container */}
       <div className="flex flex-col h-full overflow-hidden">
-        <RoleBasedContent 
-          role={state.currentRole}
-          nudges={nudges}
-          onNudgeClick={handleNudgeClick}
-          isLoading={isLoading}
-          progressContext={progressContext}
-          professionalProgress={professionalProgress}
-          familyJourneyProgress={familyJourneyProgress}
-          onClose={handleClosePanel}
-          onMinimize={minimizePanel}
-          isLoudMode={isLoudMode}
-          dashboardRole={dashboardRole}
-        />
+          <RoleBasedContent
+            role={state.currentRole}
+            nudges={nudges}
+            onNudgeClick={handleNudgeClick}
+            isLoading={isLoading}
+            progressContext={progressContext}
+            professionalProgress={professionalProgress}
+            familyJourneyProgress={familyJourneyProgress}
+            onClose={handleClosePanel}
+            onMinimize={minimizePanel}
+            isLoudMode={isLoudMode}
+            dashboardRole={dashboardRole}
+            isDemoRoute={location.pathname.startsWith('/demo/') || location.pathname === '/tav-demo'}
+          />
       </div>
     </motion.div>
   );
