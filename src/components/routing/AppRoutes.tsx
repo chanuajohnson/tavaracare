@@ -72,6 +72,11 @@ import TavDemo from "@/pages/TavDemo";
 import TavDashboard from "@/pages/TavDashboard";
 import ImplementationGuide from "@/pages/ImplementationGuide";
 
+// Demo Pages
+import DemoFamilyRegistration from "@/pages/demo/DemoFamilyRegistration";
+import DemoCareAssessment from "@/pages/demo/DemoCareAssessment";
+import DemoFamilyStory from "@/pages/demo/DemoFamilyStory";
+
 export const AppRoutes = () => {
   const { user } = useAuth();
 
@@ -152,6 +157,11 @@ export const AppRoutes = () => {
       <Route path="/tav-demo" element={<TavDemo />} />
       <Route path="/tav-dashboard" element={<TavDashboard />} />
       <Route path="/implementation-guide" element={<ImplementationGuide />} />
+      
+      {/* Demo Routes */}
+      <Route path="/demo/registration/family" element={<DemoFamilyRegistration />} />
+      <Route path="/demo/family/care-assessment" element={<DemoCareAssessment />} />
+      <Route path="/demo/family/story" element={<DemoFamilyStory />} />
       
       {/* Debug Routes */}
       <Route path="/debug/supabase" element={<SupabaseDebugPage />} />
