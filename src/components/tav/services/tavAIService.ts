@@ -15,6 +15,7 @@ export interface TAVConversationContext {
   userRole?: string;
   sessionId: string;
   caregiverContext?: any; // Added for caregiver chat support
+  isDemoMode?: boolean; // Added for demo mode support
 }
 
 export class TAVAIService {
@@ -85,6 +86,16 @@ Current context:
 - Page: ${context.currentPage}
 - User role: ${context.userRole || 'guest'}`;
 
+    // Add demo mode context
+    if (context.isDemoMode) {
+      prompt += `
+- DEMO MODE: This is a demonstration experience for prospective users
+- Guide the user through the demo workflow to show Tavara's capabilities
+- Emphasize how real families and professionals use these features
+- Encourage form completion to demonstrate the full experience
+- Be enthusiastic about showing Tavara's value proposition`;
+    }
+
     if (context.currentForm) {
       prompt += `\n- Current form: ${context.currentForm}`;
     }
@@ -129,6 +140,16 @@ ENHANCED GUIDELINES:
 - Use emojis sparingly: 💙 🤝 💪
 - If on a form page, offer to help fill it out step by step
 - If not on a form, guide them to relevant actions`;
+
+    // Add demo-specific guidelines
+    if (context.isDemoMode) {
+      prompt += `
+- DEMO FOCUS: Highlight how this demonstrates real Tavara workflows
+- Encourage completing the demo forms to see the full experience
+- Explain how real users benefit from each feature
+- Show enthusiasm for Tavara's capabilities
+- Guide toward form completion and next demo steps`;
+    }
 
     return prompt;
   }

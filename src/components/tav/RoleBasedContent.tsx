@@ -353,21 +353,6 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                     </motion.div>
                   </div>
 
-                  {/* CHAT WITH TAV BUTTON */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                    className="bg-gradient-to-r from-primary to-blue-600 rounded-xl p-4 text-center"
-                  >
-                    <Button 
-                      size="lg" 
-                      className="w-full bg-white text-primary hover:bg-gray-50 font-bold py-3 px-8 rounded-xl"
-                      onClick={() => {/* This will be handled by the expandable chat section */}}
-                    >
-                      Chat with TAV
-                    </Button>
-                  </motion.div>
                 </div>
               ) : 
               /* LOUD MODE: Enhanced dashboard-specific magical messaging */

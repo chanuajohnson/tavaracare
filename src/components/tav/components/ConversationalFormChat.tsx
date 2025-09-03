@@ -27,6 +27,9 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
     generateFormGuidance
   } = useConversationalForm();
 
+  // Check if we're in demo mode
+  const isDemoRoute = location.pathname.startsWith('/demo/');
+  
   // TAV AI conversation context
   const tavContext = {
     currentPage: location.pathname,
@@ -36,7 +39,8 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
       return acc;
     }, {} as Record<string, string>),
     userRole: role || undefined,
-    sessionId
+    sessionId,
+    isDemoMode: isDemoRoute
   };
 
   const { messages: aiMessages, isTyping, sendMessage: sendAIMessage } = useTAVConversation(tavContext);
