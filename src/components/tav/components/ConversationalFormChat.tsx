@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Send, Brain, FormInput, HelpCircle, Loader2 } from 'lucide-react';
 import { useConversationalForm } from '../hooks/useConversationalForm';
 import { useTAVConversation } from '../hooks/useTAVConversation';
+import { formFieldTracker, FieldCompletionStatus } from '@/utils/formFieldTracker';
 import { useLocation } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -15,6 +16,12 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
   const location = useLocation();
   const [message, setMessage] = useState('');
   const [sessionId] = useState(() => uuidv4());
+  const [fieldStatus, setFieldStatus] = useState<FieldCompletionStatus>({ 
+    totalFields: 0, 
+    filledFields: 0, 
+    emptyFields: 0, 
+    completionPercentage: 0 
+  });
   
   const {
     conversationState,
@@ -44,6 +51,15 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
   };
 
   const { messages: aiMessages, isTyping, sendMessage: sendAIMessage } = useTAVConversation(tavContext);
+
+  // Track form field completion status
+  useEffect(() => {
+    const cleanup = formFieldTracker.watchFormChanges((status) => {
+      setFieldStatus(status);
+    });
+
+    return cleanup;
+  }, []);
 
   // Initialize with welcome message based on context
   useEffect(() => {
@@ -111,7 +127,7 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
             <p className="text-xs font-medium text-blue-800">Form Detected</p>
           </div>
           <p className="text-xs text-blue-700">{currentForm.formTitle}</p>
-          <p className="text-xs text-blue-600">{currentForm.fields.length} fields to complete</p>
+          <p className="text-xs text-blue-600">{formFieldTracker.formatCompletionStatus(fieldStatus)}</p>
         </div>
       )}
 
