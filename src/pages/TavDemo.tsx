@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { TavaraAssistantPanel, TavaraStateProvider } from '@/components/tav';
 export default function TavDemo() {
   const navigate = useNavigate();
   const [activeDemo, setActiveDemo] = useState<'family' | 'professional' | 'community' | 'care-needs' | 'legacy' | null>(null);
+  const demoSectionRef = useRef<HTMLElement>(null);
 
   const demoOptions = [
     {
@@ -87,7 +88,16 @@ export default function TavDemo() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 size="lg" 
-                onClick={() => setActiveDemo('family')}
+                onClick={() => {
+                  setActiveDemo('family');
+                  // Scroll to demo section after it renders
+                  setTimeout(() => {
+                    demoSectionRef.current?.scrollIntoView({ 
+                      behavior: 'smooth', 
+                      block: 'start' 
+                    });
+                  }, 100);
+                }}
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 <Play className="h-4 w-4 mr-2" />
@@ -157,7 +167,7 @@ export default function TavDemo() {
 
       {/* Demo Selection Grid */}
       {activeDemo && (
-        <section className="py-16 px-4 bg-white">
+        <section ref={demoSectionRef} className="py-16 px-4 bg-white">
           <div className="container mx-auto max-w-6xl">
             <div className="text-center mb-12">
               <h3 className="text-3xl font-bold mb-4">Choose Your Demo Experience</h3>
