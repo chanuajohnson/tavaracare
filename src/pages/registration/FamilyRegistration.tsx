@@ -24,6 +24,7 @@ const FamilyRegistration = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
+  const isDemo = searchParams.get('demo') === 'true';
   
   console.log('🔍 URL and Edit Mode Debug:', {
     fullURL: window.location.href,
@@ -532,7 +533,10 @@ const FamilyRegistration = () => {
       
       <DashboardHeader 
         breadcrumbItems={[
-          { label: "Family Dashboard", path: "/dashboard/family" },
+          { 
+            label: isDemo ? "TAV Demo" : "Family Dashboard", 
+            path: isDemo ? "/tav-demo?openDemo=true" : "/dashboard/family" 
+          },
           { label: isEditMode ? "Edit Family Profile" : "Family Registration", path: `/registration/family${isEditMode ? '?edit=true' : ''}` }
         ]} 
       />

@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,8 +9,21 @@ import { TavaraAssistantPanel, TavaraStateProvider } from '@/components/tav';
 
 export default function TavDemo() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [activeDemo, setActiveDemo] = useState<'family' | 'professional' | 'community' | 'care-needs' | 'legacy' | null>(null);
   const demoSectionRef = useRef<HTMLElement>(null);
+
+  // Auto-open demo section if openDemo parameter is present
+  useEffect(() => {
+    if (searchParams.get('openDemo') === 'true') {
+      setActiveDemo('family');
+      setTimeout(() => {
+        if (demoSectionRef.current) {
+          demoSectionRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  }, [searchParams]);
 
   const demoOptions = [
     {

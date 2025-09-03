@@ -15,7 +15,7 @@ const CareNeedsAssessmentPage = () => {
   const breadcrumbItems = [
     { 
       label: isDemo ? "TAV Demo" : "Family Dashboard", 
-      path: isDemo ? "/tav-demo" : "/dashboard/family" 
+      path: isDemo ? "/tav-demo?openDemo=true" : "/dashboard/family" 
     },
     { 
       label: isEditMode ? "Edit Care Assessment" : "Care Needs Assessment", 

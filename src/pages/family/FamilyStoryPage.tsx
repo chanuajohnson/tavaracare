@@ -124,7 +124,7 @@ const FamilyStoryPage = () => {
   const breadcrumbItems = [
     { 
       label: isDemo ? "TAV Demo" : "Family Dashboard", 
-      path: isDemo ? "/tav-demo" : "/dashboard/family" 
+      path: isDemo ? "/tav-demo?openDemo=true" : "/dashboard/family" 
     },
     { label: isEditMode ? "Edit Their Story" : "Tell Their Story", path: "/family/story" },
   ];
