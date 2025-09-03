@@ -259,7 +259,11 @@ export const TavaraAssistantPanel: React.FC = () => {
 
   // Get demo-specific greeting based on form type
   const getDemoGreeting = () => {
-    if (!isDemoMode) return null;
+    const currentPath = location.pathname;
+    const isImmediateDemoRoute = currentPath.startsWith('/demo/') || currentPath === '/tav-demo';
+    const effectiveIsDemoMode = isDemoMode || isImmediateDemoRoute;
+    
+    if (!effectiveIsDemoMode) return null;
     
     if (location.pathname.includes('/registration/family')) {
       return DEMO_GREET_MESSAGES.family_registration;
@@ -273,8 +277,20 @@ export const TavaraAssistantPanel: React.FC = () => {
 
   // Enhanced greeting message with DEMO MODE, LOUD MODE support and form detection context and professional intelligence
   const getContextualGreeting = () => {
+    // Immediate route-based demo detection as backup
+    const currentPath = location.pathname;
+    const isImmediateDemoRoute = currentPath.startsWith('/demo/') || currentPath === '/tav-demo';
+    const effectiveIsDemoMode = isDemoMode || isImmediateDemoRoute;
+    
+    console.log('TAV Greeting Context:', { 
+      currentPath, 
+      isDemoMode, 
+      isImmediateDemoRoute, 
+      effectiveIsDemoMode 
+    });
+    
     // PRIORITY 1: DEMO MODE - Override all other priorities for demo experience
-    if (isDemoMode) {
+    if (effectiveIsDemoMode) {
       const demoGreeting = getDemoGreeting();
       if (demoGreeting) {
         console.log('TAV: Using DEMO MODE greeting for', location.pathname);

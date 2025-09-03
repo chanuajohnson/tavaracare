@@ -40,10 +40,12 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({
   // Demo mode detection - prioritize route-based detection
   useEffect(() => {
     const currentPath = window.location.pathname;
-    const isDemoRoute = currentPath.startsWith('/demo/');
+    const isDemoRoute = currentPath.startsWith('/demo/') || currentPath === '/tav-demo';
     const isUrlParamDemo = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
     
     const isDemoMode = forceDemoMode || isDemoRoute || isUrlParamDemo;
+    
+    console.log('TAV Demo Detection:', { currentPath, isDemoRoute, isDemoMode });
     
     setState(prev => ({
       ...prev,
@@ -55,7 +57,7 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({
   useEffect(() => {
     const fetchUserRole = async () => {
       const currentPath = window.location.pathname;
-      const isDemoRoute = currentPath.startsWith('/demo/');
+      const isDemoRoute = currentPath.startsWith('/demo/') || currentPath === '/tav-demo';
       const isUrlParamDemo = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
       const isDemoMode = forceDemoMode || isDemoRoute || isUrlParamDemo;
       
