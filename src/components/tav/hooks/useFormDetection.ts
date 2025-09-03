@@ -344,7 +344,13 @@ export const useFormDetection = () => {
 
   useEffect(() => {
     const detectForm = () => {
-      const path = location.pathname;
+      let path = location.pathname;
+      
+      // Handle demo routes by mapping them to their corresponding form routes
+      if (path.startsWith('/demo/')) {
+        path = path.replace('/demo', '');
+      }
+      
       const detectedForm = FORM_MAPPINGS[path];
       
       if (detectedForm) {
