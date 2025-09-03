@@ -18,9 +18,15 @@ const TavaraStateContext = createContext<TavaraStateContextType | undefined>(und
 
 interface TavaraStateProviderProps {
   children: ReactNode;
+  initialRole?: 'guest' | 'family' | 'professional' | 'community' | null;
+  forceDemoMode?: boolean;
 }
 
-export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ children }) => {
+export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ 
+  children, 
+  initialRole = null,
+  forceDemoMode = false 
+}) => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [state, setState] = useState<TavaraState & { isDemoMode: boolean }>({
@@ -31,18 +37,36 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ childr
     isDemoMode: false
   });
 
-  // Demo mode detection
+  // Demo mode detection - prioritize route-based detection
   useEffect(() => {
-    const isDemoMode = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
+    const currentPath = window.location.pathname;
+    const isDemoRoute = currentPath.startsWith('/demo/');
+    const isUrlParamDemo = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
+    
+    const isDemoMode = forceDemoMode || isDemoRoute || isUrlParamDemo;
+    
     setState(prev => ({
       ...prev,
-      isDemoMode
+      isDemoMode,
+      currentRole: isDemoMode ? (initialRole || 'guest') : prev.currentRole
     }));
-  }, [searchParams]);
+  }, [searchParams, forceDemoMode, initialRole]);
 
   useEffect(() => {
     const fetchUserRole = async () => {
-      const isDemoMode = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
+      const currentPath = window.location.pathname;
+      const isDemoRoute = currentPath.startsWith('/demo/');
+      const isUrlParamDemo = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
+      const isDemoMode = forceDemoMode || isDemoRoute || isUrlParamDemo;
+      
+      if (isDemoMode) {
+        setState(prev => ({
+          ...prev,
+          currentRole: initialRole || 'guest',
+          isDemoMode: true
+        }));
+        return;
+      }
       
       if (user) {
         try {
@@ -55,27 +79,27 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ childr
           setState(prev => ({
             ...prev,
             currentRole: profile?.role || 'family',
-            isDemoMode
+            isDemoMode: false
           }));
         } catch (error) {
           console.error('Error fetching user role:', error);
           setState(prev => ({
             ...prev,
             currentRole: 'family',
-            isDemoMode
+            isDemoMode: false
           }));
         }
       } else {
         setState(prev => ({
           ...prev,
-          currentRole: isDemoMode ? 'guest' : 'guest',
-          isDemoMode
+          currentRole: 'guest',
+          isDemoMode: false
         }));
       }
     };
 
     fetchUserRole();
-  }, [user, searchParams]);
+  }, [user, searchParams, forceDemoMode, initialRole]);
 
   const openPanel = () => {
     console.log('TAV: Opening panel');

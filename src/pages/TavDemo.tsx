@@ -32,7 +32,7 @@ export default function TavDemo() {
       description: 'Experience how families find and connect with perfect caregivers',
       icon: Heart,
       color: 'from-pink-500 to-rose-500',
-      path: '/registration/family?demo=true&role=guest',
+      path: '/demo/registration/family',
       enabled: true
     },
     {
@@ -59,7 +59,7 @@ export default function TavDemo() {
       description: 'Walk through our intelligent care planning process',
       icon: Heart,
       color: 'from-purple-500 to-violet-500',
-      path: '/family/care-assessment?demo=true&role=guest',
+      path: '/demo/family/care-assessment',
       enabled: true
     },
     {
@@ -68,7 +68,7 @@ export default function TavDemo() {
       description: 'Experience our family story capture and sharing platform',
       icon: MessageCircle,
       color: 'from-amber-500 to-orange-500',
-      path: '/family/story?demo=true&role=guest',
+      path: '/demo/family/story',
       enabled: true
     }
   ];
