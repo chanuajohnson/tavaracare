@@ -58,13 +58,17 @@ export const TavaraAssistantPanel: React.FC = () => {
   const [greetedPages, setGreetedPages] = useState<Set<string>>(new Set());
   const [isExpanded, setIsExpanded] = useState(false);
   
-  // Demo mode persistence - lock in demo mode once detected to prevent message switching
-  const [persistentDemoMode, setPersistentDemoMode] = useState(false);
-  
-  // Enhanced demo mode detection with session persistence
+  // IMMEDIATE DEMO MODE DETECTION - synchronous detection to prevent timing issues
   const hasActiveDemoSession = sessionStorage.getItem('tavara_demo_session') === 'true';
+  const isDemoModeLocked = sessionStorage.getItem('tavara_demo_mode_locked') === 'true';
   const isOnTavDemoRoute = location.pathname === '/tav-demo';
-  const isDemoMode = state.isDemoMode || persistentDemoMode || hasActiveDemoSession || isOnTavDemoRoute;
+  const urlParamsDemo = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
+  
+  // IMMEDIATE demo mode calculation - prioritize session storage for persistence
+  const isDemoMode = isDemoModeLocked || hasActiveDemoSession || isOnTavDemoRoute || urlParamsDemo || state.isDemoMode;
+  
+  // Demo mode persistence state
+  const [persistentDemoMode, setPersistentDemoMode] = useState(isDemoMode);
 
   // LOUD MODE DETECTION for anonymous users on dashboard pages OR demo mode
   const isLoudMode = (!user && (location.pathname === '/dashboard/family' || location.pathname === '/dashboard/professional')) || isDemoMode;
@@ -75,7 +79,7 @@ export const TavaraAssistantPanel: React.FC = () => {
   const professionalProgress = useEnhancedProfessionalProgress();
   const familyJourneyProgress = useEnhancedJourneyProgress();
 
-  // Initialize session tracking and lock in demo mode
+  // IMMEDIATE DEMO MODE AUTO-OPENING - synchronous demo detection and instant panel opening
   useEffect(() => {
     // Mark session as started
     sessionStorage.setItem('tavara_session_started', 'true');
@@ -83,26 +87,26 @@ export const TavaraAssistantPanel: React.FC = () => {
       sessionStorage.setItem('tavara_session_start_time', Date.now().toString());
     }
     
-    // Enhanced demo mode locking with multiple detection methods
-    const shouldLockDemoMode = state.isDemoMode || hasActiveDemoSession || isOnTavDemoRoute;
-    
-    if (shouldLockDemoMode && !persistentDemoMode) {
-      console.log('TAV: Locking in demo mode for persistent messaging:', {
-        stateDemoMode: state.isDemoMode,
+    // IMMEDIATE demo mode detection and auto-opening
+    if (isDemoMode && !state.isOpen) {
+      console.log('TAV: IMMEDIATE demo mode detected - auto-opening panel:', {
+        isDemoModeLocked,
         hasActiveDemoSession,
         isOnTavDemoRoute,
+        urlParamsDemo,
+        stateDemoMode: state.isDemoMode,
         pathname: location.pathname
       });
-      setPersistentDemoMode(true);
-      setIsExpanded(true); // Immediately set expanded for demo mode
-      setHasInitialGreeted(true); // Mark as greeted to prevent auto-greeting override
       
-      // Automatically open panel for demo mode
-      setTimeout(() => {
-        openPanel();
-      }, 500);
+      // Immediately set demo state and open panel
+      setPersistentDemoMode(true);
+      setIsExpanded(true);
+      setHasInitialGreeted(true); // Prevent auto-greeting override
+      
+      // Open panel immediately for demo mode
+      openPanel();
     }
-  }, [state.isDemoMode, persistentDemoMode, hasActiveDemoSession, isOnTavDemoRoute, location.pathname, openPanel]);
+  }, [isDemoMode, state.isOpen, openPanel, location.pathname]);
 
   // Initialize nudge service and fetch nudges
   useEffect(() => {
