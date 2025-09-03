@@ -67,6 +67,10 @@ import SubscriptionFeaturesPage from "@/pages/subscription/SubscriptionFeaturesP
 // Legacy Pages
 import LegacyStoriesPage from "@/pages/legacy/LegacyStoriesPage";
 
+// TAV Core Pages
+import TavDemo from "@/pages/TavDemo";
+import TavDashboard from "@/pages/TavDashboard";
+
 export const AppRoutes = () => {
   const { user } = useAuth();
 
@@ -142,6 +146,10 @@ export const AppRoutes = () => {
       
       {/* Legacy Routes */}
       <Route path="/legacy/stories" element={<LegacyStoriesPage />} />
+      
+      {/* TAV Core Routes */}
+      <Route path="/tav-demo" element={<TavDemo />} />
+      <Route path="/tav-dashboard" element={<TavDashboard />} />
       
       {/* Debug Routes */}
       <Route path="/debug/supabase" element={<SupabaseDebugPage />} />
