@@ -70,6 +70,7 @@ import LegacyStoriesPage from "@/pages/legacy/LegacyStoriesPage";
 // TAV Core Pages
 import TavDemo from "@/pages/TavDemo";
 import TavDashboard from "@/pages/TavDashboard";
+import ImplementationGuide from "@/pages/ImplementationGuide";
 
 export const AppRoutes = () => {
   const { user } = useAuth();
@@ -150,6 +151,7 @@ export const AppRoutes = () => {
       {/* TAV Core Routes */}
       <Route path="/tav-demo" element={<TavDemo />} />
       <Route path="/tav-dashboard" element={<TavDashboard />} />
+      <Route path="/implementation-guide" element={<ImplementationGuide />} />
       
       {/* Debug Routes */}
       <Route path="/debug/supabase" element={<SupabaseDebugPage />} />

@@ -128,11 +128,11 @@ export default function TavDemo() {
               <Button 
                 size="lg" 
                 variant="outline"
-                onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+                onClick={() => navigate('/implementation-guide')}
                 className="border-blue-200 text-blue-600"
               >
                 <ArrowRight className="h-4 w-4 mr-2" />
-                View All Demos
+                View Implementation Guide
               </Button>
             </div>
           </motion.div>
