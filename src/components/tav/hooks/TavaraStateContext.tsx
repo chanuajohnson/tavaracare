@@ -37,8 +37,10 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ childr
     const urlParamsDemo = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
     const isOnTavDemoRoute = location.pathname === '/tav-demo';
     const hasActiveDemoSession = sessionStorage.getItem('tavara_demo_session') === 'true';
+    const isDemoModeLocked = sessionStorage.getItem('tavara_demo_mode_locked') === 'true';
     
-    const isDemoMode = urlParamsDemo || isOnTavDemoRoute || hasActiveDemoSession;
+    // ENHANCED URL-FIRST DETECTION: URL params trump all other logic
+    const isDemoMode = urlParamsDemo || isOnTavDemoRoute || hasActiveDemoSession || isDemoModeLocked;
     
     // Start demo session if on /tav-demo route
     if (isOnTavDemoRoute && !hasActiveDemoSession) {
@@ -46,18 +48,20 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ childr
       sessionStorage.setItem('tavara_demo_session', 'true');
     }
     
-    // Clear demo session if user navigates away from demo flows
-    if (!urlParamsDemo && !isOnTavDemoRoute && !location.pathname.includes('/registration/') && !location.pathname.includes('/family/')) {
+    // Clear demo session if user navigates away from demo flows (but respect locked demo mode)
+    if (!urlParamsDemo && !isOnTavDemoRoute && !location.pathname.includes('/registration/') && !location.pathname.includes('/family/') && !isDemoModeLocked) {
       if (hasActiveDemoSession) {
         console.log('TAV: Clearing demo session - user navigated away from demo flows');
         sessionStorage.removeItem('tavara_demo_session');
+        sessionStorage.removeItem('tavara_demo_mode_locked');
       }
     }
     
-    console.log('TAV Context: Demo mode detection:', {
+    console.log('TAV Context: Enhanced demo mode detection:', {
       urlParamsDemo,
       isOnTavDemoRoute,
       hasActiveDemoSession,
+      isDemoModeLocked,
       isDemoMode,
       pathname: location.pathname
     });
@@ -73,7 +77,8 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ childr
       const urlParamsDemo = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
       const isOnTavDemoRoute = location.pathname === '/tav-demo';
       const hasActiveDemoSession = sessionStorage.getItem('tavara_demo_session') === 'true';
-      const isDemoMode = urlParamsDemo || isOnTavDemoRoute || hasActiveDemoSession;
+      const isDemoModeLocked = sessionStorage.getItem('tavara_demo_mode_locked') === 'true';
+      const isDemoMode = urlParamsDemo || isOnTavDemoRoute || hasActiveDemoSession || isDemoModeLocked;
       
       if (user) {
         try {
