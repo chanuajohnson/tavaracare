@@ -20,15 +20,11 @@ import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
 import { useAuth } from '@/components/providers/AuthProvider';
 import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
 
-interface FamilyRegistrationProps {
-  isDemo?: boolean;
-}
-
-const FamilyRegistration = ({ isDemo: isExternalDemo = false }: FamilyRegistrationProps = {}) => {
+const FamilyRegistration = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
-  const isDemo = isExternalDemo || searchParams.get('demo') === 'true';
+  const isDemo = searchParams.get('demo') === 'true';
   
   console.log('🔍 URL and Edit Mode Debug:', {
     fullURL: window.location.href,
@@ -395,15 +391,6 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false }: FamilyRegistrati
       if (firstErrorElement) {
         firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-      return;
-    }
-
-    // Demo mode - skip database operations
-    if (isExternalDemo || isDemo) {
-      toast.success('Demo Registration Complete! 🎉 Your information has been simulated successfully.');
-      setTimeout(() => {
-        navigate('/demo/family/care-assessment');
-      }, 1500);
       return;
     }
 

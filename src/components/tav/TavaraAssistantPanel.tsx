@@ -57,9 +57,18 @@ export const TavaraAssistantPanel: React.FC = () => {
   const [showGreeting, setShowGreeting] = useState(false);
   const [greetedPages, setGreetedPages] = useState<Set<string>>(new Set());
   const [isExpanded, setIsExpanded] = useState(false);
-
-  // Demo mode detection
-  const isDemoMode = state.isDemoMode;
+  
+  // IMMEDIATE DEMO MODE DETECTION - synchronous detection to prevent timing issues
+  const hasActiveDemoSession = sessionStorage.getItem('tavara_demo_session') === 'true';
+  const isDemoModeLocked = sessionStorage.getItem('tavara_demo_mode_locked') === 'true';
+  const isOnTavDemoRoute = location.pathname === '/tav-demo';
+  const urlParamsDemo = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
+  
+  // IMMEDIATE demo mode calculation - prioritize session storage for persistence
+  const isDemoMode = isDemoModeLocked || hasActiveDemoSession || isOnTavDemoRoute || urlParamsDemo || state.isDemoMode;
+  
+  // Demo mode persistence state
+  const [persistentDemoMode, setPersistentDemoMode] = useState(isDemoMode);
 
   // LOUD MODE DETECTION for anonymous users on dashboard pages OR demo mode
   const isLoudMode = (!user && (location.pathname === '/dashboard/family' || location.pathname === '/dashboard/professional')) || isDemoMode;
@@ -70,14 +79,34 @@ export const TavaraAssistantPanel: React.FC = () => {
   const professionalProgress = useEnhancedProfessionalProgress();
   const familyJourneyProgress = useEnhancedJourneyProgress();
 
-  // Initialize session tracking
+  // IMMEDIATE DEMO MODE AUTO-OPENING - synchronous demo detection and instant panel opening
   useEffect(() => {
     // Mark session as started
     sessionStorage.setItem('tavara_session_started', 'true');
     if (!sessionStorage.getItem('tavara_session_start_time')) {
       sessionStorage.setItem('tavara_session_start_time', Date.now().toString());
     }
-  }, []);
+    
+    // IMMEDIATE demo mode detection and auto-opening
+    if (isDemoMode && !state.isOpen) {
+      console.log('TAV: IMMEDIATE demo mode detected - auto-opening panel:', {
+        isDemoModeLocked,
+        hasActiveDemoSession,
+        isOnTavDemoRoute,
+        urlParamsDemo,
+        stateDemoMode: state.isDemoMode,
+        pathname: location.pathname
+      });
+      
+      // Immediately set demo state and open panel
+      setPersistentDemoMode(true);
+      setIsExpanded(true);
+      setHasInitialGreeted(true); // Prevent auto-greeting override
+      
+      // Open panel immediately for demo mode
+      openPanel();
+    }
+  }, [isDemoMode, state.isOpen, openPanel, location.pathname]);
 
   // Initialize nudge service and fetch nudges
   useEffect(() => {
@@ -127,8 +156,14 @@ export const TavaraAssistantPanel: React.FC = () => {
 
   // ENHANCED MAGIC AUTO-GREETING with DEMO MODE and LOUD MODE for dashboards
   useEffect(() => {
-    const sessionKey = isDemoMode ? `tavara_demo_greeted_${location.pathname}` : `tavara_session_greeted`;
-    const hasGreetedThisSession = isDemoMode ? false : sessionStorage.getItem(sessionKey); // Always greet in demo mode
+    // Skip auto-greeting in demo mode to prevent override of demo messages
+    if (isDemoMode) {
+      console.log('TAV: Skipping auto-greeting in demo mode to preserve demo messages');
+      return;
+    }
+    
+    const sessionKey = `tavara_session_greeted`;
+    const hasGreetedThisSession = sessionStorage.getItem(sessionKey);
     
     console.log('TAV: Auto-greeting check:', {
       hasGreetedThisSession,
@@ -144,26 +179,20 @@ export const TavaraAssistantPanel: React.FC = () => {
       currentForm: currentForm?.formId
     });
     
-    // Show magic greeting if haven't greeted this session AND not already open (or always in demo mode)
-    if ((!hasGreetedThisSession || isDemoMode) && !hasInitialGreeted && !state.isOpen) {
+    // Show magic greeting if haven't greeted this session AND not already open
+    if (!hasGreetedThisSession && !hasInitialGreeted && !state.isOpen) {
       console.log('TAV: Triggering magic auto-greeting!', { isLoudMode, isDemoMode, dashboardRole });
       
-      // DEMO MODE: Ultra fast timing, LOUD MODE: More aggressive timing for dashboard anonymous users
-      const initialDelay = isDemoMode ? 300 : (isLoudMode ? 800 : 1200);
-      const displayDuration = isDemoMode ? 2000 : (isLoudMode ? 3500 : 2500);
+      // LOUD MODE: More aggressive timing for dashboard anonymous users
+      const initialDelay = isLoudMode ? 800 : 1200;
+      const displayDuration = isLoudMode ? 3500 : 2500;
       
       // Show magic entrance after a brief delay
       setTimeout(() => {
         setShowGreeting(true);
         setHasInitialGreeted(true);
-        // Auto-expand in demo mode
-        if (isDemoMode) {
-          setIsExpanded(true);
-        }
-        // Mark as greeted for this session (except in demo mode where we want fresh experience)
-        if (!isDemoMode) {
-          sessionStorage.setItem(sessionKey, 'true');
-        }
+        // Mark as greeted for this session
+        sessionStorage.setItem(sessionKey, 'true');
         
         // Auto-open the panel after showing the magic - NO USER INTERACTION NEEDED
         setTimeout(() => {
@@ -178,8 +207,8 @@ export const TavaraAssistantPanel: React.FC = () => {
   useEffect(() => {
     const currentPath = location.pathname;
     
-    // Skip if panel is already open or we haven't done initial greeting
-    if (state.isOpen || !hasInitialGreeted) {
+    // Skip if panel is already open or we haven't done initial greeting or in demo mode
+    if (state.isOpen || !hasInitialGreeted || isDemoMode) {
       return;
     }
 
@@ -204,7 +233,7 @@ export const TavaraAssistantPanel: React.FC = () => {
         }, autoOpenDelay);
       }, greetingDelay);
     }
-  }, [location.pathname, isJourneyTouchpoint, state.isOpen, greetedPages, openPanel, state.currentRole, hasInitialGreeted, isLoudMode]);
+  }, [location.pathname, isJourneyTouchpoint, state.isOpen, greetedPages, openPanel, state.currentRole, hasInitialGreeted, isLoudMode, isDemoMode]);
 
   // Auto-open for nudges
   useEffect(() => {
@@ -257,13 +286,14 @@ export const TavaraAssistantPanel: React.FC = () => {
     state.currentRole
   ]);
 
-  // Get demo-specific greeting based on form type
+  // Get demo-specific greeting based on form type and route
   const getDemoGreeting = () => {
-    const currentPath = location.pathname;
-    const isImmediateDemoRoute = currentPath.startsWith('/demo/') || currentPath === '/tav-demo';
-    const effectiveIsDemoMode = isDemoMode || isImmediateDemoRoute;
+    if (!isDemoMode) return null;
     
-    if (!effectiveIsDemoMode) return null;
+    // Special greeting for /tav-demo route
+    if (location.pathname === '/tav-demo') {
+      return "🎯 Welcome to TAV Demo! I'm here to show you how I help users complete forms. Click 'Try Interactive Demo' above to see me in action!";
+    }
     
     if (location.pathname.includes('/registration/family')) {
       return DEMO_GREET_MESSAGES.family_registration;
@@ -277,35 +307,19 @@ export const TavaraAssistantPanel: React.FC = () => {
 
   // Enhanced greeting message with DEMO MODE, LOUD MODE support and form detection context and professional intelligence
   const getContextualGreeting = () => {
-    // PRIORITY 1: ROUTE-BASED DEMO DETECTION - Early return to prevent any other logic from running
-    const currentPath = location.pathname;
-    const isOnDemoRoute = currentPath.startsWith('/demo/') || currentPath === '/tav-demo';
-    
-    // Early return for demo routes - this takes absolute priority
-    if (isOnDemoRoute) {
-      console.log('TAV: Demo route detected, using demo greeting for:', currentPath);
-      
-      // Route-specific demo greetings
-      if (currentPath.includes('/registration/family')) {
-        console.log('TAV: Using family registration demo greeting');
-        return DEMO_GREET_MESSAGES.family_registration;
-      } else if (currentPath.includes('/care-assessment')) {
-        console.log('TAV: Using care assessment demo greeting');
-        return DEMO_GREET_MESSAGES.care_assessment;
-      } else if (currentPath.includes('/story')) {
-        console.log('TAV: Using story demo greeting');
-        return DEMO_GREET_MESSAGES.legacy_story;
-      } else {
-        console.log('TAV: Using default demo greeting for route:', currentPath);
-        return DEMO_GREET_MESSAGES.default;
+    // PRIORITY 1: DEMO MODE - Override all other priorities for demo experience
+    if (isDemoMode) {
+      const demoGreeting = getDemoGreeting();
+      if (demoGreeting) {
+        console.log('TAV: Using PERSISTENT DEMO MODE greeting for', location.pathname, {
+          persistentDemoMode,
+          hasActiveDemoSession,
+          isOnTavDemoRoute,
+          stateDemoMode: state.isDemoMode
+        });
+        return demoGreeting;
       }
     }
-    
-    console.log('TAV Greeting Context (non-demo):', { 
-      currentPath, 
-      isDemoMode, 
-      currentRole: state.currentRole 
-    });
     
     // PRIORITY 2: LOUD MODE for anonymous dashboard users (non-demo)
     if (isLoudMode && !isDemoMode && dashboardRole && LOUD_DASHBOARD_MESSAGES[dashboardRole]) {

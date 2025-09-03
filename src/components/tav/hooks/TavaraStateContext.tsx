@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { TavaraState } from '../types';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 
 interface TavaraStateContextType {
   state: TavaraState & { isDemoMode: boolean };
@@ -18,17 +18,12 @@ const TavaraStateContext = createContext<TavaraStateContextType | undefined>(und
 
 interface TavaraStateProviderProps {
   children: ReactNode;
-  initialRole?: 'guest' | 'family' | 'professional' | 'community' | null;
-  forceDemoMode?: boolean;
 }
 
-export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ 
-  children, 
-  initialRole = null,
-  forceDemoMode = false 
-}) => {
+export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ children }) => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [state, setState] = useState<TavaraState & { isDemoMode: boolean }>({
     isOpen: false,
     isMinimized: false,
@@ -37,38 +32,54 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({
     isDemoMode: false
   });
 
-  // Demo mode detection - prioritize route-based detection
+  // IMMEDIATE demo mode detection and locking
   useEffect(() => {
-    const currentPath = window.location.pathname;
-    const isDemoRoute = currentPath.startsWith('/demo/') || currentPath === '/tav-demo';
-    const isUrlParamDemo = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
+    const urlParamsDemo = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
+    const isOnTavDemoRoute = location.pathname === '/tav-demo';
+    const hasActiveDemoSession = sessionStorage.getItem('tavara_demo_session') === 'true';
+    const isDemoModeLocked = sessionStorage.getItem('tavara_demo_mode_locked') === 'true';
     
-    const isDemoMode = forceDemoMode || isDemoRoute || isUrlParamDemo;
+    // IMMEDIATE DEMO MODE LOCKING: Lock demo mode immediately when on /tav-demo route
+    if (isOnTavDemoRoute) {
+      console.log('TAV Context: IMMEDIATE demo mode lock on /tav-demo route');
+      sessionStorage.setItem('tavara_demo_session', 'true');
+      sessionStorage.setItem('tavara_demo_mode_locked', 'true');
+    }
     
-    console.log('TAV Demo Detection:', { currentPath, isDemoRoute, isDemoMode });
+    // PRIORITIZE SESSION STORAGE: session storage is now primary detection method
+    const isDemoMode = isDemoModeLocked || hasActiveDemoSession || isOnTavDemoRoute || urlParamsDemo;
+    
+    // Clear demo session if user navigates away from demo flows (but respect locked demo mode)
+    if (!urlParamsDemo && !isOnTavDemoRoute && !location.pathname.includes('/registration/') && !location.pathname.includes('/family/') && !isDemoModeLocked) {
+      if (hasActiveDemoSession) {
+        console.log('TAV: Clearing demo session - user navigated away from demo flows');
+        sessionStorage.removeItem('tavara_demo_session');
+        sessionStorage.removeItem('tavara_demo_mode_locked');
+      }
+    }
+    
+    console.log('TAV Context: Enhanced demo mode detection:', {
+      urlParamsDemo,
+      isOnTavDemoRoute,
+      hasActiveDemoSession,
+      isDemoModeLocked,
+      isDemoMode,
+      pathname: location.pathname
+    });
     
     setState(prev => ({
       ...prev,
-      isDemoMode,
-      currentRole: isDemoMode ? (initialRole || 'guest') : prev.currentRole
+      isDemoMode
     }));
-  }, [searchParams, forceDemoMode, initialRole]);
+  }, [searchParams, location.pathname]);
 
   useEffect(() => {
     const fetchUserRole = async () => {
-      const currentPath = window.location.pathname;
-      const isDemoRoute = currentPath.startsWith('/demo/') || currentPath === '/tav-demo';
-      const isUrlParamDemo = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
-      const isDemoMode = forceDemoMode || isDemoRoute || isUrlParamDemo;
-      
-      if (isDemoMode) {
-        setState(prev => ({
-          ...prev,
-          currentRole: initialRole || 'guest',
-          isDemoMode: true
-        }));
-        return;
-      }
+      const urlParamsDemo = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
+      const isOnTavDemoRoute = location.pathname === '/tav-demo';
+      const hasActiveDemoSession = sessionStorage.getItem('tavara_demo_session') === 'true';
+      const isDemoModeLocked = sessionStorage.getItem('tavara_demo_mode_locked') === 'true';
+      const isDemoMode = urlParamsDemo || isOnTavDemoRoute || hasActiveDemoSession || isDemoModeLocked;
       
       if (user) {
         try {
@@ -81,27 +92,27 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({
           setState(prev => ({
             ...prev,
             currentRole: profile?.role || 'family',
-            isDemoMode: false
+            isDemoMode
           }));
         } catch (error) {
           console.error('Error fetching user role:', error);
           setState(prev => ({
             ...prev,
             currentRole: 'family',
-            isDemoMode: false
+            isDemoMode
           }));
         }
       } else {
         setState(prev => ({
           ...prev,
-          currentRole: 'guest',
-          isDemoMode: false
+          currentRole: isDemoMode ? 'guest' : 'guest',
+          isDemoMode
         }));
       }
     };
 
     fetchUserRole();
-  }, [user, searchParams, forceDemoMode, initialRole]);
+  }, [user, searchParams, location.pathname]);
 
   const openPanel = () => {
     console.log('TAV: Opening panel');

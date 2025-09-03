@@ -115,11 +115,7 @@ const initialFormData: CareNeedsFormData = {
   additional_notes: ""
 };
 
-interface CareNeedsAssessmentFormProps {
-  isDemo?: boolean;
-}
-
-export const CareNeedsAssessmentForm = ({ isDemo: isExternalDemo = false }: CareNeedsAssessmentFormProps = {}) => {
+export const CareNeedsAssessmentForm = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('mode') === 'edit';
@@ -130,23 +126,14 @@ export const CareNeedsAssessmentForm = ({ isDemo: isExternalDemo = false }: Care
   const [prefillApplied, setPrefillApplied] = useState(false);
 
   useEffect(() => {
-    // Skip loading for demo mode
-    const searchParams = new URLSearchParams(window.location.search);
-    const isDemoMode = isExternalDemo || searchParams.get('demo') === 'true';
-    
-    if (user && !isDemoMode) {
+    if (user) {
       loadExistingAssessment();
-    } else if (isDemoMode) {
-      setLoading(false);
     }
-  }, [user, isExternalDemo]);
+  }, [user]);
 
-  // Apply prefill data from chat sessions (skip for demo mode)
+  // Apply prefill data from chat sessions
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const isDemoMode = isExternalDemo || searchParams.get('demo') === 'true';
-    
-    if (!prefillApplied && !isDemoMode) {
+    if (!prefillApplied && user) {
       console.log('Checking for care assessment prefill data...');
       
       const setFormValue = (field: string, value: any) => {
@@ -168,10 +155,8 @@ export const CareNeedsAssessmentForm = ({ isDemo: isExternalDemo = false }: Care
       }
       
       setPrefillApplied(true);
-    } else {
-      setPrefillApplied(true);
     }
-  }, [prefillApplied, isExternalDemo]);
+  }, [prefillApplied, user]);
 
   const loadExistingAssessment = async () => {
     if (!user) return;
@@ -210,19 +195,6 @@ export const CareNeedsAssessmentForm = ({ isDemo: isExternalDemo = false }: Care
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Demo mode - skip database operations
-    const searchParams = new URLSearchParams(window.location.search);
-    const isDemo = isExternalDemo || searchParams.get('demo') === 'true';
-    
-    if (isDemo) {
-      toast.success('Demo Care Assessment Complete! 🎉 Your assessment has been simulated successfully.');
-      setTimeout(() => {
-        window.location.href = '/demo/family/story';
-      }, 1500);
-      return;
-    }
-    
     if (!user) return;
 
     // Validate required fields

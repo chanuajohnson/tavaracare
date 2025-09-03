@@ -6,11 +6,7 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
 
-interface CareNeedsAssessmentPageProps {
-  isDemo?: boolean;
-}
-
-const CareNeedsAssessmentPage = ({ isDemo: isExternalDemo = false }: CareNeedsAssessmentPageProps = {}) => {
+const CareNeedsAssessmentPage = () => {
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('mode') === 'edit';
   const isDemo = searchParams.get('demo') === 'true';
@@ -48,7 +44,7 @@ const CareNeedsAssessmentPage = ({ isDemo: isExternalDemo = false }: CareNeedsAs
       
       <DashboardHeader breadcrumbItems={breadcrumbItems} />
       
-      <CareNeedsAssessmentForm isDemo={isExternalDemo} />
+      <CareNeedsAssessmentForm />
     </div>
   );
 };

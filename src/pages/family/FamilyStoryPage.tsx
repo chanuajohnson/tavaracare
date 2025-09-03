@@ -110,11 +110,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface FamilyStoryPageProps {
-  isDemo?: boolean;
-}
-
-const FamilyStoryPage = ({ isDemo: isExternalDemo = false }: FamilyStoryPageProps = {}) => {
+const FamilyStoryPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -249,15 +245,6 @@ const FamilyStoryPage = ({ isDemo: isExternalDemo = false }: FamilyStoryPageProp
   }, [prefillApplied, user, isEditMode, form]);
 
   const onSubmit = async (data: FormValues) => {
-    // Demo mode - skip database operations
-    if (isExternalDemo || isDemo) {
-      toast.success('Demo Story Complete! 🎉 Your loved one\'s story has been simulated successfully.');
-      setTimeout(() => {
-        navigate('/tav-demo?openDemo=true');
-      }, 1500);
-      return;
-    }
-    
     if (!user) {
       toast.error("You must be logged in to submit this form");
       return;

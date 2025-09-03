@@ -32,7 +32,7 @@ export default function TavDemo() {
       description: 'Experience how families find and connect with perfect caregivers',
       icon: Heart,
       color: 'from-pink-500 to-rose-500',
-      path: '/demo/registration/family',
+      path: '/registration/family?demo=true&role=guest',
       enabled: true
     },
     {
@@ -59,7 +59,7 @@ export default function TavDemo() {
       description: 'Walk through our intelligent care planning process',
       icon: Heart,
       color: 'from-purple-500 to-violet-500',
-      path: '/demo/family/care-assessment',
+      path: '/family/care-assessment?demo=true&role=guest',
       enabled: true
     },
     {
@@ -68,7 +68,7 @@ export default function TavDemo() {
       description: 'Experience our family story capture and sharing platform',
       icon: MessageCircle,
       color: 'from-amber-500 to-orange-500',
-      path: '/demo/family/story',
+      path: '/family/story?demo=true&role=guest',
       enabled: true
     }
   ];
@@ -77,6 +77,11 @@ export default function TavDemo() {
     if (!enabled) {
       return; // Do nothing for disabled demos
     }
+    
+    // PRE-NAVIGATION DEMO SETUP: Set demo session storage immediately
+    console.log('TAV Demo: Pre-setting demo session for seamless experience');
+    sessionStorage.setItem('tavara_demo_session', 'true');
+    sessionStorage.setItem('tavara_demo_mode_locked', 'true');
     
     // Track demo analytics
     console.log('TAV Demo: Starting demo with path:', path);
@@ -111,6 +116,11 @@ export default function TavDemo() {
               <Button 
                 size="lg" 
                 onClick={() => {
+                  // PRE-DEMO SETUP: Set demo mode before revealing options
+                  console.log('TAV Demo: Pre-setting demo mode for Try Interactive Demo');
+                  sessionStorage.setItem('tavara_demo_session', 'true');
+                  sessionStorage.setItem('tavara_demo_mode_locked', 'true');
+                  
                   setActiveDemo('family');
                   // Scroll to demo section after it renders
                   setTimeout(() => {
