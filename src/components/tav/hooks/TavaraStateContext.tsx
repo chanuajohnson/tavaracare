@@ -32,21 +32,22 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ childr
     isDemoMode: false
   });
 
-  // Enhanced demo mode detection with session persistence
+  // IMMEDIATE demo mode detection and locking
   useEffect(() => {
     const urlParamsDemo = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
     const isOnTavDemoRoute = location.pathname === '/tav-demo';
     const hasActiveDemoSession = sessionStorage.getItem('tavara_demo_session') === 'true';
     const isDemoModeLocked = sessionStorage.getItem('tavara_demo_mode_locked') === 'true';
     
-    // ENHANCED URL-FIRST DETECTION: URL params trump all other logic
-    const isDemoMode = urlParamsDemo || isOnTavDemoRoute || hasActiveDemoSession || isDemoModeLocked;
-    
-    // Start demo session if on /tav-demo route
-    if (isOnTavDemoRoute && !hasActiveDemoSession) {
-      console.log('TAV: Starting demo session on /tav-demo route');
+    // IMMEDIATE DEMO MODE LOCKING: Lock demo mode immediately when on /tav-demo route
+    if (isOnTavDemoRoute) {
+      console.log('TAV Context: IMMEDIATE demo mode lock on /tav-demo route');
       sessionStorage.setItem('tavara_demo_session', 'true');
+      sessionStorage.setItem('tavara_demo_mode_locked', 'true');
     }
+    
+    // PRIORITIZE SESSION STORAGE: session storage is now primary detection method
+    const isDemoMode = isDemoModeLocked || hasActiveDemoSession || isOnTavDemoRoute || urlParamsDemo;
     
     // Clear demo session if user navigates away from demo flows (but respect locked demo mode)
     if (!urlParamsDemo && !isOnTavDemoRoute && !location.pathname.includes('/registration/') && !location.pathname.includes('/family/') && !isDemoModeLocked) {
