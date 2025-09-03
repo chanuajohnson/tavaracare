@@ -57,9 +57,12 @@ export const TavaraAssistantPanel: React.FC = () => {
   const [showGreeting, setShowGreeting] = useState(false);
   const [greetedPages, setGreetedPages] = useState<Set<string>>(new Set());
   const [isExpanded, setIsExpanded] = useState(false);
-
+  
+  // Demo mode persistence - lock in demo mode once detected to prevent message switching
+  const [persistentDemoMode, setPersistentDemoMode] = useState(false);
+  
   // Demo mode detection
-  const isDemoMode = state.isDemoMode;
+  const isDemoMode = state.isDemoMode || persistentDemoMode;
 
   // LOUD MODE DETECTION for anonymous users on dashboard pages OR demo mode
   const isLoudMode = (!user && (location.pathname === '/dashboard/family' || location.pathname === '/dashboard/professional')) || isDemoMode;
@@ -70,14 +73,21 @@ export const TavaraAssistantPanel: React.FC = () => {
   const professionalProgress = useEnhancedProfessionalProgress();
   const familyJourneyProgress = useEnhancedJourneyProgress();
 
-  // Initialize session tracking
+  // Initialize session tracking and lock in demo mode
   useEffect(() => {
     // Mark session as started
     sessionStorage.setItem('tavara_session_started', 'true');
     if (!sessionStorage.getItem('tavara_session_start_time')) {
       sessionStorage.setItem('tavara_session_start_time', Date.now().toString());
     }
-  }, []);
+    
+    // Lock in demo mode once detected to prevent message switching
+    if (state.isDemoMode && !persistentDemoMode) {
+      console.log('TAV: Locking in demo mode for persistent messaging');
+      setPersistentDemoMode(true);
+      setIsExpanded(true); // Immediately set expanded for demo mode
+    }
+  }, [state.isDemoMode, persistentDemoMode]);
 
   // Initialize nudge service and fetch nudges
   useEffect(() => {
@@ -277,7 +287,7 @@ export const TavaraAssistantPanel: React.FC = () => {
     if (isDemoMode) {
       const demoGreeting = getDemoGreeting();
       if (demoGreeting) {
-        console.log('TAV: Using DEMO MODE greeting for', location.pathname);
+        console.log('TAV: Using PERSISTENT DEMO MODE greeting for', location.pathname, 'persistentDemoMode:', persistentDemoMode);
         return demoGreeting;
       }
     }
