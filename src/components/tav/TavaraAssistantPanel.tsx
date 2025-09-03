@@ -95,8 +95,14 @@ export const TavaraAssistantPanel: React.FC = () => {
       });
       setPersistentDemoMode(true);
       setIsExpanded(true); // Immediately set expanded for demo mode
+      setHasInitialGreeted(true); // Mark as greeted to prevent auto-greeting override
+      
+      // Automatically open panel for demo mode
+      setTimeout(() => {
+        openPanel();
+      }, 500);
     }
-  }, [state.isDemoMode, persistentDemoMode, hasActiveDemoSession, isOnTavDemoRoute, location.pathname]);
+  }, [state.isDemoMode, persistentDemoMode, hasActiveDemoSession, isOnTavDemoRoute, location.pathname, openPanel]);
 
   // Initialize nudge service and fetch nudges
   useEffect(() => {
@@ -146,8 +152,14 @@ export const TavaraAssistantPanel: React.FC = () => {
 
   // ENHANCED MAGIC AUTO-GREETING with DEMO MODE and LOUD MODE for dashboards
   useEffect(() => {
-    const sessionKey = isDemoMode ? `tavara_demo_greeted_${location.pathname}` : `tavara_session_greeted`;
-    const hasGreetedThisSession = isDemoMode ? false : sessionStorage.getItem(sessionKey); // Always greet in demo mode
+    // Skip auto-greeting in demo mode to prevent override of demo messages
+    if (isDemoMode) {
+      console.log('TAV: Skipping auto-greeting in demo mode to preserve demo messages');
+      return;
+    }
+    
+    const sessionKey = `tavara_session_greeted`;
+    const hasGreetedThisSession = sessionStorage.getItem(sessionKey);
     
     console.log('TAV: Auto-greeting check:', {
       hasGreetedThisSession,
@@ -163,26 +175,20 @@ export const TavaraAssistantPanel: React.FC = () => {
       currentForm: currentForm?.formId
     });
     
-    // Show magic greeting if haven't greeted this session AND not already open (or always in demo mode)
-    if ((!hasGreetedThisSession || isDemoMode) && !hasInitialGreeted && !state.isOpen) {
+    // Show magic greeting if haven't greeted this session AND not already open
+    if (!hasGreetedThisSession && !hasInitialGreeted && !state.isOpen) {
       console.log('TAV: Triggering magic auto-greeting!', { isLoudMode, isDemoMode, dashboardRole });
       
-      // DEMO MODE: Ultra fast timing, LOUD MODE: More aggressive timing for dashboard anonymous users
-      const initialDelay = isDemoMode ? 300 : (isLoudMode ? 800 : 1200);
-      const displayDuration = isDemoMode ? 2000 : (isLoudMode ? 3500 : 2500);
+      // LOUD MODE: More aggressive timing for dashboard anonymous users
+      const initialDelay = isLoudMode ? 800 : 1200;
+      const displayDuration = isLoudMode ? 3500 : 2500;
       
       // Show magic entrance after a brief delay
       setTimeout(() => {
         setShowGreeting(true);
         setHasInitialGreeted(true);
-        // Auto-expand in demo mode
-        if (isDemoMode) {
-          setIsExpanded(true);
-        }
-        // Mark as greeted for this session (except in demo mode where we want fresh experience)
-        if (!isDemoMode) {
-          sessionStorage.setItem(sessionKey, 'true');
-        }
+        // Mark as greeted for this session
+        sessionStorage.setItem(sessionKey, 'true');
         
         // Auto-open the panel after showing the magic - NO USER INTERACTION NEEDED
         setTimeout(() => {
@@ -197,8 +203,8 @@ export const TavaraAssistantPanel: React.FC = () => {
   useEffect(() => {
     const currentPath = location.pathname;
     
-    // Skip if panel is already open or we haven't done initial greeting
-    if (state.isOpen || !hasInitialGreeted) {
+    // Skip if panel is already open or we haven't done initial greeting or in demo mode
+    if (state.isOpen || !hasInitialGreeted || isDemoMode) {
       return;
     }
 
@@ -223,7 +229,7 @@ export const TavaraAssistantPanel: React.FC = () => {
         }, autoOpenDelay);
       }, greetingDelay);
     }
-  }, [location.pathname, isJourneyTouchpoint, state.isOpen, greetedPages, openPanel, state.currentRole, hasInitialGreeted, isLoudMode]);
+  }, [location.pathname, isJourneyTouchpoint, state.isOpen, greetedPages, openPanel, state.currentRole, hasInitialGreeted, isLoudMode, isDemoMode]);
 
   // Auto-open for nudges
   useEffect(() => {
