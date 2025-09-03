@@ -3686,6 +3686,208 @@ export type Database = {
         }
         Relationships: []
       }
+      tav_analytics: {
+        Row: {
+          id: string
+          metadata: Json | null
+          metric_type: string
+          metric_value: number | null
+          session_id: string | null
+          timestamp: string
+        }
+        Insert: {
+          id?: string
+          metadata?: Json | null
+          metric_type: string
+          metric_value?: number | null
+          session_id?: string | null
+          timestamp?: string
+        }
+        Update: {
+          id?: string
+          metadata?: Json | null
+          metric_type?: string
+          metric_value?: number | null
+          session_id?: string | null
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tav_analytics_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "tav_demo_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tav_demo_sessions: {
+        Row: {
+          company_name: string | null
+          conversation_data: Json | null
+          conversion_stage: string | null
+          created_at: string
+          customization_preferences: Json | null
+          demo_duration_seconds: number | null
+          demo_type: string
+          email_captured: string | null
+          form_interactions: number | null
+          id: string
+          lead_captured: boolean | null
+          messages_sent: number | null
+          session_token: string
+          updated_at: string
+          use_case_selected: string | null
+          visitor_ip: string | null
+          visitor_location: Json | null
+        }
+        Insert: {
+          company_name?: string | null
+          conversation_data?: Json | null
+          conversion_stage?: string | null
+          created_at?: string
+          customization_preferences?: Json | null
+          demo_duration_seconds?: number | null
+          demo_type?: string
+          email_captured?: string | null
+          form_interactions?: number | null
+          id?: string
+          lead_captured?: boolean | null
+          messages_sent?: number | null
+          session_token: string
+          updated_at?: string
+          use_case_selected?: string | null
+          visitor_ip?: string | null
+          visitor_location?: Json | null
+        }
+        Update: {
+          company_name?: string | null
+          conversation_data?: Json | null
+          conversion_stage?: string | null
+          created_at?: string
+          customization_preferences?: Json | null
+          demo_duration_seconds?: number | null
+          demo_type?: string
+          email_captured?: string | null
+          form_interactions?: number | null
+          id?: string
+          lead_captured?: boolean | null
+          messages_sent?: number | null
+          session_token?: string
+          updated_at?: string
+          use_case_selected?: string | null
+          visitor_ip?: string | null
+          visitor_location?: Json | null
+        }
+        Relationships: []
+      }
+      tav_leads: {
+        Row: {
+          budget_range: string | null
+          company_name: string | null
+          company_size: string | null
+          created_at: string
+          demo_session_id: string | null
+          email: string
+          full_name: string | null
+          id: string
+          industry: string | null
+          lead_score: number | null
+          notes: string | null
+          qualification_status: string | null
+          technical_expertise: string | null
+          timeline: string | null
+          updated_at: string
+          use_case: string
+        }
+        Insert: {
+          budget_range?: string | null
+          company_name?: string | null
+          company_size?: string | null
+          created_at?: string
+          demo_session_id?: string | null
+          email: string
+          full_name?: string | null
+          id?: string
+          industry?: string | null
+          lead_score?: number | null
+          notes?: string | null
+          qualification_status?: string | null
+          technical_expertise?: string | null
+          timeline?: string | null
+          updated_at?: string
+          use_case: string
+        }
+        Update: {
+          budget_range?: string | null
+          company_name?: string | null
+          company_size?: string | null
+          created_at?: string
+          demo_session_id?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          industry?: string | null
+          lead_score?: number | null
+          notes?: string | null
+          qualification_status?: string | null
+          technical_expertise?: string | null
+          timeline?: string | null
+          updated_at?: string
+          use_case?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tav_leads_demo_session_id_fkey"
+            columns: ["demo_session_id"]
+            isOneToOne: false
+            referencedRelation: "tav_demo_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tav_plans: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          features: Json
+          id: string
+          is_active: boolean | null
+          limits: Json
+          plan_name: string
+          plan_type: string
+          price_annual: number | null
+          price_monthly: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          features?: Json
+          id?: string
+          is_active?: boolean | null
+          limits?: Json
+          plan_name: string
+          plan_type: string
+          price_annual?: number | null
+          price_monthly?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          features?: Json
+          id?: string
+          is_active?: boolean | null
+          limits?: Json
+          plan_name?: string
+          plan_type?: string
+          price_annual?: number | null
+          price_monthly?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       training_modules: {
         Row: {
           created_at: string | null
