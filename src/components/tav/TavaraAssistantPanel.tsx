@@ -277,30 +277,35 @@ export const TavaraAssistantPanel: React.FC = () => {
 
   // Enhanced greeting message with DEMO MODE, LOUD MODE support and form detection context and professional intelligence
   const getContextualGreeting = () => {
-    // Immediate route-based demo detection as backup
+    // PRIORITY 1: ROUTE-BASED DEMO DETECTION - Early return to prevent any other logic from running
     const currentPath = location.pathname;
-    const isImmediateDemoRoute = currentPath.startsWith('/demo/') || currentPath === '/tav-demo';
-    const effectiveIsDemoMode = isDemoMode || isImmediateDemoRoute;
+    const isOnDemoRoute = currentPath.startsWith('/demo/') || currentPath === '/tav-demo';
     
-    console.log('TAV Greeting Context:', { 
+    // Early return for demo routes - this takes absolute priority
+    if (isOnDemoRoute) {
+      console.log('TAV: Demo route detected, using demo greeting for:', currentPath);
+      
+      // Route-specific demo greetings
+      if (currentPath.includes('/registration/family')) {
+        console.log('TAV: Using family registration demo greeting');
+        return DEMO_GREET_MESSAGES.family_registration;
+      } else if (currentPath.includes('/care-assessment')) {
+        console.log('TAV: Using care assessment demo greeting');
+        return DEMO_GREET_MESSAGES.care_assessment;
+      } else if (currentPath.includes('/story')) {
+        console.log('TAV: Using story demo greeting');
+        return DEMO_GREET_MESSAGES.legacy_story;
+      } else {
+        console.log('TAV: Using default demo greeting for route:', currentPath);
+        return DEMO_GREET_MESSAGES.default;
+      }
+    }
+    
+    console.log('TAV Greeting Context (non-demo):', { 
       currentPath, 
       isDemoMode, 
-      isImmediateDemoRoute, 
-      effectiveIsDemoMode 
+      currentRole: state.currentRole 
     });
-    
-    // PRIORITY 1: DEMO MODE - Override all other priorities for demo experience
-    // Ensure demo greetings persist even when panel is fully opened
-    if (effectiveIsDemoMode) {
-      const demoGreeting = getDemoGreeting();
-      if (demoGreeting) {
-        console.log('TAV: Using DEMO MODE greeting for', location.pathname);
-        return demoGreeting;
-      }
-      // Fallback for demo routes without specific greetings
-      console.log('TAV: Using default DEMO MODE greeting for', location.pathname);
-      return DEMO_GREET_MESSAGES.default;
-    }
     
     // PRIORITY 2: LOUD MODE for anonymous dashboard users (non-demo)
     if (isLoudMode && !isDemoMode && dashboardRole && LOUD_DASHBOARD_MESSAGES[dashboardRole]) {
