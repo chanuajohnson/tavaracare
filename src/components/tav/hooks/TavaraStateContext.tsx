@@ -3,9 +3,10 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { TavaraState } from '../types';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { useSearchParams } from 'react-router-dom';
 
 interface TavaraStateContextType {
-  state: TavaraState;
+  state: TavaraState & { isDemoMode: boolean };
   openPanel: () => void;
   closePanel: () => void;
   minimizePanel: () => void;
@@ -21,15 +22,28 @@ interface TavaraStateProviderProps {
 
 export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ children }) => {
   const { user } = useAuth();
-  const [state, setState] = useState<TavaraState>({
+  const [searchParams] = useSearchParams();
+  const [state, setState] = useState<TavaraState & { isDemoMode: boolean }>({
     isOpen: false,
     isMinimized: false,
     hasUnreadNudges: false,
-    currentRole: null
+    currentRole: null,
+    isDemoMode: false
   });
+
+  // Demo mode detection
+  useEffect(() => {
+    const isDemoMode = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
+    setState(prev => ({
+      ...prev,
+      isDemoMode
+    }));
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchUserRole = async () => {
+      const isDemoMode = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
+      
       if (user) {
         try {
           const { data: profile } = await supabase
@@ -40,25 +54,28 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ childr
           
           setState(prev => ({
             ...prev,
-            currentRole: profile?.role || 'family'
+            currentRole: profile?.role || 'family',
+            isDemoMode
           }));
         } catch (error) {
           console.error('Error fetching user role:', error);
           setState(prev => ({
             ...prev,
-            currentRole: 'family'
+            currentRole: 'family',
+            isDemoMode
           }));
         }
       } else {
         setState(prev => ({
           ...prev,
-          currentRole: 'guest'
+          currentRole: isDemoMode ? 'guest' : 'guest',
+          isDemoMode
         }));
       }
     };
 
     fetchUserRole();
-  }, [user]);
+  }, [user, searchParams]);
 
   const openPanel = () => {
     console.log('TAV: Opening panel');
