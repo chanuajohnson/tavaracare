@@ -32,7 +32,7 @@ const FORM_MAPPINGS: Record<string, DetectedForm> = {
     formTitle: 'Family Registration',
     userRole: 'family',
     journeyStage: 'registration',
-    autoGreetingMessage: "💙 Welcome to your family registration! I'm TAV, and I can help you fill out this form conversationally or guide you through each step. You can always close me and work independently, but I'm here to make this delightful. Would you like my assistance?",
+    autoGreetingMessage: "💙 Welcome to your family registration! I'm TAV, and I can help you fill out this form conversationally or guide you through each step. This is the REAL Tavara experience - the same magical TAV assistance our families get! Would you like my help?",
     fields: [
       {
         id: 'full_name',
@@ -69,7 +69,16 @@ const FORM_MAPPINGS: Record<string, DetectedForm> = {
     formTitle: 'Care Needs Assessment',
     userRole: 'family',
     journeyStage: 'assessment',
-    autoGreetingMessage: "💙 I see you're working on your care needs assessment! This is so important for finding the right support. I can help you think through each care need conversationally, or guide you section by section. What would be most helpful?",
+    autoGreetingMessage: "💙 I see you're working on your care needs assessment! This is so important for finding the right support. This is the REAL Tavara experience - I can help you think through each care need conversationally, or guide you section by section. What would be most helpful?",
+    fields: []
+  },
+  
+  '/family/care-needs': {
+    formId: 'care-needs-assessment',
+    formTitle: 'Care Needs Assessment', 
+    userRole: 'family',
+    journeyStage: 'assessment',
+    autoGreetingMessage: "💙 Welcome to our care needs assessment! This is the REAL Tavara experience - the same magical TAV assistance our families get. I can help you think through each care need conversationally, or guide you section by section. What would be most helpful?",
     fields: [
       {
         id: 'care_recipient_name',
@@ -108,7 +117,16 @@ const FORM_MAPPINGS: Record<string, DetectedForm> = {
     formTitle: 'Legacy Story',
     userRole: 'family',
     journeyStage: 'story',
-    autoGreetingMessage: "💙 What a beautiful step - capturing your loved one's story! This helps caregivers connect with who they truly are. I can help you think through their story conversationally, or you can write freely. Either way, this will be treasured. How would you like to begin?",
+    autoGreetingMessage: "💙 What a beautiful step - capturing your loved one's story! This is the REAL Tavara experience - I can help you think through their story conversationally, or you can write freely. Either way, this will be treasured. How would you like to begin?",
+    fields: []
+  },
+  
+  '/legacy/stories': {
+    formId: 'legacy-story',
+    formTitle: 'Legacy Stories',
+    userRole: 'family', 
+    journeyStage: 'story',
+    autoGreetingMessage: "💙 Welcome to our legacy stories platform! This is the REAL Tavara experience - the same magical TAV assistance our families get. I can help you capture your loved one's story conversationally, or guide you through sharing family memories. How would you like to begin?",
     fields: [
       {
         id: 'care_recipient_story',
@@ -128,7 +146,7 @@ const FORM_MAPPINGS: Record<string, DetectedForm> = {
     formTitle: 'Professional Registration',
     userRole: 'professional',
     journeyStage: 'registration',
-    autoGreetingMessage: "🤝 Welcome to your professional registration! I'm TAV, and I'm here to help you showcase your expertise beautifully. I can guide you through each section conversationally, or you can work independently. Let's make this easy - would you like my assistance?",
+    autoGreetingMessage: "🤝 Welcome to your professional registration! I'm TAV, and I'm here to help you showcase your expertise beautifully. This is the REAL Tavara experience - the same magical TAV assistance our professionals get! Would you like my help?",
     fields: [
       {
         id: 'professional_type',
@@ -237,7 +255,7 @@ const FORM_MAPPINGS: Record<string, DetectedForm> = {
     formTitle: 'Community Registration',
     userRole: 'community',
     journeyStage: 'registration',
-    autoGreetingMessage: "🌟 Welcome to our caring community! Thank you for wanting to make a difference. I can help you share your interests and find the perfect way to contribute. Let's discover how you'd like to be part of our village of care!",
+    autoGreetingMessage: "🌟 Welcome to our caring community! Thank you for wanting to make a difference. This is the REAL Tavara experience - the same magical TAV assistance our community members get! Let's discover how you'd like to be part of our village of care!",
     fields: [
       {
         id: 'community_motivation',
