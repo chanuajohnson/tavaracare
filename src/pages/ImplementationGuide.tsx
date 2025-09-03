@@ -102,11 +102,8 @@ Implementation should follow TAV (Tavara AI Assistant) patterns for conversation
     { name: "React 18+", category: "Frontend", description: "Component-based UI with hooks" },
     { name: "TypeScript", category: "Language", description: "Type safety and developer experience" },
     { name: "Tailwind CSS", category: "Styling", description: "Utility-first CSS framework" },
-    { name: "GPT-4 AI Model", category: "AI Engine", description: "Natural language processing and conversation" },
-    { name: "Supabase Edge Functions", category: "AI Backend", description: "Serverless AI processing and database integration" },
     { name: "Supabase", category: "Backend", description: "Database, auth, and real-time features" },
     { name: "React Router", category: "Routing", description: "Client-side routing and navigation" },
-    { name: "Context API", category: "State Mgmt", description: "Conversation state and AI context management" },
     { name: "Framer Motion", category: "Animation", description: "Smooth animations and transitions" },
     { name: "Radix UI", category: "Components", description: "Accessible UI primitives" },
     { name: "Vite", category: "Build Tool", description: "Fast development and building" }
@@ -140,258 +137,6 @@ Implementation should follow TAV (Tavara AI Assistant) patterns for conversation
 
       <div className="container max-w-6xl py-12 space-y-16">
         
-        {/* What is TAV? - Layman's Introduction */}
-        <section>
-          <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-            <Zap className="h-8 w-8 text-primary" />
-            What is TAV?
-          </h2>
-          
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Your AI-Powered Form Assistant</CardTitle>
-              <CardDescription>
-                TAV (Tavara AI Assistant) is like having a knowledgeable friend sitting next to you while filling out paperwork
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                  <h4 className="font-semibold mb-4 flex items-center gap-2">
-                    🤖 Powered by Advanced AI
-                  </h4>
-                  <p className="text-muted-foreground mb-4">
-                    TAV uses artificial intelligence to understand what you're trying to accomplish and guides you through 
-                    complex forms using natural conversation - just like talking to a helpful person.
-                  </p>
-                  <h4 className="font-semibold mb-2">Key Benefits:</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                      No more confusing forms or abandoned applications
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                      Understands context and remembers your previous answers
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                      Adapts to different users (families, professionals, community members)
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                      Available 24/7 without human support costs
-                    </li>
-                  </ul>
-                </div>
-                <div className="bg-muted/50 p-6 rounded-lg">
-                  <h4 className="font-semibold mb-3">Real-World Analogy</h4>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Imagine walking into a government office or insurance company, but instead of standing in line with 
-                    confusing paperwork, there's a friendly, knowledgeable person who:
-                  </p>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>• Asks you simple questions in plain English</li>
-                    <li>• Remembers everything you tell them</li>
-                    <li>• Fills out the complex forms for you</li>
-                    <li>• Never gets tired or impatient</li>
-                    <li>• Is available whenever you need help</li>
-                  </ul>
-                  <p className="text-sm text-muted-foreground mt-4 font-medium">
-                    That's exactly what TAV does, but powered by AI technology.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* How TAV Works - Simple Version */}
-        <section>
-          <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-            <Users className="h-8 w-8 text-primary" />
-            How TAV Works (Simple Version)
-          </h2>
-          
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>The User Experience</CardTitle>
-              <CardDescription>
-                See how AI transforms form completion from frustrating to effortless
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Globe className="h-8 w-8 text-primary" />
-                  </div>
-                  <h4 className="font-semibold mb-2">1. User Visits Form</h4>
-                  <p className="text-sm text-muted-foreground">
-                    TAV appears as a friendly chat assistant, ready to help with the form
-                  </p>
-                </div>
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Users className="h-8 w-8 text-primary" />
-                  </div>
-                  <h4 className="font-semibold mb-2">2. Natural Conversation</h4>
-                  <p className="text-sm text-muted-foreground">
-                    AI asks questions in plain English and understands the responses contextually
-                  </p>
-                </div>
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Zap className="h-8 w-8 text-primary" />
-                  </div>
-                  <h4 className="font-semibold mb-2">3. Smart Form Filling</h4>
-                  <p className="text-sm text-muted-foreground">
-                    AI maps conversation answers to the correct form fields automatically
-                  </p>
-                </div>
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <TrendingUp className="h-8 w-8 text-primary" />
-                  </div>
-                  <h4 className="font-semibold mb-2">4. Confident Submission</h4>
-                  <p className="text-sm text-muted-foreground">
-                    User submits complete, accurate form with confidence and satisfaction
-                  </p>
-                </div>
-              </div>
-              
-              <div className="mt-8 p-6 bg-muted/50 rounded-lg">
-                <h4 className="font-semibold mb-3 flex items-center gap-2">
-                  🧠 AI Technology Made Simple
-                </h4>
-                <p className="text-muted-foreground">
-                  TAV uses advanced natural language processing (NLP) and machine learning to understand context, 
-                  remember conversations, and adapt to different user needs. It's like having a computer that can 
-                  think and communicate like a human, but specifically trained to help with forms and applications.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Why This Matters - Business Value */}
-        <section>
-          <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-            <TrendingUp className="h-8 w-8 text-primary" />
-            Why This Matters
-          </h2>
-          
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>The Problem with Traditional Forms</CardTitle>
-              <CardDescription>
-                Understanding the business case for AI-powered form assistance
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div>
-                  <h4 className="font-semibold mb-4 text-destructive">❌ Traditional Forms Are Broken</h4>
-                  <ul className="space-y-3 text-muted-foreground">
-                    <li className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-destructive rounded-full mt-2 flex-shrink-0" />
-                      <div>
-                        <span className="font-medium">High Abandonment:</span> 70% of users abandon complex forms
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-destructive rounded-full mt-2 flex-shrink-0" />
-                      <div>
-                        <span className="font-medium">Confusion & Errors:</span> Users struggle with unclear fields and validation
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-destructive rounded-full mt-2 flex-shrink-0" />
-                      <div>
-                        <span className="font-medium">Support Burden:</span> Endless help desk tickets for form questions
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-destructive rounded-full mt-2 flex-shrink-0" />
-                      <div>
-                        <span className="font-medium">Lost Revenue:</span> Every abandoned form is a lost customer or opportunity
-                      </div>
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-4 text-primary">✅ TAV AI Solution</h4>
-                  <ul className="space-y-3 text-muted-foreground">
-                    <li className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                      <div>
-                        <span className="font-medium">65% Higher Completion:</span> Conversational interface reduces cognitive load
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                      <div>
-                        <span className="font-medium">Instant Guidance:</span> AI provides real-time help and validation
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                      <div>
-                        <span className="font-medium">40% Fewer Support Tickets:</span> Users get help without human intervention
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                      <div>
-                        <span className="font-medium">Better Data Quality:</span> AI ensures complete, accurate submissions
-                      </div>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-              
-              <div className="mt-8 p-6 border border-primary/20 bg-primary/5 rounded-lg">
-                <h4 className="font-semibold mb-3 flex items-center gap-2">
-                  💡 Business Impact
-                </h4>
-                <p className="text-muted-foreground">
-                  Organizations implementing conversational AI assistants like TAV see immediate improvements in user satisfaction, 
-                  operational efficiency, and revenue. The technology pays for itself within 3-6 months through reduced support costs 
-                  and increased conversion rates.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Bridge to Technical Section */}
-        <section>
-          <div className="text-center py-8">
-            <div className="max-w-3xl mx-auto">
-              <h3 className="text-2xl font-bold mb-4">Ready to Dive Deeper?</h3>
-              <p className="text-lg text-muted-foreground mb-6">
-                Now that you understand what TAV is and why it matters, let's explore how it works under the hood. 
-                The following sections are designed for technical teams and CTOs who want to understand the architecture, 
-                technology choices, and implementation details.
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-2">
-                  <Server className="h-4 w-4" />
-                  React & TypeScript Architecture
-                </span>
-                <span className="flex items-center gap-2">
-                  <Database className="h-4 w-4" />
-                  AI Integration Patterns
-                </span>
-                <span className="flex items-center gap-2">
-                  <Smartphone className="h-4 w-4" />
-                  Modern Development Stack
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* System Architecture */}
         <section>
           <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
@@ -401,21 +146,20 @@ Implementation should follow TAV (Tavara AI Assistant) patterns for conversation
           
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle>TAV AI-Powered Architecture</CardTitle>
+              <CardTitle>TAV Architecture Overview</CardTitle>
               <CardDescription>
-                High-level system design showing AI integration, component relationships, and data flow
+                High-level system design showing component relationships and data flow
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-muted/50 p-6 rounded-lg mb-6">
+              <div className="bg-muted/50 p-6 rounded-lg">
                 <pre className="text-sm overflow-x-auto">
 {`┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   React UI      │    │  TAV AI Engine   │    │  Form Engine    │
+│   React UI      │    │  TAV Assistant   │    │  Form Engine    │
 │                 │────│                  │────│                 │
-│ • Components    │    │ • GPT-4 AI       │    │ • Field Mapping │
-│ • State Mgmt    │    │ • NLP Processing │    │ • Validation    │
-│ • Chat Interface│    │ • Context Memory │    │ • Auto-Fill     │
-│ • Real-time UI  │    │ • Role Detection │    │ • Submission    │
+│ • Components    │    │ • Conversation   │    │ • Field Mapping │
+│ • State Mgmt    │    │ • Context        │    │ • Validation    │
+│ • Routing       │    │ • Role Detection │    │ • Submission    │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
          │                        │                        │
          └────────────────────────┼────────────────────────┘
@@ -425,47 +169,10 @@ Implementation should follow TAV (Tavara AI Assistant) patterns for conversation
                     │                  │
                     │ • Database       │
                     │ • Authentication │
+                    │ • Real-time      │
                     │ • Edge Functions │
-                    │ • AI Processing  │
-                    │ • Real-time Sync │
                     └──────────────────┘`}
                 </pre>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="p-4 border border-primary/20 bg-primary/5 rounded-lg">
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    🤖 AI Processing Layer
-                  </h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• GPT-4 natural language understanding</li>
-                    <li>• Context-aware conversation management</li>
-                    <li>• Intent recognition and response generation</li>
-                    <li>• Dynamic form field mapping</li>
-                  </ul>
-                </div>
-                <div className="p-4 border border-muted rounded-lg">
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    ⚛️ Frontend Layer
-                  </h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• React components with TypeScript</li>
-                    <li>• Real-time chat interface</li>
-                    <li>• State management for conversations</li>
-                    <li>• Responsive form integration</li>
-                  </ul>
-                </div>
-                <div className="p-4 border border-muted rounded-lg">
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    🗄️ Backend Layer
-                  </h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Supabase Edge Functions for AI calls</li>
-                    <li>• PostgreSQL for data persistence</li>
-                    <li>• Real-time subscriptions</li>
-                    <li>• Authentication and security</li>
-                  </ul>
-                </div>
               </div>
             </CardContent>
           </Card>

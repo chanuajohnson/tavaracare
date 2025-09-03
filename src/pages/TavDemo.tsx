@@ -78,11 +78,6 @@ export default function TavDemo() {
       return; // Do nothing for disabled demos
     }
     
-    // PRE-NAVIGATION DEMO SETUP: Set demo session storage immediately
-    console.log('TAV Demo: Pre-setting demo session for seamless experience');
-    sessionStorage.setItem('tavara_demo_session', 'true');
-    sessionStorage.setItem('tavara_demo_mode_locked', 'true');
-    
     // Track demo analytics
     console.log('TAV Demo: Starting demo with path:', path);
     
@@ -116,11 +111,6 @@ export default function TavDemo() {
               <Button 
                 size="lg" 
                 onClick={() => {
-                  // PRE-DEMO SETUP: Set demo mode before revealing options
-                  console.log('TAV Demo: Pre-setting demo mode for Try Interactive Demo');
-                  sessionStorage.setItem('tavara_demo_session', 'true');
-                  sessionStorage.setItem('tavara_demo_mode_locked', 'true');
-                  
                   setActiveDemo('family');
                   // Scroll to demo section after it renders
                   setTimeout(() => {
