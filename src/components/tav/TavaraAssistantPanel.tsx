@@ -61,8 +61,10 @@ export const TavaraAssistantPanel: React.FC = () => {
   // Demo mode persistence - lock in demo mode once detected to prevent message switching
   const [persistentDemoMode, setPersistentDemoMode] = useState(false);
   
-  // Demo mode detection
-  const isDemoMode = state.isDemoMode || persistentDemoMode;
+  // Enhanced demo mode detection with session persistence
+  const hasActiveDemoSession = sessionStorage.getItem('tavara_demo_session') === 'true';
+  const isOnTavDemoRoute = location.pathname === '/tav-demo';
+  const isDemoMode = state.isDemoMode || persistentDemoMode || hasActiveDemoSession || isOnTavDemoRoute;
 
   // LOUD MODE DETECTION for anonymous users on dashboard pages OR demo mode
   const isLoudMode = (!user && (location.pathname === '/dashboard/family' || location.pathname === '/dashboard/professional')) || isDemoMode;
@@ -81,13 +83,20 @@ export const TavaraAssistantPanel: React.FC = () => {
       sessionStorage.setItem('tavara_session_start_time', Date.now().toString());
     }
     
-    // Lock in demo mode once detected to prevent message switching
-    if (state.isDemoMode && !persistentDemoMode) {
-      console.log('TAV: Locking in demo mode for persistent messaging');
+    // Enhanced demo mode locking with multiple detection methods
+    const shouldLockDemoMode = state.isDemoMode || hasActiveDemoSession || isOnTavDemoRoute;
+    
+    if (shouldLockDemoMode && !persistentDemoMode) {
+      console.log('TAV: Locking in demo mode for persistent messaging:', {
+        stateDemoMode: state.isDemoMode,
+        hasActiveDemoSession,
+        isOnTavDemoRoute,
+        pathname: location.pathname
+      });
       setPersistentDemoMode(true);
       setIsExpanded(true); // Immediately set expanded for demo mode
     }
-  }, [state.isDemoMode, persistentDemoMode]);
+  }, [state.isDemoMode, persistentDemoMode, hasActiveDemoSession, isOnTavDemoRoute, location.pathname]);
 
   // Initialize nudge service and fetch nudges
   useEffect(() => {
@@ -267,9 +276,14 @@ export const TavaraAssistantPanel: React.FC = () => {
     state.currentRole
   ]);
 
-  // Get demo-specific greeting based on form type
+  // Get demo-specific greeting based on form type and route
   const getDemoGreeting = () => {
     if (!isDemoMode) return null;
+    
+    // Special greeting for /tav-demo route
+    if (location.pathname === '/tav-demo') {
+      return "🎯 Welcome to TAV Demo! I'm here to show you how I help users complete forms. Click 'Try Interactive Demo' above to see me in action!";
+    }
     
     if (location.pathname.includes('/registration/family')) {
       return DEMO_GREET_MESSAGES.family_registration;
@@ -287,7 +301,12 @@ export const TavaraAssistantPanel: React.FC = () => {
     if (isDemoMode) {
       const demoGreeting = getDemoGreeting();
       if (demoGreeting) {
-        console.log('TAV: Using PERSISTENT DEMO MODE greeting for', location.pathname, 'persistentDemoMode:', persistentDemoMode);
+        console.log('TAV: Using PERSISTENT DEMO MODE greeting for', location.pathname, {
+          persistentDemoMode,
+          hasActiveDemoSession,
+          isOnTavDemoRoute,
+          stateDemoMode: state.isDemoMode
+        });
         return demoGreeting;
       }
     }

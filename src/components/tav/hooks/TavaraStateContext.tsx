@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { TavaraState } from '../types';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 
 interface TavaraStateContextType {
   state: TavaraState & { isDemoMode: boolean };
@@ -23,6 +23,7 @@ interface TavaraStateProviderProps {
 export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ children }) => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [state, setState] = useState<TavaraState & { isDemoMode: boolean }>({
     isOpen: false,
     isMinimized: false,
@@ -31,18 +32,48 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ childr
     isDemoMode: false
   });
 
-  // Demo mode detection
+  // Enhanced demo mode detection with session persistence
   useEffect(() => {
-    const isDemoMode = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
+    const urlParamsDemo = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
+    const isOnTavDemoRoute = location.pathname === '/tav-demo';
+    const hasActiveDemoSession = sessionStorage.getItem('tavara_demo_session') === 'true';
+    
+    const isDemoMode = urlParamsDemo || isOnTavDemoRoute || hasActiveDemoSession;
+    
+    // Start demo session if on /tav-demo route
+    if (isOnTavDemoRoute && !hasActiveDemoSession) {
+      console.log('TAV: Starting demo session on /tav-demo route');
+      sessionStorage.setItem('tavara_demo_session', 'true');
+    }
+    
+    // Clear demo session if user navigates away from demo flows
+    if (!urlParamsDemo && !isOnTavDemoRoute && !location.pathname.includes('/registration/') && !location.pathname.includes('/family/')) {
+      if (hasActiveDemoSession) {
+        console.log('TAV: Clearing demo session - user navigated away from demo flows');
+        sessionStorage.removeItem('tavara_demo_session');
+      }
+    }
+    
+    console.log('TAV Context: Demo mode detection:', {
+      urlParamsDemo,
+      isOnTavDemoRoute,
+      hasActiveDemoSession,
+      isDemoMode,
+      pathname: location.pathname
+    });
+    
     setState(prev => ({
       ...prev,
       isDemoMode
     }));
-  }, [searchParams]);
+  }, [searchParams, location.pathname]);
 
   useEffect(() => {
     const fetchUserRole = async () => {
-      const isDemoMode = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
+      const urlParamsDemo = searchParams.get('demo') === 'true' && searchParams.get('role') === 'guest';
+      const isOnTavDemoRoute = location.pathname === '/tav-demo';
+      const hasActiveDemoSession = sessionStorage.getItem('tavara_demo_session') === 'true';
+      const isDemoMode = urlParamsDemo || isOnTavDemoRoute || hasActiveDemoSession;
       
       if (user) {
         try {
@@ -75,7 +106,7 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ childr
     };
 
     fetchUserRole();
-  }, [user, searchParams]);
+  }, [user, searchParams, location.pathname]);
 
   const openPanel = () => {
     console.log('TAV: Opening panel');
