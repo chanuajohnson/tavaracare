@@ -19,23 +19,26 @@ export default function TavDemo() {
       description: 'Experience how families find and connect with perfect caregivers',
       icon: Heart,
       color: 'from-pink-500 to-rose-500',
-      path: '/registration/family?demo=true&role=guest'
+      path: '/registration/family?demo=true&role=guest',
+      enabled: true
     },
     {
       id: 'professional' as const,
       title: 'Professional Registration', 
-      description: 'See how caregivers join our professional network',
+      description: 'Coming Soon',
       icon: Users,
       color: 'from-blue-500 to-cyan-500',
-      path: '/registration/professional?demo=true&role=guest'
+      path: '',
+      enabled: false
     },
     {
       id: 'community' as const,
       title: 'Community Registration',
-      description: 'Discover how volunteers support families in need',
+      description: 'Coming Soon',
       icon: Building,
       color: 'from-green-500 to-emerald-500', 
-      path: '/registration/community?demo=true&role=guest'
+      path: '',
+      enabled: false
     },
     {
       id: 'care-needs' as const,
@@ -43,7 +46,8 @@ export default function TavDemo() {
       description: 'Walk through our intelligent care planning process',
       icon: Heart,
       color: 'from-purple-500 to-violet-500',
-      path: '/family/care-needs?demo=true&role=guest'
+      path: '/family/care-assessment?demo=true&role=guest',
+      enabled: true
     },
     {
       id: 'legacy' as const,
@@ -51,11 +55,16 @@ export default function TavDemo() {
       description: 'Experience our family story capture and sharing platform',
       icon: MessageCircle,
       color: 'from-amber-500 to-orange-500',
-      path: '/legacy/stories?demo=true&role=guest'
+      path: '/family/story?demo=true&role=guest',
+      enabled: true
     }
   ];
 
-  const handleStartDemo = (path: string) => {
+  const handleStartDemo = (path: string, enabled: boolean) => {
+    if (!enabled) {
+      return; // Do nothing for disabled demos
+    }
+    
     // Track demo analytics
     console.log('TAV Demo: Starting demo with path:', path);
     
@@ -184,28 +193,37 @@ export default function TavDemo() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: demoOptions.indexOf(option) * 0.1 }}
                 >
-                  <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer group"
-                        onClick={() => handleStartDemo(option.path)}>
+                  <Card className={`h-full transition-shadow ${option.enabled 
+                    ? 'hover:shadow-lg cursor-pointer group' 
+                    : 'opacity-60 cursor-not-allowed'
+                  }`}
+                        onClick={() => handleStartDemo(option.path, option.enabled)}>
                     <CardHeader>
-                      <div className={`w-12 h-12 rounded-lg bg-gradient-to-r ${option.color} flex items-center justify-center mb-3`}>
+                      <div className={`w-12 h-12 rounded-lg bg-gradient-to-r ${option.color} flex items-center justify-center mb-3 ${!option.enabled ? 'opacity-50' : ''}`}>
                         <option.icon className="h-6 w-6 text-white" />
                       </div>
-                      <CardTitle className="text-lg group-hover:text-primary transition-colors">
-                        {option.title}
-                      </CardTitle>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className={`text-lg transition-colors ${option.enabled ? 'group-hover:text-primary' : 'text-gray-500'}`}>
+                          {option.title}
+                        </CardTitle>
+                        {!option.enabled && (
+                          <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+                        )}
+                      </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-gray-600 mb-4">{option.description}</p>
+                      <p className={`mb-4 ${option.enabled ? 'text-gray-600' : 'text-gray-400'}`}>{option.description}</p>
                       <Button 
                         className="w-full" 
                         variant="outline"
+                        disabled={!option.enabled}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleStartDemo(option.path);
+                          handleStartDemo(option.path, option.enabled);
                         }}
                       >
                         <Play className="h-4 w-4 mr-2" />
-                        Start Demo
+                        {option.enabled ? 'Start Demo' : 'Coming Soon'}
                       </Button>
                     </CardContent>
                   </Card>
