@@ -290,12 +290,16 @@ export const TavaraAssistantPanel: React.FC = () => {
     });
     
     // PRIORITY 1: DEMO MODE - Override all other priorities for demo experience
+    // Ensure demo greetings persist even when panel is fully opened
     if (effectiveIsDemoMode) {
       const demoGreeting = getDemoGreeting();
       if (demoGreeting) {
         console.log('TAV: Using DEMO MODE greeting for', location.pathname);
         return demoGreeting;
       }
+      // Fallback for demo routes without specific greetings
+      console.log('TAV: Using default DEMO MODE greeting for', location.pathname);
+      return DEMO_GREET_MESSAGES.default;
     }
     
     // PRIORITY 2: LOUD MODE for anonymous dashboard users (non-demo)
