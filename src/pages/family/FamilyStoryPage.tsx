@@ -119,9 +119,13 @@ const FamilyStoryPage = () => {
   const [prefillApplied, setPrefillApplied] = useState(false);
   
   const isEditMode = searchParams.get('edit') === 'true';
+  const isDemo = searchParams.get('demo') === 'true';
   
   const breadcrumbItems = [
-    { label: "Family Dashboard", path: "/dashboard/family" },
+    { 
+      label: isDemo ? "TAV Demo" : "Family Dashboard", 
+      path: isDemo ? "/tav-demo" : "/dashboard/family" 
+    },
     { label: isEditMode ? "Edit Their Story" : "Tell Their Story", path: "/family/story" },
   ];
 

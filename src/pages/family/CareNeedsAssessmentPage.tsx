@@ -9,6 +9,19 @@ import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
 const CareNeedsAssessmentPage = () => {
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('mode') === 'edit';
+  const isDemo = searchParams.get('demo') === 'true';
+
+  // Set breadcrumb items based on demo mode
+  const breadcrumbItems = [
+    { 
+      label: isDemo ? "TAV Demo" : "Family Dashboard", 
+      path: isDemo ? "/tav-demo" : "/dashboard/family" 
+    },
+    { 
+      label: isEditMode ? "Edit Care Assessment" : "Care Needs Assessment", 
+      path: `/family/care-assessment${isEditMode ? '?mode=edit' : ''}` 
+    }
+  ];
 
   useEffect(() => {
     document.title = isEditMode ? "Edit Care Assessment | Tavara" : "Care Needs Assessment | Tavara";
@@ -29,15 +42,7 @@ const CareNeedsAssessmentPage = () => {
         journeyStage="onboarding"
       />
       
-      <DashboardHeader 
-        breadcrumbItems={[
-          { label: "Family Dashboard", path: "/dashboard/family" },
-          { 
-            label: isEditMode ? "Edit Care Assessment" : "Care Needs Assessment", 
-            path: `/family/care-assessment${isEditMode ? '?mode=edit' : ''}` 
-          }
-        ]} 
-      />
+      <DashboardHeader breadcrumbItems={breadcrumbItems} />
       
       <CareNeedsAssessmentForm />
     </div>
