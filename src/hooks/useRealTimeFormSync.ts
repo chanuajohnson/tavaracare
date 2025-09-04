@@ -58,6 +58,9 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
     // Phone patterns
     const phonePattern = /(\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4})/;
 
+    // Track if context-aware extraction was successful
+    let contextExtractionSucceeded = false;
+
     // Context-aware extraction logic
     if (contextFieldType) {
       console.log('🎯 [Real-time Sync] Using context-aware extraction for:', contextFieldType);
@@ -70,42 +73,52 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
         switch (contextFieldType) {
           case 'first_name':
             extracted.first_name = value;
+            contextExtractionSucceeded = true;
             console.log('✅ [Real-time Sync] Context-aware first name:', value);
             break;
           case 'last_name':
             extracted.last_name = value;
+            contextExtractionSucceeded = true;
             console.log('✅ [Real-time Sync] Context-aware last name:', value);
             break;
         }
       }
     }
 
-    // Fallback to explicit patterns if context didn't work
-    if (!extracted.first_name) {
-      console.log('🔍 [Real-time Sync] Testing explicit first name patterns...');
-      for (let i = 0; i < firstNamePatterns.length; i++) {
-        const pattern = firstNamePatterns[i];
-        const match = message.match(pattern);
-        if (match && match[1] && match[1].length >= 2) {
-          const name = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
-          extracted.first_name = name;
-          console.log('✅ [Real-time Sync] Found first name via explicit pattern:', name);
-          break;
+    // Only run fallback patterns if context-aware extraction failed
+    if (!contextExtractionSucceeded) {
+      console.log('🔍 [Real-time Sync] Context extraction failed, trying fallback patterns...');
+      
+      // Fallback to explicit patterns for first name
+      if (!extracted.first_name) {
+        console.log('🔍 [Real-time Sync] Testing explicit first name patterns...');
+        for (let i = 0; i < firstNamePatterns.length; i++) {
+          const pattern = firstNamePatterns[i];
+          const match = message.match(pattern);
+          if (match && match[1] && match[1].length >= 2) {
+            const name = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+            extracted.first_name = name;
+            console.log('✅ [Real-time Sync] Found first name via explicit pattern:', name);
+            break;
+          }
         }
       }
-    }
 
-    if (!extracted.last_name) {
-      console.log('🔍 [Real-time Sync] Testing explicit last name patterns...');
-      for (const pattern of lastNamePatterns) {
-        const match = message.match(pattern);
-        if (match && match[1]) {
-          const name = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
-          extracted.last_name = name;
-          console.log('✅ [Real-time Sync] Found last name via explicit pattern:', name);
-          break;
+      // Fallback to explicit patterns for last name
+      if (!extracted.last_name) {
+        console.log('🔍 [Real-time Sync] Testing explicit last name patterns...');
+        for (const pattern of lastNamePatterns) {
+          const match = message.match(pattern);
+          if (match && match[1]) {
+            const name = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+            extracted.last_name = name;
+            console.log('✅ [Real-time Sync] Found last name via explicit pattern:', name);
+            break;
+          }
         }
       }
+    } else {
+      console.log('✅ [Real-time Sync] Context extraction succeeded, skipping fallback patterns');
     }
 
     // Extract email
