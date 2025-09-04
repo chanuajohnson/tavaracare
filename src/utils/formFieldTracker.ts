@@ -100,6 +100,21 @@ export class FormFieldTracker {
       return true;
     }
 
+    // Skip navigation, search, and UI elements by class names and IDs
+    const skipClasses = ['search', 'filter', 'nav', 'menu', 'header', 'footer', 'sidebar'];
+    const skipIds = ['search', 'filter', 'nav', 'menu'];
+    const className = input.className.toLowerCase();
+    const id = input.id.toLowerCase();
+    
+    if (skipClasses.some(cls => className.includes(cls)) || skipIds.some(skipId => id.includes(skipId))) {
+      return true;
+    }
+
+    // Skip email fields that are disabled or read-only (like pre-filled user email)
+    if (input.type === 'email' && (input.readOnly || input.disabled)) {
+      return true;
+    }
+
     return false;
   }
 
