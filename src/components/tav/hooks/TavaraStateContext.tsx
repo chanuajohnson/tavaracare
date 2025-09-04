@@ -12,6 +12,7 @@ interface TavaraStateContextType {
   minimizePanel: () => void;
   maximizePanel: () => void;
   markNudgesAsRead: () => void;
+  realTimeDataCallback?: (message: string, isUser: boolean) => void;
 }
 
 const TavaraStateContext = createContext<TavaraStateContextType | undefined>(undefined);
@@ -20,12 +21,14 @@ interface TavaraStateProviderProps {
   children: ReactNode;
   initialRole?: 'guest' | 'family' | 'professional' | 'community' | null;
   forceDemoMode?: boolean;
+  realTimeDataCallback?: (message: string, isUser: boolean) => void;
 }
 
 export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ 
   children, 
   initialRole = null,
-  forceDemoMode = false 
+  forceDemoMode = false,
+  realTimeDataCallback
 }) => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
@@ -136,7 +139,8 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({
         closePanel,
         minimizePanel,
         maximizePanel,
-        markNudgesAsRead
+        markNudgesAsRead,
+        realTimeDataCallback
       }}
     >
       {children}

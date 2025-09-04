@@ -19,12 +19,14 @@ import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
 import { useAuth } from '@/components/providers/AuthProvider';
 import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
+import { CompleteRegistrationButton } from '@/components/demo/CompleteRegistrationButton';
 
 interface FamilyRegistrationProps {
   isDemo?: boolean;
+  onFormReady?: (formSetters: any) => void;
 }
 
-const FamilyRegistration = ({ isDemo: isExternalDemo = false }: FamilyRegistrationProps = {}) => {
+const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady }: FamilyRegistrationProps = {}) => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
@@ -327,6 +329,33 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false }: FamilyRegistrati
       setPrefillApplied(true);
     }
   }, [prefillApplied, shouldAutoSubmit, user, isEditMode]);
+
+  // Initialize form setters for real-time data sync
+  useEffect(() => {
+    if (onFormReady) {
+      const formSetters = {
+        setFirstName,
+        setLastName,
+        setEmail,
+        setPhoneNumber,
+        setAddress,
+        setCareRecipientName,
+        setRelationship
+      };
+      
+      console.log('🔧 Initializing form setters for real-time sync');
+      onFormReady(formSetters);
+    }
+  }, [onFormReady, setFirstName, setLastName, setEmail, setPhoneNumber, setAddress, setCareRecipientName, setRelationship]);
+
+  // Check if personal & contact information is complete for demo
+  const isPersonalInfoComplete = firstName && lastName && phoneNumber && address && careRecipientName && relationship;
+
+  const handleDemoComplete = () => {
+    console.log('🎯 Demo completion flow triggered');
+    // For now, show success message and stay on form
+    toast.success('🎉 Great progress! Complete the rest when you\'re ready.');
+  };
 
   const handleCareScheduleChange = (value: string) => {
     setCareSchedule(prev => {
@@ -1151,6 +1180,14 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false }: FamilyRegistrati
             </Button>
           </div>
         </form>
+
+        {/* Demo completion button for early lead capture */}
+        {isDemo && (
+          <CompleteRegistrationButton 
+            onComplete={handleDemoComplete}
+            isFormReady={!!isPersonalInfoComplete}
+          />
+        )}
       </div>
     </div>
   );

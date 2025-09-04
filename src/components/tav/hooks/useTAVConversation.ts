@@ -3,7 +3,10 @@ import { useState, useCallback } from 'react';
 import { TAVMessage, TAVAIService, TAVConversationContext } from '../services/tavAIService';
 import { v4 as uuidv4 } from 'uuid';
 
-export const useTAVConversation = (context: TAVConversationContext) => {
+export const useTAVConversation = (
+  context: TAVConversationContext, 
+  onRealTimeDataUpdate?: (message: string, isUser: boolean) => void
+) => {
   const [messages, setMessages] = useState<TAVMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const aiService = TAVAIService.getInstance();
@@ -17,8 +20,14 @@ export const useTAVConversation = (context: TAVConversationContext) => {
     };
     
     setMessages(prev => [...prev, message]);
+    
+    // Trigger real-time data extraction
+    if (onRealTimeDataUpdate) {
+      onRealTimeDataUpdate(content, isUser);
+    }
+    
     return message;
-  }, []);
+  }, [onRealTimeDataUpdate]);
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim()) return;

@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Send, Brain, FormInput, HelpCircle, Loader2 } from 'lucide-react';
 import { useConversationalForm } from '../hooks/useConversationalForm';
 import { useTAVConversation } from '../hooks/useTAVConversation';
+import { useTavaraState } from '../hooks/TavaraStateContext';
 import { formFieldTracker, FieldCompletionStatus } from '@/utils/formFieldTracker';
 import { useLocation } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -50,7 +51,11 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
     isDemoMode: isDemoRoute
   };
 
-  const { messages: aiMessages, isTyping, sendMessage: sendAIMessage } = useTAVConversation(tavContext);
+  const tavaraState = useTavaraState();
+  const { messages: aiMessages, isTyping, sendMessage: sendAIMessage } = useTAVConversation(
+    tavContext, 
+    tavaraState.realTimeDataCallback
+  );
 
   // Track form field completion status
   useEffect(() => {

@@ -4,6 +4,7 @@ import { Send, Mic, MicOff, Volume2, VolumeX, Sparkles, Loader } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTAVConversation } from '../hooks/useTAVConversation';
+import { useTavaraState } from '../hooks/TavaraStateContext';
 import { TAVConversationContext } from '../services/tavAIService';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { cn } from '@/lib/utils';
@@ -20,7 +21,8 @@ export const StreamingChatInterface: React.FC<StreamingChatInterfaceProps> = ({
   onClose
 }) => {
   const { user } = useAuth();
-  const { messages, isTyping, sendMessage, clearConversation } = useTAVConversation(context);
+  const tavaraState = useTavaraState();
+  const { messages, isTyping, sendMessage, clearConversation } = useTAVConversation(context, tavaraState.realTimeDataCallback);
   const [inputMessage, setInputMessage] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
