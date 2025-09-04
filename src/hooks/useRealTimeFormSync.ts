@@ -20,7 +20,7 @@ interface ExtractedData {
   relationship?: string;
 }
 
-export const useRealTimeFormSync = (formSetters: FormSetters) => {
+export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
   const lastProcessedMessage = useRef<string>('');
 
   const extractDataFromMessage = useCallback((message: string): ExtractedData => {
@@ -119,7 +119,7 @@ export const useRealTimeFormSync = (formSetters: FormSetters) => {
 
   const processMessage = useCallback((message: string, isUser: boolean) => {
     // Only process user messages and avoid reprocessing
-    if (!isUser || message === lastProcessedMessage.current) {
+    if (!isUser || message === lastProcessedMessage.current || !formSetters) {
       return;
     }
 
