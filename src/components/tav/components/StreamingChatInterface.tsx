@@ -127,7 +127,7 @@ export const StreamingChatInterface: React.FC<StreamingChatInterfaceProps> = ({
   };
 
   return (
-    <div className={cn("flex flex-col h-full bg-gradient-to-br from-white to-blue-50/30", className)}>
+    <div className={cn("flex flex-col h-full bg-white", className)}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-blue-100 bg-gradient-to-r from-primary/5 to-blue-50">
         <div className="flex items-center gap-3">
@@ -209,8 +209,8 @@ export const StreamingChatInterface: React.FC<StreamingChatInterfaceProps> = ({
               >
                 <p className="whitespace-pre-wrap">{message.content}</p>
                 <div className={cn(
-                  "text-xs mt-2 opacity-70",
-                  message.isUser ? "text-blue-100" : "text-gray-500"
+                  "text-xs mt-2",
+                  message.isUser ? "text-blue-200" : "text-gray-500"
                 )}>
                   {new Date(message.timestamp).toLocaleTimeString()}
                 </div>

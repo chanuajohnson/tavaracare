@@ -33,7 +33,7 @@ export const CommunityJourneyPreview: React.FC<CommunityJourneyPreviewProps> = (
       </div>
       
       {/* Welcome Message */}
-      <div className="bg-gradient-to-r from-amber-50 via-amber-50/70 to-transparent rounded-xl p-3 border border-amber-200 relative overflow-hidden">
+      <div className="bg-amber-50 rounded-xl p-3 border border-amber-200 relative overflow-hidden">
         <div className="absolute top-2 right-2">
           <Sparkles className="h-3 w-3 text-amber-400 animate-pulse" />
         </div>

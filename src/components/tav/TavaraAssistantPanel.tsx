@@ -444,7 +444,7 @@ export const TavaraAssistantPanel: React.FC = () => {
                 duration: 0.5
               }}
               className={cn(
-                "absolute bottom-16 left-0 bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-2xl border-2 border-primary/40",
+                "absolute bottom-16 left-0 bg-white rounded-2xl shadow-2xl border-2 border-primary/40 backdrop-blur-sm",
                 isLoudMode && "border-4 border-primary/60 shadow-primary/20", // Enhanced border for loud mode
                 isMobile 
                   ? 'w-64 max-w-[85vw] text-sm p-3' 
@@ -636,7 +636,7 @@ export const TavaraAssistantPanel: React.FC = () => {
       exit={{ opacity: 0, y: 400 }}
       transition={{ type: "spring", damping: 25, stiffness: 300 }}
       className={cn(
-        "fixed bottom-0 left-0 bg-gradient-to-br from-white to-gray-50/50 shadow-2xl border-r border-t border-gray-200 z-50 flex flex-col rounded-tr-2xl",
+        "fixed bottom-0 left-0 bg-white shadow-2xl border-r border-t border-gray-200 z-50 flex flex-col rounded-tr-2xl backdrop-blur-sm",
         isMobile 
           ? isExpanded 
             ? 'w-full h-[70vh] max-h-[70vh] rounded-tr-xl' 

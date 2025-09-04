@@ -96,7 +96,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
   return (
     <div className="flex flex-col h-full">
       {/* Header with sparkles and controls */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gradient-to-r from-primary/5 to-transparent">
+      <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-primary/5">
         <div className="flex items-center gap-2">
           <div className="relative">
             <div className={cn("p-1.5 bg-primary-100 rounded-lg", isLoudMode && "bg-primary-200")}>
@@ -226,7 +226,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                       </div>
                       
                       {familyJourneyProgress.nextStep && (
-                        <div className="bg-white/60 rounded-lg p-3 border border-blue-200">
+                        <div className="bg-white rounded-lg p-3 border border-blue-200">
                           <div className="text-xs font-medium text-blue-700 mb-1">Next Step:</div>
                           <div className="text-xs text-blue-600">{familyJourneyProgress.nextStep.title}</div>
                         </div>
@@ -497,7 +497,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                       <div className="grid grid-cols-1 gap-2 pt-2 w-full">
                         <Button 
                           variant="outline" 
-                          className="w-full bg-white/20 border-white/30 text-white hover:bg-white/30 font-semibold text-xs sm:text-sm md:text-base py-2 sm:py-3 min-h-[44px]"
+                          className="w-full bg-white/90 border-white text-gray-800 hover:bg-white font-semibold text-xs sm:text-sm md:text-base py-2 sm:py-3 min-h-[44px]"
                           onClick={dashboardRole === 'family' ? handleQuickRegistrationClick : handleProfessionalRegistrationClick}
                         >
                           <span className="text-center leading-tight">
