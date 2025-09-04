@@ -4,7 +4,11 @@ import { TAVMessage, TAVAIService, TAVConversationContext } from '../services/ta
 import { v4 as uuidv4 } from 'uuid';
 import { processTAVForRegistration } from '@/utils/demo/tavToDemoRegistration';
 
-export const useTAVConversation = (context: TAVConversationContext, onDataUpdate?: (sessionId: string) => void) => {
+export const useTAVConversation = (
+  context: TAVConversationContext, 
+  onDataUpdate?: (sessionId: string) => void,
+  onRealTimeDataExtract?: (data: Record<string, any>) => void
+) => {
   const [messages, setMessages] = useState<TAVMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [extractedData, setExtractedData] = useState<Record<string, any>>({});
@@ -25,8 +29,8 @@ export const useTAVConversation = (context: TAVConversationContext, onDataUpdate
   // Extract data from conversation in real-time
   const extractDataFromMessage = useCallback((userMessage: string) => {
     const patterns = {
-      first_name: /(?:my (?:first )?name is|i'?m|call me)\s+([a-zA-Z]+)/i,
-      last_name: /(?:last name|surname|family name)(?:\s+is)?\s+([a-zA-Z]+)/i,
+      first_name: /(?:my (?:first )?name is|i'?m|call me|i am)\s+([a-zA-Z]+)/i,
+      last_name: /(?:last name|surname|family name|and my last name is)(?:\s+is)?\s+([a-zA-Z]+)/i,
       email: /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i,
       phone_number: /(\d{3}[.-]?\d{3}[.-]?\d{4}|\d{10})/,
       address: /(?:address|live at|located at)\s+(.+?)(?:\s|$|\.|,)/i,
@@ -44,10 +48,16 @@ export const useTAVConversation = (context: TAVConversationContext, onDataUpdate
     }
 
     if (Object.keys(newData).length > 0) {
-      setExtractedData(prev => ({ ...prev, ...newData }));
+      const updatedData = { ...extractedData, ...newData };
+      setExtractedData(updatedData);
       console.log('📋 Extracted data from conversation:', newData);
+      
+      // Trigger real-time form update
+      if (onRealTimeDataExtract) {
+        onRealTimeDataExtract(updatedData);
+      }
     }
-  }, []);
+  }, [extractedData, onRealTimeDataExtract]);
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim()) return;

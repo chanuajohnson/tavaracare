@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { TavaraStateProvider } from '@/components/tav';
 import FamilyRegistration from '@/pages/registration/FamilyRegistration';
 import { DemoRegistrationCompleteButton } from '@/components/demo/DemoRegistrationCompleteButton';
 import { useDemoRegistration } from '@/hooks/demo/useDemoRegistration';
 import { cleanupOldDemoSessions } from '@/services/demo/demoSessionManager';
+import { useRealTimeFormSync } from '@/hooks/demo/useRealTimeFormSync';
 import { v4 as uuidv4 } from 'uuid';
 
 const DemoFamilyRegistration = () => {
@@ -15,6 +16,10 @@ const DemoFamilyRegistration = () => {
     const urlSessionId = searchParams.get('session');
     return urlSessionId || uuidv4();
   });
+  
+  // Real-time form sync state
+  const [extractedData, setExtractedData] = useState<Record<string, any>>({});
+  const formSetValueRef = useRef<((field: string, value: any) => void) | null>(null);
 
   const {
     sessionId,
@@ -31,6 +36,26 @@ const DemoFamilyRegistration = () => {
   useEffect(() => {
     cleanupOldDemoSessions();
   }, []);
+
+  // Real-time form sync
+  useRealTimeFormSync(extractedData, formSetValueRef.current || (() => {}), {
+    showVisualFeedback: true,
+    onFieldUpdate: (fieldName, value) => {
+      console.log(`✨ Real-time sync: ${fieldName} = ${value}`);
+    }
+  });
+
+  // Handle real-time data extraction from TAV
+  const handleRealTimeDataExtract = (data: Record<string, any>) => {
+    console.log('🔄 Real-time data extracted from TAV:', data);
+    setExtractedData(data);
+  };
+
+  // Handle form setValue reference
+  const handleSetFormValueRef = (setFormValue: (field: string, value: any) => void) => {
+    formSetValueRef.current = setFormValue;
+    console.log('📝 Form setValue reference connected');
+  };
 
   // Handle demo completion flow
   const handleDemoComplete = () => {
@@ -50,6 +75,7 @@ const DemoFamilyRegistration = () => {
       forceDemoMode={true}
       sessionId={currentSessionId}
       onDataUpdate={updateSessionData}
+      onRealTimeDataExtract={handleRealTimeDataExtract}
     >
       <div className="relative">
         {/* Show completion button when ready and lead not captured */}
@@ -70,6 +96,7 @@ const DemoFamilyRegistration = () => {
           demoSessionId={sessionId || currentSessionId}
           demoCompletionLevel={completionLevel}
           isDemoDataReady={isReadyForRegistration}
+          onSetFormValueRef={handleSetFormValueRef}
         />
       </div>
     </TavaraStateProvider>

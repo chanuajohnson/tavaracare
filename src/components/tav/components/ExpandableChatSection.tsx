@@ -7,9 +7,10 @@ import { ConversationalFormChat } from './ConversationalFormChat';
 
 interface ExpandableChatSectionProps {
   role: 'family' | 'professional' | 'community' | null;
+  onRealTimeDataExtract?: (data: Record<string, any>) => void;
 }
 
-export const ExpandableChatSection: React.FC<ExpandableChatSectionProps> = ({ role }) => {
+export const ExpandableChatSection: React.FC<ExpandableChatSectionProps> = ({ role, onRealTimeDataExtract }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const expandableContentRef = useRef<HTMLDivElement>(null);
 
@@ -70,7 +71,7 @@ export const ExpandableChatSection: React.FC<ExpandableChatSectionProps> = ({ ro
               </div>
 
               {/* Conversational Form Chat Component */}
-              <ConversationalFormChat role={role} />
+              <ConversationalFormChat role={role} onRealTimeDataExtract={onRealTimeDataExtract} />
             </div>
           </motion.div>
         )}

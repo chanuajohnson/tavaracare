@@ -20,7 +20,11 @@ export const StreamingChatInterface: React.FC<StreamingChatInterfaceProps> = ({
   onClose
 }) => {
   const { user } = useAuth();
-  const { messages, isTyping, sendMessage, clearConversation } = useTAVConversation(context);
+  const { messages, isTyping, sendMessage, clearConversation } = useTAVConversation(
+    context, 
+    undefined, 
+    context.onRealTimeDataExtract
+  );
   const [inputMessage, setInputMessage] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);

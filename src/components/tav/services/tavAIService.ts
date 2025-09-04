@@ -16,6 +16,7 @@ export interface TAVConversationContext {
   sessionId: string;
   caregiverContext?: any; // Added for caregiver chat support
   isDemoMode?: boolean; // Added for demo mode support
+  onRealTimeDataExtract?: (data: Record<string, any>) => void; // Added for real-time form sync
 }
 
 export class TAVAIService {

@@ -25,13 +25,15 @@ interface FamilyRegistrationProps {
   demoSessionId?: string;
   demoCompletionLevel?: number;
   isDemoDataReady?: boolean;
+  onSetFormValueRef?: (setFormValue: (field: string, value: any) => void) => void;
 }
 
 const FamilyRegistration = ({ 
   isDemo: isExternalDemo = false,
   demoSessionId,
   demoCompletionLevel,
-  isDemoDataReady
+  isDemoDataReady,
+  onSetFormValueRef
 }: FamilyRegistrationProps = {}) => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
@@ -296,6 +298,13 @@ const FamilyRegistration = ({
         break;
     }
   };
+
+  // Expose setFormValue to parent component for real-time sync
+  useEffect(() => {
+    if (onSetFormValueRef) {
+      onSetFormValueRef(setFormValue);
+    }
+  }, [onSetFormValueRef]);
 
   // Apply prefill data when available (only if not in edit mode)
   useEffect(() => {

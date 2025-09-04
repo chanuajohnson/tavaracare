@@ -10,9 +10,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface ConversationalFormChatProps {
   role: 'family' | 'professional' | 'community' | null;
+  onRealTimeDataExtract?: (data: Record<string, any>) => void;
 }
 
-export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ role }) => {
+export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ role, onRealTimeDataExtract }) => {
   const location = useLocation();
   const [message, setMessage] = useState('');
   const [sessionId] = useState(() => uuidv4());
@@ -47,10 +48,15 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
     }, {} as Record<string, string>),
     userRole: role || undefined,
     sessionId,
-    isDemoMode: isDemoRoute
+    isDemoMode: isDemoRoute,
+    onRealTimeDataExtract
   };
 
-  const { messages: aiMessages, isTyping, sendMessage: sendAIMessage } = useTAVConversation(tavContext);
+  const { messages: aiMessages, isTyping, sendMessage: sendAIMessage } = useTAVConversation(
+    tavContext, 
+    undefined, 
+    onRealTimeDataExtract
+  );
 
   // Track form field completion status
   useEffect(() => {
