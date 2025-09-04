@@ -52,6 +52,10 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
   };
 
   const tavaraState = useTavaraState();
+  
+  // DEBUG: Log callback availability in ConversationalFormChat
+  console.warn('🔗 [ConversationalFormChat] realTimeDataCallback available:', !!tavaraState.realTimeDataCallback);
+  
   const { messages: aiMessages, isTyping, sendMessage: sendAIMessage } = useTAVConversation(
     tavContext, 
     tavaraState.realTimeDataCallback

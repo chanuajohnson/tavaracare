@@ -16,7 +16,11 @@ const DemoFamilyRegistration = () => {
   // DEBUG: Create wrapper to trace the callback
   const debugProcessMessage = (message: string, isUser: boolean) => {
     console.warn('🔗 [DemoFamilyRegistration] debugProcessMessage called:', { message, isUser });
-    return processMessage(message, isUser);
+    if (processMessage) {
+      return processMessage(message, isUser);
+    } else {
+      console.error('🚨 [DemoFamilyRegistration] processMessage is not available yet!');
+    }
   };
 
   const handleFormReady = useCallback((setters: any) => {
