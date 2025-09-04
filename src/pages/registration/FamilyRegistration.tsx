@@ -22,19 +22,9 @@ import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
 
 interface FamilyRegistrationProps {
   isDemo?: boolean;
-  demoSessionId?: string;
-  demoCompletionLevel?: number;
-  isDemoDataReady?: boolean;
-  onSetFormValueRef?: (setFormValue: (field: string, value: any) => void) => void;
 }
 
-const FamilyRegistration = ({ 
-  isDemo: isExternalDemo = false,
-  demoSessionId,
-  demoCompletionLevel,
-  isDemoDataReady,
-  onSetFormValueRef
-}: FamilyRegistrationProps = {}) => {
+const FamilyRegistration = ({ isDemo: isExternalDemo = false }: FamilyRegistrationProps = {}) => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
@@ -298,13 +288,6 @@ const FamilyRegistration = ({
         break;
     }
   };
-
-  // Expose setFormValue to parent component for real-time sync
-  useEffect(() => {
-    if (onSetFormValueRef) {
-      onSetFormValueRef(setFormValue);
-    }
-  }, [onSetFormValueRef]);
 
   // Apply prefill data when available (only if not in edit mode)
   useEffect(() => {

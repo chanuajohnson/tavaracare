@@ -49,7 +49,7 @@ export const TavaraAssistantPanel: React.FC = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
-  const { state, openPanel, closePanel, minimizePanel, maximizePanel, markNudgesAsRead, onRealTimeDataExtract } = useTavaraState();
+  const { state, openPanel, closePanel, minimizePanel, maximizePanel, markNudgesAsRead } = useTavaraState();
   const { currentForm, isFormPage, isJourneyTouchpoint } = useFormDetection();
   const [nudges, setNudges] = useState<AssistantNudge[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -691,7 +691,6 @@ export const TavaraAssistantPanel: React.FC = () => {
             isLoudMode={isLoudMode}
             dashboardRole={dashboardRole}
             isDemoRoute={location.pathname.startsWith('/demo/') || location.pathname === '/tav-demo'}
-            onRealTimeDataExtract={onRealTimeDataExtract}
           />
       </div>
     </motion.div>
