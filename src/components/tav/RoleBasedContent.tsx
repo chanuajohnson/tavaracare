@@ -293,6 +293,11 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                     </div>
                   </motion.div>
 
+                  {/* Chat with TAV section */}
+                  <div className="mb-6">
+                    <ExpandableChatSection role={role as 'family' | 'professional' | 'community' | null} />
+                  </div>
+
                   {/* DEMO OPTIONS GRID */}
                   <div className="grid grid-cols-1 gap-3">
                     <motion.div
@@ -488,12 +493,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                         </Button>
                       </motion.div>
                       
-                       {/* Chat with TAV section moved here */}
-                      <div className="pt-2">
-                        <ExpandableChatSection role={role as 'family' | 'professional' | 'community' | null} />
-                      </div>
-
-                       {/* SECONDARY PATHWAY BUTTONS - Mobile Optimized with Responsive Text */}
+                      {/* SECONDARY PATHWAY BUTTONS - Mobile Optimized with Responsive Text */}
                       <div className="grid grid-cols-1 gap-2 pt-2 w-full">
                         <Button 
                           variant="outline" 
