@@ -91,8 +91,9 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
       /(?:^|[^a-zA-Z])(plymouth)(?:[^a-zA-Z]|$)/i
     ];
 
-    // Track if context-aware extraction was successful
+    // Track context-aware extraction attempts and successes by field type
     let contextExtractionSucceeded = false;
+    let contextFieldExtracted: string | null = null;
 
     // Context-aware extraction logic
     if (contextFieldType) {
@@ -107,11 +108,13 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
           case 'first_name':
             extracted.first_name = value;
             contextExtractionSucceeded = true;
+            contextFieldExtracted = 'first_name';
             console.log('✅ [Real-time Sync] Context-aware first name:', value);
             break;
           case 'last_name':
             extracted.last_name = value;
             contextExtractionSucceeded = true;
+            contextFieldExtracted = 'last_name';
             console.log('✅ [Real-time Sync] Context-aware last name:', value);
             break;
           case 'location':
@@ -120,6 +123,7 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
             if (matchedLocation) {
               extracted.location = matchedLocation;
               contextExtractionSucceeded = true;
+              contextFieldExtracted = 'location';
               console.log('✅ [Real-time Sync] Context-aware location matched:', matchedLocation);
             }
             break;
@@ -131,8 +135,8 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
     if (!contextExtractionSucceeded) {
       console.log('🔍 [Real-time Sync] Context extraction failed, trying fallback patterns...');
       
-      // Fallback to explicit patterns for first name
-      if (!extracted.first_name) {
+      // Fallback to explicit patterns for first name - only if context wasn't looking for last name
+      if (!extracted.first_name && contextFieldType !== 'last_name') {
         console.log('🔍 [Real-time Sync] Testing explicit first name patterns...');
         for (let i = 0; i < firstNamePatterns.length; i++) {
           const pattern = firstNamePatterns[i];
@@ -146,8 +150,8 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
         }
       }
 
-      // Fallback to explicit patterns for last name
-      if (!extracted.last_name) {
+      // Fallback to explicit patterns for last name - only if context wasn't looking for first name
+      if (!extracted.last_name && contextFieldType !== 'first_name') {
         console.log('🔍 [Real-time Sync] Testing explicit last name patterns...');
         for (const pattern of lastNamePatterns) {
           const match = message.match(pattern);
@@ -160,7 +164,7 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
         }
       }
     } else {
-      console.log('✅ [Real-time Sync] Context extraction succeeded, skipping fallback patterns');
+      console.log(`✅ [Real-time Sync] Context extraction succeeded for ${contextFieldExtracted}, skipping fallback patterns`);
     }
 
     // Extract location if not found via context
