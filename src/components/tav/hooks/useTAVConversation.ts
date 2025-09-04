@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import { TAVMessage, TAVAIService, TAVConversationContext } from '../services/tavAIService';
 import { v4 as uuidv4 } from 'uuid';
+import { realTimeCallbackService } from '@/services/realTimeCallbackService';
 
 export const useTAVConversation = (
   context: TAVConversationContext, 
@@ -21,12 +22,15 @@ export const useTAVConversation = (
     
     setMessages(prev => [...prev, message]);
     
-    // Trigger real-time data extraction
+    // Trigger real-time data extraction - try props callback first, then global service
     if (onRealTimeDataUpdate) {
       console.warn('🔗 [useTAVConversation] Calling onRealTimeDataUpdate:', { content, isUser });
       onRealTimeDataUpdate(content, isUser);
+    } else if (realTimeCallbackService.hasCallback()) {
+      console.warn('🔗 [useTAVConversation] Using global callback service:', { content, isUser });
+      realTimeCallbackService.executeCallback(content, isUser);
     } else {
-      console.warn('🔗 [useTAVConversation] onRealTimeDataUpdate not available');
+      console.warn('🔗 [useTAVConversation] No callback available (props or global)');
     }
     
     return message;

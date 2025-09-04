@@ -1,7 +1,7 @@
-import React, { useCallback, useState } from 'react';
-import { TavaraStateProvider } from '@/components/tav';
+import React, { useCallback, useState, useEffect } from 'react';
 import FamilyRegistration from '@/pages/registration/FamilyRegistration';
 import { useRealTimeFormSync } from '@/hooks/useRealTimeFormSync';
+import { realTimeCallbackService } from '@/services/realTimeCallbackService';
 
 const DemoFamilyRegistration = () => {
   const [formSetters, setFormSetters] = useState<any>(null);
@@ -30,17 +30,24 @@ const DemoFamilyRegistration = () => {
     console.log('✅ [Demo Family Registration] Form setters stored in state');
   }, []);
 
+  // Register the callback with the global service when form is ready
+  useEffect(() => {
+    if (processMessage) {
+      realTimeCallbackService.registerCallback(debugProcessMessage);
+      console.log('✅ [Demo Family Registration] Callback registered with global service');
+    }
+    
+    return () => {
+      realTimeCallbackService.unregisterCallback();
+      console.log('🧹 [Demo Family Registration] Callback unregistered from global service');
+    };
+  }, [processMessage, debugProcessMessage]);
+
   return (
-    <TavaraStateProvider 
-      initialRole="guest" 
-      forceDemoMode={true}
-      realTimeDataCallback={debugProcessMessage}
-    >
-      <FamilyRegistration 
-        isDemo={true} 
-        onFormReady={handleFormReady}
-      />
-    </TavaraStateProvider>
+    <FamilyRegistration 
+      isDemo={true} 
+      onFormReady={handleFormReady}
+    />
   );
 };
 
