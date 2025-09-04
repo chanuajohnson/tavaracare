@@ -13,10 +13,17 @@ export interface FormField {
   helpText?: string;
 }
 
+export interface FormSection {
+  id: string;
+  title: string;
+  fields: string[];
+}
+
 export interface DetectedForm {
   formId: string;
   formTitle: string;
   fields: FormField[];
+  sections?: FormSection[];
   currentStep?: number;
   totalSteps?: number;
   userRole?: 'family' | 'professional' | 'community';
@@ -33,6 +40,38 @@ const FORM_MAPPINGS: Record<string, DetectedForm> = {
     userRole: 'family',
     journeyStage: 'registration',
     autoGreetingMessage: "💙 Welcome to your family registration! I'm TAV, and I can help you fill out this form conversationally or guide you through each step. This is the REAL Tavara experience - the same magical TAV assistance our families get! Would you like my help?",
+    sections: [
+      {
+        id: 'personal-info',
+        title: 'Personal & Contact Information',
+        fields: ['firstName', 'lastName', 'phoneNumber', 'email', 'address']
+      },
+      {
+        id: 'care-recipient',
+        title: 'Care Recipient Information', 
+        fields: ['careRecipientName', 'relationship']
+      },
+      {
+        id: 'care-needs',
+        title: 'Care Needs & Preferences',
+        fields: ['careTypes', 'specialNeeds']
+      },
+      {
+        id: 'care-schedule', 
+        title: 'Care Schedule & Availability',
+        fields: ['careSchedule', 'customCareSchedule']
+      },
+      {
+        id: 'budget-preferences',
+        title: 'Budget & Caregiver Preferences', 
+        fields: ['budget', 'caregiverType', 'caregiverPreferences']
+      },
+      {
+        id: 'additional-info',
+        title: 'Additional Information',
+        fields: ['additionalNotes', 'preferredContactMethod']
+      }
+    ],
     fields: [
       {
         id: 'full_name',

@@ -6,6 +6,7 @@ import { useConversationalForm } from '../hooks/useConversationalForm';
 import { useTAVConversation } from '../hooks/useTAVConversation';
 import { useTavaraState } from '../hooks/TavaraStateContext';
 import { formFieldTracker, FieldCompletionStatus } from '@/utils/formFieldTracker';
+import { sectionBasedFormTracker, FormSectionData } from '@/utils/sectionBasedFormTracker';
 import { useLocation } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -23,6 +24,7 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
     emptyFields: 0, 
     completionPercentage: 0 
   });
+  const [sectionStatus, setSectionStatus] = useState<FormSectionData | null>(null);
   
   const {
     conversationState,
@@ -61,14 +63,33 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
     tavaraState.realTimeDataCallback
   );
 
-  // Track form field completion status
+  // Track form field completion status - both field-level and section-level
   useEffect(() => {
+    if (!isFormPage || !currentForm) return;
+
     const cleanup = formFieldTracker.watchFormChanges((status) => {
       setFieldStatus(status);
     });
 
-    return cleanup;
-  }, []);
+    // Set up section-based tracking with polling for real-time updates
+    const updateSectionStatus = () => {
+      if (currentForm?.formId) {
+        const sectionData = sectionBasedFormTracker.getSectionCompletionStatus(currentForm.formId);
+        setSectionStatus(sectionData);
+      }
+    };
+
+    // Initial update
+    updateSectionStatus();
+
+    // Poll for section updates every 500ms while on form page
+    const sectionInterval = setInterval(updateSectionStatus, 500);
+
+    return () => {
+      cleanup();
+      clearInterval(sectionInterval);
+    };
+  }, [isFormPage, currentForm]);
 
   // Initialize with welcome message based on context
   useEffect(() => {
@@ -128,15 +149,17 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
 
   return (
     <div className="space-y-3">
-      {/* Form Detection Status */}
-      {isFormPage && currentForm && (
+      {/* Form Detection Status - Section-Based */}
+      {isFormPage && currentForm && sectionStatus?.currentSection && (
         <div className="bg-blue-50 rounded-lg p-2 border border-blue-200">
           <div className="flex items-center gap-2 mb-1">
             <FormInput className="h-3 w-3 text-blue-600" />
             <p className="text-xs font-medium text-blue-800">Form Detected</p>
           </div>
           <p className="text-xs text-blue-700">{currentForm.formTitle}</p>
-          <p className="text-xs text-blue-600">{formFieldTracker.formatCompletionStatus(fieldStatus)}</p>
+          <p className="text-xs text-blue-600">
+            {sectionStatus.currentSection.filledFields} of {sectionStatus.currentSection.totalFields} fields completed ({sectionStatus.currentSection.sectionTitle}).
+          </p>
         </div>
       )}
 
