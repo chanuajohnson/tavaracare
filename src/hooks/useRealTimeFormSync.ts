@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { conversationContextTracker } from '@/services/conversationContextTracker';
 
 interface FormSetters {
   setFirstName: (value: string) => void;
@@ -23,27 +24,33 @@ interface ExtractedData {
 export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
   const lastProcessedMessage = useRef<string>('');
 
-  const extractDataFromMessage = useCallback((message: string): ExtractedData => {
+  const extractDataFromMessage = useCallback((message: string, expectedFieldType?: string): ExtractedData => {
     console.log('🔍 [Real-time Sync] Starting extraction for message:', message);
+    console.log('🎯 [Real-time Sync] Expected field type:', expectedFieldType);
+    
     const extracted: ExtractedData = {};
     const lowerMessage = message.toLowerCase();
 
-    // Enhanced first name patterns - more flexible matching
+    // Get context-aware field type if not provided
+    const contextFieldType = expectedFieldType || conversationContextTracker.getExpectedFieldType();
+    console.log('🔄 [Real-time Sync] Using field type:', contextFieldType);
+
+    // Enhanced patterns for different field types
     const firstNamePatterns = [
       /(?:my name is|i'm|i am|call me)\s+([a-zA-Z]+)/i,
       /(?:first name is|first name:)\s+([a-zA-Z]+)/i,
-      /^([a-zA-Z]+)$/,  // Single word responses
-      /\b([a-zA-Z]{2,})\b/i, // Any word with 2+ letters (fallback)
       /(?:it's|its)\s+([a-zA-Z]+)/i, // "it's chanua"
       /([a-zA-Z]+)(?:\s*is\s*my\s*name)/i // "chanua is my name"
     ];
 
-    // Last name patterns  
     const lastNamePatterns = [
       /(?:last name is|last name:)\s+([a-zA-Z]+)/i,
       /(?:my surname is|surname:)\s+([a-zA-Z]+)/i,
       /(?:family name is|family name:)\s+([a-zA-Z]+)/i
     ];
+
+    // Context-aware single word pattern (most important change)
+    const singleWordPattern = /^([a-zA-Z]{2,})$/;
 
     // Email patterns
     const emailPattern = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
@@ -51,27 +58,53 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
     // Phone patterns
     const phonePattern = /(\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4})/;
 
-    // Extract first name with enhanced debugging
-    console.log('🔍 [Real-time Sync] Testing first name patterns...');
-    for (let i = 0; i < firstNamePatterns.length; i++) {
-      const pattern = firstNamePatterns[i];
-      const match = message.match(pattern);
-      console.log(`🔍 Pattern ${i + 1}:`, pattern, 'Match:', match);
-      if (match && match[1] && match[1].length >= 2) {
-        const name = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
-        extracted.first_name = name;
-        console.log('✅ [Real-time Sync] Found first name:', name);
-        break;
+    // Context-aware extraction logic
+    if (contextFieldType) {
+      console.log('🎯 [Real-time Sync] Using context-aware extraction for:', contextFieldType);
+      
+      // Check single word pattern first when we know the context
+      const singleWordMatch = message.match(singleWordPattern);
+      if (singleWordMatch && singleWordMatch[1]) {
+        const value = singleWordMatch[1].charAt(0).toUpperCase() + singleWordMatch[1].slice(1).toLowerCase();
+        
+        switch (contextFieldType) {
+          case 'first_name':
+            extracted.first_name = value;
+            console.log('✅ [Real-time Sync] Context-aware first name:', value);
+            break;
+          case 'last_name':
+            extracted.last_name = value;
+            console.log('✅ [Real-time Sync] Context-aware last name:', value);
+            break;
+        }
       }
     }
 
-    // Extract last name
-    for (const pattern of lastNamePatterns) {
-      const match = message.match(pattern);
-      if (match && match[1]) {
-        const name = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
-        extracted.last_name = name;
-        break;
+    // Fallback to explicit patterns if context didn't work
+    if (!extracted.first_name) {
+      console.log('🔍 [Real-time Sync] Testing explicit first name patterns...');
+      for (let i = 0; i < firstNamePatterns.length; i++) {
+        const pattern = firstNamePatterns[i];
+        const match = message.match(pattern);
+        if (match && match[1] && match[1].length >= 2) {
+          const name = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+          extracted.first_name = name;
+          console.log('✅ [Real-time Sync] Found first name via explicit pattern:', name);
+          break;
+        }
+      }
+    }
+
+    if (!extracted.last_name) {
+      console.log('🔍 [Real-time Sync] Testing explicit last name patterns...');
+      for (const pattern of lastNamePatterns) {
+        const match = message.match(pattern);
+        if (match && match[1]) {
+          const name = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+          extracted.last_name = name;
+          console.log('✅ [Real-time Sync] Found last name via explicit pattern:', name);
+          break;
+        }
       }
     }
 
@@ -133,9 +166,10 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
       lastProcessed: lastProcessedMessage.current
     });
 
-    // Only process user messages and avoid reprocessing
+    // Track bot messages for context, process user messages
     if (!isUser) {
-      console.log('⏭️ [Real-time Sync] Skipping: not user message');
+      console.log('🤖 [Real-time Sync] Bot message - updating context:', message.substring(0, 50));
+      conversationContextTracker.setExpectedFieldFromBotMessage(message);
       return;
     }
     if (message === lastProcessedMessage.current) {
@@ -150,6 +184,11 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
     lastProcessedMessage.current = message;
     console.log('🔄 [Real-time Sync] Processing message:', message);
     const extractedData = extractDataFromMessage(message);
+    
+    // Clear context after processing user response
+    if (Object.keys(extractedData).length > 0) {
+      conversationContextTracker.clearExpectedField();
+    }
 
     console.log('🎯 [Real-time Sync] Extracted data:', extractedData);
 
