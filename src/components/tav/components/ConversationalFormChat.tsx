@@ -45,9 +45,9 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
     currentPage: location.pathname,
     currentForm: currentForm?.formId,
     formFields: currentForm?.fields.reduce((acc, field) => {
-      acc[field.name] = field;
+      acc[field.name] = field.label;
       return acc;
-    }, {} as Record<string, any>),
+    }, {} as Record<string, string>),
     userRole: role || undefined,
     sessionId,
     isDemoMode: isDemoRoute
