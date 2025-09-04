@@ -344,6 +344,7 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady }: Fam
         setLastName,
         setEmail,
         setPhoneNumber,
+        setLocation,
         setAddress,
         setCareRecipientName,
         setRelationship

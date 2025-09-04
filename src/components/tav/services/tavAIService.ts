@@ -102,6 +102,15 @@ Current context:
 
     if (context.formFields && Object.keys(context.formFields).length > 0) {
       prompt += `\n- Available form fields: ${Object.keys(context.formFields).join(', ')}`;
+      
+      // Add special handling for location dropdown fields
+      const locationField = Object.values(context.formFields).find((field: any) => 
+        field?.name === 'location' && field?.type === 'select'
+      );
+      
+      if (locationField) {
+        prompt += `\n\nIMPORTANT - Location Field: This is a dropdown with these Trinidad & Tobago locations: Port of Spain, San Fernando, Chaguanas, Arima, Point Fortin, Freeport, Sangre Grande, Rio Claro, Couva, Princes Town, Penal, Debe, Tunapuna, Piarco, Marabella, Fyzabad, Siparia, Moruga, Toco, Valencia, Mayaro, Scarborough, Roxborough, Charlotteville, Plymouth. Present these as selectable options and help users choose from the list rather than asking them to type freely.`;
+      }
     }
 
     // Add enhanced caregiver chat context
