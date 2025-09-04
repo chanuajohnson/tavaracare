@@ -330,8 +330,14 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady }: Fam
     }
   }, [prefillApplied, shouldAutoSubmit, user, isEditMode]);
 
-  // Initialize form setters for real-time data sync
+  // Initialize form setters for real-time data sync with enhanced debugging
   useEffect(() => {
+    console.log('📝 [Family Registration] Form setters effect triggered:', {
+      hasOnFormReady: !!onFormReady,
+      isDemo,
+      currentValues: { firstName, lastName, phoneNumber, address, careRecipientName, relationship }
+    });
+
     if (onFormReady) {
       const formSetters = {
         setFirstName,
@@ -343,8 +349,10 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady }: Fam
         setRelationship
       };
       
-      console.log('🔧 Initializing form setters for real-time sync');
+      console.log('🔧 [Family Registration] Initializing form setters for real-time sync');
+      console.log('📝 [Family Registration] Form setters created:', Object.keys(formSetters));
       onFormReady(formSetters);
+      console.log('✅ [Family Registration] onFormReady called successfully');
     }
   }, [onFormReady, setFirstName, setLastName, setEmail, setPhoneNumber, setAddress, setCareRecipientName, setRelationship]);
 

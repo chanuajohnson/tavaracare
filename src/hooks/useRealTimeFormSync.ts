@@ -24,14 +24,18 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
   const lastProcessedMessage = useRef<string>('');
 
   const extractDataFromMessage = useCallback((message: string): ExtractedData => {
+    console.log('🔍 [Real-time Sync] Starting extraction for message:', message);
     const extracted: ExtractedData = {};
     const lowerMessage = message.toLowerCase();
 
-    // First name patterns
+    // Enhanced first name patterns - more flexible matching
     const firstNamePatterns = [
       /(?:my name is|i'm|i am|call me)\s+([a-zA-Z]+)/i,
       /(?:first name is|first name:)\s+([a-zA-Z]+)/i,
-      /^([a-zA-Z]+)$/  // Single word responses
+      /^([a-zA-Z]+)$/,  // Single word responses
+      /\b([a-zA-Z]{2,})\b/i, // Any word with 2+ letters (fallback)
+      /(?:it's|its)\s+([a-zA-Z]+)/i, // "it's chanua"
+      /([a-zA-Z]+)(?:\s*is\s*my\s*name)/i // "chanua is my name"
     ];
 
     // Last name patterns  
@@ -47,12 +51,16 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
     // Phone patterns
     const phonePattern = /(\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4})/;
 
-    // Extract first name
-    for (const pattern of firstNamePatterns) {
+    // Extract first name with enhanced debugging
+    console.log('🔍 [Real-time Sync] Testing first name patterns...');
+    for (let i = 0; i < firstNamePatterns.length; i++) {
+      const pattern = firstNamePatterns[i];
       const match = message.match(pattern);
-      if (match && match[1]) {
+      console.log(`🔍 Pattern ${i + 1}:`, pattern, 'Match:', match);
+      if (match && match[1] && match[1].length >= 2) {
         const name = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
         extracted.first_name = name;
+        console.log('✅ [Real-time Sync] Found first name:', name);
         break;
       }
     }
@@ -118,48 +126,87 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
   }, []);
 
   const processMessage = useCallback((message: string, isUser: boolean) => {
+    console.log('🚀 [Real-time Sync] processMessage called:', {
+      message,
+      isUser,
+      hasFormSetters: !!formSetters,
+      lastProcessed: lastProcessedMessage.current
+    });
+
     // Only process user messages and avoid reprocessing
-    if (!isUser || message === lastProcessedMessage.current || !formSetters) {
+    if (!isUser) {
+      console.log('⏭️ [Real-time Sync] Skipping: not user message');
+      return;
+    }
+    if (message === lastProcessedMessage.current) {
+      console.log('⏭️ [Real-time Sync] Skipping: already processed this message');
+      return;
+    }
+    if (!formSetters) {
+      console.log('⚠️ [Real-time Sync] Skipping: form setters not available yet');
       return;
     }
 
     lastProcessedMessage.current = message;
+    console.log('🔄 [Real-time Sync] Processing message:', message);
     const extractedData = extractDataFromMessage(message);
 
-    console.log('🎯 Real-time form sync - extracted data:', extractedData);
+    console.log('🎯 [Real-time Sync] Extracted data:', extractedData);
 
-    // Apply extracted data to form fields
+    // Apply extracted data to form fields with enhanced logging
+    if (Object.keys(extractedData).length === 0) {
+      console.log('⚠️ [Real-time Sync] No data extracted from message');
+    }
+
     Object.entries(extractedData).forEach(([key, value]) => {
       if (value) {
-        switch (key) {
-          case 'first_name':
-            formSetters.setFirstName(value);
-            console.log('✅ Set first name:', value);
-            break;
-          case 'last_name':
-            formSetters.setLastName(value);
-            console.log('✅ Set last name:', value);
-            break;
-          case 'email':
-            formSetters.setEmail(value);
-            console.log('✅ Set email:', value);
-            break;
-          case 'phone':
-            formSetters.setPhoneNumber(value);
-            console.log('✅ Set phone:', value);
-            break;
-          case 'address':
-            formSetters.setAddress(value);
-            console.log('✅ Set address:', value);
-            break;
-          case 'care_recipient_name':
-            formSetters.setCareRecipientName(value);
-            console.log('✅ Set care recipient name:', value);
-            break;
-          case 'relationship':
-            formSetters.setRelationship(value);
-            console.log('✅ Set relationship:', value);
-            break;
+        console.log(`🔧 [Real-time Sync] Applying ${key}:`, value);
+        try {
+          switch (key) {
+            case 'first_name':
+              formSetters.setFirstName(value);
+              console.log('✅ [Real-time Sync] Successfully set first name:', value);
+              // Add visual feedback
+              if (typeof window !== 'undefined') {
+                setTimeout(() => {
+                  const input = document.querySelector('#firstName') as HTMLInputElement;
+                  if (input) {
+                    input.style.background = 'rgba(34, 197, 94, 0.1)';
+                    input.style.transition = 'background 0.3s ease';
+                    setTimeout(() => {
+                      input.style.background = '';
+                    }, 2000);
+                  }
+                }, 100);
+              }
+              break;
+            case 'last_name':
+              formSetters.setLastName(value);
+              console.log('✅ [Real-time Sync] Successfully set last name:', value);
+              break;
+            case 'email':
+              formSetters.setEmail(value);
+              console.log('✅ [Real-time Sync] Successfully set email:', value);
+              break;
+            case 'phone':
+              formSetters.setPhoneNumber(value);
+              console.log('✅ [Real-time Sync] Successfully set phone:', value);
+              break;
+            case 'address':
+              formSetters.setAddress(value);
+              console.log('✅ [Real-time Sync] Successfully set address:', value);
+              break;
+            case 'care_recipient_name':
+              formSetters.setCareRecipientName(value);
+              console.log('✅ [Real-time Sync] Successfully set care recipient name:', value);
+              break;
+            case 'relationship':
+              formSetters.setRelationship(value);
+              console.log('✅ [Real-time Sync] Successfully set relationship:', value);
+              break;
+          }
+        } catch (error) {
+          console.error(`❌ [Real-time Sync] Error setting ${key}:`, error);
         }
 
         // Store in localStorage for persistence
