@@ -22,9 +22,17 @@ import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
 
 interface FamilyRegistrationProps {
   isDemo?: boolean;
+  demoSessionId?: string;
+  demoCompletionLevel?: number;
+  isDemoDataReady?: boolean;
 }
 
-const FamilyRegistration = ({ isDemo: isExternalDemo = false }: FamilyRegistrationProps = {}) => {
+const FamilyRegistration = ({ 
+  isDemo: isExternalDemo = false,
+  demoSessionId,
+  demoCompletionLevel,
+  isDemoDataReady
+}: FamilyRegistrationProps = {}) => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';

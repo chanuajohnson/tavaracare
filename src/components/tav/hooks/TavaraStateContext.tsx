@@ -20,12 +20,16 @@ interface TavaraStateProviderProps {
   children: ReactNode;
   initialRole?: 'guest' | 'family' | 'professional' | 'community' | null;
   forceDemoMode?: boolean;
+  sessionId?: string;
+  onDataUpdate?: (sessionId: string) => void;
 }
 
 export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({ 
   children, 
   initialRole = null,
-  forceDemoMode = false 
+  forceDemoMode = false,
+  sessionId,
+  onDataUpdate 
 }) => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
