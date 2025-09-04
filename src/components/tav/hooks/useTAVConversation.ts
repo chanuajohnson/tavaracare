@@ -23,7 +23,10 @@ export const useTAVConversation = (
     
     // Trigger real-time data extraction
     if (onRealTimeDataUpdate) {
+      console.warn('🔗 [useTAVConversation] Calling onRealTimeDataUpdate:', { content, isUser });
       onRealTimeDataUpdate(content, isUser);
+    } else {
+      console.warn('🔗 [useTAVConversation] onRealTimeDataUpdate not available');
     }
     
     return message;

@@ -13,6 +13,12 @@ const DemoFamilyRegistration = () => {
     hasProcessMessage: !!processMessage
   });
 
+  // DEBUG: Create wrapper to trace the callback
+  const debugProcessMessage = (message: string, isUser: boolean) => {
+    console.warn('🔗 [DemoFamilyRegistration] debugProcessMessage called:', { message, isUser });
+    return processMessage(message, isUser);
+  };
+
   const handleFormReady = useCallback((setters: any) => {
     console.log('🎛️ [Demo Family Registration] handleFormReady called with setters:', setters);
     console.log('📋 [Demo Family Registration] Setter functions:', Object.keys(setters));
@@ -24,7 +30,7 @@ const DemoFamilyRegistration = () => {
     <TavaraStateProvider 
       initialRole="guest" 
       forceDemoMode={true}
-      realTimeDataCallback={processMessage}
+      realTimeDataCallback={debugProcessMessage}
     >
       <FamilyRegistration 
         isDemo={true} 

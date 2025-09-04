@@ -30,6 +30,8 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({
   forceDemoMode = false,
   realTimeDataCallback
 }) => {
+  // DEBUG: Log callback availability
+  console.warn('🔗 [TavaraStateProvider] realTimeDataCallback provided:', !!realTimeDataCallback);
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [state, setState] = useState<TavaraState & { isDemoMode: boolean }>({
@@ -140,7 +142,10 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({
         minimizePanel,
         maximizePanel,
         markNudgesAsRead,
-        realTimeDataCallback
+        realTimeDataCallback: realTimeDataCallback ? (message: string, isUser: boolean) => {
+          console.warn('🔗 [TavaraStateProvider] Callback triggered:', { message, isUser });
+          realTimeDataCallback(message, isUser);
+        } : undefined
       }}
     >
       {children}
