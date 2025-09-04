@@ -488,7 +488,12 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                         </Button>
                       </motion.div>
                       
-                      {/* SECONDARY PATHWAY BUTTONS - Mobile Optimized with Responsive Text */}
+                       {/* Chat with TAV section moved here */}
+                      <div className="pt-2">
+                        <ExpandableChatSection role={role as 'family' | 'professional' | 'community' | null} />
+                      </div>
+
+                       {/* SECONDARY PATHWAY BUTTONS - Mobile Optimized with Responsive Text */}
                       <div className="grid grid-cols-1 gap-2 pt-2 w-full">
                         <Button 
                           variant="outline" 
@@ -610,8 +615,6 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           )}
         </div>
 
-        {/* Expandable chat section */}
-        <ExpandableChatSection role={role as 'family' | 'professional' | 'community' | null} />
       </div>
 
       {/* Caregiver Matching Modal for Anonymous Family Dashboard Users */}
