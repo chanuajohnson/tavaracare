@@ -74,13 +74,22 @@ const FORM_MAPPINGS: Record<string, DetectedForm> = {
     ],
     fields: [
       {
-        id: 'full_name',
-        name: 'full_name',
-        label: 'Full Name',
+        id: 'first_name',
+        name: 'first_name',
+        label: 'First Name',
         type: 'text',
         required: true,
-        conversationalPrompt: "What's your full name?",
+        conversationalPrompt: "What's your first name?",
         helpText: "I'll use this to personalize your care experience."
+      },
+      {
+        id: 'last_name',
+        name: 'last_name',
+        label: 'Last Name',
+        type: 'text',
+        required: true,
+        conversationalPrompt: "What's your last name?",
+        helpText: "Your full name helps us address you properly."
       },
       {
         id: 'email',
@@ -92,8 +101,8 @@ const FORM_MAPPINGS: Record<string, DetectedForm> = {
         helpText: "This will be your login and where we send important updates."
       },
       {
-        id: 'phone_number',
-        name: 'phone_number',
+        id: 'phone',
+        name: 'phone',
         label: 'Phone Number',
         type: 'tel',
         required: true,
