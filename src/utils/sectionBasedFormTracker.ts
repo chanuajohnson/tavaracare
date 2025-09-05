@@ -32,7 +32,7 @@ export const FORM_SECTIONS: Record<string, FormSection[]> = {
     {
       id: 'personal-info',
       title: 'Personal & Contact Information',
-      fields: ['first_name', 'last_name', 'phone', 'email', 'address']
+      fields: ['first_name', 'last_name', 'phone', 'email', 'location', 'address']
     },
     {
       id: 'care-recipient',
@@ -180,6 +180,7 @@ export class SectionBasedFormTracker {
       'last_name': ['lastName', 'last_name'],
       'phone': ['phoneNumber', 'phone'],
       'email': ['email'],
+      'location': ['location'],
       'address': ['address'],
       'careRecipientName': ['careRecipientName', 'care_recipient_name'],
       'relationship': ['relationship'],
