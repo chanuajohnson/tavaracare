@@ -10,7 +10,9 @@ const DemoFamilyRegistration = () => {
   console.log('🏗️ [Demo Family Registration] Component state:', {
     hasFormSetters: !!formSetters,
     formSetterKeys: formSetters ? Object.keys(formSetters) : null,
-    hasProcessMessage: !!processMessage
+    hasProcessMessage: !!processMessage,
+    processMessageType: typeof processMessage,
+    currentCallbackRegistered: realTimeCallbackService.hasCallback()
   });
 
   // DEBUG: Create wrapper to trace the callback - wrapped in useCallback to prevent re-registrations
@@ -32,10 +34,27 @@ const DemoFamilyRegistration = () => {
 
   // Register the callback with the global service when form is ready
   useEffect(() => {
-    if (processMessage) {
-      console.log('🔧 [Demo Family Registration] Registering callback with service...');
+    console.log('🔧 [Demo Family Registration] useEffect triggered:', {
+      hasProcessMessage: !!processMessage,
+      processMessageType: typeof processMessage,
+      hasFormSetters: !!formSetters,
+      hasDebugWrapper: !!debugProcessMessage,
+      currentlyRegistered: realTimeCallbackService.hasCallback()
+    });
+
+    if (processMessage && formSetters) {
+      console.log('🔧 [Demo Family Registration] Both processMessage and formSetters available - registering callback...');
       realTimeCallbackService.registerCallback(debugProcessMessage);
       console.log('✅ [Demo Family Registration] Callback registered with global service');
+      console.log('🔍 [Demo Family Registration] Service state after registration:', {
+        hasCallback: realTimeCallbackService.hasCallback()
+      });
+    } else {
+      console.warn('⚠️ [Demo Family Registration] Cannot register callback yet:', {
+        hasProcessMessage: !!processMessage,
+        hasFormSetters: !!formSetters,
+        missingDependencies: !processMessage ? 'processMessage' : !formSetters ? 'formSetters' : 'unknown'
+      });
     }
     
     return () => {
@@ -43,7 +62,7 @@ const DemoFamilyRegistration = () => {
       realTimeCallbackService.unregisterCallback();
       console.log('🧹 [Demo Family Registration] Callback unregistered from global service');
     };
-  }, [processMessage, debugProcessMessage]);
+  }, [processMessage, debugProcessMessage, formSetters]);
 
   return (
     <FamilyRegistration 

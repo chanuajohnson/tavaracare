@@ -22,10 +22,15 @@ class RealTimeCallbackService {
 
   executeCallback(message: string, isUser: boolean) {
     if (this.callback) {
-      console.warn('🔗 [RealTimeCallbackService] Executing callback:', { message, isUser });
-      this.callback(message, isUser);
+      console.warn('🔗 [RealTimeCallbackService] Executing callback:', { message, isUser, callbackType: typeof this.callback });
+      try {
+        this.callback(message, isUser);
+        console.warn('🔗 [RealTimeCallbackService] Callback executed successfully');
+      } catch (error) {
+        console.error('🚨 [RealTimeCallbackService] Callback execution failed:', error);
+      }
     } else {
-      console.warn('🔗 [RealTimeCallbackService] No callback registered');
+      console.warn('🔗 [RealTimeCallbackService] No callback registered - cannot execute');
     }
   }
 
