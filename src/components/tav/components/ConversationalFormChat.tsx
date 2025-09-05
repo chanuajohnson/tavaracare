@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Brain, FormInput, HelpCircle, Loader2 } from 'lucide-react';
@@ -26,7 +26,6 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
     completionPercentage: 0 
   });
   const [sectionStatus, setSectionStatus] = useState<FormSectionData | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const {
     conversationState,
@@ -182,13 +181,6 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
     ...aiMessages
   ].sort((a, b) => a.timestamp - b.timestamp);
 
-  // Auto-scroll to bottom when messages change or typing indicator appears
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [allMessages, isTyping]);
-
   const suggestedResponses = getSuggestedResponses();
 
   return (
@@ -236,9 +228,6 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
               </div>
             </div>
           )}
-          
-          {/* Auto-scroll anchor */}
-          <div ref={messagesEndRef} />
         </div>
       )}
 
