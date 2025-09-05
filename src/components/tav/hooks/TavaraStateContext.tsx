@@ -31,6 +31,7 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({
   forceDemoMode = false,
   realTimeDataCallback
 }) => {
+  console.log('🔗 [TavaraStateProvider] Initialized with callback:', !!realTimeDataCallback);
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [state, setState] = useState<TavaraState & { isDemoMode: boolean }>({

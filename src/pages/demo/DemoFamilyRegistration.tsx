@@ -6,6 +6,8 @@ import { TavaraStateProvider } from '@/components/tav/hooks/TavaraStateContext';
 const DemoFamilyRegistration = () => {
   const [formSetters, setFormSetters] = useState<any>(null);
   const { processMessage } = useRealTimeFormSync(formSetters);
+  
+  console.log('🔗 [DemoFamilyRegistration] processMessage ready:', !!processMessage);
 
   const handleFormReady = useCallback((setters: any) => {
     setFormSetters(setters);

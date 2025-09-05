@@ -25,6 +25,8 @@ interface ExtractedData {
 
 export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
   const lastProcessedMessage = useRef<string>('');
+  
+  console.log('🔧 [useRealTimeFormSync] Hook initialized with formSetters:', !!formSetters);
 
   const extractDataFromMessage = useCallback((message: string, expectedFieldType?: string): ExtractedData => {
     console.log('🔍 [Real-time Sync] Starting extraction for message:', message);
@@ -394,8 +396,21 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
     return directMatches[normalized] || null;
   };
 
+  // Always return a stable processMessage function (even when formSetters is null)
+  const stableProcessMessage = useCallback((message: string, isUser: boolean) => {
+    console.log('🔗 [useRealTimeFormSync] stableProcessMessage called:', !!formSetters);
+    if (formSetters) {
+      processMessage(message, isUser);
+    } else {
+      console.log('⚠️ [useRealTimeFormSync] formSetters not ready, storing for later');
+      // Could store pending messages here if needed
+    }
+  }, [processMessage, formSetters]);
+
+  console.log('🔧 [useRealTimeFormSync] Returning stableProcessMessage:', !!stableProcessMessage);
+
   return {
-    processMessage,
+    processMessage: stableProcessMessage,
     extractDataFromMessage
   };
 };

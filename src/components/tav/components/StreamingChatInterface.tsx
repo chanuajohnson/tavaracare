@@ -22,6 +22,12 @@ export const StreamingChatInterface: React.FC<StreamingChatInterfaceProps> = ({
 }) => {
   const { user } = useAuth();
   const tavaraState = useTavaraState();
+  
+  console.log('🔗 [StreamingChatInterface] Callback status:', {
+    hasCallback: !!tavaraState.realTimeDataCallback,
+    callbackType: typeof tavaraState.realTimeDataCallback
+  });
+  
   const { messages, isTyping, sendMessage, clearConversation } = useTAVConversation(context, tavaraState.realTimeDataCallback);
   const [inputMessage, setInputMessage] = useState('');
   const [isListening, setIsListening] = useState(false);
