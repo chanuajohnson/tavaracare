@@ -129,6 +129,13 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
               console.log('✅ [Real-time Sync] Context-aware location matched:', matchedLocation);
             }
             break;
+          case 'address':
+            // For address, accept the full message as the address
+            extracted.address = message.trim();
+            contextExtractionSucceeded = true;
+            contextFieldExtracted = 'address';
+            console.log('✅ [Real-time Sync] Context-aware address:', message.trim());
+            break;
         }
       }
     }
