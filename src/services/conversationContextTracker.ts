@@ -30,25 +30,32 @@ class ConversationContextTracker {
   private detectFieldTypeFromMessage(message: string): string | null {
     const lowerMessage = message.toLowerCase();
 
-    // First name patterns
-    if (lowerMessage.includes('first name') || 
-        lowerMessage.includes('what\'s your name') ||
-        lowerMessage.includes('what is your name') ||
-        lowerMessage.includes('tell me your name') ||
-        (lowerMessage.includes('name') && lowerMessage.includes('please'))) {
-      return 'first_name';
-    }
+    console.log('🔍 [Context Tracker] Analyzing message for field type:', lowerMessage);
 
-    // Last name patterns
+    // Last name patterns - Check FIRST to avoid "first name" false matches
     if (lowerMessage.includes('last name') || 
         lowerMessage.includes('surname') ||
-        lowerMessage.includes('family name')) {
+        lowerMessage.includes('family name') ||
+        lowerMessage.includes('your last name')) {
+      console.log('✅ [Context Tracker] Detected LAST_NAME field');
       return 'last_name';
+    }
+
+    // First name patterns - More specific patterns
+    if (lowerMessage.includes('first name') || 
+        lowerMessage.includes('your first name') ||
+        (lowerMessage.includes('what\'s your name') && !lowerMessage.includes('last')) ||
+        (lowerMessage.includes('what is your name') && !lowerMessage.includes('last')) ||
+        (lowerMessage.includes('tell me your name') && !lowerMessage.includes('last'))) {
+      console.log('✅ [Context Tracker] Detected FIRST_NAME field');
+      return 'first_name';
     }
 
     // Email patterns
     if (lowerMessage.includes('email') || 
-        lowerMessage.includes('e-mail')) {
+        lowerMessage.includes('e-mail') ||
+        lowerMessage.includes('email address')) {
+      console.log('✅ [Context Tracker] Detected EMAIL field');
       return 'email';
     }
 
@@ -56,30 +63,49 @@ class ConversationContextTracker {
     if (lowerMessage.includes('phone') || 
         lowerMessage.includes('telephone') ||
         lowerMessage.includes('contact number') ||
+        lowerMessage.includes('phone number') ||
         lowerMessage.includes('mobile')) {
+      console.log('✅ [Context Tracker] Detected PHONE field');
       return 'phone';
     }
 
-    // Address patterns
+    // Location patterns - Separate from address
+    if (lowerMessage.includes('location') ||
+        lowerMessage.includes('select your location') ||
+        lowerMessage.includes('which location') ||
+        lowerMessage.includes('choose your location') ||
+        (lowerMessage.includes('where') && lowerMessage.includes('located'))) {
+      console.log('✅ [Context Tracker] Detected LOCATION field');
+      return 'location';
+    }
+
+    // Address patterns - Specific address only
     if (lowerMessage.includes('address') || 
-        lowerMessage.includes('location') ||
+        lowerMessage.includes('specific address') ||
+        lowerMessage.includes('full address') ||
         lowerMessage.includes('where do you live')) {
+      console.log('✅ [Context Tracker] Detected ADDRESS field');
       return 'address';
     }
 
     // Care recipient patterns
     if (lowerMessage.includes('care recipient') || 
         lowerMessage.includes('who are you caring for') ||
-        lowerMessage.includes('person you\'re caring for')) {
+        lowerMessage.includes('person you\'re caring for') ||
+        lowerMessage.includes('care recipient\'s name')) {
+      console.log('✅ [Context Tracker] Detected CARE_RECIPIENT_NAME field');
       return 'care_recipient_name';
     }
 
     // Relationship patterns
     if (lowerMessage.includes('relationship') || 
-        lowerMessage.includes('how are you related')) {
+        lowerMessage.includes('how are you related') ||
+        lowerMessage.includes('relationship to')) {
+      console.log('✅ [Context Tracker] Detected RELATIONSHIP field');
       return 'relationship';
     }
 
+    console.log('❌ [Context Tracker] No field type detected');
     return null;
   }
 }
