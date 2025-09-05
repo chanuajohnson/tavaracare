@@ -99,25 +99,6 @@ const FORM_MAPPINGS: Record<string, DetectedForm> = {
         required: true,
         conversationalPrompt: "What's the best phone number to reach you?",
         helpText: "We'll use this for urgent care coordination."
-      },
-      {
-        id: 'location',
-        name: 'location',
-        label: 'Location',
-        type: 'select',
-        required: true,
-        options: ['port_of_spain', 'san_fernando', 'chaguanas', 'arima', 'point_fortin', 'freeport', 'sangre_grande', 'rio_claro', 'couva', 'princes_town', 'penal', 'debe', 'tunapuna', 'piarco', 'marabella', 'fyzabad', 'siparia', 'moruga', 'toco', 'valencia', 'mayaro', 'scarborough', 'roxborough', 'charlotteville', 'plymouth'],
-        conversationalPrompt: "What's your location? Here are some popular areas: Port of Spain, San Fernando, Chaguanas, Arima, Point Fortin, Freeport. Would you like to see all available locations or select one of these?",
-        helpText: "This helps us connect you with caregivers in your area."
-      },
-      {
-        id: 'address',
-        name: 'address',
-        label: 'Specific Address',
-        type: 'textarea',
-        required: true,
-        conversationalPrompt: "What's your specific address?",
-        helpText: "This is for care coordination and service delivery."
       }
     ]
   },
