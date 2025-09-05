@@ -632,28 +632,28 @@ export const TavaraAssistantPanel: React.FC = () => {
       if (isChatMode || isExpanded) {
         return {
           width: 'w-full',
-          height: chatMessageCount > 6 ? 'h-[80vh] max-h-[80vh]' : 'h-[70vh] max-h-[70vh]',
+          height: chatMessageCount > 6 ? 'h-[90vh] max-h-[90vh]' : 'h-[85vh] max-h-[85vh]',
           rounded: 'rounded-tr-xl'
         };
       }
       return {
         width: 'w-3/5 max-w-sm',
-        height: 'h-[40vh] max-h-[40vh]',
+        height: 'h-[60vh] max-h-[60vh]',
         rounded: 'rounded-tr-xl'
       };
     }
     
-    // Desktop sizing logic
+    // Desktop sizing logic - MUCH MORE GENEROUS
     if (isDemoMode && isChatMode) {
       return {
-        width: chatMessageCount > 8 ? 'w-[75vw]' : 'w-[65vw]',
-        height: chatMessageCount > 8 ? 'h-[75vh] max-h-[75vh]' : 'h-[65vh] max-h-[65vh]',
+        width: chatMessageCount > 8 ? 'w-[85vw]' : 'w-[75vw]',
+        height: chatMessageCount > 8 ? 'h-[90vh] max-h-[90vh]' : 'h-[85vh] max-h-[85vh]',
         rounded: 'rounded-tr-2xl'
       };
     } else if (isDemoMode) {
       return {
-        width: 'w-[60vw]',
-        height: 'h-[60vh] max-h-[60vh]',
+        width: 'w-[75vw]',
+        height: 'h-[80vh] max-h-[80vh]',
         rounded: 'rounded-tr-2xl'
       };
     }
@@ -663,20 +663,20 @@ export const TavaraAssistantPanel: React.FC = () => {
       switch (chatSize) {
         case 'large':
           return {
-            width: 'w-[600px]',
-            height: 'h-[70vh] max-h-[70vh]',
+            width: 'w-[700px]',
+            height: 'h-[85vh] max-h-[85vh]',
             rounded: 'rounded-tr-2xl'
           };
         case 'medium':
           return {
-            width: 'w-[550px]',
-            height: 'h-[60vh] max-h-[60vh]',
+            width: 'w-[650px]',
+            height: 'h-[80vh] max-h-[80vh]',
             rounded: 'rounded-tr-2xl'
           };
         default:
           return {
-            width: 'w-[500px]',
-            height: 'h-[50vh] max-h-[50vh]',
+            width: 'w-[600px]',
+            height: 'h-[75vh] max-h-[75vh]',
             rounded: 'rounded-tr-2xl'
           };
       }

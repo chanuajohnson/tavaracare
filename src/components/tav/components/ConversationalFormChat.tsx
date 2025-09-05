@@ -201,7 +201,7 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
 
       {/* Conversation History */}
       {allMessages.length > 0 && (
-        <div className="max-h-40 overflow-y-auto space-y-2 border-t pt-2">
+        <div className="flex-1 overflow-y-auto space-y-2 border-t pt-2 min-h-[300px] max-h-[600px]">
           {allMessages.map((msg) => (
             <div
               key={msg.id}
