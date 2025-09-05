@@ -32,7 +32,7 @@ export const FORM_SECTIONS: Record<string, FormSection[]> = {
     {
       id: 'personal-info',
       title: 'Personal & Contact Information',
-      fields: ['firstName', 'lastName', 'phoneNumber', 'email', 'address']
+      fields: ['first_name', 'last_name', 'phone', 'email', 'address']
     },
     {
       id: 'care-recipient',

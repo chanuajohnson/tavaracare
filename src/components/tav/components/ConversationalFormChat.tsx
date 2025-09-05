@@ -109,31 +109,24 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
     }
   }, [isFormPage, currentForm, aiMessages.length]);
 
-  // Demo lead capture - monitor section completion
+  // Demo lead capture - monitor section completion (with flag to prevent infinite loop)
+  const [leadCaptureSent, setLeadCaptureSent] = React.useState(false);
+  
   useEffect(() => {
-    if (!isDemoRoute || !sectionStatus) return;
+    if (!isDemoRoute || !sectionStatus || leadCaptureSent) return;
 
     // Check if first section is complete (>= 80% completion)
     if (sectionStatus.allSections && sectionStatus.allSections.length > 0) {
       const firstSectionCompletion = sectionStatus.allSections[0]?.completionPercentage || 0;
       
       if (firstSectionCompletion >= 80) {
-        // Check if we haven't already sent the lead capture message
-        const hasLeadCaptureMessage = aiMessages.some(msg => 
-          !msg.isUser && (
-            msg.content.includes('save your progress') ||
-            msg.content.includes('Great progress!')
-          )
-        );
-        
-        if (!hasLeadCaptureMessage) {
-          setTimeout(() => {
-            sendAIMessage("Demo lead capture: First section nearly complete! Would you like to save progress?");
-          }, 1500);
-        }
+        setLeadCaptureSent(true);
+        setTimeout(() => {
+          sendAIMessage("Demo lead capture: First section nearly complete! Would you like to save progress?");
+        }, 1500);
       }
     }
-  }, [isDemoRoute, sectionStatus, aiMessages, sendAIMessage]);
+  }, [isDemoRoute, sectionStatus, leadCaptureSent, sendAIMessage]);
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;
