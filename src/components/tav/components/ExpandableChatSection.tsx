@@ -7,11 +7,15 @@ import { ConversationalFormChat } from './ConversationalFormChat';
 
 interface ExpandableChatSectionProps {
   role: 'family' | 'professional' | 'community' | null;
+  realTimeDataCallback?: (message: string, isUser: boolean) => void;
 }
 
-export const ExpandableChatSection: React.FC<ExpandableChatSectionProps> = ({ role }) => {
+export const ExpandableChatSection: React.FC<ExpandableChatSectionProps> = ({ role, realTimeDataCallback }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const expandableContentRef = useRef<HTMLDivElement>(null);
+  
+  // DEBUG: Log callback availability in ExpandableChatSection
+  console.warn('🔗 [ExpandableChatSection] realTimeDataCallback available:', !!realTimeDataCallback);
 
   // Auto-scroll to show the chat input when expanded
   useEffect(() => {
@@ -70,7 +74,10 @@ export const ExpandableChatSection: React.FC<ExpandableChatSectionProps> = ({ ro
               </div>
 
               {/* Conversational Form Chat Component */}
-              <ConversationalFormChat role={role} />
+              <ConversationalFormChat 
+                role={role} 
+                realTimeDataCallback={realTimeDataCallback}
+              />
             </div>
           </motion.div>
         )}

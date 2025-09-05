@@ -27,6 +27,7 @@ interface RoleBasedContentProps {
   isLoudMode?: boolean;
   dashboardRole?: 'family' | 'professional' | null;
   isDemoRoute?: boolean;
+  realTimeDataCallback?: (message: string, isUser: boolean) => void;
 }
 
 export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
@@ -41,7 +42,8 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
   onMinimize,
   isLoudMode = false,
   dashboardRole = null,
-  isDemoRoute = false
+  isDemoRoute = false,
+  realTimeDataCallback
 }) => {
   const { user } = useAuth();
   const [showCaregiverMatchingModal, setShowCaregiverMatchingModal] = useState(false);
@@ -295,7 +297,10 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
 
                   {/* Chat with TAV section */}
                   <div className="mb-6">
-                    <ExpandableChatSection role={role as 'family' | 'professional' | 'community' | null} />
+                    <ExpandableChatSection 
+                      role={role as 'family' | 'professional' | 'community' | null} 
+                      realTimeDataCallback={realTimeDataCallback}
+                    />
                   </div>
 
                   {/* DEMO OPTIONS GRID */}
