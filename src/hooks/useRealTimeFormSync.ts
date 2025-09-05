@@ -134,7 +134,7 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
     // Early return if context extraction succeeded - don't run any fallback patterns
     if (contextExtractionSucceeded) {
       console.log(`✅ [Real-time Sync] Context extraction succeeded for ${contextFieldExtracted}, skipping ALL fallback patterns`);
-      // Continue to other field extractions (email, phone, etc.) that aren't context-dependent
+      // Skip all fallback pattern matching - only do email/phone extraction below
     } else {
       console.log('🔍 [Real-time Sync] Context extraction failed, trying fallback patterns...');
       
@@ -168,8 +168,29 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
       }
     }
 
+    // ALWAYS extract email and phone regardless of context
+    // Extract email
+    const emailMatch = message.match(emailPattern);
+    if (emailMatch) {
+      extracted.email = emailMatch[1];
+      console.log('✅ [Real-time Sync] Found email:', emailMatch[1]);
+    }
+
+    // Extract phone
+    const phoneMatch = message.match(phonePattern);
+    if (phoneMatch) {
+      extracted.phone = phoneMatch[1].replace(/[^\d+]/g, '');
+      console.log('✅ [Real-time Sync] Found phone:', extracted.phone);
+    }
+
+    // Early return if context extraction succeeded - skip location and relationship patterns
+    if (contextExtractionSucceeded) {
+      console.log(`🚀 [Real-time Sync] Returning early with context result for ${contextFieldExtracted}`);
+      return extracted;
+    }
+
     // Extract location if not found via context
-    if (!extracted.location && !contextExtractionSucceeded) {
+    if (!extracted.location) {
       console.log('🔍 [Real-time Sync] Testing location patterns...');
       for (const pattern of locationPatterns) {
         const match = message.match(pattern);
@@ -183,18 +204,6 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
           }
         }
       }
-    }
-
-    // Extract email
-    const emailMatch = message.match(emailPattern);
-    if (emailMatch) {
-      extracted.email = emailMatch[1];
-    }
-
-    // Extract phone
-    const phoneMatch = message.match(phonePattern);
-    if (phoneMatch) {
-      extracted.phone = phoneMatch[1].replace(/[^\d+]/g, '');
     }
 
     // Care recipient name patterns
