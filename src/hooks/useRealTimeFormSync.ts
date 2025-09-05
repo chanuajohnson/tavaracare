@@ -6,6 +6,7 @@ interface FormSetters {
   setLastName: (value: string) => void;
   setEmail: (value: string) => void;
   setPhoneNumber: (value: string) => void;
+  setLocation?: (value: string) => void;
   setAddress: (value: string) => void;
   setCareRecipientName: (value: string) => void;
   setRelationship: (value: string) => void;
@@ -16,6 +17,7 @@ interface ExtractedData {
   last_name?: string;
   email?: string;
   phone?: string;
+  location?: string;
   address?: string;
   care_recipient_name?: string;
   relationship?: string;
@@ -58,8 +60,40 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
     // Phone patterns
     const phonePattern = /(\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4})/;
 
-    // Track if context-aware extraction was successful
+    // Location patterns - Trinidad & Tobago locations
+    const locationPatterns = [
+      // Popular locations
+      /(?:^|[^a-zA-Z])(port of spain|port_of_spain|pos)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(san fernando|san_fernando)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(chaguanas)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(arima)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(point fortin|point_fortin)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(freeport)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(sangre grande|sangre_grande)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(rio claro|rio_claro)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(couva)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(princes town|princes_town)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(penal)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(debe)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(tunapuna)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(piarco)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(marabella)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(fyzabad)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(siparia)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(moruga)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(toco)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(valencia)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(mayaro)(?:[^a-zA-Z]|$)/i,
+      // Tobago locations
+      /(?:^|[^a-zA-Z])(scarborough)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(roxborough)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(charlotteville)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(plymouth)(?:[^a-zA-Z]|$)/i
+    ];
+
+    // Track context-aware extraction attempts and successes by field type
     let contextExtractionSucceeded = false;
+    let contextFieldExtracted: string | null = null;
 
     // Context-aware extraction logic
     if (contextFieldType) {
@@ -74,23 +108,38 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
           case 'first_name':
             extracted.first_name = value;
             contextExtractionSucceeded = true;
+            contextFieldExtracted = 'first_name';
             console.log('✅ [Real-time Sync] Context-aware first name:', value);
             break;
           case 'last_name':
             extracted.last_name = value;
             contextExtractionSucceeded = true;
+            contextFieldExtracted = 'last_name';
             console.log('✅ [Real-time Sync] Context-aware last name:', value);
+            break;
+          case 'location':
+            // Try to match location to dropdown values
+            const matchedLocation = matchLocationToDropdownValue(value);
+            if (matchedLocation) {
+              extracted.location = matchedLocation;
+              contextExtractionSucceeded = true;
+              contextFieldExtracted = 'location';
+              console.log('✅ [Real-time Sync] Context-aware location matched:', matchedLocation);
+            }
             break;
         }
       }
     }
 
-    // Only run fallback patterns if context-aware extraction failed
-    if (!contextExtractionSucceeded) {
+    // Early return if context extraction succeeded - don't run any fallback patterns
+    if (contextExtractionSucceeded) {
+      console.log(`✅ [Real-time Sync] Context extraction succeeded for ${contextFieldExtracted}, skipping ALL fallback patterns`);
+      // Continue to other field extractions (email, phone, etc.) that aren't context-dependent
+    } else {
       console.log('🔍 [Real-time Sync] Context extraction failed, trying fallback patterns...');
       
-      // Fallback to explicit patterns for first name
-      if (!extracted.first_name) {
+      // Fallback to explicit patterns for first name - only if context wasn't looking for last name
+      if (!extracted.first_name && contextFieldType !== 'last_name') {
         console.log('🔍 [Real-time Sync] Testing explicit first name patterns...');
         for (let i = 0; i < firstNamePatterns.length; i++) {
           const pattern = firstNamePatterns[i];
@@ -104,8 +153,8 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
         }
       }
 
-      // Fallback to explicit patterns for last name
-      if (!extracted.last_name) {
+      // Fallback to explicit patterns for last name - only if context wasn't looking for first name
+      if (!extracted.last_name && contextFieldType !== 'first_name') {
         console.log('🔍 [Real-time Sync] Testing explicit last name patterns...');
         for (const pattern of lastNamePatterns) {
           const match = message.match(pattern);
@@ -117,8 +166,23 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
           }
         }
       }
-    } else {
-      console.log('✅ [Real-time Sync] Context extraction succeeded, skipping fallback patterns');
+    }
+
+    // Extract location if not found via context
+    if (!extracted.location && !contextExtractionSucceeded) {
+      console.log('🔍 [Real-time Sync] Testing location patterns...');
+      for (const pattern of locationPatterns) {
+        const match = message.match(pattern);
+        if (match && match[1]) {
+          const locationValue = normalizeLocationName(match[1]);
+          const matchedLocation = matchLocationToDropdownValue(locationValue);
+          if (matchedLocation) {
+            extracted.location = matchedLocation;
+            console.log('✅ [Real-time Sync] Found location via pattern:', matchedLocation);
+            break;
+          }
+        }
+      }
     }
 
     // Extract email
@@ -244,6 +308,12 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
               formSetters.setPhoneNumber(value);
               console.log('✅ [Real-time Sync] Successfully set phone:', value);
               break;
+            case 'location':
+              if (formSetters.setLocation) {
+                formSetters.setLocation(value);
+                console.log('✅ [Real-time Sync] Successfully set location:', value);
+              }
+              break;
             case 'address':
               formSetters.setAddress(value);
               console.log('✅ [Real-time Sync] Successfully set address:', value);
@@ -270,6 +340,50 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
       }
     });
   }, [extractDataFromMessage, formSetters]);
+
+  // Helper function to normalize location names
+  const normalizeLocationName = (location: string): string => {
+    return location.toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z_]/g, '');
+  };
+
+  // Helper function to match user input to dropdown values
+  const matchLocationToDropdownValue = (input: string): string | null => {
+    const normalized = normalizeLocationName(input);
+    
+    // Direct matches
+    const directMatches: Record<string, string> = {
+      'port_of_spain': 'port_of_spain',
+      'pos': 'port_of_spain',
+      'san_fernando': 'san_fernando',
+      'chaguanas': 'chaguanas',
+      'arima': 'arima',
+      'point_fortin': 'point_fortin',
+      'freeport': 'freeport',
+      'sangre_grande': 'sangre_grande',
+      'rio_claro': 'rio_claro',
+      'couva': 'couva',
+      'princes_town': 'princes_town',
+      'penal': 'penal',
+      'debe': 'debe',
+      'tunapuna': 'tunapuna',
+      'piarco': 'piarco',
+      'marabella': 'marabella',
+      'fyzabad': 'fyzabad',
+      'siparia': 'siparia',
+      'moruga': 'moruga',
+      'toco': 'toco',
+      'valencia': 'valencia',
+      'mayaro': 'mayaro',
+      'scarborough': 'scarborough',
+      'roxborough': 'roxborough',
+      'charlotteville': 'charlotteville',
+      'plymouth': 'plymouth'
+    };
+
+    return directMatches[normalized] || null;
+  };
 
   return {
     processMessage,
