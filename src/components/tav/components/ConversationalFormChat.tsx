@@ -99,6 +99,9 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
     };
   }, [isFormPage, currentForm]);
 
+  // Demo lead capture tracking
+  const [hasOfferedLeadCapture, setHasOfferedLeadCapture] = useState(false);
+
   // Initialize with welcome message based on context
   useEffect(() => {
     if (aiMessages.length === 0) {
@@ -108,6 +111,19 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
       }
     }
   }, [isFormPage, currentForm, aiMessages.length]);
+
+  // Demo lead capture logic
+  useEffect(() => {
+    if (isDemoRoute && sectionStatus && !hasOfferedLeadCapture) {
+      const firstSection = sectionStatus.allSections?.[0];
+      if (firstSection && firstSection.completionPercentage >= 100) {
+        setHasOfferedLeadCapture(true);
+        setTimeout(() => {
+          sendAIMessage("🌟 Excellent progress! I notice you've completed the personal information section. This is great momentum in finding the right care support!");
+        }, 1500);
+      }
+    }
+  }, [isDemoRoute, sectionStatus, hasOfferedLeadCapture, sendAIMessage]);
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;

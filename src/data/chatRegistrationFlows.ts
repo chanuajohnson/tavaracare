@@ -67,15 +67,23 @@ export const familyRegistrationFlow: RegistrationSection[] = [
     description: "Let's start with some basic information about you",
     questions: [
       {
-        id: "full_name",
-        text: "What's your full name?",
+        id: "first_name",
+        text: "What's your first name?",
         type: "text",
         required: true,
         section: "personal_info",
-        placeholder: "Your full name"
+        placeholder: "Your first name"
       },
       {
-        id: "phone_number",
+        id: "last_name",
+        text: "What's your last name?",
+        type: "text",
+        required: true,
+        section: "personal_info",
+        placeholder: "Your last name"
+      },
+      {
+        id: "phone",
         text: "What's your phone number?",
         type: "tel",
         required: true,
@@ -271,15 +279,23 @@ export const professionalRegistrationFlow: RegistrationSection[] = [
     description: "Let's start with some basic information about you",
     questions: [
       {
-        id: "full_name",
-        text: "What's your full name?",
+        id: "first_name",
+        text: "What's your first name?",
         type: "text",
         required: true,
         section: "personal_info",
-        placeholder: "Your full name"
+        placeholder: "Your first name"
       },
       {
-        id: "phone_number",
+        id: "last_name",
+        text: "What's your last name?",
+        type: "text",
+        required: true,
+        section: "personal_info",
+        placeholder: "Your last name"
+      },
+      {
+        id: "phone",
         text: "What's your phone number?",
         type: "tel",
         required: true,
