@@ -25,9 +25,17 @@ export const useTAVConversation = (
     // Trigger real-time data extraction - try props callback first, then global service
     if (onRealTimeDataUpdate) {
       console.warn('🔗 [useTAVConversation] Calling onRealTimeDataUpdate:', { content, isUser });
+      // CRITICAL ADDRESS DEBUG
+      if (content.toLowerCase().includes('address') || content.toLowerCase().includes('calcutta')) {
+        console.error('🏠 [useTAVConversation] ADDRESS-RELATED MESSAGE DETECTED:', content);
+      }
       onRealTimeDataUpdate(content, isUser);
     } else if (realTimeCallbackService.hasCallback()) {
       console.warn('🔗 [useTAVConversation] Using global callback service:', { content, isUser });
+      // CRITICAL ADDRESS DEBUG
+      if (content.toLowerCase().includes('address') || content.toLowerCase().includes('calcutta')) {
+        console.error('🏠 [useTAVConversation] ADDRESS-RELATED MESSAGE DETECTED (global):', content);
+      }
       realTimeCallbackService.executeCallback(content, isUser);
     } else {
       console.warn('🔗 [useTAVConversation] No callback available (props or global)');

@@ -14,7 +14,11 @@ class ConversationContextTracker {
   // Analyze bot message to determine what field is being asked for
   setExpectedFieldFromBotMessage(botMessage: string) {
     this.lastBotMessage = botMessage;
+    console.log('🔍 [Context Tracker] ANALYZING BOT MESSAGE:', botMessage);
+    console.log('🔍 [Context Tracker] Bot message includes "specific address"?', botMessage.toLowerCase().includes('specific address'));
+    console.log('🔍 [Context Tracker] Bot message includes "address"?', botMessage.toLowerCase().includes('address'));
     this.expectedFieldType = this.detectFieldTypeFromMessage(botMessage);
+    console.log('🎯 [Context Tracker] FINAL SET FIELD TYPE:', this.expectedFieldType);
     console.log('🤖 [Context Tracker] Bot asked for field:', this.expectedFieldType, 'from message:', botMessage.substring(0, 50));
   }
 

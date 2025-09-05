@@ -268,8 +268,15 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
     if (!isUser) {
       console.log('🤖 [Real-time Sync] Bot message - updating context:', message.substring(0, 50));
       conversationContextTracker.setExpectedFieldFromBotMessage(message);
+      const fieldTypeAfterBot = conversationContextTracker.getExpectedFieldType();
+      console.log('🎯 [Real-time Sync] After bot message, expected field type is:', fieldTypeAfterBot);
       return;
     }
+
+    // CRITICAL: Log the user message and current context
+    const currentExpectedField = conversationContextTracker.getExpectedFieldType();
+    console.log('👤 [Real-time Sync] USER MESSAGE RECEIVED:', message);
+    console.log('🎯 [Real-time Sync] CURRENT EXPECTED FIELD TYPE:', currentExpectedField);
     if (message === lastProcessedMessage.current) {
       console.log('⏭️ [Real-time Sync] Skipping: already processed this message');
       return;
