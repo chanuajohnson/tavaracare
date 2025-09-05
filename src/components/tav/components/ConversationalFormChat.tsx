@@ -116,17 +116,26 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
     if (!isDemoRoute || !sectionStatus || leadCaptureSent) return;
 
     // Check if first section is complete (>= 80% completion)
+    // AND ensure we're not interrupting an active conversation
     if (sectionStatus.allSections && sectionStatus.allSections.length > 0) {
       const firstSectionCompletion = sectionStatus.allSections[0]?.completionPercentage || 0;
       
+      // Only trigger if >= 80% complete and there's a natural pause in conversation
       if (firstSectionCompletion >= 80) {
-        setLeadCaptureSent(true);
-        setTimeout(() => {
-          sendAIMessage("Demo lead capture: First section nearly complete! Would you like to save progress?");
-        }, 1500);
+        // Check if TAV just asked a question (waiting for user response)
+        const lastMessage = aiMessages[aiMessages.length - 1];
+        const isWaitingForResponse = lastMessage && !lastMessage.isUser && lastMessage.content.includes('?');
+        
+        // Don't interrupt if TAV is waiting for a response
+        if (!isWaitingForResponse) {
+          setLeadCaptureSent(true);
+          setTimeout(() => {
+            sendAIMessage("Demo lead capture: First section nearly complete! Would you like to save progress?");
+          }, 1500);
+        }
       }
     }
-  }, [isDemoRoute, sectionStatus, leadCaptureSent, sendAIMessage]);
+  }, [isDemoRoute, sectionStatus, leadCaptureSent, sendAIMessage, aiMessages]);
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;

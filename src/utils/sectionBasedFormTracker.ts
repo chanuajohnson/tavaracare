@@ -174,22 +174,41 @@ export class SectionBasedFormTracker {
    * Find a form field by name or id
    */
   private findFieldByName(fieldName: string): HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null {
-    // Try multiple selectors to find the field
-    const selectors = [
-      `[name="${fieldName}"]`,
-      `[id="${fieldName}"]`,
-      `[name="firstName"]`, // Handle camelCase variations
-      `[name="lastName"]`,
-      `[name="phoneNumber"]`,
-      `[name="careRecipientName"]`,
-      `[name="caregiverType"]`,
-      `[name="preferredContactMethod"]`
-    ];
+    // Map field names to actual form field names/IDs
+    const fieldMapping: Record<string, string[]> = {
+      'first_name': ['firstName', 'first_name'],
+      'last_name': ['lastName', 'last_name'],
+      'phone': ['phoneNumber', 'phone'],
+      'email': ['email'],
+      'address': ['address'],
+      'careRecipientName': ['careRecipientName', 'care_recipient_name'],
+      'relationship': ['relationship'],
+      'careTypes': ['careTypes', 'care_types'],
+      'specialNeeds': ['specialNeeds', 'special_needs'],
+      'careSchedule': ['careSchedule', 'care_schedule'],
+      'customCareSchedule': ['customCareSchedule', 'custom_care_schedule'],
+      'budget': ['budget', 'budget_preferences'],
+      'caregiverType': ['caregiverType', 'caregiver_type'],
+      'caregiverPreferences': ['caregiverPreferences', 'caregiver_preferences'],
+      'additionalNotes': ['additionalNotes', 'additional_notes'],
+      'preferredContactMethod': ['preferredContactMethod', 'preferred_contact_method']
+    };
 
-    for (const selector of selectors) {
-      const element = document.querySelector(selector) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
-      if (element) {
-        return element;
+    // Get possible field names for this field
+    const possibleNames = fieldMapping[fieldName] || [fieldName];
+    
+    // Try multiple selectors to find the field
+    for (const name of possibleNames) {
+      const selectors = [
+        `[name="${name}"]`,
+        `[id="${name}"]`
+      ];
+      
+      for (const selector of selectors) {
+        const element = document.querySelector(selector) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+        if (element) {
+          return element;
+        }
       }
     }
 

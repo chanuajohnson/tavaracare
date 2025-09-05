@@ -83,7 +83,14 @@ class ConversationContextTracker {
     if (lowerMessage.includes('address') || 
         lowerMessage.includes('specific address') ||
         lowerMessage.includes('full address') ||
-        lowerMessage.includes('where do you live')) {
+        lowerMessage.includes('where do you live') ||
+        lowerMessage.includes('your address') ||
+        lowerMessage.includes('home address') ||
+        lowerMessage.includes('residential address') ||
+        lowerMessage.includes('street address') ||
+        (lowerMessage.includes('where') && lowerMessage.includes('located') && !lowerMessage.includes('city')) ||
+        lowerMessage.includes('complete address') ||
+        lowerMessage.includes('mailing address')) {
       console.log('✅ [Context Tracker] Detected ADDRESS field');
       return 'address';
     }
