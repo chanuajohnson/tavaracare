@@ -91,7 +91,8 @@ class ConversationContextTracker {
         (lowerMessage.includes('where') && lowerMessage.includes('located') && !lowerMessage.includes('city')) ||
         lowerMessage.includes('complete address') ||
         lowerMessage.includes('mailing address')) {
-      console.log('✅ [Context Tracker] Detected ADDRESS field');
+      console.log('✅ [Context Tracker] Detected ADDRESS field from message:', lowerMessage);
+      console.log('🏠 [Context Tracker] ADDRESS detection - specific pattern matched');
       return 'address';
     }
 

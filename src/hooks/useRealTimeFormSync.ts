@@ -131,10 +131,13 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
             break;
           case 'address':
             // For address, accept the full message as the address
+            console.log('🏠 [Real-time Sync] PROCESSING ADDRESS - raw message:', message);
+            console.log('🏠 [Real-time Sync] PROCESSING ADDRESS - trimmed message:', message.trim());
             extracted.address = message.trim();
             contextExtractionSucceeded = true;
             contextFieldExtracted = 'address';
-            console.log('✅ [Real-time Sync] Context-aware address:', message.trim());
+            console.log('✅ [Real-time Sync] Context-aware address extracted:', message.trim());
+            console.log('🏠 [Real-time Sync] extracted.address value:', extracted.address);
             break;
         }
       }
@@ -333,8 +336,27 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
               }
               break;
             case 'address':
+              console.log('🏠 [Real-time Sync] BEFORE setAddress - value:', value);
+              console.log('🏠 [Real-time Sync] BEFORE setAddress - formSetters.setAddress type:', typeof formSetters.setAddress);
               formSetters.setAddress(value);
               console.log('✅ [Real-time Sync] Successfully set address:', value);
+              // Add visual feedback for address field
+              if (typeof window !== 'undefined') {
+                setTimeout(() => {
+                  const textarea = document.querySelector('#address') as HTMLTextAreaElement;
+                  console.log('🏠 [Real-time Sync] Looking for address field element:', !!textarea);
+                  if (textarea) {
+                    console.log('🏠 [Real-time Sync] Found address field, current value:', textarea.value);
+                    textarea.style.background = 'rgba(34, 197, 94, 0.1)';
+                    textarea.style.transition = 'background 0.3s ease';
+                    setTimeout(() => {
+                      textarea.style.background = '';
+                    }, 2000);
+                  } else {
+                    console.warn('🏠 [Real-time Sync] Address field element not found in DOM');
+                  }
+                }, 100);
+              }
               break;
             case 'care_recipient_name':
               formSetters.setCareRecipientName(value);
