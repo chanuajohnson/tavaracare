@@ -24,9 +24,10 @@ import { CompleteRegistrationButton } from '@/components/demo/CompleteRegistrati
 interface FamilyRegistrationProps {
   isDemo?: boolean;
   onFormReady?: (formSetters: any) => void;
+  realTimeDataCallback?: (message: string, isUser: boolean) => void;
 }
 
-const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady }: FamilyRegistrationProps = {}) => {
+const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realTimeDataCallback }: FamilyRegistrationProps = {}) => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';

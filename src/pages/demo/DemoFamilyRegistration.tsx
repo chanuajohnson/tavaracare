@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import FamilyRegistration from '@/pages/registration/FamilyRegistration';
 import { useRealTimeFormSync } from '@/hooks/useRealTimeFormSync';
 import { TavaraStateProvider } from '@/components/tav/hooks/TavaraStateContext';
+import { TavaraAssistantPanel } from '@/components/tav/TavaraAssistantPanel';
 
 const DemoFamilyRegistration = () => {
   const [formSetters, setFormSetters] = useState<any>(null);
@@ -22,7 +23,10 @@ const DemoFamilyRegistration = () => {
       <FamilyRegistration 
         isDemo={true} 
         onFormReady={handleFormReady}
+        realTimeDataCallback={processMessage}
       />
+      {/* Demo-specific TAV panel that uses the demo context */}
+      <TavaraAssistantPanel />
     </TavaraStateProvider>
   );
 };

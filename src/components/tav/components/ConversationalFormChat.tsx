@@ -12,9 +12,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface ConversationalFormChatProps {
   role: 'family' | 'professional' | 'community' | null;
+  realTimeDataCallback?: (message: string, isUser: boolean) => void;
 }
 
-export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ role }) => {
+export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ role, realTimeDataCallback }) => {
   const location = useLocation();
   const [message, setMessage] = useState('');
   const [sessionId] = useState(() => uuidv4());
@@ -55,12 +56,19 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
 
   const tavaraState = useTavaraState();
   
+  // Use prop callback if provided, otherwise fall back to context callback
+  const activeCallback = realTimeDataCallback || tavaraState.realTimeDataCallback;
+  
   // DEBUG: Log callback availability in ConversationalFormChat
-  console.warn('🔗 [ConversationalFormChat] realTimeDataCallback available:', !!tavaraState.realTimeDataCallback);
+  console.warn('🔗 [ConversationalFormChat] realTimeDataCallback available:', !!activeCallback, {
+    propCallback: !!realTimeDataCallback,
+    contextCallback: !!tavaraState.realTimeDataCallback,
+    usingProp: !!realTimeDataCallback
+  });
   
   const { messages: aiMessages, isTyping, sendMessage: sendAIMessage } = useTAVConversation(
     tavContext, 
-    tavaraState.realTimeDataCallback
+    activeCallback
   );
 
   // Track form field completion status - both field-level and section-level
