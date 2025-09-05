@@ -292,14 +292,6 @@ CURRENT CONTEXT:
 
   if (context.currentForm) {
     prompt += `\n- Current form: ${context.currentForm}`;
-    if (context.formFields) {
-      const fieldNames = Object.keys(context.formFields);
-      prompt += `\n- Form fields available: ${fieldNames.join(', ')}`;
-    }
-  }
-  
-  if (context.isDemoMode) {
-    prompt += `\n- Demo mode: Encourage engagement and show value of progress made`;
   }
 
   if (context.caregiverContext) {
@@ -344,26 +336,15 @@ NEVER GIVE GENERIC RESPONSES. Always reference specific caregiver details.`;
 
 FORM ASSISTANCE PATTERNS:
 When user says "help me fill this out" or "go through this with me":
-- "💙 I'd love to help you complete this registration step-by-step. Let's start with the first section - I'll guide you through each field. The first field asks for your first name. What's your first name?"
+- "💙 I'd love to help you complete this registration step-by-step. Let's start with the first section - I'll guide you through each field. What's your first name?"
 - Proactively offer to walk through forms section by section
 - Ask for one piece of information at a time
 - Confirm details before moving to next field
-- Use definitive language: "The next field asks for..." not "The next field usually asks for..."
-
-When user provides information like "chanua" or "johnson":
-- For first names: "Perfect! I've filled in 'Chanua' as your first name. The next field asks for your last name. What's your last name?"
-- For last names: "Great! I've filled in 'Johnson' as your last name. The next field asks for your phone number. What's your phone number?"
-- Always confirm what was filled and state the next field clearly
 
 When user seems overwhelmed by form:
 - "This form has several sections, but we can take it one step at a time. Would you like me to guide you through it?"
 - Break down complex forms into manageable chunks
 - Explain why each field is important for finding the right care
-
-DEMO MODE LEAD CAPTURE:
-When a demo user completes the first section (personal info), offer to save progress:
-- "🌟 Excellent! You've completed the personal information section. In a real account, this progress would be automatically saved. Would you like to continue exploring the form, or shall I show you what happens next in the care matching process?"
-- Encourage users to see the value they've already created
 
 RESPONSE GUIDELINES:
 - Keep responses concise but helpful (2-3 sentences usually)
