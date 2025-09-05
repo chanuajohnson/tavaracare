@@ -131,8 +131,11 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
       }
     }
 
-    // Only run fallback patterns if context-aware extraction failed
-    if (!contextExtractionSucceeded) {
+    // Early return if context extraction succeeded - don't run any fallback patterns
+    if (contextExtractionSucceeded) {
+      console.log(`✅ [Real-time Sync] Context extraction succeeded for ${contextFieldExtracted}, skipping ALL fallback patterns`);
+      // Continue to other field extractions (email, phone, etc.) that aren't context-dependent
+    } else {
       console.log('🔍 [Real-time Sync] Context extraction failed, trying fallback patterns...');
       
       // Fallback to explicit patterns for first name - only if context wasn't looking for last name
@@ -163,8 +166,6 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
           }
         }
       }
-    } else {
-      console.log(`✅ [Real-time Sync] Context extraction succeeded for ${contextFieldExtracted}, skipping fallback patterns`);
     }
 
     // Extract location if not found via context
