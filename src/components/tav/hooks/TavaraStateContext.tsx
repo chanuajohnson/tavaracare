@@ -4,7 +4,7 @@ import { TavaraState } from '../types';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { useSearchParams } from 'react-router-dom';
-import { realTimeCallbackService } from '@/services/realTimeCallbackService';
+
 
 interface TavaraStateContextType {
   state: TavaraState & { isDemoMode: boolean };
@@ -31,8 +31,6 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({
   forceDemoMode = false,
   realTimeDataCallback
 }) => {
-  // DEBUG: Log callback availability
-  console.warn('🔗 [TavaraStateProvider] realTimeDataCallback provided:', !!realTimeDataCallback);
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [state, setState] = useState<TavaraState & { isDemoMode: boolean }>({
@@ -143,13 +141,7 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({
         minimizePanel,
         maximizePanel,
         markNudgesAsRead,
-        realTimeDataCallback: realTimeDataCallback ? (message: string, isUser: boolean) => {
-          console.warn('🔗 [TavaraStateProvider] Direct callback triggered:', { message, isUser });
-          realTimeDataCallback(message, isUser);
-        } : realTimeCallbackService.hasCallback() ? (message: string, isUser: boolean) => {
-          console.warn('🔗 [TavaraStateProvider] Using global callback service:', { message, isUser });
-          realTimeCallbackService.executeCallback(message, isUser);
-        } : undefined
+        realTimeDataCallback
       }}
     >
       {children}
