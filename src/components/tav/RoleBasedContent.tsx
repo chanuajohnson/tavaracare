@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { X, Minimize2, Sparkles, ArrowRight, CheckCircle, Clock, Target, Star, Zap, Heart, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Minimize2, Sparkles, ArrowRight, CheckCircle, Clock, Target, Star, Zap, Heart, Users, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { AssistantNudge, ProgressContext } from './types';
@@ -28,6 +28,8 @@ interface RoleBasedContentProps {
   dashboardRole?: 'family' | 'professional' | null;
   isDemoRoute?: boolean;
   realTimeDataCallback?: (message: string, isUser: boolean) => void;
+  isChatMode?: boolean;
+  chatMessageCount?: number;
 }
 
 export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
@@ -43,7 +45,9 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
   isLoudMode = false,
   dashboardRole = null,
   isDemoRoute = false,
-  realTimeDataCallback
+  realTimeDataCallback,
+  isChatMode = false,
+  chatMessageCount = 0
 }) => {
   const { user } = useAuth();
   const [showCaregiverMatchingModal, setShowCaregiverMatchingModal] = useState(false);
@@ -97,53 +101,92 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header with sparkles and controls */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-primary/5">
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <div className={cn("p-1.5 bg-primary-100 rounded-lg", isLoudMode && "bg-primary-200")}>
-              <Sparkles className={cn("h-4 w-4 text-primary", isLoudMode && "h-5 w-5")} />
-            </div>
-            <div className="absolute -top-1 -right-1">
-              <Sparkles className={cn("h-2 w-2 text-primary/60 animate-pulse", isLoudMode && "h-3 w-3")} />
-            </div>
-            {isLoudMode && (
-              <div className="absolute -bottom-1 -left-1">
-                <Star className="h-2 w-2 text-amber-400 animate-pulse" />
+      {/* Smart Chat-Aware Header */}
+      <AnimatePresence>
+        {!isChatMode && (
+          <motion.div 
+            initial={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex items-center justify-between p-4 border-b border-gray-100 bg-primary/5"
+          >
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <div className={cn("p-1.5 bg-primary-100 rounded-lg", isLoudMode && "bg-primary-200")}>
+                  <Sparkles className={cn("h-4 w-4 text-primary", isLoudMode && "h-5 w-5")} />
+                </div>
+                <div className="absolute -top-1 -right-1">
+                  <Sparkles className={cn("h-2 w-2 text-primary/60 animate-pulse", isLoudMode && "h-3 w-3")} />
+                </div>
+                {isLoudMode && (
+                  <div className="absolute -bottom-1 -left-1">
+                    <Star className="h-2 w-2 text-amber-400 animate-pulse" />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <div>
-            <h2 className={cn("font-semibold text-primary", isLoudMode && "text-lg font-bold")}>
-              {isLoudMode ? "🎯 TAV MAGIC!" : "TAV Assistant"}
-            </h2>
-            <p className={cn("text-xs text-gray-600", isLoudMode && "text-sm font-medium")}>
-              {isLoudMode ? "Your Magical Care Coordinator" : "Your Care Coordinator"}
-            </p>
-          </div>
-        </div>
+              <div>
+                <h2 className={cn("font-semibold text-primary", isLoudMode && "text-lg font-bold")}>
+                  {isLoudMode ? "🎯 TAV MAGIC!" : "TAV Assistant"}
+                </h2>
+                <p className={cn("text-xs text-gray-600", isLoudMode && "text-sm font-medium")}>
+                  {isLoudMode ? "Your Magical Care Coordinator" : "Your Care Coordinator"}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onMinimize}
+                className="h-7 w-7 p-0"
+                title="Minimize panel"
+              >
+                <Minimize2 className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="h-7 w-7 p-0"
+                title="Close panel"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
         
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onMinimize}
-            className="h-7 w-7 p-0"
-            title="Minimize panel"
+        {/* Minimal Chat Mode Header */}
+        {isChatMode && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            transition={{ duration: 0.3 }}
+            className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-primary/10"
           >
-            <Minimize2 className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="h-7 w-7 p-0"
-            title="Close panel"
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
-      </div>
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-primary">Chat Mode</span>
+              {chatMessageCount > 0 && (
+                <span className="text-xs text-gray-500">({chatMessageCount} messages)</span>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="h-6 w-6 p-0 hover:bg-primary/20"
+                title="Close"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">

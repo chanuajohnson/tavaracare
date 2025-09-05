@@ -49,7 +49,7 @@ export const TavaraAssistantPanel: React.FC = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
-  const { state, openPanel, closePanel, minimizePanel, maximizePanel, markNudgesAsRead, realTimeDataCallback } = useTavaraState();
+  const { state, openPanel, closePanel, minimizePanel, maximizePanel, markNudgesAsRead, enterChatMode, exitChatMode, incrementMessageCount, resetMessageCount, realTimeDataCallback } = useTavaraState();
   const { currentForm, isFormPage, isJourneyTouchpoint } = useFormDetection();
   const [nudges, setNudges] = useState<AssistantNudge[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -624,7 +624,81 @@ export const TavaraAssistantPanel: React.FC = () => {
     );
   }
 
-  // Main panel with improved mobile experience, responsive sizing, proper scroll handling, and rounded corners
+  // Calculate intelligent sizing based on chat mode and conversation depth
+  const getChatAwareSize = () => {
+    const { isChatMode, chatMessageCount } = state;
+    
+    if (isMobile) {
+      if (isChatMode || isExpanded) {
+        return {
+          width: 'w-full',
+          height: chatMessageCount > 6 ? 'h-[80vh] max-h-[80vh]' : 'h-[70vh] max-h-[70vh]',
+          rounded: 'rounded-tr-xl'
+        };
+      }
+      return {
+        width: 'w-3/5 max-w-sm',
+        height: 'h-[40vh] max-h-[40vh]',
+        rounded: 'rounded-tr-xl'
+      };
+    }
+    
+    // Desktop sizing logic
+    if (isDemoMode && isChatMode) {
+      return {
+        width: chatMessageCount > 8 ? 'w-[75vw]' : 'w-[65vw]',
+        height: chatMessageCount > 8 ? 'h-[75vh] max-h-[75vh]' : 'h-[65vh] max-h-[65vh]',
+        rounded: 'rounded-tr-2xl'
+      };
+    } else if (isDemoMode) {
+      return {
+        width: 'w-[60vw]',
+        height: 'h-[60vh] max-h-[60vh]',
+        rounded: 'rounded-tr-2xl'
+      };
+    }
+    
+    if (isChatMode) {
+      const chatSize = chatMessageCount > 8 ? 'large' : chatMessageCount > 4 ? 'medium' : 'base';
+      switch (chatSize) {
+        case 'large':
+          return {
+            width: 'w-[600px]',
+            height: 'h-[70vh] max-h-[70vh]',
+            rounded: 'rounded-tr-2xl'
+          };
+        case 'medium':
+          return {
+            width: 'w-[550px]',
+            height: 'h-[60vh] max-h-[60vh]',
+            rounded: 'rounded-tr-2xl'
+          };
+        default:
+          return {
+            width: 'w-[500px]',
+            height: 'h-[50vh] max-h-[50vh]',
+            rounded: 'rounded-tr-2xl'
+          };
+      }
+    } else if (isExpanded) {
+      return {
+        width: 'w-[500px]',
+        height: 'h-[50vh] max-h-[50vh]',
+        rounded: 'rounded-tr-2xl'
+      };
+    }
+    
+    // Default size
+    return {
+      width: 'w-96',
+      height: 'h-[40vh] max-h-[40vh]',
+      rounded: 'rounded-tr-2xl'
+    };
+  };
+
+  const chatAwareSize = getChatAwareSize();
+
+  // Main panel with smart dynamic sizing based on conversation state
   return (
     <motion.div
       initial={{ opacity: 0, y: 400 }}
@@ -636,30 +710,11 @@ export const TavaraAssistantPanel: React.FC = () => {
       exit={{ opacity: 0, y: 400 }}
       transition={{ type: "spring", damping: 25, stiffness: 300 }}
       className={cn(
-        "fixed bottom-0 left-0 bg-white shadow-2xl border-r border-t border-gray-200 z-50 flex flex-col rounded-tr-2xl backdrop-blur-sm",
-        isMobile 
-          ? isExpanded 
-            ? 'w-full h-[70vh] max-h-[70vh] rounded-tr-xl' 
-            : 'w-3/5 max-w-sm h-[40vh] max-h-[40vh] rounded-tr-xl'
-          : isDemoMode 
-            ? 'w-[60vw] h-[60vh] max-h-[60vh] rounded-tr-2xl' // Demo mode: 60% screen width and height
-            : isExpanded 
-              ? 'w-[500px] h-[50vh] max-h-[50vh] rounded-tr-2xl' // Expanded standard mode
-              : 'w-96 h-[40vh] max-h-[40vh] rounded-tr-2xl' // Standard mode
+        "fixed bottom-0 left-0 bg-white shadow-2xl border-r border-t border-gray-200 z-50 flex flex-col backdrop-blur-sm transition-all duration-300 ease-in-out",
+        chatAwareSize.width,
+        chatAwareSize.height,
+        chatAwareSize.rounded
       )}
-      style={{
-        // Ensure consistent positioning and prevent overflow issues
-        minHeight: isMobile 
-          ? (isExpanded ? '70vh' : '40vh') 
-          : isDemoMode 
-            ? '60vh' 
-            : (isExpanded ? '50vh' : '40vh'),
-        maxHeight: isMobile 
-          ? (isExpanded ? '70vh' : '40vh') 
-          : isDemoMode 
-            ? '60vh' 
-            : (isExpanded ? '50vh' : '40vh')
-      }}
     >
       {/* Mobile expand/collapse button - improved positioning and functionality */}
       {isMobile && (
@@ -692,6 +747,8 @@ export const TavaraAssistantPanel: React.FC = () => {
             dashboardRole={dashboardRole}
             isDemoRoute={location.pathname.startsWith('/demo/') || location.pathname === '/tav-demo'}
             realTimeDataCallback={realTimeDataCallback}
+            isChatMode={state.isChatMode}
+            chatMessageCount={state.chatMessageCount}
           />
       </div>
     </motion.div>

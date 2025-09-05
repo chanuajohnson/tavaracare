@@ -7,12 +7,16 @@ import { useSearchParams } from 'react-router-dom';
 
 
 interface TavaraStateContextType {
-  state: TavaraState & { isDemoMode: boolean };
+  state: TavaraState & { isDemoMode: boolean; isChatMode: boolean; chatMessageCount: number };
   openPanel: () => void;
   closePanel: () => void;
   minimizePanel: () => void;
   maximizePanel: () => void;
   markNudgesAsRead: () => void;
+  enterChatMode: () => void;
+  exitChatMode: () => void;
+  incrementMessageCount: () => void;
+  resetMessageCount: () => void;
   realTimeDataCallback?: (message: string, isUser: boolean) => void;
 }
 
@@ -34,12 +38,14 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({
   console.log('🔗 [TavaraStateProvider] Initialized with callback:', !!realTimeDataCallback);
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  const [state, setState] = useState<TavaraState & { isDemoMode: boolean }>({
+  const [state, setState] = useState<TavaraState & { isDemoMode: boolean; isChatMode: boolean; chatMessageCount: number }>({
     isOpen: false,
     isMinimized: false,
     hasUnreadNudges: false,
     currentRole: null,
-    isDemoMode: false
+    isDemoMode: false,
+    isChatMode: false,
+    chatMessageCount: 0
   });
 
   // Demo mode detection - prioritize route-based detection
@@ -133,6 +139,24 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({
     setState(prev => ({ ...prev, hasUnreadNudges: false }));
   };
 
+  const enterChatMode = () => {
+    console.log('TAV: Entering chat mode');
+    setState(prev => ({ ...prev, isChatMode: true }));
+  };
+
+  const exitChatMode = () => {
+    console.log('TAV: Exiting chat mode');
+    setState(prev => ({ ...prev, isChatMode: false, chatMessageCount: 0 }));
+  };
+
+  const incrementMessageCount = () => {
+    setState(prev => ({ ...prev, chatMessageCount: prev.chatMessageCount + 1 }));
+  };
+
+  const resetMessageCount = () => {
+    setState(prev => ({ ...prev, chatMessageCount: 0 }));
+  };
+
   return (
     <TavaraStateContext.Provider
       value={{
@@ -142,6 +166,10 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({
         minimizePanel,
         maximizePanel,
         markNudgesAsRead,
+        enterChatMode,
+        exitChatMode,
+        incrementMessageCount,
+        resetMessageCount,
         realTimeDataCallback
       }}
     >
