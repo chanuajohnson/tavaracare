@@ -3,6 +3,7 @@ class ConversationContextTracker {
   private static instance: ConversationContextTracker;
   private expectedFieldType: string | null = null;
   private lastBotMessage: string = '';
+  private confirmationPending: { fieldType: string; value: string } | null = null;
 
   static getInstance(): ConversationContextTracker {
     if (!ConversationContextTracker.instance) {
@@ -17,6 +18,17 @@ class ConversationContextTracker {
     console.log('🔍 [Context Tracker] ANALYZING BOT MESSAGE:', botMessage);
     console.log('🔍 [Context Tracker] Bot message includes "specific address"?', botMessage.toLowerCase().includes('specific address'));
     console.log('🔍 [Context Tracker] Bot message includes "address"?', botMessage.toLowerCase().includes('address'));
+    
+    // Check for confirmation messages
+    if (this.isConfirmationMessage(botMessage)) {
+      const confirmedValue = this.extractConfirmationValue(botMessage);
+      const fieldType = this.detectFieldTypeFromMessage(botMessage);
+      if (confirmedValue && fieldType) {
+        this.confirmationPending = { fieldType, value: confirmedValue };
+        console.log('✅ [Context Tracker] CONFIRMATION PENDING:', this.confirmationPending);
+      }
+    }
+    
     this.expectedFieldType = this.detectFieldTypeFromMessage(botMessage);
     console.log('🎯 [Context Tracker] FINAL SET FIELD TYPE:', this.expectedFieldType);
     console.log('🤖 [Context Tracker] Bot asked for field:', this.expectedFieldType, 'from message:', botMessage.substring(0, 50));
@@ -29,6 +41,42 @@ class ConversationContextTracker {
   clearExpectedField() {
     this.expectedFieldType = null;
     console.log('🧹 [Context Tracker] Cleared expected field');
+  }
+
+  getConfirmationPending(): { fieldType: string; value: string } | null {
+    return this.confirmationPending;
+  }
+
+  clearConfirmationPending() {
+    this.confirmationPending = null;
+    console.log('🧹 [Context Tracker] Cleared confirmation pending');
+  }
+
+  private isConfirmationMessage(message: string): boolean {
+    const lowerMessage = message.toLowerCase();
+    return lowerMessage.includes('confirm') || 
+           lowerMessage.includes('correct?') || 
+           lowerMessage.includes('right?') ||
+           lowerMessage.includes('just to confirm') ||
+           lowerMessage.includes('to confirm');
+  }
+
+  private extractConfirmationValue(message: string): string | null {
+    console.log('🔍 [Context Tracker] Extracting confirmation value from:', message);
+    
+    // Pattern to extract address from confirmation messages
+    // "Just to confirm... LP Calcutta Road No. 1, correct?"
+    const addressPattern = /(?:confirm[^.]*\.{2,}\s*|to confirm[^.]*\.{2,}\s*|confirm[^.]*[.]\s*)([^,?]+)/i;
+    const match = message.match(addressPattern);
+    
+    if (match && match[1]) {
+      const extractedValue = match[1].trim();
+      console.log('✅ [Context Tracker] Extracted confirmation value:', extractedValue);
+      return extractedValue;
+    }
+    
+    console.log('❌ [Context Tracker] No confirmation value extracted');
+    return null;
   }
 
   private detectFieldTypeFromMessage(message: string): string | null {

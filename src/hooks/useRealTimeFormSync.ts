@@ -28,6 +28,112 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
   
   console.log('🔧 [useRealTimeFormSync] Hook initialized with formSetters:', !!formSetters);
 
+  // Helper method to check if a message is a confirmation response
+  const isConfirmationResponse = useCallback((message: string): boolean => {
+    const lowerMessage = message.toLowerCase().trim();
+    const confirmationResponses = ['yes', 'yeah', 'yep', 'correct', 'right', 'that\'s right', 'that is right', 'true'];
+    return confirmationResponses.includes(lowerMessage);
+  }, []);
+
+  // Helper method to apply extracted data
+  const applyExtractedData = useCallback((extractedData: ExtractedData) => {
+    if (!formSetters) {
+      console.log('⚠️ [Real-time Sync] Skipping: form setters not available');
+      return;
+    }
+
+    // Apply extracted data to form fields with enhanced logging
+    if (Object.keys(extractedData).length === 0) {
+      console.log('⚠️ [Real-time Sync] No data extracted from message');
+      return;
+    }
+
+    Object.entries(extractedData).forEach(([key, value]) => {
+      if (value) {
+        console.log(`🔧 [Real-time Sync] Applying ${key}:`, value);
+        try {
+          switch (key) {
+            case 'first_name':
+              formSetters.setFirstName(value);
+              console.log('✅ [Real-time Sync] Successfully set first name:', value);
+              // Add visual feedback
+              if (typeof window !== 'undefined') {
+                setTimeout(() => {
+                  const input = document.querySelector('#firstName') as HTMLInputElement;
+                  if (input) {
+                    input.style.background = 'rgba(34, 197, 94, 0.1)';
+                    input.style.transition = 'background 0.3s ease';
+                    setTimeout(() => {
+                      input.style.background = '';
+                    }, 2000);
+                  }
+                }, 100);
+              }
+              break;
+            case 'last_name':
+              formSetters.setLastName(value);
+              console.log('✅ [Real-time Sync] Successfully set last name:', value);
+              break;
+            case 'email':
+              formSetters.setEmail(value);
+              console.log('✅ [Real-time Sync] Successfully set email:', value);
+              break;
+            case 'phone':
+              formSetters.setPhoneNumber(value);
+              console.log('✅ [Real-time Sync] Successfully set phone:', value);
+              break;
+            case 'location':
+              if (formSetters.setLocation) {
+                formSetters.setLocation(value);
+                console.log('✅ [Real-time Sync] Successfully set location:', value);
+              }
+              break;
+            case 'address':
+              console.log('🏠 [Real-time Sync] BEFORE setAddress - value:', value);
+              console.log('🏠 [Real-time Sync] BEFORE setAddress - formSetters.setAddress type:', typeof formSetters.setAddress);
+              formSetters.setAddress(value);
+              console.log('✅ [Real-time Sync] Successfully set address:', value);
+              // Add visual feedback for address field
+              if (typeof window !== 'undefined') {
+                setTimeout(() => {
+                  const textarea = document.querySelector('#address') as HTMLTextAreaElement;
+                  console.log('🏠 [Real-time Sync] Looking for address field element:', !!textarea);
+                  if (textarea) {
+                    console.log('🏠 [Real-time Sync] Found address field, current value:', textarea.value);
+                    textarea.style.background = 'rgba(34, 197, 94, 0.1)';
+                    textarea.style.transition = 'background 0.3s ease';
+                    setTimeout(() => {
+                      textarea.style.background = '';
+                    }, 2000);
+                  } else {
+                    console.warn('🏠 [Real-time Sync] Address field element not found in DOM');
+                  }
+                }, 100);
+              }
+              break;
+            case 'care_recipient_name':
+              formSetters.setCareRecipientName(value);
+              console.log('✅ [Real-time Sync] Successfully set care recipient name:', value);
+              break;
+            case 'relationship':
+              formSetters.setRelationship(value);
+              console.log('✅ [Real-time Sync] Successfully set relationship:', value);
+              break;
+          }
+        } catch (error) {
+          console.error(`❌ [Real-time Sync] Error setting ${key}:`, error);
+        }
+
+        // Store in localStorage for persistence
+        const sessionId = new URLSearchParams(window.location.search).get('session') || 'default';
+        const storageKey = `tavara_extracted_${sessionId}`;
+        const existing = JSON.parse(localStorage.getItem(storageKey) || '{}');
+        existing[key] = value;
+        localStorage.setItem(storageKey, JSON.stringify(existing));
+      }
+    });
+  }, [formSetters]);
+
   const extractDataFromMessage = useCallback((message: string, expectedFieldType?: string): ExtractedData => {
     console.log('🔍 [Real-time Sync] Starting extraction for message:', message);
     console.log('🎯 [Real-time Sync] Expected field type:', expectedFieldType);
@@ -275,8 +381,21 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
 
     // CRITICAL: Log the user message and current context
     const currentExpectedField = conversationContextTracker.getExpectedFieldType();
+    const confirmationPending = conversationContextTracker.getConfirmationPending();
     console.log('👤 [Real-time Sync] USER MESSAGE RECEIVED:', message);
     console.log('🎯 [Real-time Sync] CURRENT EXPECTED FIELD TYPE:', currentExpectedField);
+    console.log('✅ [Real-time Sync] CONFIRMATION PENDING:', confirmationPending);
+    
+    // Check if this is a confirmation response
+    if (confirmationPending && isConfirmationResponse(message)) {
+      console.log('🎯 [Real-time Sync] CONFIRMATION RESPONSE DETECTED - using pending value:', confirmationPending.value);
+      const extractedData = { [confirmationPending.fieldType]: confirmationPending.value };
+      applyExtractedData(extractedData);
+      conversationContextTracker.clearConfirmationPending();
+      conversationContextTracker.clearExpectedField();
+      lastProcessedMessage.current = message;
+      return;
+    }
     if (message === lastProcessedMessage.current) {
       console.log('⏭️ [Real-time Sync] Skipping: already processed this message');
       return;
@@ -296,97 +415,8 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
     }
 
     console.log('🎯 [Real-time Sync] Extracted data:', extractedData);
-
-    // Apply extracted data to form fields with enhanced logging
-    if (Object.keys(extractedData).length === 0) {
-      console.log('⚠️ [Real-time Sync] No data extracted from message');
-    }
-
-    Object.entries(extractedData).forEach(([key, value]) => {
-      if (value) {
-        console.log(`🔧 [Real-time Sync] Applying ${key}:`, value);
-        try {
-          switch (key) {
-            case 'first_name':
-              formSetters.setFirstName(value);
-              console.log('✅ [Real-time Sync] Successfully set first name:', value);
-              // Add visual feedback
-              if (typeof window !== 'undefined') {
-                setTimeout(() => {
-                  const input = document.querySelector('#firstName') as HTMLInputElement;
-                  if (input) {
-                    input.style.background = 'rgba(34, 197, 94, 0.1)';
-                    input.style.transition = 'background 0.3s ease';
-                    setTimeout(() => {
-                      input.style.background = '';
-                    }, 2000);
-                  }
-                }, 100);
-              }
-              break;
-            case 'last_name':
-              formSetters.setLastName(value);
-              console.log('✅ [Real-time Sync] Successfully set last name:', value);
-              break;
-            case 'email':
-              formSetters.setEmail(value);
-              console.log('✅ [Real-time Sync] Successfully set email:', value);
-              break;
-            case 'phone':
-              formSetters.setPhoneNumber(value);
-              console.log('✅ [Real-time Sync] Successfully set phone:', value);
-              break;
-            case 'location':
-              if (formSetters.setLocation) {
-                formSetters.setLocation(value);
-                console.log('✅ [Real-time Sync] Successfully set location:', value);
-              }
-              break;
-            case 'address':
-              console.log('🏠 [Real-time Sync] BEFORE setAddress - value:', value);
-              console.log('🏠 [Real-time Sync] BEFORE setAddress - formSetters.setAddress type:', typeof formSetters.setAddress);
-              formSetters.setAddress(value);
-              console.log('✅ [Real-time Sync] Successfully set address:', value);
-              // Add visual feedback for address field
-              if (typeof window !== 'undefined') {
-                setTimeout(() => {
-                  const textarea = document.querySelector('#address') as HTMLTextAreaElement;
-                  console.log('🏠 [Real-time Sync] Looking for address field element:', !!textarea);
-                  if (textarea) {
-                    console.log('🏠 [Real-time Sync] Found address field, current value:', textarea.value);
-                    textarea.style.background = 'rgba(34, 197, 94, 0.1)';
-                    textarea.style.transition = 'background 0.3s ease';
-                    setTimeout(() => {
-                      textarea.style.background = '';
-                    }, 2000);
-                  } else {
-                    console.warn('🏠 [Real-time Sync] Address field element not found in DOM');
-                  }
-                }, 100);
-              }
-              break;
-            case 'care_recipient_name':
-              formSetters.setCareRecipientName(value);
-              console.log('✅ [Real-time Sync] Successfully set care recipient name:', value);
-              break;
-            case 'relationship':
-              formSetters.setRelationship(value);
-              console.log('✅ [Real-time Sync] Successfully set relationship:', value);
-              break;
-          }
-        } catch (error) {
-          console.error(`❌ [Real-time Sync] Error setting ${key}:`, error);
-        }
-
-        // Store in localStorage for persistence
-        const sessionId = new URLSearchParams(window.location.search).get('session') || 'default';
-        const storageKey = `tavara_extracted_${sessionId}`;
-        const existing = JSON.parse(localStorage.getItem(storageKey) || '{}');
-        existing[key] = value;
-        localStorage.setItem(storageKey, JSON.stringify(existing));
-      }
-    });
-  }, [extractDataFromMessage, formSetters]);
+    applyExtractedData(extractedData);
+  }, [extractDataFromMessage, isConfirmationResponse, applyExtractedData]);
 
   // Helper function to normalize location names
   const normalizeLocationName = (location: string): string => {
