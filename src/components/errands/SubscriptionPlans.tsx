@@ -1,11 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Check, MessageCircle, CreditCard } from 'lucide-react';
+import { useTracking } from '@/hooks/useTracking';
+import { PayPalSubscribeButton } from '@/components/subscription/PayPalSubscribeButton';
 
 export const SubscriptionPlans: React.FC = () => {
+  const { trackEngagement } = useTracking();
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [showPlanModal, setShowPlanModal] = useState(false);
+
   const plans = [
     {
+      id: 'basic',
       name: 'Basic',
       monthlyPrice: 'TT$299',
       quarterlyPrice: 'TT$799',
@@ -19,6 +27,7 @@ export const SubscriptionPlans: React.FC = () => {
       popular: false
     },
     {
+      id: 'standard',
       name: 'Standard',
       monthlyPrice: 'TT$599',
       quarterlyPrice: 'TT$1,599',
@@ -33,6 +42,7 @@ export const SubscriptionPlans: React.FC = () => {
       popular: true
     },
     {
+      id: 'premium',
       name: 'Premium',
       monthlyPrice: 'TT$999',
       quarterlyPrice: 'TT$2,699',
@@ -48,6 +58,29 @@ export const SubscriptionPlans: React.FC = () => {
       popular: false
     }
   ];
+
+  const handlePlanClick = (plan: any) => {
+    trackEngagement('subscription_plan_click', {
+      plan: plan.id,
+      planName: plan.name,
+      source: 'errands_page'
+    });
+    setSelectedPlan(plan);
+    setShowPlanModal(true);
+  };
+
+  const handleWhatsAppContact = (plan: any) => {
+    const message = `Hi Tavara! I'm interested in the ${plan.name} subscription plan (${plan.monthlyPrice}/month). Could you help me get started and answer any questions I have about the services included?`;
+    const whatsappUrl = `https://wa.me/+18681234567?text=${encodeURIComponent(message)}`;
+    
+    trackEngagement('subscription_whatsapp_click', {
+      plan: plan.id,
+      planName: plan.name
+    });
+    
+    window.open(whatsappUrl, '_blank');
+    setShowPlanModal(false);
+  };
 
   return (
     <div className="w-full py-8 sm:py-12 md:py-16">
@@ -107,6 +140,7 @@ export const SubscriptionPlans: React.FC = () => {
               
               <div className="space-y-3">
                 <Button 
+                  onClick={() => handlePlanClick(plan)}
                   className={`w-full mobile-button-responsive ${
                     plan.popular ? 'bg-primary hover:bg-primary/90' : ''
                   }`}
@@ -122,6 +156,62 @@ export const SubscriptionPlans: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      {/* Plan Selection Modal */}
+      <Dialog open={showPlanModal} onOpenChange={setShowPlanModal}>
+        <DialogContent className="max-w-md mx-4">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-center">
+              Get Started with {selectedPlan?.name}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary mb-2">
+                {selectedPlan?.monthlyPrice}
+                <span className="text-sm text-muted-foreground">/month</span>
+              </div>
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <div>Quarterly: {selectedPlan?.quarterlyPrice} <span className="text-green-600">(Save 10%)</span></div>
+                <div>Yearly: {selectedPlan?.yearlyPrice} <span className="text-green-600">(Save 20%)</span></div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Button 
+                onClick={() => handleWhatsAppContact(selectedPlan)}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                size="lg"
+              >
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Chat with us on WhatsApp
+              </Button>
+              
+              <PayPalSubscribeButton
+                planId={selectedPlan?.id || ''}
+                planName={selectedPlan?.name || ''}
+                price={selectedPlan?.monthlyPrice || ''}
+                returnUrl={`${window.location.origin}/subscription/success`}
+                cancelUrl={`${window.location.origin}/subscription/cancel`}
+                paymentType="subscription"
+                onSuccess={() => {
+                  setShowPlanModal(false);
+                  // Handle successful subscription
+                }}
+                onError={(error) => {
+                  console.error('Subscription error:', error);
+                  // Handle subscription error
+                }}
+              />
+            </div>
+
+            <p className="text-xs text-center text-muted-foreground">
+              Prefer to talk first? Use WhatsApp to discuss your needs and get personalized recommendations.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
