@@ -1,10 +1,17 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { TavaraState } from '../types';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { useSearchParams } from 'react-router-dom';
 
+type RealTimeMessage = { 
+  text: string; 
+  isFinal: boolean; 
+  meta?: Record<string, any> 
+};
+
+type RealTimeListener = (msg: RealTimeMessage) => void;
 
 interface TavaraStateContextType {
   state: TavaraState & { isDemoMode: boolean; isChatMode: boolean; chatMessageCount: number };
@@ -17,7 +24,9 @@ interface TavaraStateContextType {
   exitChatMode: () => void;
   incrementMessageCount: () => void;
   resetMessageCount: () => void;
-  realTimeDataCallback?: (message: string, isUser: boolean) => void;
+  registerRealTimeListener: (fn: RealTimeListener) => () => void;
+  emitRealTimeMessage: (msg: RealTimeMessage) => void;
+  realTimeDataCallback?: (message: string, isUser: boolean) => void; // Backward compatibility
 }
 
 const TavaraStateContext = createContext<TavaraStateContextType | undefined>(undefined);
@@ -47,6 +56,44 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({
     isChatMode: false,
     chatMessageCount: 0
   });
+
+  // Real-time message bus
+  const listenersRef = useRef<Set<RealTimeListener>>(new Set());
+
+  const registerRealTimeListener = useCallback((fn: RealTimeListener) => {
+    console.log('🔗 [TavaraStateProvider] Registering real-time listener');
+    listenersRef.current.add(fn);
+    return () => {
+      console.log('🧹 [TavaraStateProvider] Unregistering real-time listener');
+      listenersRef.current.delete(fn);
+    };
+  }, []);
+
+  const emitRealTimeMessage = useCallback((msg: RealTimeMessage) => {
+    console.log('📡 [TavaraStateProvider] Emitting real-time message:', { 
+      preview: msg.text.slice(0, 80), 
+      isFinal: msg.isFinal, 
+      listenerCount: listenersRef.current.size 
+    });
+    
+    // New message bus system
+    for (const fn of listenersRef.current) {
+      try {
+        fn(msg);
+      } catch (error) {
+        console.error('🚨 [TavaraStateProvider] Listener error:', error);
+      }
+    }
+    
+    // Backward compatibility with old callback system
+    if (realTimeDataCallback) {
+      try {
+        realTimeDataCallback(msg.text, !msg.isFinal);
+      } catch (error) {
+        console.error('🚨 [TavaraStateProvider] Legacy callback error:', error);
+      }
+    }
+  }, [realTimeDataCallback]);
 
   // Demo mode detection - prioritize route-based detection
   useEffect(() => {
@@ -170,6 +217,8 @@ export const TavaraStateProvider: React.FC<TavaraStateProviderProps> = ({
         exitChatMode,
         incrementMessageCount,
         resetMessageCount,
+        registerRealTimeListener,
+        emitRealTimeMessage,
         realTimeDataCallback
       }}
     >

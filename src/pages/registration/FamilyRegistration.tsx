@@ -21,6 +21,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
 import { CompleteRegistrationButton } from '@/components/demo/CompleteRegistrationButton';
 import { useRealTimeFormSync } from '../../hooks/useRealTimeFormSync';
+import { useTavaraState } from '@/components/tav/hooks/TavaraStateContext';
 
 interface FamilyRegistrationProps {
   isDemo?: boolean;
@@ -353,15 +354,36 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
 
   // Initialize real-time form sync hook
   const { processMessage } = useRealTimeFormSync(formSetters);
+  
+  // Get real-time message bus from Tavara state
+  const { registerRealTimeListener } = useTavaraState();
 
-  // Initialize form setters for real-time data sync with enhanced debugging
+  // Keep latest processMessage without re-subscribing
+  const processRef = useRef(processMessage);
+  useEffect(() => { 
+    processRef.current = processMessage; 
+  }, [processMessage]);
+
+  // Register with real-time message bus
   useEffect(() => {
-    console.log('📝 [Family Registration] Form setters effect triggered:', {
-      hasOnFormReady: !!onFormReady,
-      isDemo,
-      currentValues: { firstName, lastName, phoneNumber, address, careRecipientName, relationship }
+    console.log('🔗 [Family Registration] Subscribing to real-time messages');
+    const unsubscribe = registerRealTimeListener(({ text, isFinal }) => {
+      console.log('📨 [Family Registration] Received real-time message:', { 
+        preview: text.slice(0, 80), 
+        isFinal 
+      });
+      // Forward to the hook's processor
+      processRef.current(text, { isFinal });
     });
+    
+    return () => {
+      console.log('🧹 [Family Registration] Unsubscribing from real-time messages');
+      unsubscribe();
+    };
+  }, [registerRealTimeListener]);
 
+  // Initialize form setters for demo compatibility
+  useEffect(() => {
     if (onFormReady) {
       console.log('🔧 [Family Registration] Initializing form setters for real-time sync');
       console.log('📝 [Family Registration] Form setters created:', Object.keys(formSetters));
@@ -369,15 +391,6 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
       console.log('✅ [Family Registration] onFormReady called successfully');
     }
   }, [onFormReady]);
-
-  // Connect real-time callback to the process message function
-  useEffect(() => {
-    if (realTimeDataCallback && processMessage) {
-      console.log('🔗 [Family Registration] Connecting real-time callback to process message');
-      // Register the processMessage as the callback
-      realTimeDataCallback('', false); // Initialize connection
-    }
-  }, [realTimeDataCallback, processMessage]);
 
   // Check if personal & contact information is complete for demo
   const isPersonalInfoComplete = firstName && lastName && phoneNumber && address && careRecipientName && relationship;

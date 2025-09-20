@@ -463,8 +463,13 @@ export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
   };
 
   // Always return a stable processMessage function (even when formSetters is null)
-  const stableProcessMessage = useCallback((message: string, isUser: boolean) => {
+  const stableProcessMessage = useCallback((message: string, options: { isFinal?: boolean } | boolean = {}) => {
     console.log('🔗 [useRealTimeFormSync] stableProcessMessage called:', !!formSetters);
+    
+    // Handle backward compatibility - convert boolean to options object
+    const isUser = typeof options === 'boolean' ? options : false;
+    const isFinal = typeof options === 'object' ? options.isFinal : true;
+    
     if (formSetters) {
       processMessage(message, isUser);
     } else {
