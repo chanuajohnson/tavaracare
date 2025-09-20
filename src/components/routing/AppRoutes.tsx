@@ -21,6 +21,7 @@ import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
 import FAQPage from "@/pages/support/FAQPage";
 import PrivacyPolicyPage from "@/pages/legal/PrivacyPolicyPage";
+import ErrandsPage from "@/pages/errands/ErrandsPage";
 import NotFound from "@/pages/NotFound";
 import SupabaseDebugPage from "@/pages/debug/SupabaseDebugPage";
 
@@ -90,6 +91,7 @@ export const AppRoutes = () => {
       <Route path="/auth/reset-password/confirm" element={<ResetPasswordConfirm />} />
       <Route path="/features" element={<FeaturesPage />} />
       <Route path="/about" element={<AboutPage />} />
+      <Route path="/errands" element={<ErrandsPage />} />
       <Route path="/faq" element={<FAQPage />} />
       <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
       

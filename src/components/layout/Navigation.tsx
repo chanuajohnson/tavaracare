@@ -149,6 +149,9 @@ export function Navigation() {
                 <Link to="/about" className="text-gray-700 hover:text-primary">
                   About
                 </Link>
+                <Link to="/errands" className="text-gray-700 hover:text-primary">
+                  Errands
+                </Link>
                 <Link to="/tav-demo" className="text-gray-700 hover:text-primary">
                   TAV Demo
                 </Link>

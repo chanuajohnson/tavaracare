@@ -1,0 +1,29 @@
+import React from 'react';
+import { Layout } from '@/components/layout/Layout';
+import { ErrandsHero } from '@/components/errands/ErrandsHero';
+import { PricingBanner } from '@/components/errands/PricingBanner';
+import { ErrandsForm } from '@/components/errands/ErrandsForm';
+import { useTracking } from '@/hooks/useTracking';
+import { useEffect } from 'react';
+
+const ErrandsPage: React.FC = () => {
+  const { trackEngagement } = useTracking();
+
+  useEffect(() => {
+    trackEngagement('errands_page_view');
+  }, [trackEngagement]);
+
+  return (
+    <Layout>
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          <ErrandsHero />
+          <PricingBanner />
+          <ErrandsForm />
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default ErrandsPage;
