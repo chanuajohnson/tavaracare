@@ -20,6 +20,7 @@ import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
 import { useAuth } from '@/components/providers/AuthProvider';
 import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
 import { CompleteRegistrationButton } from '@/components/demo/CompleteRegistrationButton';
+import { useRealTimeFormSync } from '../../hooks/useRealTimeFormSync';
 
 interface FamilyRegistrationProps {
   isDemo?: boolean;
@@ -331,6 +332,28 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
     }
   }, [prefillApplied, shouldAutoSubmit, user, isEditMode]);
 
+  // Map form setters for real-time sync
+  const formSetters = {
+    setFirstName,
+    setLastName,
+    setEmail,
+    setPhoneNumber,
+    setLocation,
+    setAddress,
+    setCareRecipientName,
+    setRelationship,
+    setCareTypes,
+    setSpecialNeeds,
+    setBudget,
+    setCaregiverType,
+    setCaregiverPreferences,
+    setAdditionalNotes,
+    setPreferredContactMethod
+  };
+
+  // Initialize real-time form sync hook
+  const { processMessage } = useRealTimeFormSync(formSetters);
+
   // Initialize form setters for real-time data sync with enhanced debugging
   useEffect(() => {
     console.log('📝 [Family Registration] Form setters effect triggered:', {
@@ -340,23 +363,21 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
     });
 
     if (onFormReady) {
-      const formSetters = {
-        setFirstName,
-        setLastName,
-        setEmail,
-        setPhoneNumber,
-        setLocation,
-        setAddress,
-        setCareRecipientName,
-        setRelationship
-      };
-      
       console.log('🔧 [Family Registration] Initializing form setters for real-time sync');
       console.log('📝 [Family Registration] Form setters created:', Object.keys(formSetters));
       onFormReady(formSetters);
       console.log('✅ [Family Registration] onFormReady called successfully');
     }
-  }, [onFormReady, setFirstName, setLastName, setEmail, setPhoneNumber, setAddress, setCareRecipientName, setRelationship]);
+  }, [onFormReady]);
+
+  // Connect real-time callback to the process message function
+  useEffect(() => {
+    if (realTimeDataCallback && processMessage) {
+      console.log('🔗 [Family Registration] Connecting real-time callback to process message');
+      // Register the processMessage as the callback
+      realTimeDataCallback('', false); // Initialize connection
+    }
+  }, [realTimeDataCallback, processMessage]);
 
   // Check if personal & contact information is complete for demo
   const isPersonalInfoComplete = firstName && lastName && phoneNumber && address && careRecipientName && relationship;
