@@ -6,8 +6,8 @@ import { useTracking } from '@/hooks/useTracking';
 export const PayPalDepositButton: React.FC = () => {
   const { trackEngagement } = useTracking();
   
-  // PayPal.me link for TT$100 deposit (replace with actual PayPal account)
-  const PAYPAL_DEPOSIT_URL = 'https://paypal.me/tavara/100'; // Update with real PayPal.me link
+  // PayPal.me link for TT$100 deposit (corrected URL format)
+  const PAYPAL_DEPOSIT_URL = 'https://www.paypal.com/paypalme/tavara/100';
 
   const handlePayPalClick = () => {
     // Track click
@@ -33,23 +33,29 @@ export const PayPalDepositButton: React.FC = () => {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 w-full">
       <Button 
         onClick={handlePayPalClick}
         variant="outline"
-        className="w-full border-blue-600 text-blue-600 hover:bg-blue-50"
+        className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 mobile-button-responsive mobile-touch-target"
         size="lg"
       >
-        <CreditCard className="mr-2 h-5 w-5" />
+        <CreditCard className="mr-2 mobile-icon-responsive" />
         Pay TT$100 Deposit with PayPal
       </Button>
       
-      <button
-        onClick={handleBankTransferClick}
-        className="text-sm text-muted-foreground hover:text-foreground underline"
-      >
-        Prefer bank transfer? Tap here for details
-      </button>
+      <div className="text-center">
+        <button
+          onClick={handleBankTransferClick}
+          className="text-sm text-muted-foreground hover:text-foreground underline mobile-touch-target"
+        >
+          Prefer bank transfer? Tap here for details
+        </button>
+      </div>
+      
+      <p className="text-xs text-center text-muted-foreground px-2">
+        Deposit (TT$100) • credited to your booking • Balance due after service
+      </p>
     </div>
   );
 };

@@ -15,8 +15,8 @@ const ErrandsPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="w-full bg-gradient-to-br from-background via-primary/5 to-background">
+        <div className="w-full mobile-container mobile-viewport-fix">
           <ErrandsHero />
           <PricingBanner />
           <ErrandsForm />

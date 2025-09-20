@@ -134,13 +134,13 @@ export const ErrandsForm: React.FC = () => {
 
   if (isSubmitted && formData) {
     return (
-      <Card>
-        <CardContent className="p-8 text-center">
+      <Card className="mb-8 shadow-lg">
+        <CardContent className="mobile-padding-responsive text-center bg-gradient-to-br from-green-50 to-primary/5">
           <div className="mb-6">
-            <h2 className="text-2xl font-semibold text-foreground mb-2">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-2">
               Thanks for reaching out 💙
             </h2>
-            <p className="text-muted-foreground mb-4">
+            <p className="text-muted-foreground mb-4 mobile-text-responsive">
               We're nudging our team now. Expect a WhatsApp message shortly.
             </p>
             <p className="text-sm text-muted-foreground">
@@ -148,16 +148,13 @@ export const ErrandsForm: React.FC = () => {
             </p>
           </div>
           
-          <div className="space-y-4">
+          <div className="space-y-4 max-w-md mx-auto">
             <WhatsAppButton formData={formData} />
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">
                 Secure your booking with a deposit
               </p>
               <PayPalDepositButton />
-              <p className="text-xs text-muted-foreground mt-2">
-                Deposit (TT$100) • credited to your booking. Balance due after service.
-              </p>
             </div>
           </div>
         </CardContent>
