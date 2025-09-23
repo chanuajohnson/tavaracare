@@ -1,5 +1,4 @@
 import React from 'react';
-import { Layout } from '@/components/layout/Layout';
 import { ErrandsHero } from '@/components/errands/ErrandsHero';
 import { PricingBanner } from '@/components/errands/PricingBanner';
 import { ErrandsForm } from '@/components/errands/ErrandsForm';
@@ -14,15 +13,13 @@ const ErrandsPage: React.FC = () => {
   }, [trackEngagement]);
 
   return (
-    <Layout>
-      <div className="w-full bg-gradient-to-br from-background via-primary/5 to-background">
-        <div className="w-full mobile-container mobile-viewport-fix">
-          <ErrandsHero />
-          <PricingBanner />
-          <ErrandsForm />
-        </div>
+    <div className="w-full bg-gradient-to-br from-background via-primary/5 to-background">
+      <div className="w-full mobile-container mobile-viewport-fix">
+        <ErrandsHero />
+        <PricingBanner />
+        <ErrandsForm />
       </div>
-    </Layout>
+    </div>
   );
 };
 

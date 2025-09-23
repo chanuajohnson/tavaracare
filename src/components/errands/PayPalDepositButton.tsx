@@ -7,7 +7,7 @@ export const PayPalDepositButton: React.FC = () => {
   const { trackEngagement } = useTracking();
   
   // PayPal.me link for TT$100 deposit (corrected URL format)
-  const PAYPAL_DEPOSIT_URL = 'https://www.paypal.com/paypalme/tavara/100';
+  const PAYPAL_DEPOSIT_URL = 'https://www.paypal.me/tavaracare/100';
 
   const handlePayPalClick = () => {
     // Track click
