@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Check, MessageCircle, CreditCard } from 'lucide-react';
 import { useTracking } from '@/hooks/useTracking';
-import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { PayPalSubscribeButton } from '@/components/subscription/PayPalSubscribeButton';
 
 export const SubscriptionPlans: React.FC = () => {
@@ -189,32 +188,23 @@ export const SubscriptionPlans: React.FC = () => {
                 Chat with us on WhatsApp
               </Button>
               
-              <PayPalScriptProvider
-                options={{
-                  "client-id": "test", // This will be replaced with actual client ID
-                  components: "buttons",
-                  intent: "subscription",
-                  vault: true
+              <PayPalSubscribeButton
+                planId={selectedPlan?.id || ''}
+                planName={selectedPlan?.name || ''}
+                price={selectedPlan?.monthlyPrice || ''}
+                returnUrl={`${window.location.origin}/subscription/success`}
+                cancelUrl={`${window.location.origin}/subscription/cancel`}
+                paymentType="subscription"
+                isComingSoon={false}
+                onSuccess={() => {
+                  setShowPlanModal(false);
+                  // Handle successful subscription
                 }}
-              >
-                <PayPalSubscribeButton
-                  planId={selectedPlan?.id || ''}
-                  planName={selectedPlan?.name || ''}
-                  price={selectedPlan?.monthlyPrice || ''}
-                  returnUrl={`${window.location.origin}/subscription/success`}
-                  cancelUrl={`${window.location.origin}/subscription/cancel`}
-                  paymentType="subscription"
-                  isComingSoon={false}
-                  onSuccess={() => {
-                    setShowPlanModal(false);
-                    // Handle successful subscription
-                  }}
-                  onError={(error) => {
-                    console.error('Subscription error:', error);
-                    // Handle subscription error
-                  }}
-                />
-              </PayPalScriptProvider>
+                onError={(error) => {
+                  console.error('Subscription error:', error);
+                  // Handle subscription error
+                }}
+              />
             </div>
 
             <p className="text-xs text-center text-muted-foreground">
