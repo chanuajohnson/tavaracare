@@ -241,10 +241,19 @@ async function createPayPalSubscription(accessToken, planData, returnUrl, cancel
   try {
     let payload;
     
+    // Map the plan IDs to actual PayPal plan IDs
+    const paypalPlanMap = {
+      'basic': 'P-9PB85015TF740164FNDLNDWY',
+      'standard': 'P-0R5579286P619693SNDLNEOI', 
+      'premium': 'P-9HS61985N95652101NDLNE3Q'
+    };
+    
+    const actualPayPalPlanId = paypalPlanMap[planId] || planData.paypal_plan_id || planId;
+    
     // If we have a PayPal plan ID, use it; otherwise create a dynamic plan
-    if (planData.paypal_plan_id) {
+    if (actualPayPalPlanId && actualPayPalPlanId.startsWith('P-')) {
       payload = {
-        plan_id: planData.paypal_plan_id,
+        plan_id: actualPayPalPlanId,
         application_context: {
           brand_name: "Takes A Village",
           locale: "en-US",
@@ -254,7 +263,7 @@ async function createPayPalSubscription(accessToken, planData, returnUrl, cancel
           cancel_url: cancelUrl,
         }
       };
-      console.log("Using existing PayPal plan ID:", planData.paypal_plan_id);
+      console.log("Using PayPal plan ID:", actualPayPalPlanId);
     } else {
       // If we don't have a PayPal plan ID, create a dynamic subscription
       console.log("No PayPal plan ID found, creating dynamic subscription");

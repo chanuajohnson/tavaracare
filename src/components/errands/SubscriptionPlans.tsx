@@ -14,6 +14,7 @@ export const SubscriptionPlans: React.FC = () => {
   const plans = [
     {
       id: 'basic',
+      paypalPlanId: 'P-9PB85015TF740164FNDLNDWY',
       name: 'Basic',
       monthlyPrice: 'TT$299',
       quarterlyPrice: 'TT$799',
@@ -28,6 +29,7 @@ export const SubscriptionPlans: React.FC = () => {
     },
     {
       id: 'standard',
+      paypalPlanId: 'P-0R5579286P619693SNDLNEOI',
       name: 'Standard',
       monthlyPrice: 'TT$599',
       quarterlyPrice: 'TT$1,599',
@@ -43,6 +45,7 @@ export const SubscriptionPlans: React.FC = () => {
     },
     {
       id: 'premium',
+      paypalPlanId: 'P-9HS61985N95652101NDLNE3Q',
       name: 'Premium',
       monthlyPrice: 'TT$999',
       quarterlyPrice: 'TT$2,699',
@@ -189,7 +192,7 @@ export const SubscriptionPlans: React.FC = () => {
               </Button>
               
               <PayPalSubscribeButton
-                planId={selectedPlan?.id || ''}
+                planId={selectedPlan?.paypalPlanId || selectedPlan?.id || ''}
                 planName={selectedPlan?.name || ''}
                 price={selectedPlan?.monthlyPrice || ''}
                 returnUrl={`${window.location.origin}/subscription/success`}
@@ -202,7 +205,8 @@ export const SubscriptionPlans: React.FC = () => {
                 }}
                 onError={(error) => {
                   console.error('Subscription error:', error);
-                  // Handle subscription error
+                  // Handle subscription error - fallback to WhatsApp
+                  handleWhatsAppContact(selectedPlan);
                 }}
               />
             </div>

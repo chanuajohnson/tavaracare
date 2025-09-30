@@ -60,21 +60,15 @@ export function PayPalSubscribeButton({
           cancelUrl: cancelUrl || defaultCancelUrl,
         });
         
-        if (!result) {
-          console.error("No result from createSubscription");
+        if (!result || !result.subscription_id) {
+          console.error("No valid result from createSubscription:", result);
           throw new Error("Failed to initiate subscription");
         }
         
         console.log("Subscription creation result:", result);
         
-        if (result.approval_url) {
-          console.log("Redirecting to PayPal approval URL:", result.approval_url);
-          window.location.href = result.approval_url;
-          return result.subscription_id;
-        } else {
-          console.error("No approval URL in response", result);
-          throw new Error("Missing PayPal approval URL");
-        }
+        // Return the PayPal subscription ID for the subscription flow
+        return result.paypal_subscription_id || result.subscription_id;
       } else {
         // For trial_day and one_time payments, return a mock order ID
         const mockOrderId = `ORDER_${Date.now()}`;
