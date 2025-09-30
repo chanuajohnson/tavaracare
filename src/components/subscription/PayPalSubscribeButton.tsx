@@ -33,10 +33,24 @@ export function PayPalSubscribeButton({
   isComingSoon = true,
   paymentType = 'subscription'
 }: PayPalSubscribeButtonProps) {
-  const [{ isPending }] = usePayPalScriptReducer();
   const [showPayPal, setShowPayPal] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
   const navigate = useNavigate();
+  
+  // Check if PayPal is available (env var set)
+  const hasPayPalClientId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
+  
+  // Only use PayPal hooks if client ID exists
+  let isPending = false;
+  try {
+    if (hasPayPalClientId) {
+      const [{ isPending: scriptPending }] = usePayPalScriptReducer();
+      isPending = scriptPending;
+    }
+  } catch (error) {
+    // Fail silently if hook can't be used
+    console.warn("PayPal script reducer unavailable");
+  }
   
   // Default URLs if not provided
   const defaultReturnUrl = window.location.origin + '/subscription/success';
@@ -161,6 +175,29 @@ export function PayPalSubscribeButton({
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         Processing...
       </Button>
+    );
+  }
+  
+  // Display disabled button if PayPal is not configured
+  if (!hasPayPalClientId) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant={variant} 
+              className={`${className} opacity-90`}
+              disabled
+            >
+              <Clock className="mr-2 h-4 w-4" />
+              PayPal Unavailable
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>PayPal integration is not configured in this environment</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
   
