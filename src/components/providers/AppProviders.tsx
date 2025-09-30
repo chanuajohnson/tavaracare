@@ -21,8 +21,10 @@ const queryClient = new QueryClient({
   },
 });
 
+const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
+
 const paypalOptions = {
-  "client-id": import.meta.env.VITE_PAYPAL_CLIENT_ID || "test",
+  "client-id": clientId,
   intent: "subscription",
   vault: true,
   currency: "USD",
@@ -30,6 +32,37 @@ const paypalOptions = {
 };
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
+  // Fail cleanly if no PayPal client ID - don't render PayPal provider
+  if (!clientId) {
+    console.warn("PayPal client ID not found - PayPal features will be disabled");
+    return (
+      <ProviderErrorBoundary providerName="QueryClient">
+        <QueryClientProvider client={queryClient}>
+          <ProviderErrorBoundary providerName="TooltipProvider">
+            <TooltipProvider>
+              <Sonner />
+              <ProviderErrorBoundary providerName="Router">
+                <BrowserRouter>
+                  <ScrollToTop />
+                  <RedirectHandler />
+                  <ProviderErrorBoundary providerName="AuthProvider">
+                    <AuthProvider>
+                      <ProviderErrorBoundary providerName="TavaraStateProvider">
+                        <TavaraStateProvider>
+                          {children}
+                        </TavaraStateProvider>
+                      </ProviderErrorBoundary>
+                    </AuthProvider>
+                  </ProviderErrorBoundary>
+                </BrowserRouter>
+              </ProviderErrorBoundary>
+            </TooltipProvider>
+          </ProviderErrorBoundary>
+        </QueryClientProvider>
+      </ProviderErrorBoundary>
+    );
+  }
+
   return (
     <ProviderErrorBoundary providerName="PayPalScript">
       <PayPalScriptProvider options={paypalOptions}>

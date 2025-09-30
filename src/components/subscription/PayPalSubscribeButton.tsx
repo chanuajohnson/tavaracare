@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
-import { usePayPalSubscription } from '@/hooks/usePayPalSubscription';
 import { Loader2, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -35,7 +34,6 @@ export function PayPalSubscribeButton({
   paymentType = 'subscription'
 }: PayPalSubscribeButtonProps) {
   const [{ isPending }] = usePayPalScriptReducer();
-  const { createSubscription, completeSubscription, isLoading } = usePayPalSubscription();
   const [showPayPal, setShowPayPal] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
   const navigate = useNavigate();
@@ -48,32 +46,25 @@ export function PayPalSubscribeButton({
     setShowPayPal(true);
   };
   
-  const handleCreateSubscription = async () => {
+  const handleCreateSubscription = async (data: any, actions: any) => {
     try {
-      setProcessingPayment(true);
       console.log(`Creating ${paymentType} for plan: ${planId} (${planName})`);
       
       if (paymentType === 'subscription') {
-        const result = await createSubscription({
-          planId,
-          returnUrl: returnUrl || defaultReturnUrl,
-          cancelUrl: cancelUrl || defaultCancelUrl,
+        // Use PayPal SDK's built-in subscription creation
+        return actions.subscription.create({
+          plan_id: planId
         });
-        
-        if (!result || !result.subscription_id) {
-          console.error("No valid result from createSubscription:", result);
-          throw new Error("Failed to initiate subscription");
-        }
-        
-        console.log("Subscription creation result:", result);
-        
-        // Return the PayPal subscription ID for the subscription flow
-        return result.paypal_subscription_id || result.subscription_id;
       } else {
-        // For trial_day and one_time payments, return a mock order ID
-        const mockOrderId = `ORDER_${Date.now()}`;
-        console.log("Mock one-time payment order created:", mockOrderId);
-        return mockOrderId;
+        // For trial_day and one_time payments, create an order
+        return actions.order.create({
+          purchase_units: [{
+            amount: {
+              currency_code: 'USD',
+              value: price.replace(/[^0-9.]/g, '') // Extract numeric value
+            }
+          }]
+        });
       }
     } catch (error) {
       console.error(`Error creating ${paymentType}:`, error);
@@ -85,9 +76,7 @@ export function PayPalSubscribeButton({
       });
       
       if (onError) onError(error instanceof Error ? error : new Error('Unknown error'));
-      return null;
-    } finally {
-      setProcessingPayment(false);
+      throw error;
     }
   };
 
@@ -101,18 +90,10 @@ export function PayPalSubscribeButton({
           throw new Error("No subscription ID received from PayPal");
         }
         
-        const subscription = await completeSubscription({
-          subscriptionId: data.subscriptionID
-        });
-        
-        if (!subscription) {
-          throw new Error("Failed to complete subscription");
-        }
-        
-        console.log("Subscription completed:", subscription);
+        console.log("Subscription approved:", data.subscriptionID);
         
         if (onSuccess) {
-          onSuccess(subscription.id);
+          onSuccess(data.subscriptionID);
         }
         
         toast.success("Subscription Activated", {
@@ -165,7 +146,7 @@ export function PayPalSubscribeButton({
     }
   };
   
-  if (isPending || isLoading) {
+  if (isPending) {
     return (
       <Button disabled className={className}>
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
