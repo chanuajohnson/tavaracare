@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { 
@@ -37,6 +37,7 @@ import { useSupportActions } from '@/hooks/useSupportActions';
 export function Navigation() {
   const { user, signOut, isLoading, userRole } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -183,22 +184,42 @@ export function Navigation() {
                       <DropdownMenuGroup>
                         <DropdownMenuLabel>Dashboards</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
-                          <Link to="/dashboard/family">Family Dashboard</Link>
+                        <DropdownMenuItem
+                          className="flex items-center gap-2 cursor-pointer"
+                          onClick={() => navigate('/dashboard/family')}
+                        >
+                          <LayoutDashboard className="h-4 w-4" />
+                          <span>Family Dashboard</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Link to="/dashboard/professional">Professional Dashboard</Link>
+                        <DropdownMenuItem
+                          className="flex items-center gap-2 cursor-pointer"
+                          onClick={() => navigate('/dashboard/professional')}
+                        >
+                          <LayoutDashboard className="h-4 w-4" />
+                          <span>Professional Dashboard</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Link to="/dashboard/community">Community Dashboard</Link>
+                        <DropdownMenuItem
+                          className="flex items-center gap-2 cursor-pointer"
+                          onClick={() => navigate('/dashboard/community')}
+                        >
+                          <LayoutDashboard className="h-4 w-4" />
+                          <span>Community Dashboard</span>
                         </DropdownMenuItem>
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem>
-                        <Link to="/auth/register">Create Account</Link>
+                      <DropdownMenuItem
+                        className="flex items-center gap-2 cursor-pointer"
+                        onClick={() => navigate('/auth/register')}
+                      >
+                        <LogIn className="h-4 w-4" />
+                        <span>Create Account</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Link to="/auth/reset-password">Forgot Password</Link>
+                      <DropdownMenuItem
+                        className="flex items-center gap-2 cursor-pointer"
+                        onClick={() => navigate('/auth/reset-password')}
+                      >
+                        <FileQuestion className="h-4 w-4" />
+                        <span>Forgot Password</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
