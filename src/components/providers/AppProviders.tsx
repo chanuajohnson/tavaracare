@@ -29,7 +29,7 @@ const paypalOptions = {
   "client-id": clientId || "sb", // 'sb' = sandbox fallback (won't work but won't crash)
   intent: "subscription",
   vault: true,
-  currency: "USD",
+  currency: "TTD",
   components: "buttons",
 };
 

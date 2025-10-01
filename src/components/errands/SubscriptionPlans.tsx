@@ -14,7 +14,7 @@ export const SubscriptionPlans: React.FC = () => {
   const plans = [
     {
       id: 'basic',
-      paypalPlanId: 'P-9PB85015TF740164FNDLNDWY',
+      paypalPlanId: 'P-8M440647PU980712UNDOUB4I',
       name: 'Basic',
       monthlyPrice: 'TT$299',
       quarterlyPrice: 'TT$799',
