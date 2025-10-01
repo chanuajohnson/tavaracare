@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Check, MessageCircle, CreditCard } from 'lucide-react';
 import { useTracking } from '@/hooks/useTracking';
 import { PayPalSubscribeButton } from '@/components/subscription/PayPalSubscribeButton';
+import { PAYPAL_PLAN_IDS_USD, PLAN_PRICES_USD } from '@/constants/paypalPlans';
+import { formatUsdWithTtd, formatTtdEstimate } from '@/utils/currency';
 
 export const SubscriptionPlans: React.FC = () => {
   const { trackEngagement } = useTracking();
@@ -14,11 +16,11 @@ export const SubscriptionPlans: React.FC = () => {
   const plans = [
     {
       id: 'basic',
-      paypalPlanId: 'P-8M440647PU980712UNDOUB4I',
+      paypalPlanId: PAYPAL_PLAN_IDS_USD.basic,
       name: 'Basic',
-      monthlyPrice: 'TT$299',
-      quarterlyPrice: 'TT$799',
-      yearlyPrice: 'TT$2,999',
+      monthlyPriceUsd: PLAN_PRICES_USD.basic,
+      monthlyPrice: formatUsdWithTtd(PLAN_PRICES_USD.basic),
+      monthlyPriceTtd: formatTtdEstimate(PLAN_PRICES_USD.basic),
       features: [
         '2 errands per month',
         '4 hours companion care',
@@ -29,11 +31,11 @@ export const SubscriptionPlans: React.FC = () => {
     },
     {
       id: 'standard',
-      paypalPlanId: 'P-0R5579286P619693SNDLNEOI',
+      paypalPlanId: PAYPAL_PLAN_IDS_USD.standard,
       name: 'Standard',
-      monthlyPrice: 'TT$599',
-      quarterlyPrice: 'TT$1,599',
-      yearlyPrice: 'TT$5,999',
+      monthlyPriceUsd: PLAN_PRICES_USD.standard,
+      monthlyPrice: formatUsdWithTtd(PLAN_PRICES_USD.standard),
+      monthlyPriceTtd: formatTtdEstimate(PLAN_PRICES_USD.standard),
       features: [
         '4 errands per month',
         '8 hours care services',
@@ -45,11 +47,11 @@ export const SubscriptionPlans: React.FC = () => {
     },
     {
       id: 'premium',
-      paypalPlanId: 'P-9HS61985N95652101NDLNE3Q',
+      paypalPlanId: PAYPAL_PLAN_IDS_USD.premium,
       name: 'Premium',
-      monthlyPrice: 'TT$999',
-      quarterlyPrice: 'TT$2,699',
-      yearlyPrice: 'TT$9,999',
+      monthlyPriceUsd: PLAN_PRICES_USD.premium,
+      monthlyPrice: formatUsdWithTtd(PLAN_PRICES_USD.premium),
+      monthlyPriceTtd: formatTtdEstimate(PLAN_PRICES_USD.premium),
       features: [
         'Unlimited errands',
         '20 hours care services',
@@ -122,11 +124,9 @@ export const SubscriptionPlans: React.FC = () => {
               <div className="space-y-2 mt-4">
                 <div className="text-2xl sm:text-3xl font-bold text-primary">
                   {plan.monthlyPrice}
-                  <span className="text-sm text-muted-foreground">/month</span>
                 </div>
-                <div className="space-y-1 text-sm text-muted-foreground">
-                  <div>Quarterly: {plan.quarterlyPrice} <span className="text-green-600">(Save 10%)</span></div>
-                  <div>Yearly: {plan.yearlyPrice} <span className="text-green-600">(Save 20%)</span></div>
+                <div className="text-sm text-muted-foreground">
+                  per month • Billed in USD
                 </div>
               </div>
             </CardHeader>
@@ -173,11 +173,9 @@ export const SubscriptionPlans: React.FC = () => {
             <div className="text-center">
               <div className="text-2xl font-bold text-primary mb-2">
                 {selectedPlan?.monthlyPrice}
-                <span className="text-sm text-muted-foreground">/month</span>
               </div>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <div>Quarterly: {selectedPlan?.quarterlyPrice} <span className="text-green-600">(Save 10%)</span></div>
-                <div>Yearly: {selectedPlan?.yearlyPrice} <span className="text-green-600">(Save 20%)</span></div>
+              <div className="text-sm text-muted-foreground">
+                per month • Billed in USD
               </div>
             </div>
 

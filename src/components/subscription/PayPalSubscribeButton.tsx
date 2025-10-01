@@ -62,31 +62,19 @@ export function PayPalSubscribeButton({
   
   const handleCreateSubscription = async (data: any, actions: any) => {
     try {
-      console.log(`Creating ${paymentType} for plan: ${planId} (${planName})`);
+      console.log(`Creating subscription for plan: ${planId} (${planName})`);
       
-      if (paymentType === 'subscription') {
-        // Use PayPal SDK's built-in subscription creation
-        return actions.subscription.create({
-          plan_id: planId
-        });
-      } else {
-        // For trial_day and one_time payments, create an order
-        return actions.order.create({
-          purchase_units: [{
-            amount: {
-              currency_code: 'USD',
-              value: price.replace(/[^0-9.]/g, '') // Extract numeric value
-            }
-          }]
-        });
-      }
+      // Create subscription with USD plan
+      return actions.subscription.create({
+        plan_id: planId
+      });
     } catch (error) {
-      console.error(`Error creating ${paymentType}:`, error);
+      console.error('Error creating subscription:', error);
       
-      toast.error(`${paymentType === 'subscription' ? 'Subscription' : 'Payment'} Error`, {
+      toast.error('Subscription Error', {
         description: error instanceof Error 
           ? error.message 
-          : `An unknown error occurred while creating your ${paymentType}`
+          : 'An unknown error occurred while creating your subscription'
       });
       
       if (onError) onError(error instanceof Error ? error : new Error('Unknown error'));
@@ -237,8 +225,7 @@ export function PayPalSubscribeButton({
         </Button>
         <PayPalButtons
           style={{ layout: "vertical", tagline: false }}
-          createOrder={paymentType === 'subscription' ? undefined : handleCreateSubscription}
-          createSubscription={paymentType === 'subscription' ? handleCreateSubscription : undefined}
+          createSubscription={handleCreateSubscription}
           onApprove={handleApprove}
           onError={(err) => {
             console.error("PayPal Error:", err);
@@ -271,10 +258,6 @@ export function PayPalSubscribeButton({
     );
   }
   
-  const buttonText = paymentType === 'subscription' 
-    ? 'Subscribe with PayPal' 
-    : `Pay $${price.replace('$', '').replace(' TTD', '')} TTD with PayPal`;
-  
   return (
     <Button 
       onClick={handleShowPayPal} 
@@ -288,7 +271,7 @@ export function PayPalSubscribeButton({
           Processing...
         </>
       ) : (
-        buttonText
+        'Subscribe with PayPal'
       )}
     </Button>
   );
