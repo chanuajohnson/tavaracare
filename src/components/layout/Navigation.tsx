@@ -149,25 +149,25 @@ export function Navigation() {
           <div className={`${isMobile ? (isMenuOpen ? "flex flex-col absolute top-16 left-0 right-0 bg-background border-b z-50 p-4 space-y-3" : "hidden") : "flex items-center gap-4"}`}>
             {(!isMobile || isMenuOpen) && (
               <>
-                <Link to="/about" className="text-gray-700 hover:text-primary">
+                <Link to="/about" className="text-gray-700 hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                   About
                 </Link>
-                <Link to="/errands" className="text-gray-700 hover:text-primary">
+                <Link to="/errands" className="text-gray-700 hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                   Errands
                 </Link>
-                <Link to="/tav-demo" className="text-gray-700 hover:text-primary">
+                <Link to="/tav-demo" className="text-gray-700 hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                   TAV Demo
                 </Link>
                 
                 {isSpecificUser && (
-                  <Link to="/admin/user-journey" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700">
+                  <Link to="/admin/user-journey" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700" onClick={() => setIsMenuOpen(false)}>
                     <BarChart className="h-4 w-4" />
                     <span className="hidden sm:inline">User Journey</span>
                   </Link>
                 )}
                 
                 {user && dashboardPath ? (
-                  <Link to={dashboardPath} className="flex items-center gap-1 text-gray-700 hover:text-primary">
+                  <Link to={dashboardPath} className="flex items-center gap-1 text-gray-700 hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                     <LayoutDashboard className="h-4 w-4" />
                     <span className={isMobile ? "inline" : "hidden sm:inline"}>
                       {userRole ? `${userRole.charAt(0).toUpperCase() + userRole.slice(1)} Dashboard` : 'Dashboard'}
@@ -309,7 +309,7 @@ export function Navigation() {
                     <span>{isMobile ? "Sign Out" : "Sign Out"}</span>
                   </Button>
                 ) : (
-                  <Link to="/auth">
+                  <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
                     <Button variant="default" size="sm" className="flex items-center gap-2">
                       <LogIn className="h-4 w-4" />
                       <span>Sign In</span>
