@@ -12,7 +12,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useTracking } from '@/hooks/useTracking';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { WhatsAppButton } from './WhatsAppButton';
 import { PayPalDepositButton } from './PayPalDepositButton';
 
 const needsOptions = [
@@ -117,11 +116,50 @@ export const ErrandsForm: React.FC = () => {
         additional_data: leadData
       });
 
+      // Send WhatsApp notification to Tavara team using existing nudge infrastructure
+      const needsText = data.needs.map(need => need.replace(/_/g, ' ')).join(', ');
+      const urgencyText = data.urgency === 'now' ? '🚨 URGENT' : 
+                          data.urgency === 'today' ? '📅 Today' : 
+                          data.urgency === 'this_week' ? '📆 This Week' : '🗓️ Scheduled';
+      
+      const notificationMessage = `🆕 New Errands Request [${priority}]
+
+👤 Contact: ${data.name}
+📱 WhatsApp: ${data.phone}
+${data.email ? `📧 Email: ${data.email}` : ''}
+
+🛎️ Services: ${needsText}
+⏰ When: ${urgencyText}
+📍 Location: ${data.location}
+👥 For: ${data.recipient}
+${data.notes ? `\n📝 Notes: ${data.notes}` : ''}
+
+Reply to this number to coordinate: ${data.phone}`;
+
+      try {
+        // Send WhatsApp nudge to admin team
+        const { error: nudgeError } = await supabase.functions.invoke('send-nudge-whatsapp', {
+          body: {
+            messageType: 'errand_notification',
+            customMessage: notificationMessage,
+            recipientRole: 'admin' // Notify admin team
+          }
+        });
+
+        if (nudgeError) {
+          console.error('Error sending WhatsApp notification:', nudgeError);
+          // Don't fail the submission if notification fails
+        }
+      } catch (nudgeErr) {
+        console.error('Failed to send team notification:', nudgeErr);
+        // Don't fail the submission if notification fails
+      }
+
       setFormData(data);
       setIsSubmitted(true);
       
       toast.success('Request submitted successfully!', {
-        description: 'We\'ll contact you via WhatsApp shortly.'
+        description: 'Our team has been notified and will contact you via WhatsApp shortly.'
       });
 
     } catch (error) {
@@ -135,24 +173,23 @@ export const ErrandsForm: React.FC = () => {
   if (isSubmitted && formData) {
     return (
       <Card className="mb-8 shadow-lg">
-        <CardContent className="mobile-padding-responsive text-center bg-gradient-to-br from-green-50 to-primary/5">
+        <CardContent className="mobile-padding-responsive text-center bg-gradient-to-br from-green-50 to-primary/5 py-8">
           <div className="mb-6">
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-2">
-              Thanks for reaching out 💙
+              Request Received! 💙
             </h2>
             <p className="text-muted-foreground mb-4 mobile-text-responsive">
-              We're nudging our team now. Expect a WhatsApp message shortly.
+              Our team has been notified via WhatsApp and will contact you shortly at <strong>{formData.phone}</strong>
             </p>
             <p className="text-sm text-muted-foreground">
-              If urgent, tap the WhatsApp button below.
+              Check your WhatsApp for a message from us!
             </p>
           </div>
           
           <div className="space-y-4 max-w-md mx-auto">
-            <WhatsAppButton formData={formData} />
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">
-                Secure your booking with a deposit
+                Want to secure your booking? Add a deposit now
               </p>
               <PayPalDepositButton />
             </div>
