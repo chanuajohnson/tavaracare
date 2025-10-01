@@ -40,6 +40,8 @@ export function Navigation() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNavigationDropdownOpen, setIsNavigationDropdownOpen] = useState(false);
+  const [isSupportDropdownOpen, setIsSupportDropdownOpen] = useState(false);
 
   // Support functionality hooks
   const {
@@ -172,7 +174,7 @@ export function Navigation() {
                     </span>
                   </Link>
                 ) : !user ? (
-                  <DropdownMenu>
+                  <DropdownMenu open={isNavigationDropdownOpen} onOpenChange={setIsNavigationDropdownOpen}>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="flex items-center gap-1">
                         <LayoutDashboard className="h-4 w-4" />
@@ -186,21 +188,30 @@ export function Navigation() {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="flex items-center gap-2 cursor-pointer"
-                          onClick={() => navigate('/dashboard/family')}
+                          onClick={() => {
+                            setIsNavigationDropdownOpen(false);
+                            navigate('/dashboard/family');
+                          }}
                         >
                           <LayoutDashboard className="h-4 w-4" />
                           <span>Family Dashboard</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="flex items-center gap-2 cursor-pointer"
-                          onClick={() => navigate('/dashboard/professional')}
+                          onClick={() => {
+                            setIsNavigationDropdownOpen(false);
+                            navigate('/dashboard/professional');
+                          }}
                         >
                           <LayoutDashboard className="h-4 w-4" />
                           <span>Professional Dashboard</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="flex items-center gap-2 cursor-pointer"
-                          onClick={() => navigate('/dashboard/community')}
+                          onClick={() => {
+                            setIsNavigationDropdownOpen(false);
+                            navigate('/dashboard/community');
+                          }}
                         >
                           <LayoutDashboard className="h-4 w-4" />
                           <span>Community Dashboard</span>
@@ -209,14 +220,20 @@ export function Navigation() {
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="flex items-center gap-2 cursor-pointer"
-                        onClick={() => navigate('/auth/register')}
+                        onClick={() => {
+                          setIsNavigationDropdownOpen(false);
+                          navigate('/auth/register');
+                        }}
                       >
                         <LogIn className="h-4 w-4" />
                         <span>Create Account</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="flex items-center gap-2 cursor-pointer"
-                        onClick={() => navigate('/auth/reset-password')}
+                        onClick={() => {
+                          setIsNavigationDropdownOpen(false);
+                          navigate('/auth/reset-password');
+                        }}
                       >
                         <FileQuestion className="h-4 w-4" />
                         <span>Forgot Password</span>
@@ -226,7 +243,7 @@ export function Navigation() {
                 ) : null}
 
                 {/* Help Support Menu */}
-                <DropdownMenu>
+                <DropdownMenu open={isSupportDropdownOpen} onOpenChange={setIsSupportDropdownOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="flex items-center gap-1">
                       <HelpCircle className="h-4 w-4" />
@@ -236,28 +253,40 @@ export function Navigation() {
                   <DropdownMenuContent align="end" className="w-56 bg-white border shadow-lg z-[100]">
                     <DropdownMenuItem
                       className="flex items-center gap-2 cursor-pointer"
-                      onClick={handleFAQClick}
+                      onClick={() => {
+                        setIsSupportDropdownOpen(false);
+                        handleFAQClick();
+                      }}
                     >
                       <FileQuestion className="h-4 w-4" />
                       <span>FAQ Section</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       className="flex items-center gap-2 cursor-pointer"
-                      onClick={handleOpenWhatsApp}
+                      onClick={() => {
+                        setIsSupportDropdownOpen(false);
+                        handleOpenWhatsApp();
+                      }}
                     >
                       <Phone className="h-4 w-4" />
                       <span>WhatsApp Support</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="flex items-center gap-2 cursor-pointer"
-                      onClick={() => setIsContactFormOpen(true)}
+                      onClick={() => {
+                        setIsSupportDropdownOpen(false);
+                        setIsContactFormOpen(true);
+                      }}
                     >
                       <FileQuestion className="h-4 w-4" />
                       <span>Contact Support</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="flex items-center gap-2 cursor-pointer"
-                      onClick={() => setIsFeedbackFormOpen(true)}
+                      onClick={() => {
+                        setIsSupportDropdownOpen(false);
+                        setIsFeedbackFormOpen(true);
+                      }}
                     >
                       <MessageSquare className="h-4 w-4" />
                       <span>Give Feedback</span>
