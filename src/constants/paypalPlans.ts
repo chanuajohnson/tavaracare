@@ -15,7 +15,7 @@ export const PAYPAL_PLAN_IDS_USD = {
   // Replace these with your actual USD plan IDs from PayPal dashboard
   basic: 'P-8M440647PU980712UNDOUB4I', // Basic plan - working
   standard: 'P-8L474753VD949050KNDOU57I', // Standard plan - working
-  premium: 'P-XXXXXXXXXXXXUSDPREM', // Premium plan - create in PayPal
+  premium: 'P-1YB25829JH697135CNDOVENQ', // Premium plan - working
 } as const;
 
 export type PayPalPlanKey = keyof typeof PAYPAL_PLAN_IDS_USD;
