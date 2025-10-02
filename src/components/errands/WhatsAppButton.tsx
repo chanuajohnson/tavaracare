@@ -48,7 +48,7 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ formData }) => {
       size="lg"
     >
       <MessageCircle className="mr-2 h-5 w-5" />
-      Confirm request & open WhatsApp
+      Message Tavara Team on WhatsApp
     </Button>
   );
 };
