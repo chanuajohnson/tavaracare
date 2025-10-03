@@ -1,7 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { MessageCircle } from 'lucide-react';
-import { generateWhatsAppURL } from '@/utils/whatsapp/whatsappWebUtils';
 import { useTracking } from '@/hooks/useTracking';
 
 interface WhatsAppButtonProps {
@@ -28,7 +27,10 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ formData }) => {
     const needsText = formData.needs.join(', ').replace(/_/g, ' ');
     const message = `Hi Tavara, I just submitted an Errands request (${needsText} / ${formData.location} / ${formData.urgency}).`;
     
-    const whatsappUrl = generateWhatsAppURL(TAVARA_WHATSAPP, message);
+    // Construct WhatsApp URL directly (matches working pattern from PayPalDepositButton)
+    const whatsappUrl = `https://wa.me/${TAVARA_WHATSAPP}?text=${encodeURIComponent(message)}`;
+    
+    console.log('Opening WhatsApp URL:', whatsappUrl);
     
     // Track click
     trackEngagement('errands_whatsapp_click', {
