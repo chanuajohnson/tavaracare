@@ -27,8 +27,10 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ formData }) => {
     const needsText = formData.needs.join(', ').replace(/_/g, ' ');
     const message = `Hi Tavara, I just submitted an Errands request (${needsText} / ${formData.location} / ${formData.urgency}).`;
     
-    // Construct WhatsApp URL directly (matches working pattern from PayPalDepositButton)
-    const whatsappUrl = `https://wa.me/${TAVARA_WHATSAPP}?text=${encodeURIComponent(message)}`;
+    // Match working pattern from your other application
+    // Remove + prefix and use api.whatsapp.com/send/ format
+    const cleanPhone = TAVARA_WHATSAPP.replace(/\+/g, '');
+    const whatsappUrl = `https://api.whatsapp.com/send/?phone=${cleanPhone}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
     
     console.log('Opening WhatsApp URL:', whatsappUrl);
     
