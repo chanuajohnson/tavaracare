@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { SubscriptionPlans } from './SubscriptionPlans';
 import { WhatsAppButton } from './WhatsAppButton';
-import { PayPalDepositButton } from './PayPalDepositButton';
+import { PayPalErrandsButton } from './PayPalErrandsButton';
 
 export const PricingBanner: React.FC = () => {
   const pricingItems = [
@@ -88,7 +88,7 @@ export const PricingBanner: React.FC = () => {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
               <WhatsAppButton quickRequest={true} />
-              <PayPalDepositButton />
+              <PayPalErrandsButton />
             </div>
             <p className="text-sm text-muted-foreground text-center mt-4">
               Final price confirmed via WhatsApp after we discuss your specific needs

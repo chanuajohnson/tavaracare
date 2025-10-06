@@ -13,7 +13,7 @@ import { useTracking } from '@/hooks/useTracking';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { WhatsAppButton } from './WhatsAppButton';
-import { PayPalDepositButton } from './PayPalDepositButton';
+import { PayPalErrandsButton } from './PayPalErrandsButton';
 
 const needsOptions = [
   { id: 'errands_runs', label: '🏃 Errands & runs', value: 'errands_runs' },
@@ -225,7 +225,7 @@ export const ErrandsForm: React.FC = () => {
               <p className="text-sm text-muted-foreground mb-2">
                 Ready to secure your slot? Add TT$100 deposit now
               </p>
-              <PayPalDepositButton />
+              <PayPalErrandsButton />
             </div>
           </div>
         </CardContent>
