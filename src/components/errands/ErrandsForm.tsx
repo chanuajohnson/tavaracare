@@ -46,6 +46,8 @@ export const ErrandsForm: React.FC = () => {
   const [selectedNeeds, setSelectedNeeds] = useState<string[]>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formData, setFormData] = useState<any>(null);
+  const [estimatedCost, setEstimatedCost] = useState<number>(0);
+  const [costBreakdown, setCostBreakdown] = useState<string>('');
   const { trackEngagement } = useTracking();
   
   const {
@@ -63,6 +65,53 @@ export const ErrandsForm: React.FC = () => {
   });
 
   const urgency = watch('urgency');
+  const location = watch('location');
+
+  // Calculate estimated cost based on needs, location, and urgency
+  const calculateEstimatedCost = (needs: string[], location: string, urgency: string) => {
+    const baseFee = 50;
+    let distanceComplexity = 0;
+    let breakdown = `TT$${baseFee} (base fee)`;
+
+    // Estimate distance/complexity based on location keywords
+    const locationLower = location?.toLowerCase() || '';
+    if (locationLower.includes('pricesmart') || locationLower.includes('pennywise') || locationLower.includes('grocery')) {
+      distanceComplexity = 100;
+      breakdown += ` + TT$${distanceComplexity} (big haul)`;
+    } else if (locationLower.includes('city') || locationLower.includes('port of spain') || locationLower.includes('san fernando')) {
+      distanceComplexity = 65;
+      breakdown += ` + TT$${distanceComplexity} (city run)`;
+    } else {
+      distanceComplexity = 30;
+      breakdown += ` + TT$${distanceComplexity} (local run)`;
+    }
+
+    // Add for urgency
+    if (urgency === 'now') {
+      const urgencyFee = 30;
+      distanceComplexity += urgencyFee;
+      breakdown += ` + TT$${urgencyFee} (urgent)`;
+    }
+
+    // Add for multiple services
+    if (needs.length > 2) {
+      const multiServiceFee = 20;
+      distanceComplexity += multiServiceFee;
+      breakdown += ` + TT$${multiServiceFee} (multiple services)`;
+    }
+
+    const total = baseFee + distanceComplexity;
+    setEstimatedCost(total);
+    setCostBreakdown(breakdown);
+    return total;
+  };
+
+  // Recalculate when form values change
+  React.useEffect(() => {
+    if (selectedNeeds.length > 0 && location && urgency) {
+      calculateEstimatedCost(selectedNeeds, location, urgency);
+    }
+  }, [selectedNeeds, location, urgency]);
 
   const handleNeedToggle = (needValue: string) => {
     const newNeeds = selectedNeeds.includes(needValue)
@@ -133,16 +182,40 @@ export const ErrandsForm: React.FC = () => {
   };
 
   if (isSubmitted && formData) {
+    const isUrgent = formData.urgency === 'now';
+    
     return (
       <Card className="mb-8 shadow-lg">
         <CardContent className="mobile-padding-responsive text-center bg-gradient-to-br from-green-50 to-primary/5 py-8">
           <div className="mb-6">
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-2">
-              Request Received! 💙
+              On-Demand Request Received! 💙
             </h2>
-            <p className="text-muted-foreground mb-4 mobile-text-responsive">
-              Thanks for reaching out! Message our team directly on WhatsApp to coordinate your booking.
-            </p>
+            {isUrgent ? (
+              <div className="bg-destructive/10 border-2 border-destructive/30 rounded-lg p-4 mb-4">
+                <p className="text-destructive font-semibold mb-2 text-sm sm:text-base">
+                  🚨 URGENT REQUEST NOTED
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  For urgent requests, please WhatsApp us directly right now for fastest response.
+                </p>
+              </div>
+            ) : (
+              <p className="text-muted-foreground mb-2 mobile-text-responsive">
+                We'll respond within minutes to confirm your booking details.
+              </p>
+            )}
+            
+            {estimatedCost > 0 && (
+              <div className="bg-primary/10 rounded-lg p-4 mb-4 max-w-md mx-auto">
+                <p className="text-sm text-muted-foreground mb-1">Estimated Total:</p>
+                <p className="text-2xl font-bold text-primary mb-1">≈ TT${estimatedCost}</p>
+                <p className="text-xs text-muted-foreground">{costBreakdown}</p>
+                <p className="text-xs text-muted-foreground mt-2 italic">
+                  Final price confirmed via WhatsApp based on exact details
+                </p>
+              </div>
+            )}
           </div>
           
           <div className="space-y-4 max-w-md mx-auto">
@@ -150,7 +223,7 @@ export const ErrandsForm: React.FC = () => {
             
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">
-                Want to secure your booking? Add a deposit now
+                Ready to secure your slot? Add TT$100 deposit now
               </p>
               <PayPalDepositButton />
             </div>
@@ -163,10 +236,27 @@ export const ErrandsForm: React.FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Request Support (≤30 seconds)</CardTitle>
+        <CardTitle>Request Your Errands Buddy (≤30 seconds)</CardTitle>
+        <p className="text-sm text-muted-foreground mt-2">
+          TT$50 base fee + distance/complexity • Final price confirmed via WhatsApp
+        </p>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          
+          {/* Cost Estimate Display */}
+          {estimatedCost > 0 && (
+            <div className="bg-primary/5 border-2 border-primary/20 rounded-lg p-4">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-1">Estimated Cost:</p>
+                <p className="text-2xl font-bold text-primary">≈ TT${estimatedCost}</p>
+                <p className="text-xs text-muted-foreground mt-1">{costBreakdown}</p>
+                <p className="text-xs text-muted-foreground mt-2 italic">
+                  Exact price confirmed via WhatsApp before service
+                </p>
+              </div>
+            </div>
+          )}
           {/* Needs Selection */}
           <div className="space-y-2">
             <Label>What do you need help with? (Select all that apply)</Label>

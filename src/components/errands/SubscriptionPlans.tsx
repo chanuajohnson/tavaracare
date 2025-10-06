@@ -25,8 +25,11 @@ export const SubscriptionPlans: React.FC = () => {
         '2 errands per month',
         '4 hours companion care',
         'WhatsApp support',
-        'Basic scheduling'
+        'Basic scheduling',
+        'Rollover unused hours'
       ],
+      savingsVsOnDemand: 'TT$100+',
+      onDemandEquivalent: '≈ TT$200–300 on-demand',
       popular: false
     },
     {
@@ -41,8 +44,11 @@ export const SubscriptionPlans: React.FC = () => {
         '8 hours care services',
         '1 vehicle service',
         'Priority scheduling',
-        'Email & WhatsApp support'
+        'Email & WhatsApp support',
+        'Rollover unused hours'
       ],
+      savingsVsOnDemand: 'TT$300+',
+      onDemandEquivalent: '≈ TT$500–700 on-demand',
       popular: true
     },
     {
@@ -60,6 +66,8 @@ export const SubscriptionPlans: React.FC = () => {
         'Dedicated care coordinator',
         'Emergency response'
       ],
+      savingsVsOnDemand: 'TT$600+',
+      onDemandEquivalent: '≈ TT$1000+ on-demand',
       popular: false
     }
   ];
@@ -91,10 +99,13 @@ export const SubscriptionPlans: React.FC = () => {
     <div className="w-full py-8 sm:py-12 md:py-16">
       <div className="text-center mb-8 sm:mb-12">
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-4">
-          Monthly Care Plans
+          💰 Save with Monthly Plans
         </h2>
-        <p className="text-base sm:text-lg text-muted-foreground px-4">
-          Choose a plan that fits your family's needs. Save more with quarterly and yearly subscriptions.
+        <p className="text-base sm:text-lg text-muted-foreground px-4 mb-2">
+          Use errands 2+ times per month? Lock in lower rates and skip the on-demand fees.
+        </p>
+        <p className="text-sm text-primary font-semibold px-4">
+          Save up to 40% vs paying on-demand every time
         </p>
       </div>
       
@@ -132,7 +143,7 @@ export const SubscriptionPlans: React.FC = () => {
             </CardHeader>
             
             <CardContent className="mobile-padding-responsive">
-              <ul className="space-y-3 mb-6">
+              <ul className="space-y-3 mb-4">
                 {plan.features.map((feature, featureIndex) => (
                   <li key={featureIndex} className="flex items-start space-x-3">
                     <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
@@ -141,8 +152,15 @@ export const SubscriptionPlans: React.FC = () => {
                 ))}
               </ul>
               
+              {/* Savings Highlight */}
+              <div className="bg-primary/10 rounded-lg p-3 mb-4">
+                <p className="text-xs text-muted-foreground text-center mb-1">Monthly Savings:</p>
+                <p className="text-sm font-bold text-primary text-center">{plan.savingsVsOnDemand} saved</p>
+                <p className="text-xs text-muted-foreground text-center italic">{plan.onDemandEquivalent}</p>
+              </div>
+              
               <div className="space-y-3">
-                <Button 
+                <Button
                   onClick={() => handlePlanClick(plan)}
                   className={`w-full mobile-button-responsive ${
                     plan.popular ? 'bg-primary hover:bg-primary/90' : ''

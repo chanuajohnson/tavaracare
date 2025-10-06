@@ -54,7 +54,7 @@ export const PayPalDepositButton: React.FC = () => {
       </div>
       
       <p className="text-xs text-center text-muted-foreground px-2">
-        Deposit (TT$100) • credited to your booking • Balance due after service
+        TT$100 deposit secures your slot • Credited to final booking price • Balance confirmed via WhatsApp
       </p>
     </div>
   );
