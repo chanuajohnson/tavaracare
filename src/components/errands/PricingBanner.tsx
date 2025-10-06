@@ -1,6 +1,8 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { SubscriptionPlans } from './SubscriptionPlans';
+import { WhatsAppButton } from './WhatsAppButton';
+import { PayPalDepositButton } from './PayPalDepositButton';
 
 export const PricingBanner: React.FC = () => {
   const pricingItems = [
@@ -76,9 +78,20 @@ export const PricingBanner: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Final price confirmed via WhatsApp • TT$100 deposit secures your booking
+          {/* Call-to-Action Section */}
+          <div className="mt-8 pt-6 border-t-2 border-primary/20">
+            <h4 className="font-semibold text-foreground mb-4 text-center text-lg">
+              🚀 Ready to Book Your Errand?
+            </h4>
+            <p className="text-center text-muted-foreground mb-6">
+              Message us on WhatsApp or secure your slot with a TT$100 deposit
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+              <WhatsAppButton quickRequest={true} />
+              <PayPalDepositButton />
+            </div>
+            <p className="text-sm text-muted-foreground text-center mt-4">
+              Final price confirmed via WhatsApp after we discuss your specific needs
             </p>
           </div>
         </CardContent>

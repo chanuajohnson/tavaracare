@@ -4,7 +4,7 @@ import { MessageCircle } from 'lucide-react';
 import { useTracking } from '@/hooks/useTracking';
 
 interface WhatsAppButtonProps {
-  formData: {
+  formData?: {
     needs: string[];
     urgency: string;
     location: string;
@@ -15,17 +15,24 @@ interface WhatsAppButtonProps {
     notes?: string;
     consent: boolean;
   };
+  quickRequest?: boolean;
 }
 
-export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ formData }) => {
+export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ formData, quickRequest = false }) => {
   const { trackEngagement } = useTracking();
   
   // Tavara WhatsApp number (replace with actual number)
   const TAVARA_WHATSAPP = '+18681234567'; // Update with real number
 
   const handleWhatsAppClick = () => {
-    const needsText = formData.needs.join(', ').replace(/_/g, ' ');
-    const message = `Hi Tavara, I just submitted an Errands request (${needsText} / ${formData.location} / ${formData.urgency}).`;
+    let message: string;
+    
+    if (quickRequest || !formData) {
+      message = `Hi Tavara, I'd like to request an errand. I saw your pricing and would like to discuss my needs.`;
+    } else {
+      const needsText = formData.needs.join(', ').replace(/_/g, ' ');
+      message = `Hi Tavara, I just submitted an Errands request (${needsText} / ${formData.location} / ${formData.urgency}).`;
+    }
     
     // Match working pattern from your other application
     // Remove + prefix and use api.whatsapp.com/send/ format
@@ -36,9 +43,10 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ formData }) => {
     
     // Track click
     trackEngagement('errands_whatsapp_click', {
-      needs: formData.needs,
-      urgency: formData.urgency,
-      location: formData.location
+      needs: formData?.needs || [],
+      urgency: formData?.urgency || 'quick_request',
+      location: formData?.location || 'not_specified',
+      quickRequest
     });
     
     // Open WhatsApp
