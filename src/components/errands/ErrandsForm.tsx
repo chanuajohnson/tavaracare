@@ -76,13 +76,13 @@ export const ErrandsForm: React.FC = () => {
     // Estimate distance/complexity based on location keywords
     const locationLower = location?.toLowerCase() || '';
     if (locationLower.includes('pricesmart') || locationLower.includes('pennywise') || locationLower.includes('grocery')) {
-      distanceComplexity = 100;
+      distanceComplexity = 150;
       breakdown += ` + TT$${distanceComplexity} (big haul)`;
     } else if (locationLower.includes('city') || locationLower.includes('port of spain') || locationLower.includes('san fernando')) {
-      distanceComplexity = 65;
+      distanceComplexity = 110;
       breakdown += ` + TT$${distanceComplexity} (city run)`;
     } else {
-      distanceComplexity = 30;
+      distanceComplexity = 65;
       breakdown += ` + TT$${distanceComplexity} (local run)`;
     }
 

@@ -38,21 +38,21 @@ export const PricingBanner: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-card/80 backdrop-blur-sm rounded-lg p-4 border border-border/50 hover:border-primary/50 transition-colors">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary mb-1">+TT$20–40</div>
+                  <div className="text-2xl font-bold text-primary mb-1">+TT$50–80</div>
                   <div className="text-sm font-medium text-foreground mb-2">Quick Local Runs</div>
                   <p className="text-xs text-muted-foreground">Within 5km • Under 30 mins</p>
                 </div>
               </div>
               <div className="bg-card/80 backdrop-blur-sm rounded-lg p-4 border border-border/50 hover:border-primary/50 transition-colors">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary mb-1">+TT$50–80</div>
+                  <div className="text-2xl font-bold text-primary mb-1">+TT$100–120</div>
                   <div className="text-sm font-medium text-foreground mb-2">City Runs</div>
                   <p className="text-xs text-muted-foreground">Bill payments • Pharmacy • 30–60 mins</p>
                 </div>
               </div>
               <div className="bg-card/80 backdrop-blur-sm rounded-lg p-4 border border-border/50 hover:border-primary/50 transition-colors">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary mb-1">+TT$100+</div>
+                  <div className="text-2xl font-bold text-primary mb-1">+TT$150+</div>
                   <div className="text-sm font-medium text-foreground mb-2">Big Hauls</div>
                   <p className="text-xs text-muted-foreground">PriceSmart • Groceries • 1+ hour</p>
                 </div>
