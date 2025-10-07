@@ -3,12 +3,18 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings, UserCheck } from "lucide-react";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 import { UnifiedMatchingInterface } from "@/components/admin/UnifiedMatchingInterface";
+import { MatchRecalculationLog } from '@/components/admin/MatchRecalculationLog';
+import { ManualAssignmentTrigger } from '@/components/debug/ManualAssignmentTrigger';
 import { supabase } from '@/integrations/supabase/client';
+import { backfillAvailableCaregiverMatches } from '@/utils/admin/manualMatchRecalculation';
+import { toast } from 'sonner';
+import { RefreshCw } from 'lucide-react';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -238,18 +244,33 @@ export default function AdminDashboard() {
             <FeedbackManagement />
           </CardContent>
         </Card>
+
+        {/* Match Recalculation Log */}
+        <MatchRecalculationLog />
+
+        {/* Debug Assignment Function */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Debug Assignment Function</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ManualAssignmentTrigger />
+          </CardContent>
+        </Card>
       </div>
 
       {/* Unified Matching Interface Modal */}
-      {showMatchingInterface && (
-        <UnifiedMatchingInterface
-          onClose={() => setShowMatchingInterface(false)}
-          onMatchAssigned={() => {
-            setShowMatchingInterface(false);
-            fetchPendingMatchesCount();
-          }}
-        />
-      )}
+      <Dialog open={showMatchingInterface} onOpenChange={setShowMatchingInterface}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <UnifiedMatchingInterface
+            onClose={() => setShowMatchingInterface(false)}
+            onMatchAssigned={() => {
+              setShowMatchingInterface(false);
+              fetchPendingMatchesCount();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

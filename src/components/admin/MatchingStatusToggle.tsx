@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { UserCheck, UserX, Clock, AlertCircle } from 'lucide-react';
+import { UserCheck, UserX, Clock, AlertCircle, ShieldAlert } from 'lucide-react';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 interface MatchingStatusToggleProps {
   userId: string;
@@ -25,48 +26,164 @@ export function MatchingStatusToggle({
   onStatusChange,
   compact = false 
 }: MatchingStatusToggleProps) {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [notes, setNotes] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
+
+  // Verify admin permissions
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        
+        const adminStatus = profile?.role === 'admin';
+        setIsAdmin(adminStatus);
+        
+        if (!adminStatus) {
+          console.warn('Non-admin user attempting to access MatchingStatusToggle:', user.id);
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user?.id]);
 
   const handleToggle = async (newStatus: boolean, adminNotes?: string) => {
+    if (!isAdmin) {
+      console.error('Non-admin user attempting to update matching status:', user?.id);
+      toast.error('Access denied: Admin privileges required');
+      return;
+    }
+
+    if (!userId) {
+      console.error('Missing userId in handleToggle');
+      toast.error('Error: Missing user ID');
+      return;
+    }
+
     setLoading(true);
+    setErrorDetails(null);
+    
+    console.log(`🔄 Admin ${user?.id} attempting to update matching status for user ${userId} (${userFullName}):`, {
+      from: currentStatus,
+      to: newStatus,
+      notes: adminNotes,
+      timestamp: new Date().toISOString()
+    });
     
     try {
-      const { error } = await supabase
+      // First, verify the user exists
+      const { data: existingUser, error: fetchError } = await supabase
+        .from('profiles')
+        .select('id, available_for_matching, full_name')
+        .eq('id', userId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching user before update:', fetchError);
+        throw new Error(`Failed to find user: ${fetchError.message}`);
+      }
+
+      if (!existingUser) {
+        throw new Error('User not found in database');
+      }
+
+      console.log('📋 Current user state before update:', existingUser);
+
+      // Perform the update
+      const { data: updatedData, error: updateError } = await supabase
         .from('profiles')
         .update({ 
           available_for_matching: newStatus,
           updated_at: new Date().toISOString()
         })
-        .eq('id', userId);
+        .eq('id', userId)
+        .select('id, available_for_matching, full_name');
 
-      if (error) throw error;
+      if (updateError) {
+        console.error('❌ Database update error:', updateError);
+        throw new Error(`Database update failed: ${updateError.message}`);
+      }
 
-      // Log the admin action (could be enhanced with a separate admin_actions table)
-      console.log(`Admin updated matching status for ${userFullName}: ${newStatus ? 'Available' : 'Unavailable'}`, {
+      console.log('✅ Update successful! New state:', updatedData);
+
+      // Handle the array response and verify the update was applied
+      const updatedUser = updatedData?.[0];
+      if (!updatedUser) {
+        throw new Error('Update completed but no data returned');
+      }
+
+      if (updatedUser.available_for_matching !== newStatus) {
+        console.warn('⚠️ Update didn\'t apply correctly:', {
+          expected: newStatus,
+          actual: updatedUser.available_for_matching
+        });
+        throw new Error('Update verification failed - status didn\'t change as expected');
+      }
+
+      // Log the successful admin action
+      console.log(`✅ Admin ${user?.id} successfully updated matching status for ${userFullName}:`, {
         userId,
+        previousStatus: currentStatus,
         newStatus,
         notes: adminNotes,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        updatedData
       });
 
       toast.success(
-        `${userFullName} is now ${newStatus ? 'available' : 'unavailable'} for matching`
+        `✅ ${userFullName} is now ${newStatus ? 'available' : 'unavailable'} for matching`
       );
       
+      // Refresh the parent component
       onStatusChange();
       setShowDialog(false);
       setNotes('');
+      
     } catch (error: any) {
-      console.error('Error updating matching status:', error);
-      toast.error('Failed to update matching status');
+      const errorMessage = error?.message || 'Unknown error occurred';
+      console.error('❌ Failed to update matching status:', {
+        error,
+        userId,
+        userFullName,
+        newStatus,
+        adminNotes,
+        isAdmin,
+        currentUser: user?.id
+      });
+      
+      setErrorDetails(errorMessage);
+      toast.error(`Failed to update matching status: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
   };
 
   const handleSwitchChange = (checked: boolean) => {
+    if (!isAdmin) {
+      toast.error('Access denied: Admin privileges required');
+      return;
+    }
+
+    console.log(`🎛️ Switch changed for ${userFullName}:`, {
+      from: currentStatus,
+      to: checked,
+      isAdmin,
+      userId
+    });
+
     if (!checked) {
       // When marking unavailable, show confirmation dialog
       setShowDialog(true);
@@ -75,6 +192,16 @@ export function MatchingStatusToggle({
       handleToggle(true);
     }
   };
+
+  // Don't render if not admin
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center gap-2 p-2 bg-red-50 rounded-lg">
+        <ShieldAlert className="h-4 w-4 text-red-600" />
+        <span className="text-sm text-red-700">Admin access required</span>
+      </div>
+    );
+  }
 
   if (compact) {
     return (
@@ -98,6 +225,16 @@ export function MatchingStatusToggle({
           disabled={loading}
           className="scale-75"
         />
+        
+        {loading && (
+          <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+        )}
+        
+        {errorDetails && (
+          <div className="text-xs text-red-600 max-w-40 truncate" title={errorDetails}>
+            Error: {errorDetails}
+          </div>
+        )}
         
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
           <DialogContent>
@@ -170,11 +307,16 @@ export function MatchingStatusToggle({
               }
             </p>
           </div>
-          <Switch
-            checked={currentStatus}
-            onCheckedChange={handleSwitchChange}
-            disabled={loading}
-          />
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={currentStatus}
+              onCheckedChange={handleSwitchChange}
+              disabled={loading}
+            />
+            {loading && (
+              <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+            )}
+          </div>
         </div>
         
         <div className="bg-blue-50 p-3 rounded-lg">
@@ -189,6 +331,26 @@ export function MatchingStatusToggle({
             </div>
           </div>
         </div>
+
+        {errorDetails && (
+          <div className="bg-red-50 p-3 rounded-lg">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-red-900">Update Error</p>
+                <p className="text-red-700">{errorDetails}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2"
+                  onClick={() => setErrorDetails(null)}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
           <DialogContent>

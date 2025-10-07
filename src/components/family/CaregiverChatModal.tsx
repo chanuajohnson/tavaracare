@@ -9,6 +9,7 @@ import { MessageCircle, Send, Shield, Crown, Loader2 } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { CaregiverChatService, CaregiverChatMessage, Caregiver } from "@/components/tav/services/caregiverChatService";
 import { cn } from "@/lib/utils";
+import { supabase, isDevelopment } from "@/integrations/supabase/client";
 
 interface CaregiverChatModalProps {
   open: boolean;
@@ -22,11 +23,39 @@ export const CaregiverChatModal = ({ open, onOpenChange, caregiver }: CaregiverC
   const [isLoading, setIsLoading] = useState(false);
   const [canSend, setCanSend] = useState(true);
   const [remainingMessages, setRemainingMessages] = useState(3);
-  const [isTyping, setIsTyping] = useState(false);
-  
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const chatService = useRef(new CaregiverChatService());
+const [isTyping, setIsTyping] = useState(false);
+const [sessionId, setSessionId] = useState<string | null>(null);
+ 
+const scrollRef = useRef<HTMLDivElement>(null);
+const chatService = useRef(new CaregiverChatService());
 
+  const isDev = isDevelopment();
+  const isLimitOverridden = () => localStorage.getItem('tavara_legacy_limit_override') === 'true';
+  const applyLimitState = (can: boolean, remaining: number) => {
+    if (isLimitOverridden()) {
+      setCanSend(true);
+      setRemainingMessages(999);
+    } else {
+      setCanSend(can);
+      setRemainingMessages(remaining);
+    }
+  };
+  const handleDevReset = () => {
+    localStorage.setItem('tavara_legacy_limit_override', 'true');
+    applyLimitState(true, 999);
+    setMessages(prev => [
+      ...prev,
+      {
+        id: 'dev-reset-' + Date.now(),
+        session_id: 'temp',
+        content: 'Dev: Legacy chat daily limit has been overridden (this browser only).',
+        is_user: false,
+        is_tav_moderated: true,
+        message_type: 'system',
+        created_at: new Date().toISOString()
+      }
+    ]);
+  };
   // Load messages and check limits when modal opens
   useEffect(() => {
     if (open) {
@@ -41,17 +70,43 @@ export const CaregiverChatModal = ({ open, onOpenChange, caregiver }: CaregiverC
     }
   }, [messages]);
 
+  // Realtime subscription for new messages in this session
+  useEffect(() => {
+    if (!open || !sessionId) return;
+
+    const channel = supabase
+      .channel(`caregiver-chat-${sessionId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'caregiver_chat_messages', filter: `session_id=eq.${sessionId}` },
+        (payload) => {
+          const newMsg = payload.new as any;
+          setMessages((prev) => [
+            ...prev,
+            {
+              ...newMsg,
+              message_type: newMsg.message_type as 'chat' | 'system' | 'warning' | 'upsell',
+            } as CaregiverChatMessage,
+          ]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [open, sessionId]);
+
   const loadChatData = async () => {
     setIsLoading(true);
     try {
-      // Check message limits
-      const { canSend: canSendMsg, remaining } = await chatService.current.canSendMessage(caregiver.id);
-      setCanSend(canSendMsg);
-      setRemainingMessages(remaining);
-
+// Check message limits
+      const { canSend: canSendMsg, remaining, session } = await chatService.current.canSendMessage(caregiver.id);
+      applyLimitState(canSendMsg, remaining);
+      setSessionId(session?.id || null);
       // Load existing messages
       const existingMessages = await chatService.current.getChatMessages(caregiver.id);
-      
+      const remainingDisplay = isLimitOverridden() ? 'unlimited' : remaining;
       // Add welcome message if this is the first conversation
       if (existingMessages.length === 0) {
         const welcomeMessage: CaregiverChatMessage = {
@@ -59,7 +114,7 @@ export const CaregiverChatModal = ({ open, onOpenChange, caregiver }: CaregiverC
           session_id: 'temp',
           content: `💙 Hi! I'm TAV, your care coordinator. I'll help facilitate your conversation with this professional caregiver while keeping everyone safe and focused on caregiving topics.
 
-You have ${remaining} messages today to get to know each other professionally. Feel free to ask about their experience, approach to care, or availability!`,
+You have ${remainingDisplay} messages today to get to know each other professionally. Feel free to ask about their experience, approach to care, or availability!`,
           is_user: false,
           is_tav_moderated: true,
           message_type: 'system',
@@ -94,11 +149,9 @@ You have ${remaining} messages today to get to know each other professionally. F
         
         // Update limits
         const { canSend: newCanSend, remaining } = await chatService.current.canSendMessage(caregiver.id);
-        setCanSend(newCanSend);
-        setRemainingMessages(remaining);
-        
+        applyLimitState(newCanSend, remaining);
         // Show upgrade prompt if limit reached
-        if (!newCanSend && remaining === 0) {
+        if (!isLimitOverridden() && !newCanSend && remaining === 0) {
           setTimeout(() => {
             const upgradeMessage: CaregiverChatMessage = {
               id: 'upgrade-prompt',
@@ -168,6 +221,13 @@ You have ${remaining} messages today to get to know each other professionally. F
               <div className="text-xs text-gray-500">
                 {remainingMessages === 999 ? 'Unlimited' : `${remainingMessages} msgs left today`}
               </div>
+              {isDev && (
+                <div className="mt-2">
+                  <Button variant="outline" size="sm" onClick={handleDevReset}>
+                    Reset today's limit
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </DialogHeader>
@@ -209,7 +269,7 @@ You have ${remaining} messages today to get to know each other professionally. F
                         "text-xs mt-1 opacity-70",
                         message.is_user ? "text-blue-100" : "text-gray-500"
                       )}>
-                        {message.is_user ? "You" : "TAV"} • {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {message.is_user ? "You" : (message.sender === 'caregiver' ? caregiver.full_name : 'TAV')} • {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                   </div>

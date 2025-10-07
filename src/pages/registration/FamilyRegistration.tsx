@@ -19,11 +19,21 @@ import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
 import { useAuth } from '@/components/providers/AuthProvider';
 import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
+import { CompleteRegistrationButton } from '@/components/demo/CompleteRegistrationButton';
+import { useRealTimeFormSync } from '../../hooks/useRealTimeFormSync';
+import { useTavaraState } from '@/components/tav/hooks/TavaraStateContext';
 
-const FamilyRegistration = () => {
+interface FamilyRegistrationProps {
+  isDemo?: boolean;
+  onFormReady?: (formSetters: any) => void;
+  realTimeDataCallback?: (message: string, isUser: boolean) => void;
+}
+
+const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realTimeDataCallback }: FamilyRegistrationProps = {}) => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
+  const isDemo = isExternalDemo || searchParams.get('demo') === 'true';
   
   console.log('🔍 URL and Edit Mode Debug:', {
     fullURL: window.location.href,
@@ -323,6 +333,74 @@ const FamilyRegistration = () => {
     }
   }, [prefillApplied, shouldAutoSubmit, user, isEditMode]);
 
+  // Map form setters for real-time sync
+  const formSetters = {
+    setFirstName,
+    setLastName,
+    setEmail,
+    setPhoneNumber,
+    setLocation,
+    setAddress,
+    setCareRecipientName,
+    setRelationship,
+    setCareTypes,
+    setSpecialNeeds,
+    setBudget,
+    setCaregiverType,
+    setCaregiverPreferences,
+    setAdditionalNotes,
+    setPreferredContactMethod
+  };
+
+  // Initialize real-time form sync hook
+  const { processMessage } = useRealTimeFormSync(formSetters);
+  
+  // Get real-time message bus from Tavara state
+  const { registerRealTimeListener } = useTavaraState();
+
+  // Keep latest processMessage without re-subscribing
+  const processRef = useRef(processMessage);
+  useEffect(() => { 
+    processRef.current = processMessage; 
+  }, [processMessage]);
+
+  // Register with real-time message bus
+  useEffect(() => {
+    console.log('🔗 [Family Registration] Subscribing to real-time messages');
+    const unsubscribe = registerRealTimeListener(({ text, isFinal }) => {
+      console.log('📨 [Family Registration] Received real-time message:', { 
+        preview: text.slice(0, 80), 
+        isFinal 
+      });
+      // Forward to the hook's processor
+      processRef.current(text, { isFinal });
+    });
+    
+    return () => {
+      console.log('🧹 [Family Registration] Unsubscribing from real-time messages');
+      unsubscribe();
+    };
+  }, [registerRealTimeListener]);
+
+  // Initialize form setters for demo compatibility
+  useEffect(() => {
+    if (onFormReady) {
+      console.log('🔧 [Family Registration] Initializing form setters for real-time sync');
+      console.log('📝 [Family Registration] Form setters created:', Object.keys(formSetters));
+      onFormReady(formSetters);
+      console.log('✅ [Family Registration] onFormReady called successfully');
+    }
+  }, [onFormReady]);
+
+  // Check if personal & contact information is complete for demo
+  const isPersonalInfoComplete = firstName && lastName && phoneNumber && address && careRecipientName && relationship;
+
+  const handleDemoComplete = () => {
+    console.log('🎯 Demo completion flow triggered');
+    // For now, show success message and stay on form
+    toast.success('🎉 Great progress! Complete the rest when you\'re ready.');
+  };
+
   const handleCareScheduleChange = (value: string) => {
     setCareSchedule(prev => {
       if (prev.includes(value)) {
@@ -390,6 +468,15 @@ const FamilyRegistration = () => {
       if (firstErrorElement) {
         firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
+      return;
+    }
+
+    // Demo mode - skip database operations
+    if (isExternalDemo || isDemo) {
+      toast.success('Demo Registration Complete! 🎉 Your information has been simulated successfully.');
+      setTimeout(() => {
+        navigate('/demo/family/care-assessment');
+      }, 1500);
       return;
     }
 
@@ -532,7 +619,10 @@ const FamilyRegistration = () => {
       
       <DashboardHeader 
         breadcrumbItems={[
-          { label: "Family Dashboard", path: "/dashboard/family" },
+          { 
+            label: isDemo ? "TAV Demo" : "Family Dashboard", 
+            path: isDemo ? "/tav-demo?openDemo=true" : "/dashboard/family" 
+          },
           { label: isEditMode ? "Edit Family Profile" : "Family Registration", path: `/registration/family${isEditMode ? '?edit=true' : ''}` }
         ]} 
       />
@@ -1134,6 +1224,14 @@ const FamilyRegistration = () => {
             </Button>
           </div>
         </form>
+
+        {/* Demo completion button for early lead capture */}
+        {isDemo && (
+          <CompleteRegistrationButton 
+            onComplete={handleDemoComplete}
+            isFormReady={!!isPersonalInfoComplete}
+          />
+        )}
       </div>
     </div>
   );

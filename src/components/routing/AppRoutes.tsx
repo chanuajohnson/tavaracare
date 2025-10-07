@@ -21,6 +21,7 @@ import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
 import FAQPage from "@/pages/support/FAQPage";
 import PrivacyPolicyPage from "@/pages/legal/PrivacyPolicyPage";
+import ErrandsPage from "@/pages/errands/ErrandsPage";
 import NotFound from "@/pages/NotFound";
 import SupabaseDebugPage from "@/pages/debug/SupabaseDebugPage";
 
@@ -67,6 +68,16 @@ import SubscriptionFeaturesPage from "@/pages/subscription/SubscriptionFeaturesP
 // Legacy Pages
 import LegacyStoriesPage from "@/pages/legacy/LegacyStoriesPage";
 
+// TAV Core Pages
+import TavDemo from "@/pages/TavDemo";
+import TavDashboard from "@/pages/TavDashboard";
+import ImplementationGuide from "@/pages/ImplementationGuide";
+
+// Demo Pages
+import DemoFamilyRegistration from "@/pages/demo/DemoFamilyRegistration";
+import DemoCareAssessment from "@/pages/demo/DemoCareAssessment";
+import DemoFamilyStory from "@/pages/demo/DemoFamilyStory";
+
 export const AppRoutes = () => {
   const { user } = useAuth();
 
@@ -80,6 +91,7 @@ export const AppRoutes = () => {
       <Route path="/auth/reset-password/confirm" element={<ResetPasswordConfirm />} />
       <Route path="/features" element={<FeaturesPage />} />
       <Route path="/about" element={<AboutPage />} />
+      <Route path="/errands" element={<ErrandsPage />} />
       <Route path="/faq" element={<FAQPage />} />
       <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
       
@@ -142,6 +154,16 @@ export const AppRoutes = () => {
       
       {/* Legacy Routes */}
       <Route path="/legacy/stories" element={<LegacyStoriesPage />} />
+      
+      {/* TAV Core Routes */}
+      <Route path="/tav-demo" element={<TavDemo />} />
+      <Route path="/tav-dashboard" element={<TavDashboard />} />
+      <Route path="/implementation-guide" element={<ImplementationGuide />} />
+      
+      {/* Demo Routes */}
+      <Route path="/demo/registration/family" element={<DemoFamilyRegistration />} />
+      <Route path="/demo/family/care-assessment" element={<DemoCareAssessment />} />
+      <Route path="/demo/family/story" element={<DemoFamilyStory />} />
       
       {/* Debug Routes */}
       <Route path="/debug/supabase" element={<SupabaseDebugPage />} />

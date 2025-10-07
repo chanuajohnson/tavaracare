@@ -30,6 +30,12 @@ export const useAuthRedirection = (
       return;
     }
 
+    // Skip redirect on professional-specific pages like message board
+    if (location.pathname.startsWith('/professional/')) {
+      console.log('[AuthProvider] On professional page, skipping redirection');
+      return;
+    }
+
     // CRITICAL FIX: Check for email verification flag specifically
     const skipEmailVerification = hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
     if (skipEmailVerification) {

@@ -12,7 +12,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { AssistantNudge, ProgressContext } from './types';
 import { useEnhancedProfessionalProgress } from '@/hooks/useEnhancedProfessionalProgress';
 import { useEnhancedJourneyProgress } from '@/hooks/useEnhancedJourneyProgress';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 const AUTO_GREET_MESSAGES = {
@@ -21,6 +21,14 @@ const AUTO_GREET_MESSAGES = {
   professional: "🤝 Hi there! Ready to advance your caregiving career? Let's build your professional journey together!",
   community: "🌟 Welcome back! Thank you for being part of our caring community.",
   admin: "⚡ Admin panel ready. How can I assist with platform management today?"
+};
+
+// DEMO MODE MESSAGES for guided form experiences
+const DEMO_GREET_MESSAGES = {
+  family_registration: "🎯 Welcome to the TAV Demo! I'll guide you through our intelligent family registration process. Let's find your perfect caregiver!",
+  care_assessment: "💙 TAV Demo Mode Active! I'll help you experience our smart care needs assessment. Let's discover the right care plan together!",
+  legacy_story: "✨ Story Demo with TAV! I'll show you how we make capturing family stories effortless and meaningful. Let's begin!",
+  default: "🌟 TAV Demo Experience! I'm here to show you how I guide users through our platform. Let's explore together!"
 };
 
 // LOUD MODE MESSAGES for anonymous users on dashboards
@@ -39,8 +47,9 @@ const JOURNEY_STAGE_MESSAGES = {
 export const TavaraAssistantPanel: React.FC = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
-  const { state, openPanel, closePanel, minimizePanel, maximizePanel, markNudgesAsRead } = useTavaraState();
+  const { state, openPanel, closePanel, minimizePanel, maximizePanel, markNudgesAsRead, enterChatMode, exitChatMode, incrementMessageCount, resetMessageCount, realTimeDataCallback } = useTavaraState();
   const { currentForm, isFormPage, isJourneyTouchpoint } = useFormDetection();
   const [nudges, setNudges] = useState<AssistantNudge[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,8 +58,11 @@ export const TavaraAssistantPanel: React.FC = () => {
   const [greetedPages, setGreetedPages] = useState<Set<string>>(new Set());
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // LOUD MODE DETECTION for anonymous users on dashboard pages
-  const isLoudMode = !user && (location.pathname === '/dashboard/family' || location.pathname === '/dashboard/professional');
+  // Demo mode detection
+  const isDemoMode = state.isDemoMode;
+
+  // LOUD MODE DETECTION for anonymous users on dashboard pages OR demo mode
+  const isLoudMode = (!user && (location.pathname === '/dashboard/family' || location.pathname === '/dashboard/professional')) || isDemoMode;
   const dashboardRole = location.pathname === '/dashboard/family' ? 'family' : 
                        location.pathname === '/dashboard/professional' ? 'professional' : null;
 
@@ -113,10 +125,10 @@ export const TavaraAssistantPanel: React.FC = () => {
     };
   };
 
-  // ENHANCED MAGIC AUTO-GREETING with LOUD MODE for dashboards
+  // ENHANCED MAGIC AUTO-GREETING with DEMO MODE and LOUD MODE for dashboards
   useEffect(() => {
-    const sessionKey = `tavara_session_greeted`;
-    const hasGreetedThisSession = sessionStorage.getItem(sessionKey);
+    const sessionKey = isDemoMode ? `tavara_demo_greeted_${location.pathname}` : `tavara_session_greeted`;
+    const hasGreetedThisSession = isDemoMode ? false : sessionStorage.getItem(sessionKey); // Always greet in demo mode
     
     console.log('TAV: Auto-greeting check:', {
       hasGreetedThisSession,
@@ -125,26 +137,33 @@ export const TavaraAssistantPanel: React.FC = () => {
       currentRole: state.currentRole,
       pathname: location.pathname,
       isLoudMode,
+      isDemoMode,
       dashboardRole,
       journeyStage: state.currentRole === 'family' ? familyJourneyProgress.currentStage : 
                    state.currentRole === 'professional' ? professionalProgress.currentStage : null,
       currentForm: currentForm?.formId
     });
     
-    // Show magic greeting if haven't greeted this session AND not already open
-    if (!hasGreetedThisSession && !hasInitialGreeted && !state.isOpen) {
-      console.log('TAV: Triggering magic auto-greeting!', { isLoudMode, dashboardRole });
+    // Show magic greeting if haven't greeted this session AND not already open (or always in demo mode)
+    if ((!hasGreetedThisSession || isDemoMode) && !hasInitialGreeted && !state.isOpen) {
+      console.log('TAV: Triggering magic auto-greeting!', { isLoudMode, isDemoMode, dashboardRole });
       
-      // LOUD MODE: More aggressive timing for dashboard anonymous users
-      const initialDelay = isLoudMode ? 800 : 1200; // Faster for loud mode
-      const displayDuration = isLoudMode ? 3500 : 2500; // Longer display for loud mode
+      // DEMO MODE: Ultra fast timing, LOUD MODE: More aggressive timing for dashboard anonymous users
+      const initialDelay = isDemoMode ? 300 : (isLoudMode ? 800 : 1200);
+      const displayDuration = isDemoMode ? 2000 : (isLoudMode ? 3500 : 2500);
       
       // Show magic entrance after a brief delay
       setTimeout(() => {
         setShowGreeting(true);
         setHasInitialGreeted(true);
-        // Mark as greeted for this session
-        sessionStorage.setItem(sessionKey, 'true');
+        // Auto-expand in demo mode
+        if (isDemoMode) {
+          setIsExpanded(true);
+        }
+        // Mark as greeted for this session (except in demo mode where we want fresh experience)
+        if (!isDemoMode) {
+          sessionStorage.setItem(sessionKey, 'true');
+        }
         
         // Auto-open the panel after showing the magic - NO USER INTERACTION NEEDED
         setTimeout(() => {
@@ -153,7 +172,7 @@ export const TavaraAssistantPanel: React.FC = () => {
         }, displayDuration);
       }, initialDelay);
     }
-  }, [hasInitialGreeted, state.isOpen, openPanel, location.pathname, familyJourneyProgress.currentStage, professionalProgress.currentStage, isLoudMode, dashboardRole]);
+  }, [hasInitialGreeted, state.isOpen, openPanel, location.pathname, familyJourneyProgress.currentStage, professionalProgress.currentStage, isLoudMode, isDemoMode, dashboardRole]);
 
   // NAVIGATION AUTO-GREETING (contextual magic on journey touchpoints)
   useEffect(() => {
@@ -238,21 +257,69 @@ export const TavaraAssistantPanel: React.FC = () => {
     state.currentRole
   ]);
 
-  // Enhanced greeting message with LOUD MODE support and form detection context and professional intelligence
+  // Get demo-specific greeting based on form type
+  const getDemoGreeting = () => {
+    const currentPath = location.pathname;
+    const isImmediateDemoRoute = currentPath.startsWith('/demo/') || currentPath === '/tav-demo';
+    const effectiveIsDemoMode = isDemoMode || isImmediateDemoRoute;
+    
+    if (!effectiveIsDemoMode) return null;
+    
+    if (location.pathname.includes('/registration/family')) {
+      return DEMO_GREET_MESSAGES.family_registration;
+    } else if (location.pathname.includes('/care-assessment')) {
+      return DEMO_GREET_MESSAGES.care_assessment;
+    } else if (location.pathname.includes('/story')) {
+      return DEMO_GREET_MESSAGES.legacy_story;
+    }
+    return DEMO_GREET_MESSAGES.default;
+  };
+
+  // Enhanced greeting message with DEMO MODE, LOUD MODE support and form detection context and professional intelligence
   const getContextualGreeting = () => {
-    // PRIORITY 1: LOUD MODE for anonymous dashboard users
-    if (isLoudMode && dashboardRole && LOUD_DASHBOARD_MESSAGES[dashboardRole]) {
+    // PRIORITY 1: ROUTE-BASED DEMO DETECTION - Early return to prevent any other logic from running
+    const currentPath = location.pathname;
+    const isOnDemoRoute = currentPath.startsWith('/demo/') || currentPath === '/tav-demo';
+    
+    // Early return for demo routes - this takes absolute priority
+    if (isOnDemoRoute) {
+      console.log('TAV: Demo route detected, using demo greeting for:', currentPath);
+      
+      // Route-specific demo greetings
+      if (currentPath.includes('/registration/family')) {
+        console.log('TAV: Using family registration demo greeting');
+        return DEMO_GREET_MESSAGES.family_registration;
+      } else if (currentPath.includes('/care-assessment')) {
+        console.log('TAV: Using care assessment demo greeting');
+        return DEMO_GREET_MESSAGES.care_assessment;
+      } else if (currentPath.includes('/story')) {
+        console.log('TAV: Using story demo greeting');
+        return DEMO_GREET_MESSAGES.legacy_story;
+      } else {
+        console.log('TAV: Using default demo greeting for route:', currentPath);
+        return DEMO_GREET_MESSAGES.default;
+      }
+    }
+    
+    console.log('TAV Greeting Context (non-demo):', { 
+      currentPath, 
+      isDemoMode, 
+      currentRole: state.currentRole 
+    });
+    
+    // PRIORITY 2: LOUD MODE for anonymous dashboard users (non-demo)
+    if (isLoudMode && !isDemoMode && dashboardRole && LOUD_DASHBOARD_MESSAGES[dashboardRole]) {
       console.log('TAV: Using LOUD MODE greeting for', dashboardRole, 'dashboard');
       return LOUD_DASHBOARD_MESSAGES[dashboardRole];
     }
     
-    // PRIORITY 2: For form-specific pages, use form's auto-greeting message
+    // PRIORITY 3: For form-specific pages, use form's auto-greeting message
     if (currentForm?.autoGreetingMessage) {
       console.log('TAV: Using form-specific greeting for', currentForm.formId);
       return currentForm.autoGreetingMessage;
     }
     
-    // PRIORITY 3: For professional users, add journey stage context
+    // PRIORITY 4: For professional users, add journey stage context
     if (state.currentRole === 'professional' && progressContext.journeyStage) {
       const stageMessage = JOURNEY_STAGE_MESSAGES[progressContext.journeyStage];
       if (stageMessage) {
@@ -261,7 +328,7 @@ export const TavaraAssistantPanel: React.FC = () => {
       }
     }
     
-    // PRIORITY 4: For family users, add journey stage context using direct hook data
+    // PRIORITY 5: For family users, add journey stage context using direct hook data
     if (state.currentRole === 'family' && familyJourneyProgress.currentStage) {
       const stageMessage = JOURNEY_STAGE_MESSAGES[familyJourneyProgress.currentStage];
       if (stageMessage) {
@@ -270,7 +337,7 @@ export const TavaraAssistantPanel: React.FC = () => {
       }
     }
     
-    // PRIORITY 5: For initial greeting or pages without forms, use role-based or default
+    // PRIORITY 6: For initial greeting or pages without forms, use role-based or default
     if (state.currentRole && AUTO_GREET_MESSAGES[state.currentRole]) {
       console.log('TAV: Using role-based greeting for', state.currentRole);
       return AUTO_GREET_MESSAGES[state.currentRole];
@@ -377,7 +444,7 @@ export const TavaraAssistantPanel: React.FC = () => {
                 duration: 0.5
               }}
               className={cn(
-                "absolute bottom-16 left-0 bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-2xl border-2 border-primary/40",
+                "absolute bottom-16 left-0 bg-white rounded-2xl shadow-2xl border-2 border-primary/40 backdrop-blur-sm",
                 isLoudMode && "border-4 border-primary/60 shadow-primary/20", // Enhanced border for loud mode
                 isMobile 
                   ? 'w-64 max-w-[85vw] text-sm p-3' 
@@ -557,7 +624,81 @@ export const TavaraAssistantPanel: React.FC = () => {
     );
   }
 
-  // Main panel with improved mobile experience, responsive sizing, proper scroll handling, and rounded corners
+  // Calculate intelligent sizing based on chat mode and conversation depth
+  const getChatAwareSize = () => {
+    const { isChatMode, chatMessageCount } = state;
+    
+    if (isMobile) {
+      if (isChatMode || isExpanded) {
+        return {
+          width: 'w-full',
+          height: chatMessageCount > 6 ? 'h-[90vh] max-h-[90vh]' : 'h-[85vh] max-h-[85vh]',
+          rounded: 'rounded-tr-xl'
+        };
+      }
+      return {
+        width: 'w-3/5 max-w-sm',
+        height: 'h-[60vh] max-h-[60vh]',
+        rounded: 'rounded-tr-xl'
+      };
+    }
+    
+    // Desktop sizing logic - MUCH MORE GENEROUS
+    if (isDemoMode && isChatMode) {
+      return {
+        width: chatMessageCount > 8 ? 'w-[85vw]' : 'w-[75vw]',
+        height: chatMessageCount > 8 ? 'h-[90vh] max-h-[90vh]' : 'h-[85vh] max-h-[85vh]',
+        rounded: 'rounded-tr-2xl'
+      };
+    } else if (isDemoMode) {
+      return {
+        width: 'w-[75vw]',
+        height: 'h-[80vh] max-h-[80vh]',
+        rounded: 'rounded-tr-2xl'
+      };
+    }
+    
+    if (isChatMode) {
+      const chatSize = chatMessageCount > 8 ? 'large' : chatMessageCount > 4 ? 'medium' : 'base';
+      switch (chatSize) {
+        case 'large':
+          return {
+            width: 'w-[700px]',
+            height: 'h-[85vh] max-h-[85vh]',
+            rounded: 'rounded-tr-2xl'
+          };
+        case 'medium':
+          return {
+            width: 'w-[650px]',
+            height: 'h-[80vh] max-h-[80vh]',
+            rounded: 'rounded-tr-2xl'
+          };
+        default:
+          return {
+            width: 'w-[600px]',
+            height: 'h-[75vh] max-h-[75vh]',
+            rounded: 'rounded-tr-2xl'
+          };
+      }
+    } else if (isExpanded) {
+      return {
+        width: 'w-[500px]',
+        height: 'h-[50vh] max-h-[50vh]',
+        rounded: 'rounded-tr-2xl'
+      };
+    }
+    
+    // Default size
+    return {
+      width: 'w-96',
+      height: 'h-[40vh] max-h-[40vh]',
+      rounded: 'rounded-tr-2xl'
+    };
+  };
+
+  const chatAwareSize = getChatAwareSize();
+
+  // Main panel with smart dynamic sizing based on conversation state
   return (
     <motion.div
       initial={{ opacity: 0, y: 400 }}
@@ -569,18 +710,11 @@ export const TavaraAssistantPanel: React.FC = () => {
       exit={{ opacity: 0, y: 400 }}
       transition={{ type: "spring", damping: 25, stiffness: 300 }}
       className={cn(
-        "fixed bottom-0 left-0 bg-gradient-to-br from-white to-gray-50/50 shadow-2xl border-r border-t border-gray-200 z-50 flex flex-col rounded-tr-2xl",
-        isMobile 
-          ? isExpanded 
-            ? 'w-full h-[70vh] max-h-[70vh] rounded-tr-xl' 
-            : 'w-3/5 max-w-sm h-[40vh] max-h-[40vh] rounded-tr-xl'
-          : 'w-96 h-[40vh] max-h-[40vh] rounded-tr-2xl'
+        "fixed bottom-0 left-0 bg-white shadow-2xl border-r border-t border-gray-200 z-50 flex flex-col backdrop-blur-sm transition-all duration-300 ease-in-out",
+        chatAwareSize.width,
+        chatAwareSize.height,
+        chatAwareSize.rounded
       )}
-      style={{
-        // Ensure consistent positioning and prevent overflow issues
-        minHeight: isMobile ? (isExpanded ? '70vh' : '40vh') : '40vh',
-        maxHeight: isMobile ? (isExpanded ? '70vh' : '40vh') : '40vh'
-      }}
     >
       {/* Mobile expand/collapse button - improved positioning and functionality */}
       {isMobile && (
@@ -599,19 +733,23 @@ export const TavaraAssistantPanel: React.FC = () => {
 
       {/* Scrollable content container */}
       <div className="flex flex-col h-full overflow-hidden">
-        <RoleBasedContent 
-          role={state.currentRole}
-          nudges={nudges}
-          onNudgeClick={handleNudgeClick}
-          isLoading={isLoading}
-          progressContext={progressContext}
-          professionalProgress={professionalProgress}
-          familyJourneyProgress={familyJourneyProgress}
-          onClose={handleClosePanel}
-          onMinimize={minimizePanel}
-          isLoudMode={isLoudMode}
-          dashboardRole={dashboardRole}
-        />
+          <RoleBasedContent
+            role={state.currentRole}
+            nudges={nudges}
+            onNudgeClick={handleNudgeClick}
+            isLoading={isLoading}
+            progressContext={progressContext}
+            professionalProgress={professionalProgress}
+            familyJourneyProgress={familyJourneyProgress}
+            onClose={handleClosePanel}
+            onMinimize={minimizePanel}
+            isLoudMode={isLoudMode}
+            dashboardRole={dashboardRole}
+            isDemoRoute={location.pathname.startsWith('/demo/') || location.pathname === '/tav-demo'}
+            realTimeDataCallback={realTimeDataCallback}
+            isChatMode={state.isChatMode}
+            chatMessageCount={state.chatMessageCount}
+          />
       </div>
     </motion.div>
   );

@@ -67,26 +67,66 @@ export const familyRegistrationFlow: RegistrationSection[] = [
     description: "Let's start with some basic information about you",
     questions: [
       {
-        id: "full_name",
-        text: "What's your full name?",
+        id: "first_name",
+        text: "What's your first name?",
         type: "text",
         required: true,
         section: "personal_info",
-        placeholder: "Your full name"
+        placeholder: "First Name"
       },
       {
-        id: "phone_number",
+        id: "last_name",
+        text: "What's your last name?",
+        type: "text",
+        required: true,
+        section: "personal_info",
+        placeholder: "Last Name"
+      },
+      {
+        id: "email",
+        text: "What's your email address?",
+        type: "email",
+        required: true,
+        section: "personal_info",
+        placeholder: "Email address from your registration"
+      },
+      {
+        id: "phone",
         text: "What's your phone number?",
         type: "tel",
         required: true,
         section: "personal_info",
-        placeholder: "+1 (868) 123-4567",
+        placeholder: "Phone Number",
         validationRegex: "^\\+?[0-9\\s\\(\\)\\-]{10,20}$",
         validationMessage: "Please enter a valid phone number"
       },
       {
+        id: "location",
+        text: "What's your location?",
+        type: "select",
+        required: true,
+        section: "personal_info",
+        placeholder: "Select your location",
+        options: [
+          { value: "arima", label: "Arima" },
+          { value: "chaguanas", label: "Chaguanas" },
+          { value: "couva", label: "Couva" },
+          { value: "diego_martin", label: "Diego Martin" },
+          { value: "penal", label: "Penal" },
+          { value: "point_fortin", label: "Point Fortin" },
+          { value: "port_of_spain", label: "Port of Spain" },
+          { value: "princes_town", label: "Princes Town" },
+          { value: "rio_claro", label: "Rio Claro" },
+          { value: "san_fernando", label: "San Fernando" },
+          { value: "sangre_grande", label: "Sangre Grande" },
+          { value: "siparia", label: "Siparia" },
+          { value: "tunapuna_piarco", label: "Tunapuna-Piarco" },
+          { value: "other", label: "Other Location" }
+        ]
+      },
+      {
         id: "address",
-        text: "What's your address?",
+        text: "What's your specific address?",
         type: "textarea",
         required: true,
         section: "personal_info",

@@ -6,6 +6,7 @@ import { TrainingProgressTracker } from "@/components/professional/TrainingProgr
 import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
 import { ManualMatchNotification } from "@/components/professional/ManualMatchNotification";
 import { CurrentAssignmentsSection } from "@/components/professional/CurrentAssignmentsSection";
+import { ActiveChatSessionsSection } from "@/components/professional/ActiveChatSessionsSection";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -143,6 +144,9 @@ const ProfessionalDashboard = () => {
             
             {/* Current Assignments Section */}
             <CurrentAssignmentsSection />
+            
+            {/* Active Chat Sessions */}
+            <ActiveChatSessionsSection />
             
             {/* Enhanced Next Steps Panel with Real Data */}
             <EnhancedProfessionalNextStepsPanel />

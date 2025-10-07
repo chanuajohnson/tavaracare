@@ -3,11 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageCircle, Clock, Check, X, User, RefreshCw, AlertCircle } from "lucide-react";
+import { MessageCircle, Clock, Check, X, User, RefreshCw, AlertCircle, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { ProfessionalCaregiverChatModal } from "@/components/professional/ProfessionalCaregiverChatModal";
+import { useNavigate } from "react-router-dom";
 
 interface ChatRequest {
   id: string;
@@ -24,13 +26,32 @@ interface ChatRequest {
   };
 }
 
+interface ActiveSession {
+  id: string;
+  family_user_id: string;
+  family_profile: {
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+  };
+  last_message: string;
+  last_message_at: string;
+  unread_count: number;
+  is_premium: boolean;
+}
+
 export const ChatRequestsSection = () => {
   const { user, userRole, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [requests, setRequests] = useState<ChatRequest[]>([]);
+  const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingRequest, setProcessingRequest] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [authDebugInfo, setAuthDebugInfo] = useState<any>(null);
+  // Chat modal state
+  const [chatOpen, setChatOpen] = useState(false);
+  const [activeFamily, setActiveFamily] = useState<{ id: string; full_name: string; avatar_url?: string | null } | null>(null);
 
   // ENHANCED: Debug auth state for troubleshooting
   useEffect(() => {
@@ -72,48 +93,69 @@ export const ChatRequestsSection = () => {
       console.log(`[ChatRequestsSection] User role: ${userRole || user.user_metadata?.role}`);
       console.log(`[ChatRequestsSection] User email: ${user.email}`);
       
-      // CRITICAL FIX: Query by caregiver_id matching the logged-in user's ID
-      const { data: chatRequests, error: chatError } = await supabase
-        .from('caregiver_chat_requests')
-        .select('*')
-        .eq('caregiver_id', user.id) // This must match the professional user's ID
-        .order('created_at', { ascending: false });
+      // Load both chat requests and active sessions in parallel
+      const [chatRequestsResult, sessionsResult] = await Promise.all([
+        // Query chat requests
+        supabase
+          .from('caregiver_chat_requests')
+          .select('*')
+          .eq('caregiver_id', user.id)
+          .order('created_at', { ascending: false }),
+        
+        // Query active chat sessions - FIXED: Check both user ID and email
+        supabase
+          .from('caregiver_chat_sessions')
+          .select(`
+            id,
+            family_user_id,
+            is_premium,
+            created_at,
+            updated_at,
+            session_date
+          `)
+          .eq('caregiver_id', user.id)
+          .order('updated_at', { ascending: false })
+      ]);
 
-      if (chatError) {
-        console.error('[ChatRequestsSection] Error loading chat requests:', chatError);
-        console.error('[ChatRequestsSection] Error details:', JSON.stringify(chatError, null, 2));
+      if (chatRequestsResult.error) {
+        console.error('[ChatRequestsSection] Error loading chat requests:', chatRequestsResult.error);
         toast.error('Failed to load chat requests');
         return;
       }
 
-      console.log(`[ChatRequestsSection] *** QUERY RESULTS ***`);
-      console.log(`[ChatRequestsSection] Found ${chatRequests?.length || 0} chat requests:`, chatRequests);
-
-      if (!chatRequests || chatRequests.length === 0) {
-        console.log('[ChatRequestsSection] No chat requests found for this caregiver');
-        setRequests([]);
-        return;
+      if (sessionsResult.error) {
+        console.error('[ChatRequestsSection] Error loading chat sessions:', sessionsResult.error);
       }
 
-      // Get family profiles for the requests
-      const familyUserIds = chatRequests.map(req => req.family_user_id);
-      console.log(`[ChatRequestsSection] Loading profiles for family users:`, familyUserIds);
-      
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url, location')
-        .in('id', familyUserIds);
+      const chatRequests = chatRequestsResult.data || [];
+      const sessions = sessionsResult.data || [];
 
-      if (profileError) {
-        console.warn('[ChatRequestsSection] Error loading family profiles:', profileError);
-      } else {
-        console.log(`[ChatRequestsSection] Loaded ${profiles?.length || 0} family profiles:`, profiles);
+      console.log(`[ChatRequestsSection] Found ${chatRequests.length} chat requests and ${sessions.length} sessions`);
+
+      // Get all unique family user IDs
+      const allFamilyIds = [...new Set([
+        ...chatRequests.map(req => req.family_user_id),
+        ...sessions.map(session => session.family_user_id)
+      ])];
+
+      let profiles: any[] = [];
+      if (allFamilyIds.length > 0) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url, location')
+          .in('id', allFamilyIds);
+
+        if (profileError) {
+          console.warn('[ChatRequestsSection] Error loading family profiles:', profileError);
+        } else {
+          profiles = profileData || [];
+          console.log(`[ChatRequestsSection] Loaded ${profiles.length} family profiles`);
+        }
       }
 
-      // Transform and combine the data
+      // Transform chat requests
       const transformedRequests: ChatRequest[] = chatRequests.map(request => {
-        const profile = profiles?.find(p => p.id === request.family_user_id);
-        
+        const profile = profiles.find(p => p.id === request.family_user_id);
         return {
           id: request.id,
           family_user_id: request.family_user_id,
@@ -128,9 +170,49 @@ export const ChatRequestsSection = () => {
         };
       });
 
-      console.log(`[ChatRequestsSection] *** TRANSFORMATION COMPLETE ***`);
-      console.log(`[ChatRequestsSection] Transformed ${transformedRequests.length} requests:`, transformedRequests);
+      // Process active sessions
+      const activeSessions: ActiveSession[] = [];
+      for (const session of sessions) {
+        const profile = profiles.find(p => p.id === session.family_user_id);
+        if (!profile) continue;
+
+        // Get latest message for this session
+        const { data: messages } = await supabase
+          .from('caregiver_chat_messages')
+          .select('content, created_at, sender')
+          .eq('session_id', session.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        const latestMessage = messages?.[0];
+        
+        // Count unread messages (messages from family since last professional message)
+        const { count: unreadCount } = await supabase
+          .from('caregiver_chat_messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('session_id', session.id)
+          .eq('sender', 'family')
+          .gte('created_at', session.updated_at);
+
+        activeSessions.push({
+          id: session.id,
+          family_user_id: session.family_user_id,
+          family_profile: {
+            id: profile.id,
+            full_name: profile.full_name || 'Family Member',
+            avatar_url: profile.avatar_url
+          },
+          last_message: latestMessage?.content || 'No messages yet',
+          last_message_at: latestMessage?.created_at || session.created_at,
+          unread_count: unreadCount || 0,
+          is_premium: session.is_premium || false
+        });
+      }
+
+      console.log(`[ChatRequestsSection] Processed ${activeSessions.length} active sessions:`, activeSessions);
+      
       setRequests(transformedRequests);
+      setActiveSessions(activeSessions);
       setLastRefresh(new Date());
     } catch (error) {
       console.error('[ChatRequestsSection] *** ERROR IN LOAD REQUESTS ***');
@@ -201,6 +283,12 @@ export const ChatRequestsSection = () => {
     loadChatRequests(false);
   };
 
+  // Open chat with accepted family request
+  const openChatWithFamily = (request: ChatRequest) => {
+    const fullName = request.family_profile?.full_name || 'Family Member';
+    setActiveFamily({ id: request.family_user_id, full_name: fullName, avatar_url: request.family_profile?.avatar_url ?? null });
+    setChatOpen(true);
+  };
   // ENHANCED: Effect to load requests when auth is ready
   useEffect(() => {
     console.log('[ChatRequestsSection] *** AUTH STATE CHANGE ***', {
@@ -284,9 +372,10 @@ export const ChatRequestsSection = () => {
     return null;
   }
 
-  // CRITICAL FIX: Only render if there are actual requests
-  if (!isLoading && !authLoading && requests.length === 0) {
-    console.log('[ChatRequestsSection] No requests found - not rendering component');
+  // Show component if there are requests OR active sessions
+  const hasContent = requests.length > 0 || activeSessions.length > 0;
+  if (!isLoading && !authLoading && !hasContent) {
+    console.log('[ChatRequestsSection] No requests or active sessions found - not rendering component');
     return null;
   }
 
@@ -297,6 +386,7 @@ export const ChatRequestsSection = () => {
     totalRequests: requests.length,
     pendingRequests: pendingRequests.length,
     respondedRequests: respondedRequests.length,
+    activeSessions: activeSessions.length,
     isLoading,
     authLoading,
     userId: user?.id,
@@ -309,12 +399,19 @@ export const ChatRequestsSection = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-blue-600" />
-            <CardTitle>Chat Requests</CardTitle>
+            <CardTitle>
+              {pendingRequests.length > 0 ? 'Chat Requests' : 'Messages & Requests'}
+            </CardTitle>
           </div>
           <div className="flex items-center gap-2">
             {pendingRequests.length > 0 && (
               <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                 {pendingRequests.length} pending
+              </Badge>
+            )}
+            {activeSessions.length > 0 && (
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                {activeSessions.length} active
               </Badge>
             )}
             <Button
@@ -423,6 +520,89 @@ export const ChatRequestsSection = () => {
               </div>
             )}
 
+            {/* Active Conversations */}
+            {activeSessions.length > 0 && (
+              <div className={pendingRequests.length > 0 ? "pt-4 border-t" : ""}>
+                <h3 className="font-medium text-sm text-gray-700 mb-3 flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  Active Conversations ({activeSessions.length})
+                </h3>
+                <div className="space-y-2">
+                  {activeSessions.slice(0, 3).map((session) => (
+                    <div key={session.id} className="border rounded-lg p-3 bg-green-50 border-green-200">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={session.family_profile.avatar_url || undefined} />
+                          <AvatarFallback className="bg-green-100 text-green-800 text-xs">
+                            <User className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-medium text-sm text-gray-900">
+                              {session.family_profile.full_name}
+                            </span>
+                            {session.unread_count > 0 && (
+                              <Badge variant="default" className="bg-blue-600 text-white text-xs h-5">
+                                {session.unread_count}
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          <p className="text-xs text-gray-600 truncate mb-2">
+                            {session.last_message}
+                          </p>
+                          
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-500">
+                              {new Date(session.last_message_at).toLocaleDateString()}
+                            </span>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setActiveFamily({
+                                    id: session.family_user_id,
+                                    full_name: session.family_profile.full_name,
+                                    avatar_url: session.family_profile.avatar_url
+                                  });
+                                  setChatOpen(true);
+                                }}
+                                className="text-xs h-7"
+                              >
+                                Reply
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => navigate('/professional/message-board')}
+                                className="text-xs h-7"
+                              >
+                                <ArrowRight className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {activeSessions.length > 3 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate('/professional/message-board')}
+                      className="w-full text-sm text-blue-600 hover:text-blue-700"
+                    >
+                      View All Messages ({activeSessions.length}) →
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Recent Responses - Only show recent ones (last 7 days) */}
             {respondedRequests.filter(req => {
               const responseDate = new Date(req.accepted_at || req.declined_at || req.created_at);
@@ -466,17 +646,34 @@ export const ChatRequestsSection = () => {
                           </p>
                         </div>
                       </div>
-                      <Badge 
-                        className={request.status === 'accepted' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}
-                      >
-                        {request.status}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          className={request.status === 'accepted' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}
+                        >
+                          {request.status}
+                        </Badge>
+                        {request.status === 'accepted' && (
+                          <Button size="sm" variant="secondary" onClick={() => openChatWithFamily(request)}>
+                            Open Chat
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
           </div>
+        )}
+        {activeFamily && (
+          <ProfessionalCaregiverChatModal
+            open={chatOpen}
+            onOpenChange={(o) => {
+              setChatOpen(o);
+              if (!o) setActiveFamily(null);
+            }}
+            family={activeFamily}
+          />
         )}
       </CardContent>
     </Card>

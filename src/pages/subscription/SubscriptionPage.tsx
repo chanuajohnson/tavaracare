@@ -10,7 +10,6 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTracking } from "@/hooks/useTracking";
 import { supabase } from "@/integrations/supabase/client";
-import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { PayPalSubscribeButton } from "@/components/subscription/PayPalSubscribeButton";
 
 const SubscriptionPage = () => {
@@ -43,7 +42,7 @@ const SubscriptionPage = () => {
     path: "/subscription"
   }];
   
-  const paypalClientId = import.meta.env.VITE_PAYPAL_CLIENT_ID || "sb";
+  
 
   useEffect(() => {
     if (!user) {
@@ -499,13 +498,8 @@ const SubscriptionPage = () => {
       </div>;
   }
   
-  return <PayPalScriptProvider options={{
-    "client-id": paypalClientId,
-    currency: "USD",
-    intent: "subscription",
-    vault: true
-  }}>
-      <div className="min-h-screen bg-background">
+  return (
+    <div className="min-h-screen bg-background">
         <div className="container px-4 py-8">
           <DashboardHeader breadcrumbItems={breadcrumbItems} />
           
@@ -630,6 +624,6 @@ const SubscriptionPage = () => {
           </motion.div>
         </div>
       </div>
-    </PayPalScriptProvider>;
+    );
 };
 export default SubscriptionPage;

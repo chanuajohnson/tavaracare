@@ -82,7 +82,7 @@ export const ProfessionalJourneyPreview: React.FC<ProfessionalJourneyPreviewProp
       </div>
       
       {/* Current Stage Progress */}
-      <div className="bg-gradient-to-r from-primary/5 via-primary/5 to-transparent rounded-xl p-3 border border-primary/20 relative overflow-hidden">
+      <div className="bg-primary/5 rounded-xl p-3 border border-primary/20 relative overflow-hidden">
         <div className="absolute top-2 right-2">
           <Sparkles className="h-3 w-3 text-primary animate-pulse" />
         </div>

@@ -4,6 +4,7 @@ import { Send, Mic, MicOff, Volume2, VolumeX, Sparkles, Loader } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTAVConversation } from '../hooks/useTAVConversation';
+import { useTavaraState } from '../hooks/TavaraStateContext';
 import { TAVConversationContext } from '../services/tavAIService';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { cn } from '@/lib/utils';
@@ -20,7 +21,14 @@ export const StreamingChatInterface: React.FC<StreamingChatInterfaceProps> = ({
   onClose
 }) => {
   const { user } = useAuth();
-  const { messages, isTyping, sendMessage, clearConversation } = useTAVConversation(context);
+  const tavaraState = useTavaraState();
+  
+  console.log('🔗 [StreamingChatInterface] Callback status:', {
+    hasCallback: !!tavaraState.realTimeDataCallback,
+    callbackType: typeof tavaraState.realTimeDataCallback
+  });
+  
+  const { messages, isTyping, sendMessage, clearConversation } = useTAVConversation(context, tavaraState.realTimeDataCallback);
   const [inputMessage, setInputMessage] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -125,7 +133,7 @@ export const StreamingChatInterface: React.FC<StreamingChatInterfaceProps> = ({
   };
 
   return (
-    <div className={cn("flex flex-col h-full bg-gradient-to-br from-white to-blue-50/30", className)}>
+    <div className={cn("flex flex-col h-full bg-white", className)}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-blue-100 bg-gradient-to-r from-primary/5 to-blue-50">
         <div className="flex items-center gap-3">
@@ -207,8 +215,8 @@ export const StreamingChatInterface: React.FC<StreamingChatInterfaceProps> = ({
               >
                 <p className="whitespace-pre-wrap">{message.content}</p>
                 <div className={cn(
-                  "text-xs mt-2 opacity-70",
-                  message.isUser ? "text-blue-100" : "text-gray-500"
+                  "text-xs mt-2",
+                  message.isUser ? "text-blue-200" : "text-gray-500"
                 )}>
                   {new Date(message.timestamp).toLocaleTimeString()}
                 </div>

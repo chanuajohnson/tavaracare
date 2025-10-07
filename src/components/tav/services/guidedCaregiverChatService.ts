@@ -482,56 +482,109 @@ export class GuidedCaregiverChatService {
     }
   }
 
-  // Get TAV moderated response
+  // Get TAV moderated response with enhanced context and actionable guidance
   private async getTavResponse(
     userPrompt: string,
     caregiver: Caregiver,
     stage: string,
     stageData: any
   ): Promise<string> {
-    console.log(`[GuidedChatService] Generating TAV response for stage: ${stage}`);
+    console.log(`[GuidedChatService] Generating enhanced TAV response for stage: ${stage}`);
     
+    // Build comprehensive caregiver context
+    const caregiverInfo = this.buildCaregiverContext(caregiver);
     let systemPrompt = '';
 
     switch (stage) {
       case 'introduction':
-        systemPrompt = `You are TAV, Tavara's friendly care coordinator. The family has selected: "${userPrompt}"
+        systemPrompt = `You are TAV, Tavara's friendly care coordinator helping families connect with professional caregivers. The family has selected: "${userPrompt}"
 
-Help them understand what to expect next. This is the introduction stage where they're getting to know the caregiver.
+CAREGIVER CONTEXT:
+${caregiverInfo}
 
-Current Professional Caregiver Info:
-- Location: ${caregiver.location}
-- Experience: ${caregiver.years_of_experience}
-- Specializes in: ${caregiver.care_types?.join(', ') || 'General Care'}
-- Compatibility: ${caregiver.match_score}% match
+TASK: Provide a warm, informative response that:
+1. Acknowledges their choice and builds excitement
+2. Highlights why this caregiver is well-matched for their needs
+3. Mentions specific qualifications or experience relevant to their care needs
+4. Explains what happens next (they can ask questions or express interest)
+5. Keep it conversational and encouraging - you're their care coordinator
 
-Provide encouraging guidance about connecting with this caregiver. Keep it warm and supportive.`;
+EXAMPLE APPROACH:
+"💙 Excellent choice! [Caregiver name] looks like a wonderful match for your family. With [specific experience/qualification], they bring exactly the expertise you're looking for. I can see why our system matched you at [X]% - [specific reason]. 
+
+Would you like to learn more about their approach to [relevant care type], or are you ready to express your interest in connecting?"
+
+Be specific, helpful, and focus on building confidence in this match.`;
         break;
 
       case 'interest_expression':
-        systemPrompt = `You are TAV, Tavara's friendly care coordinator. The family wants to connect: "${userPrompt}"
+        systemPrompt = `You are TAV, Tavara's friendly care coordinator. The family wants to connect with this caregiver: "${userPrompt}"
 
-This is the gateway moment! Explain that you're now reaching out to the caregiver and they'll be notified. Set expectations for response time and what happens next.
+CAREGIVER CONTEXT:
+${caregiverInfo}
 
-Be excited and supportive - this is a big step for the family!`;
+TASK: This is the pivotal moment! Create excitement and set clear expectations:
+1. Celebrate their decision to connect
+2. Mention specific reasons why this is a great choice based on the caregiver's profile
+3. Explain the next steps clearly (notification sent, typical response time)
+4. Set realistic expectations (caregivers typically respond within 2-6 hours)
+5. Keep them engaged and confident
+
+EXAMPLE APPROACH:
+"🎉 Wonderful news! I'm immediately notifying [Caregiver name] about your interest. Given their [specific qualification/experience] and your family's needs, this could be an excellent match!
+
+I've sent them your message along with your care requirements. Professional caregivers on Tavara typically respond within 2-6 hours, often sooner. They'll review your needs and let us know if they're available to help.
+
+I have a good feeling about this connection - [specific reason based on match]!"
+
+Be enthusiastic and specific about why this match makes sense.`;
         break;
 
       case 'waiting_acceptance':
-        systemPrompt = `You are TAV, Tavara's friendly care coordinator. The family is waiting for the caregiver to respond to their interest.
+        systemPrompt = `You are TAV, Tavara's friendly care coordinator. The family is waiting for the caregiver to respond.
 
-Provide reassuring updates about the process. Explain that caregivers typically respond within a few hours. Keep them engaged and positive.`;
+CAREGIVER CONTEXT:
+${caregiverInfo}
+
+TASK: Provide reassuring, specific updates:
+1. Remind them of the caregiver's qualifications while they wait
+2. Set realistic expectations about response times
+3. Keep them engaged with relevant information about this specific caregiver
+4. Maintain confidence in the match quality
+
+Focus on this specific caregiver's strengths and why they're worth waiting for.`;
         break;
 
       case 'guided_qa':
-        systemPrompt = `You are TAV, Tavara's friendly care coordinator. The family asked: "${userPrompt}"
+        systemPrompt = `You are TAV, Tavara's friendly care coordinator facilitating a conversation between this family and professional caregiver. The family asked: "${userPrompt}"
 
-Provide a thoughtful response about this caregiver based on their profile. Create realistic but helpful responses that would help the family understand if this is a good match.
+CAREGIVER CONTEXT:
+${caregiverInfo}
 
-Focus on professional caregiving topics only. Be encouraging and informative.`;
+TASK: Provide specific, helpful responses about this caregiver:
+1. Draw from their actual profile information to answer questions
+2. Highlight relevant experience, certifications, or specialties
+3. Mention specific compatibility factors from the match score
+4. Guide toward practical next steps (scheduling consultation, discussing rates, etc.)
+5. Keep responses informative but encouraging
+
+RESPONSE APPROACH:
+- If asked about experience: Reference their specific years and specialties
+- If asked about availability: Mention their schedule preferences if available
+- If asked about rates: Reference their pricing if available, or guide to discussion
+- If asked about approach: Draw from their specialties and experience level
+- If asked about qualifications: Mention specific certifications or training
+
+Always tie responses back to how this caregiver specifically fits their family's needs. Be the knowledgeable coordinator who knows both parties well.`;
         break;
 
       default:
-        systemPrompt = `You are TAV, Tavara's friendly care coordinator helping facilitate a conversation between a family and a professional caregiver.`;
+        systemPrompt = `You are TAV, Tavara's friendly care coordinator helping facilitate a meaningful conversation between a family and professional caregiver.
+
+CAREGIVER CONTEXT:
+${caregiverInfo}
+
+Provide helpful, specific guidance based on the caregiver's actual profile and the family's needs.`;
     }
 
     try {
@@ -539,16 +592,108 @@ Focus on professional caregiving topics only. Be encouraging and informative.`;
         currentPage: '/caregiver-chat',
         sessionId: `guided-chat-${Date.now()}`,
         userRole: 'family',
-        caregiverContext: caregiver,
-        conversationStage: stage
+        caregiverContext: {
+          ...caregiver,
+          fullProfile: caregiverInfo,
+          matchDetails: {
+            score: caregiver.match_score,
+            explanation: caregiver.match_explanation,
+            compatibility: caregiver.shift_compatibility_score
+          }
+        },
+        conversationStage: stage,
+        stageData
       };
 
-      const response = await this.tavService.sendMessage(userPrompt, context, []);
-      console.log('[GuidedChatService] TAV response generated successfully');
-      return response || "💙 I'm here to help you connect with this amazing caregiver. What would you like to know next?";
+      const response = await this.tavService.sendMessage(systemPrompt + "\n\nUser message: " + userPrompt, context, []);
+      console.log('[GuidedChatService] Enhanced TAV response generated successfully');
+      return response || this.getFallbackResponse(stage, caregiver);
     } catch (error) {
       console.error('[GuidedChatService] Error getting TAV response:', error);
-      return "💙 I'm here to help you connect with this caregiver. Let me know what you'd like to learn about them!";
+      return this.getFallbackResponse(stage, caregiver);
+    }
+  }
+
+  // Build comprehensive caregiver context for enhanced responses
+  private buildCaregiverContext(caregiver: any): string {
+    const parts = [];
+    
+    parts.push(`👤 Name: ${caregiver.full_name}`);
+    parts.push(`📍 Location: ${caregiver.location || 'Trinidad and Tobago'}`);
+    parts.push(`⭐ Match Score: ${caregiver.match_score}% compatibility`);
+    
+    if (caregiver.years_of_experience) {
+      parts.push(`🎓 Experience: ${caregiver.years_of_experience}`);
+    }
+    
+    if (caregiver.professional_type) {
+      parts.push(`👨‍⚕️ Professional Type: ${caregiver.professional_type}`);
+    }
+    
+    if (caregiver.care_types && caregiver.care_types.length > 0) {
+      parts.push(`🔧 Care Specialties: ${caregiver.care_types.join(', ')}`);
+    }
+    
+    if (caregiver.specialized_care && caregiver.specialized_care.length > 0) {
+      parts.push(`🏥 Specialized Care: ${caregiver.specialized_care.join(', ')}`);
+    }
+    
+    if (caregiver.certifications && caregiver.certifications.length > 0) {
+      parts.push(`📜 Certifications: ${caregiver.certifications.join(', ')}`);
+    }
+    
+    if (caregiver.hourly_rate) {
+      parts.push(`💰 Hourly Rate: $${caregiver.hourly_rate}`);
+    }
+    
+    if (caregiver.work_type) {
+      parts.push(`⏱️ Work Type: ${caregiver.work_type}`);
+    }
+    
+    if (caregiver.availability && caregiver.availability.length > 0) {
+      parts.push(`📅 Availability: ${caregiver.availability.join(', ')}`);
+    }
+    
+    if (caregiver.custom_schedule) {
+      parts.push(`🗓️ Custom Schedule: ${caregiver.custom_schedule}`);
+    }
+    
+    if (caregiver.match_explanation) {
+      parts.push(`💫 Why they match: ${caregiver.match_explanation}`);
+    }
+    
+    if (caregiver.shift_compatibility_score) {
+      parts.push(`⏰ Schedule compatibility: ${caregiver.shift_compatibility_score}%`);
+    }
+    
+    if (caregiver.bio) {
+      parts.push(`📝 Professional Bio: ${caregiver.bio}`);
+    }
+    
+    return parts.join('\n');
+  }
+
+  // Enhanced fallback responses based on stage and caregiver context
+  private getFallbackResponse(stage: string, caregiver: Caregiver): string {
+    const name = caregiver.full_name;
+    const experience = caregiver.years_of_experience || 'experienced';
+    const matchScore = caregiver.match_score;
+
+    switch (stage) {
+      case 'introduction':
+        return `💙 Great choice! ${name} looks like an excellent match for your family with ${experience} in caregiving and a ${matchScore}% compatibility score. Would you like to learn more about their experience or express your interest in connecting?`;
+      
+      case 'interest_expression':
+        return `🎉 Wonderful! I'm notifying ${name} about your interest right now. With their ${experience} background and ${matchScore}% match score, this could be a perfect fit for your family. They typically respond within 2-6 hours!`;
+      
+      case 'waiting_acceptance':
+        return `💙 ${name} has been notified of your interest. Professional caregivers with ${experience} like them usually respond within a few hours. Their ${matchScore}% compatibility score suggests this could be an excellent match!`;
+      
+      case 'guided_qa':
+        return `💙 Based on ${name}'s profile - with ${experience} experience and ${matchScore}% compatibility with your needs - they seem well-suited for your family. What specific aspects of caregiving would you like to discuss?`;
+      
+      default:
+        return `💙 I'm here to help you connect with ${name}, who has ${experience} and a strong ${matchScore}% match with your family's needs. How can I assist you today?`;
     }
   }
 

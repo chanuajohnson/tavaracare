@@ -3,7 +3,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { MessageCircle, Shield, Crown, Loader2, Sparkles, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGuidedCaregiverChat } from "@/hooks/useGuidedCaregiverChat";
@@ -41,14 +43,14 @@ export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: Guid
     caregiver
   });
 
-  // Initialize conversation when modal opens - FIXED with proper dependencies
+  // Initialize conversation when modal opens - FIXED: removed conversationFlow dependency
   useEffect(() => {
-    if (open && isValidCaregiver && !isInitialized && !conversationFlow) {
+    if (open && isValidCaregiver && !isInitialized) {
       console.log('[GuidedCaregiverChatModal] INIT: Starting initialization...');
       setIsInitialized(true);
       initializeConversation();
     }
-  }, [open, isValidCaregiver, isInitialized, conversationFlow, initializeConversation]);
+  }, [open, isValidCaregiver, isInitialized, initializeConversation]);
 
   // Reset initialization when modal closes
   useEffect(() => {
@@ -100,31 +102,80 @@ export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: Guid
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] h-[700px] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-0">
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <DialogTitle className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-blue-600" />
-                Guided Chat with Professional Caregiver
-              </DialogTitle>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Shield className="h-4 w-4" />
-                <span>TAV-guided conversation</span>
-                {caregiver?.is_premium && (
-                  <Badge className="bg-amber-100 text-amber-800 border-amber-300">
-                    <Crown className="h-3 w-3 mr-1" />
-                    Premium
-                  </Badge>
-                )}
+        <DialogHeader className="p-6 pb-4">
+          <div className="space-y-4">
+            {/* Enhanced Header with Caregiver Info */}
+            <div className="flex items-start justify-between">
+              <div className="space-y-2">
+                <DialogTitle className="flex items-center gap-2 text-xl">
+                  <MessageCircle className="h-5 w-5 text-blue-600" />
+                  Chat with {caregiver?.full_name || 'Professional Caregiver'}
+                </DialogTitle>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Shield className="h-4 w-4" />
+                  <span>TAV-guided conversation</span>
+                  {caregiver?.is_premium && (
+                    <Badge className="bg-amber-100 text-amber-800 border-amber-300">
+                      <Crown className="h-3 w-3 mr-1" />
+                      Premium
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-green-600">
+                  {caregiver?.match_score || 0}%
+                </div>
+                <div className="text-xs text-gray-500">
+                  Match Score
+                </div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-lg font-semibold text-green-600">
-                {caregiver?.match_score || 0}% Match
+
+            {/* Enhanced Caregiver Profile Summary */}
+            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-gray-900">Professional Summary</h3>
+                <div className="text-xs text-gray-500">
+                  📍 {caregiver?.location || 'Trinidad and Tobago'}
+                </div>
               </div>
-              <div className="text-xs text-gray-500">
-                Professional caregiver
+              
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Experience:</span>
+                  <div className="text-gray-600">
+                    {caregiver?.years_of_experience || 'Professional caregiver'}
+                  </div>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Specialties:</span>
+                  <div className="text-gray-600">
+                    {caregiver?.care_types?.length > 0 
+                      ? caregiver.care_types.slice(0, 2).join(', ') + (caregiver.care_types.length > 2 ? '...' : '')
+                      : 'General care'
+                    }
+                  </div>
+                </div>
               </div>
+
+              {caregiver?.match_explanation && (
+                <div className="pt-2 border-t border-gray-200">
+                  <span className="font-medium text-gray-700">Why they match:</span>
+                  <div className="text-sm text-gray-600 mt-1">
+                    {caregiver.match_explanation}
+                  </div>
+                </div>
+              )}
+              
+              {caregiver?.shift_compatibility_score && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium text-gray-700">Schedule compatibility:</span>
+                  <div className="text-green-600 font-medium">
+                    {caregiver.shift_compatibility_score}%
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </DialogHeader>
@@ -247,11 +298,39 @@ export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: Guid
                         <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
                         <span className="text-sm text-gray-600">Processing...</span>
                       </div>
-                    ) : conversationFlow ? (
-                      <div className="text-sm text-gray-500">
-                        Conversation completed! 🎉
-                      </div>
-                    ) : null}
+                     ) : conversationFlow && currentStage === 'guided_qa' ? (
+                       <div className="space-y-3">
+                         <div className="text-sm text-gray-500 text-center">
+                           💙 Great conversation! Ready for next steps?
+                         </div>
+                         <div className="grid grid-cols-2 gap-2">
+                           <Button 
+                             variant="outline" 
+                             size="sm" 
+                             className="text-xs"
+                             onClick={() => {
+                               toast.info('Consultation scheduling coming soon!');
+                             }}
+                           >
+                             📅 Schedule Call
+                           </Button>
+                           <Button 
+                             variant="outline" 
+                             size="sm" 
+                             className="text-xs"
+                             onClick={() => {
+                               toast.info('Full profile view coming soon!');
+                             }}
+                           >
+                             👤 View Profile
+                           </Button>
+                         </div>
+                       </div>
+                     ) : conversationFlow ? (
+                       <div className="text-sm text-gray-500">
+                         Conversation completed! 🎉
+                       </div>
+                     ) : null}
                   </motion.div>
                 )}
               </AnimatePresence>

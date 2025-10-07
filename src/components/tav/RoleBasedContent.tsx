@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { X, Minimize2, Sparkles, ArrowRight, CheckCircle, Clock, Target, Star, Zap, Heart, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Minimize2, Sparkles, ArrowRight, CheckCircle, Clock, Target, Star, Zap, Heart, Users, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { AssistantNudge, ProgressContext } from './types';
@@ -26,6 +26,10 @@ interface RoleBasedContentProps {
   onMinimize: () => void;
   isLoudMode?: boolean;
   dashboardRole?: 'family' | 'professional' | null;
+  isDemoRoute?: boolean;
+  realTimeDataCallback?: (message: string, isUser: boolean) => void;
+  isChatMode?: boolean;
+  chatMessageCount?: number;
 }
 
 export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
@@ -39,7 +43,11 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
   onClose,
   onMinimize,
   isLoudMode = false,
-  dashboardRole = null
+  dashboardRole = null,
+  isDemoRoute = false,
+  realTimeDataCallback,
+  isChatMode = false,
+  chatMessageCount = 0
 }) => {
   const { user } = useAuth();
   const [showCaregiverMatchingModal, setShowCaregiverMatchingModal] = useState(false);
@@ -93,53 +101,92 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header with sparkles and controls */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gradient-to-r from-primary/5 to-transparent">
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <div className={cn("p-1.5 bg-primary-100 rounded-lg", isLoudMode && "bg-primary-200")}>
-              <Sparkles className={cn("h-4 w-4 text-primary", isLoudMode && "h-5 w-5")} />
-            </div>
-            <div className="absolute -top-1 -right-1">
-              <Sparkles className={cn("h-2 w-2 text-primary/60 animate-pulse", isLoudMode && "h-3 w-3")} />
-            </div>
-            {isLoudMode && (
-              <div className="absolute -bottom-1 -left-1">
-                <Star className="h-2 w-2 text-amber-400 animate-pulse" />
+      {/* Smart Chat-Aware Header */}
+      <AnimatePresence>
+        {!isChatMode && (
+          <motion.div 
+            initial={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex items-center justify-between p-4 border-b border-gray-100 bg-primary/5"
+          >
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <div className={cn("p-1.5 bg-primary-100 rounded-lg", isLoudMode && "bg-primary-200")}>
+                  <Sparkles className={cn("h-4 w-4 text-primary", isLoudMode && "h-5 w-5")} />
+                </div>
+                <div className="absolute -top-1 -right-1">
+                  <Sparkles className={cn("h-2 w-2 text-primary/60 animate-pulse", isLoudMode && "h-3 w-3")} />
+                </div>
+                {isLoudMode && (
+                  <div className="absolute -bottom-1 -left-1">
+                    <Star className="h-2 w-2 text-amber-400 animate-pulse" />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <div>
-            <h2 className={cn("font-semibold text-primary", isLoudMode && "text-lg font-bold")}>
-              {isLoudMode ? "🎯 TAV MAGIC!" : "TAV Assistant"}
-            </h2>
-            <p className={cn("text-xs text-gray-600", isLoudMode && "text-sm font-medium")}>
-              {isLoudMode ? "Your Magical Care Coordinator" : "Your Care Coordinator"}
-            </p>
-          </div>
-        </div>
+              <div>
+                <h2 className={cn("font-semibold text-primary", isLoudMode && "text-lg font-bold")}>
+                  {isLoudMode ? "🎯 TAV MAGIC!" : "TAV Assistant"}
+                </h2>
+                <p className={cn("text-xs text-gray-600", isLoudMode && "text-sm font-medium")}>
+                  {isLoudMode ? "Your Magical Care Coordinator" : "Your Care Coordinator"}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onMinimize}
+                className="h-7 w-7 p-0"
+                title="Minimize panel"
+              >
+                <Minimize2 className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="h-7 w-7 p-0"
+                title="Close panel"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
         
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onMinimize}
-            className="h-7 w-7 p-0"
-            title="Minimize panel"
+        {/* Minimal Chat Mode Header */}
+        {isChatMode && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            transition={{ duration: 0.3 }}
+            className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-primary/10"
           >
-            <Minimize2 className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="h-7 w-7 p-0"
-            title="Close panel"
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
-      </div>
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-primary">Chat Mode</span>
+              {chatMessageCount > 0 && (
+                <span className="text-xs text-gray-500">({chatMessageCount} messages)</span>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="h-6 w-6 p-0 hover:bg-primary/20"
+                title="Close"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
@@ -224,7 +271,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                       </div>
                       
                       {familyJourneyProgress.nextStep && (
-                        <div className="bg-white/60 rounded-lg p-3 border border-blue-200">
+                        <div className="bg-white rounded-lg p-3 border border-blue-200">
                           <div className="text-xs font-medium text-blue-700 mb-1">Next Step:</div>
                           <div className="text-xs text-blue-600">{familyJourneyProgress.nextStep.title}</div>
                         </div>
@@ -255,8 +302,114 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           {/* SUPER MAGICAL GUEST WELCOME for DASHBOARD PAGES */}
           {(!user || role === 'guest') && (
             <div className="space-y-4">
-              {/* LOUD MODE: Enhanced dashboard-specific magical messaging */}
-              {isLoudMode && dashboardRole ? (
+              {/* DEMO MODE: Special demo content for /tav-demo and demo routes */}
+              {isDemoRoute && !user ? (
+                <div className="space-y-4">
+                  {/* DEMO WELCOME HEADER */}
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-6 border-2 border-primary/30 relative overflow-hidden"
+                  >
+                    <div className="absolute inset-0">
+                      <Sparkles className="absolute top-2 right-2 h-4 w-4 text-primary/40 animate-pulse" />
+                      <Star className="absolute top-6 right-8 h-3 w-3 text-amber-400/50 animate-pulse" style={{ animationDelay: '0.5s' }} />
+                      <Sparkles className="absolute bottom-4 left-4 h-3 w-3 text-blue-400/40 animate-pulse" style={{ animationDelay: '1s' }} />
+                    </div>
+                    
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-3 mb-4">
+                        <motion.div
+                          animate={{ rotate: [0, 10, -10, 0] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        >
+                          <Sparkles className="h-8 w-8 text-primary" />
+                        </motion.div>
+                        <div>
+                          <h3 className="text-2xl font-bold text-primary">Welcome TAV Demo Experience</h3>
+                          <p className="text-lg font-semibold text-gray-700">I'm here to help you Demo various features</p>
+                        </div>
+                      </div>
+                      
+                      <p className="text-base font-medium text-gray-800 mb-4">
+                        🌟 Explore how families and professionals use Tavara to connect and coordinate care. Click any demo below to experience our AI-guided workflows!
+                      </p>
+                    </div>
+                  </motion.div>
+
+                  {/* Chat with TAV section */}
+                  <div className="mb-6">
+                    <ExpandableChatSection 
+                      role={role as 'family' | 'professional' | 'community' | null} 
+                      realTimeDataCallback={realTimeDataCallback}
+                    />
+                  </div>
+
+                  {/* DEMO OPTIONS GRID */}
+                  <div className="grid grid-cols-1 gap-3">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="bg-white rounded-xl p-4 border-2 border-blue-200 hover:border-blue-400 transition-colors cursor-pointer"
+                      onClick={() => window.location.href = '/demo/registration/family'}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Heart className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-blue-800">Family Registration</h4>
+                          <p className="text-sm text-blue-600">Experience how families find and connect with perfect caregivers</p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-blue-400 ml-auto" />
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="bg-white rounded-xl p-4 border-2 border-purple-200 hover:border-purple-400 transition-colors cursor-pointer"
+                      onClick={() => window.location.href = '/demo/family/care-assessment'}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                          <Target className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-purple-800">Care Needs Assessment</h4>
+                          <p className="text-sm text-purple-600">Walk through our intelligent care planning process</p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-purple-400 ml-auto" />
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 }}
+                      className="bg-white rounded-xl p-4 border-2 border-pink-200 hover:border-pink-400 transition-colors cursor-pointer"
+                      onClick={() => window.location.href = '/demo/family/story'}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-pink-100 rounded-lg">
+                          <Star className="h-5 w-5 text-pink-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-pink-800">Legacy Stories</h4>
+                          <p className="text-sm text-pink-600">Experience our family story capture and sharing platform</p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-pink-400 ml-auto" />
+                      </div>
+                    </motion.div>
+                  </div>
+
+                </div>
+              ) : 
+              /* LOUD MODE: Enhanced dashboard-specific magical messaging */
+              isLoudMode && dashboardRole ? (
                 <div className="space-y-4">
                   {/* MAGICAL ATTENTION-GRABBING HEADER */}
                   <motion.div
@@ -392,7 +545,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                       <div className="grid grid-cols-1 gap-2 pt-2 w-full">
                         <Button 
                           variant="outline" 
-                          className="w-full bg-white/20 border-white/30 text-white hover:bg-white/30 font-semibold text-xs sm:text-sm md:text-base py-2 sm:py-3 min-h-[44px]"
+                          className="w-full bg-white/90 border-white text-gray-800 hover:bg-white font-semibold text-xs sm:text-sm md:text-base py-2 sm:py-3 min-h-[44px]"
                           onClick={dashboardRole === 'family' ? handleQuickRegistrationClick : handleProfessionalRegistrationClick}
                         >
                           <span className="text-center leading-tight">
@@ -510,8 +663,6 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           )}
         </div>
 
-        {/* Expandable chat section */}
-        <ExpandableChatSection role={role as 'family' | 'professional' | 'community' | null} />
       </div>
 
       {/* Caregiver Matching Modal for Anonymous Family Dashboard Users */}

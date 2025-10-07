@@ -7,7 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Shield, Sparkles, MessageCircle, ChevronDown, Video } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { MatchingTracker } from "@/components/tracking/MatchingTracker";
-import { useCaregiverMatches } from "@/hooks/useCaregiverMatches";
+import { useUnifiedMatches } from "@/hooks/useUnifiedMatches";
 import { CaregiverMatchCard } from "./CaregiverMatchCard";
 import { GuidedCaregiverChatModal } from "./GuidedCaregiverChatModal";
 
@@ -33,7 +33,7 @@ export const CaregiverMatchingModal = ({
   const [isLoading, setIsLoading] = useState(true);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [showChatModal, setShowChatModal] = useState(false);
-  const { caregivers, isLoading: caregiverLoading, dataLoaded } = useCaregiverMatches(true);
+  const { matches, isLoading: caregiverLoading } = useUnifiedMatches('family', true);
 
   useEffect(() => {
     if (open) {
@@ -59,7 +59,7 @@ export const CaregiverMatchingModal = ({
     }
   }, [open]);
 
-  const bestMatch = caregivers[0];
+  const bestMatch = matches[0];
   const currentMessage = MAGICAL_MESSAGES[currentMessageIndex];
 
   return (
@@ -71,7 +71,7 @@ export const CaregiverMatchingModal = ({
             additionalData={{
               referrer: referringPagePath,
               access_type: 'modal_view',
-              shown_matches: caregivers.length
+              shown_matches: matches.length
             }}
           />
           
@@ -258,7 +258,7 @@ export const CaregiverMatchingModal = ({
                               className="bg-green-500 text-white px-4 py-2 rounded-full font-bold text-lg shadow-lg relative overflow-hidden"
                             >
                               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
-                              <span className="relative z-10">{bestMatch.match_score}% Match!</span>
+                              <span className="relative z-10">{Math.round(bestMatch.match_score)}% Match!</span>
                             </motion.div>
                           </div>
                         </CardHeader>
@@ -290,7 +290,7 @@ export const CaregiverMatchingModal = ({
                               onClick={() => setShowChatModal(true)}
                             >
                               <MessageCircle className="h-4 w-4 mr-2" />
-                              Start Guided Chat
+                              Chat
                             </Button>
                             
                             <SubscriptionFeatureLink

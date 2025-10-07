@@ -110,7 +110,11 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-const FamilyStoryPage = () => {
+interface FamilyStoryPageProps {
+  isDemo?: boolean;
+}
+
+const FamilyStoryPage = ({ isDemo: isExternalDemo = false }: FamilyStoryPageProps = {}) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -119,9 +123,13 @@ const FamilyStoryPage = () => {
   const [prefillApplied, setPrefillApplied] = useState(false);
   
   const isEditMode = searchParams.get('edit') === 'true';
+  const isDemo = isExternalDemo || searchParams.get('demo') === 'true';
   
   const breadcrumbItems = [
-    { label: "Family Dashboard", path: "/dashboard/family" },
+    { 
+      label: isDemo ? "TAV Demo" : "Family Dashboard", 
+      path: isDemo ? "/tav-demo?openDemo=true" : "/dashboard/family" 
+    },
     { label: isEditMode ? "Edit Their Story" : "Tell Their Story", path: "/family/story" },
   ];
 
@@ -241,6 +249,15 @@ const FamilyStoryPage = () => {
   }, [prefillApplied, user, isEditMode, form]);
 
   const onSubmit = async (data: FormValues) => {
+    // Demo mode - skip database operations
+    if (isExternalDemo || isDemo) {
+      toast.success('Demo Story Complete! 🎉 Your loved one\'s story has been simulated successfully.');
+      setTimeout(() => {
+        navigate('/tav-demo?openDemo=true');
+      }, 1500);
+      return;
+    }
+    
     if (!user) {
       toast.error("You must be logged in to submit this form");
       return;

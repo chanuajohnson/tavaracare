@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Star, MessageCircle, Users, Heart, Clock, MapPin as LocationIcon } from "lucide-react";
+import { MapPin, Star, MessageCircle, Users, Heart, Clock, MapPin as LocationIcon, Shield, Award, DollarSign, Calendar, FileCheck, Languages } from "lucide-react";
 
 interface EnhancedMatchData {
   overall_score: number;
@@ -19,14 +19,29 @@ interface EnhancedMatchData {
 
 interface Caregiver {
   id: string;
-  full_name: string;
-  avatar_url: string | null;
-  location: string | null;
-  care_types: string[] | null;
-  years_of_experience: string | null;
+  full_name?: string | null;
+  avatar_url?: string | null;
+  location?: string | null;
+  care_types?: string[] | null;
+  years_of_experience?: string | null;
   match_score: number;
-  is_premium: boolean;
+  is_premium?: boolean;
   enhanced_match_data?: EnhancedMatchData;
+  // Extended professional information
+  professional_type?: string;
+  certifications?: string[];
+  specialized_care?: string[];
+  hourly_rate?: string | number;
+  work_type?: string;
+  care_schedule?: string;
+  custom_schedule?: string;
+  bio?: string;
+  languages?: string[];
+  background_check?: boolean;
+  insurance_coverage?: boolean;
+  transportation_available?: boolean;
+  commute_mode?: string;
+  additional_notes?: string;
 }
 
 // Utility function to extract initials from full name
@@ -81,6 +96,77 @@ export const SimpleMatchCard = ({
   const enhancedData = caregiver.enhanced_match_data;
   const displayScore = enhancedData?.overall_score || caregiver.match_score;
   
+  // Format hourly rate display
+  const formatRate = (rate?: number | string) => {
+    if (!rate) return null;
+    
+    if (typeof rate === 'string') {
+      const match = rate.match(/(\d+)/);
+      if (match) return `$${match[1]}/hr`;
+      return rate;
+    }
+    
+    if (typeof rate === 'number') {
+      return `$${rate}/hr`;
+    }
+    
+    return null;
+  };
+
+  // Format availability schedule 
+  const formatAvailability = (schedule?: string, customSchedule?: string) => {
+    if (customSchedule) return customSchedule;
+    if (!schedule) return 'Schedule to be arranged';
+    
+    const scheduleItems = schedule.split(',').map(s => s.trim());
+    const formatted = scheduleItems.map(item => {
+      switch (item) {
+        case 'mon_fri_6am_6pm': return 'Mon-Fri 6AM-6PM';
+        case 'sat_sun_6am_6pm': return 'Weekends 6AM-6PM';
+        case 'flexible': return 'Flexible scheduling';
+        case 'weekday_evening_6pm_6am': return 'Weekday evenings';
+        case 'weekend_evening_6pm_6am': return 'Weekend evenings';
+        case '24_7_care': return '24/7 availability';
+        case 'live_in_care': return 'Live-in care';
+        default: return item;
+      }
+    });
+    
+    return formatted.join(', ');
+  };
+
+  // Get professional credentials display
+  const getProfessionalDisplay = () => {
+    if (caregiver.professional_type) {
+      return caregiver.professional_type; // Already formatted in useUnifiedMatches
+    }
+    
+    if (caregiver.certifications && caregiver.certifications.length > 0) {
+      return caregiver.certifications[0]; // Show primary certification
+    }
+    
+    return "Professional Caregiver";
+  };
+  
+  // Parse care schedule into readable format
+  const getAvailabilityDisplay = () => {
+    if (!caregiver.care_schedule) return null;
+    
+    const schedule = caregiver.care_schedule.toLowerCase();
+    const parts = schedule.split(',').map(s => s.trim());
+    const readable = parts.map(part => {
+      if (part === 'flexible') return 'Flexible';
+      if (part.includes('mon_fri_6am_6pm')) return 'Weekdays 6AM-6PM';
+      if (part.includes('mon_fri_8am_4pm')) return 'Weekdays 8AM-4PM';
+      if (part.includes('sat_sun_6am_6pm')) return 'Weekends 6AM-6PM';
+      if (part.includes('evening')) return 'Evening shifts';
+      if (part.includes('24_7')) return '24/7 available';
+      return part.replace(/_/g, ' ').replace(/am|pm/gi, match => match.toUpperCase());
+    });
+    
+    return readable.slice(0, 2).join(', ') + (readable.length > 2 ? ` +${readable.length - 2} more` : '');
+  };
+  
   return (
     <Card className={`relative border-border ${className}`}>
       {/* Best Match Badge - Top Left */}
@@ -106,11 +192,35 @@ export const SimpleMatchCard = ({
             </Avatar>
             
             {!isCompact && (
-              <div className="mt-2 text-center">
+              <div className="mt-2 text-center space-y-1">
                 <div className={`rounded px-2 py-1 ${getScoreColor(displayScore)}`}>
                   <span className={`${isCompact ? 'text-xs' : 'text-sm'} font-medium`}>
                     {displayScore}% Match
                   </span>
+                </div>
+                
+                {/* Hourly Rate */}
+                {caregiver.hourly_rate && (
+                  <div className="bg-green-50 text-green-700 rounded px-2 py-1">
+                    <span className="text-sm font-medium flex items-center gap-1">
+                      <DollarSign className="h-3 w-3" />
+                      {formatRate(caregiver.hourly_rate)}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Verification Badges */}
+                <div className="flex justify-center gap-1">
+                  {caregiver.background_check && (
+                    <div className="bg-blue-50 text-blue-700 rounded p-1" title="Background Check Verified">
+                      <Shield className="h-3 w-3" />
+                    </div>
+                  )}
+                  {caregiver.certifications && caregiver.certifications.length > 0 && (
+                    <div className="bg-purple-50 text-purple-700 rounded p-1" title="Certified Professional">
+                      <Award className="h-3 w-3" />
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -119,23 +229,53 @@ export const SimpleMatchCard = ({
           {/* Content Section */}
           <div className="flex-1 space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className={`${isCompact ? 'text-sm' : 'text-base'} font-semibold`}>
-                {initials}
-              </h3>
+              <div>
+                <h3 className={`${isCompact ? 'text-sm' : 'text-base'} font-semibold`}>
+                  {getProfessionalDisplay()}
+                </h3>
+                <div className="text-xs text-blue-600">
+                  * Name protected until subscription
+                </div>
+              </div>
               {isCompact && (
-                <span className={`text-xs font-medium px-2 py-1 rounded ${getScoreColor(displayScore)}`}>
-                  {displayScore}% Match
-                </span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`text-xs font-medium px-2 py-1 rounded ${getScoreColor(displayScore)}`}>
+                    {displayScore}% Match
+                  </span>
+                  {caregiver.hourly_rate && (
+                    <span className="text-xs font-medium text-green-600">
+                      {formatRate(caregiver.hourly_rate)}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
             
-            <div className={`flex items-center gap-1 ${isCompact ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
-              <MapPin className="h-3 w-3" />
-              <span>{caregiver.location}</span>
-            </div>
-            
-            <div className={`${isCompact ? 'text-xs' : 'text-sm'}`}>
-              <span className="font-medium">Experience:</span> {caregiver.years_of_experience}
+            <div className="space-y-1">
+              <div className={`flex items-center gap-1 ${isCompact ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
+                <MapPin className="h-3 w-3" />
+                <span>{caregiver.location}</span>
+              </div>
+              
+              <div className={`${isCompact ? 'text-xs' : 'text-sm'}`}>
+                <span className="font-medium">Experience:</span> {caregiver.years_of_experience}
+              </div>
+              
+              {/* Professional Credentials */}
+              {caregiver.certifications && caregiver.certifications.length > 0 && (
+                <div className={`${isCompact ? 'text-xs' : 'text-sm'}`}>
+                  <span className="font-medium">Certified:</span>{' '}
+                  {caregiver.certifications.slice(0, 2).join(', ')}
+                  {caregiver.certifications.length > 2 && ` +${caregiver.certifications.length - 2} more`}
+                </div>
+              )}
+              
+              {/* Work Type */}
+              {caregiver.work_type && (
+                <div className={`${isCompact ? 'text-xs' : 'text-sm'}`}>
+                  <span className="font-medium">Type:</span> {caregiver.work_type}
+                </div>
+              )}
             </div>
             
             {/* Enhanced Match Explanation */}
@@ -187,21 +327,74 @@ export const SimpleMatchCard = ({
               </div>
             )}
             
+            {/* Care Specialties and Services */}
             {!isCompact && !enhancedData?.match_explanation && (
-              <div className="space-y-1">
-                <span className="text-sm font-medium block">Specialties:</span>
-                <div className="flex flex-wrap gap-1">
-                  {caregiver.care_types?.slice(0, 3).map((type, i) => (
-                    <Badge key={i} variant="outline" className="text-xs bg-muted">
-                      {type}
-                    </Badge>
-                  ))}
-                  {caregiver.care_types && caregiver.care_types.length > 3 && (
-                    <Badge variant="outline" className="text-xs bg-muted">
-                      +{caregiver.care_types.length - 3} more
-                    </Badge>
-                  )}
+              <div className="space-y-2">
+                <div>
+                  <span className="text-sm font-medium block">Care Specialties:</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {caregiver.care_types?.slice(0, 3).map((type, i) => (
+                      <Badge key={i} variant="outline" className="text-xs bg-muted">
+                        {type}
+                      </Badge>
+                    ))}
+                    {caregiver.care_types && caregiver.care_types.length > 3 && (
+                      <Badge variant="outline" className="text-xs bg-muted">
+                        +{caregiver.care_types.length - 3} more
+                      </Badge>
+                    )}
+                  </div>
                 </div>
+                
+                {/* Medical Specializations */}
+                {caregiver.specialized_care && caregiver.specialized_care.length > 0 && (
+                  <div>
+                    <span className="text-sm font-medium block">Medical Expertise:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {caregiver.specialized_care.slice(0, 2).map((spec, i) => (
+                        <Badge key={i} variant="secondary" className="text-xs">
+                          {spec}
+                        </Badge>
+                      ))}
+                      {caregiver.specialized_care.length > 2 && (
+                        <Badge variant="secondary" className="text-xs">
+                          +{caregiver.specialized_care.length - 2} more
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Languages */}
+                {caregiver.languages && caregiver.languages.length > 0 && (
+                  <div className="flex items-center gap-1 text-sm">
+                    <Languages className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-muted-foreground">
+                      {caregiver.languages.slice(0, 2).join(', ')}
+                      {caregiver.languages.length > 2 && ` +${caregiver.languages.length - 2} more`}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Schedule Availability */}
+                {getAvailabilityDisplay() && (
+                  <div className="flex items-center gap-1 text-sm">
+                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-muted-foreground">
+                      {getAvailabilityDisplay()}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Transportation */}
+                {caregiver.commute_mode && (
+                  <div className="flex items-center gap-1 text-sm">
+                    <MapPin className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-muted-foreground">
+                      Transportation: {caregiver.commute_mode}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
             
@@ -242,18 +435,45 @@ export const SimpleMatchCard = ({
           )}
         </div>
         
-        {isCompact && caregiver.care_types && (
-          <div className="mt-3 pt-3 border-t">
-            <div className="flex flex-wrap gap-1">
-              {caregiver.care_types.slice(0, 2).map((type, i) => (
-                <Badge key={i} variant="outline" className="text-xs bg-muted">
-                  {type}
-                </Badge>
-              ))}
-              {caregiver.care_types.length > 2 && (
-                <Badge variant="outline" className="text-xs bg-muted">
-                  +{caregiver.care_types.length - 2} more
-                </Badge>
+        {isCompact && (
+          <div className="mt-3 pt-3 border-t space-y-2">
+            {/* Care Types */}
+            {caregiver.care_types && (
+              <div className="flex flex-wrap gap-1">
+                {caregiver.care_types.slice(0, 2).map((type, i) => (
+                  <Badge key={i} variant="outline" className="text-xs bg-muted">
+                    {type}
+                  </Badge>
+                ))}
+                {caregiver.care_types.length > 2 && (
+                  <Badge variant="outline" className="text-xs bg-muted">
+                    +{caregiver.care_types.length - 2} more
+                  </Badge>
+                )}
+              </div>
+            )}
+            
+            {/* Compact verification and rate info */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                {caregiver.background_check && (
+                  <div className="flex items-center gap-1">
+                    <Shield className="h-3 w-3 text-green-600" />
+                    <span>Verified</span>
+                  </div>
+                )}
+                {caregiver.certifications && caregiver.certifications.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    <Award className="h-3 w-3 text-purple-600" />
+                    <span>Certified</span>
+                  </div>
+                )}
+              </div>
+              
+              {caregiver.hourly_rate && (
+                <span className="font-medium text-green-600">
+                  {formatRate(caregiver.hourly_rate)}
+                </span>
               )}
             </div>
           </div>

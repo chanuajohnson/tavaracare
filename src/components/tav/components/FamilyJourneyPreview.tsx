@@ -27,7 +27,7 @@ export const FamilyJourneyPreview: React.FC<FamilyJourneyPreviewProps> = ({ onBa
       </div>
       
       {/* Welcome Message */}
-      <div className="bg-gradient-to-r from-blue-50 via-blue-50/70 to-transparent rounded-xl p-3 border border-blue-200 relative overflow-hidden">
+      <div className="bg-blue-50 rounded-xl p-3 border border-blue-200 relative overflow-hidden">
         <div className="absolute top-2 right-2">
           <Sparkles className="h-3 w-3 text-blue-400 animate-pulse" />
         </div>

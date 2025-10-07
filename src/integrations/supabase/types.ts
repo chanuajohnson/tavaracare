@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -987,6 +987,7 @@ export type Database = {
           is_tav_moderated: boolean
           is_user: boolean
           message_type: string
+          sender: string
           session_id: string
         }
         Insert: {
@@ -996,6 +997,7 @@ export type Database = {
           is_tav_moderated?: boolean
           is_user: boolean
           message_type?: string
+          sender?: string
           session_id: string
         }
         Update: {
@@ -1005,6 +1007,7 @@ export type Database = {
           is_tav_moderated?: boolean
           is_user?: boolean
           message_type?: string
+          sender?: string
           session_id?: string
         }
         Relationships: [
@@ -2369,6 +2372,42 @@ export type Database = {
           },
         ]
       }
+      match_recalculation_log: {
+        Row: {
+          assignments_created: number | null
+          assignments_removed: number | null
+          caregiver_id: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          processed_at: string | null
+          recalculation_type: string
+          status: string | null
+        }
+        Insert: {
+          assignments_created?: number | null
+          assignments_removed?: number | null
+          caregiver_id: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          recalculation_type: string
+          status?: string | null
+        }
+        Update: {
+          assignments_created?: number | null
+          assignments_removed?: number | null
+          caregiver_id?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          recalculation_type?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
       meal_plan_items: {
         Row: {
           created_at: string
@@ -3647,6 +3686,208 @@ export type Database = {
         }
         Relationships: []
       }
+      tav_analytics: {
+        Row: {
+          id: string
+          metadata: Json | null
+          metric_type: string
+          metric_value: number | null
+          session_id: string | null
+          timestamp: string
+        }
+        Insert: {
+          id?: string
+          metadata?: Json | null
+          metric_type: string
+          metric_value?: number | null
+          session_id?: string | null
+          timestamp?: string
+        }
+        Update: {
+          id?: string
+          metadata?: Json | null
+          metric_type?: string
+          metric_value?: number | null
+          session_id?: string | null
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tav_analytics_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "tav_demo_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tav_demo_sessions: {
+        Row: {
+          company_name: string | null
+          conversation_data: Json | null
+          conversion_stage: string | null
+          created_at: string
+          customization_preferences: Json | null
+          demo_duration_seconds: number | null
+          demo_type: string
+          email_captured: string | null
+          form_interactions: number | null
+          id: string
+          lead_captured: boolean | null
+          messages_sent: number | null
+          session_token: string
+          updated_at: string
+          use_case_selected: string | null
+          visitor_ip: string | null
+          visitor_location: Json | null
+        }
+        Insert: {
+          company_name?: string | null
+          conversation_data?: Json | null
+          conversion_stage?: string | null
+          created_at?: string
+          customization_preferences?: Json | null
+          demo_duration_seconds?: number | null
+          demo_type?: string
+          email_captured?: string | null
+          form_interactions?: number | null
+          id?: string
+          lead_captured?: boolean | null
+          messages_sent?: number | null
+          session_token: string
+          updated_at?: string
+          use_case_selected?: string | null
+          visitor_ip?: string | null
+          visitor_location?: Json | null
+        }
+        Update: {
+          company_name?: string | null
+          conversation_data?: Json | null
+          conversion_stage?: string | null
+          created_at?: string
+          customization_preferences?: Json | null
+          demo_duration_seconds?: number | null
+          demo_type?: string
+          email_captured?: string | null
+          form_interactions?: number | null
+          id?: string
+          lead_captured?: boolean | null
+          messages_sent?: number | null
+          session_token?: string
+          updated_at?: string
+          use_case_selected?: string | null
+          visitor_ip?: string | null
+          visitor_location?: Json | null
+        }
+        Relationships: []
+      }
+      tav_leads: {
+        Row: {
+          budget_range: string | null
+          company_name: string | null
+          company_size: string | null
+          created_at: string
+          demo_session_id: string | null
+          email: string
+          full_name: string | null
+          id: string
+          industry: string | null
+          lead_score: number | null
+          notes: string | null
+          qualification_status: string | null
+          technical_expertise: string | null
+          timeline: string | null
+          updated_at: string
+          use_case: string
+        }
+        Insert: {
+          budget_range?: string | null
+          company_name?: string | null
+          company_size?: string | null
+          created_at?: string
+          demo_session_id?: string | null
+          email: string
+          full_name?: string | null
+          id?: string
+          industry?: string | null
+          lead_score?: number | null
+          notes?: string | null
+          qualification_status?: string | null
+          technical_expertise?: string | null
+          timeline?: string | null
+          updated_at?: string
+          use_case: string
+        }
+        Update: {
+          budget_range?: string | null
+          company_name?: string | null
+          company_size?: string | null
+          created_at?: string
+          demo_session_id?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          industry?: string | null
+          lead_score?: number | null
+          notes?: string | null
+          qualification_status?: string | null
+          technical_expertise?: string | null
+          timeline?: string | null
+          updated_at?: string
+          use_case?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tav_leads_demo_session_id_fkey"
+            columns: ["demo_session_id"]
+            isOneToOne: false
+            referencedRelation: "tav_demo_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tav_plans: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          features: Json
+          id: string
+          is_active: boolean | null
+          limits: Json
+          plan_name: string
+          plan_type: string
+          price_annual: number | null
+          price_monthly: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          features?: Json
+          id?: string
+          is_active?: boolean | null
+          limits?: Json
+          plan_name: string
+          plan_type: string
+          price_annual?: number | null
+          price_monthly?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          features?: Json
+          id?: string
+          is_active?: boolean | null
+          limits?: Json
+          plan_name?: string
+          plan_type?: string
+          price_annual?: number | null
+          price_monthly?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       training_modules: {
         Row: {
           created_at: string | null
@@ -4186,6 +4427,242 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_api_care_notes: {
+        Row: {
+          care_plan_id: string | null
+          caregiver_id: string | null
+          created_at: string
+          family_id: string | null
+          id: string
+          media_urls: Json | null
+          note_content: string
+          note_type: string
+          processed_at: string | null
+          structured_data: Json | null
+          submitted_via_whatsapp: boolean | null
+          whatsapp_message_id: string | null
+        }
+        Insert: {
+          care_plan_id?: string | null
+          caregiver_id?: string | null
+          created_at?: string
+          family_id?: string | null
+          id?: string
+          media_urls?: Json | null
+          note_content: string
+          note_type?: string
+          processed_at?: string | null
+          structured_data?: Json | null
+          submitted_via_whatsapp?: boolean | null
+          whatsapp_message_id?: string | null
+        }
+        Update: {
+          care_plan_id?: string | null
+          caregiver_id?: string | null
+          created_at?: string
+          family_id?: string | null
+          id?: string
+          media_urls?: Json | null
+          note_content?: string
+          note_type?: string
+          processed_at?: string | null
+          structured_data?: Json | null
+          submitted_via_whatsapp?: boolean | null
+          whatsapp_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_api_care_notes_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_api_consent: {
+        Row: {
+          consent_date: string | null
+          consent_given: boolean
+          consent_method: string | null
+          created_at: string
+          formatted_phone: string
+          id: string
+          message_categories: Json | null
+          opt_out_date: string | null
+          opt_out_reason: string | null
+          phone_number: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          consent_date?: string | null
+          consent_given?: boolean
+          consent_method?: string | null
+          created_at?: string
+          formatted_phone: string
+          id?: string
+          message_categories?: Json | null
+          opt_out_date?: string | null
+          opt_out_reason?: string | null
+          phone_number: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          consent_date?: string | null
+          consent_given?: boolean
+          consent_method?: string | null
+          created_at?: string
+          formatted_phone?: string
+          id?: string
+          message_categories?: Json | null
+          opt_out_date?: string | null
+          opt_out_reason?: string | null
+          phone_number?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_api_message_delivery: {
+        Row: {
+          delivered_at: string | null
+          delivery_status: string
+          failure_reason: string | null
+          id: string
+          message_content: string | null
+          message_id: string
+          message_type: string
+          read_at: string | null
+          recipient_phone: string
+          sent_at: string
+          sent_by: string | null
+          template_name: string | null
+          template_variables: Json | null
+          webhook_data: Json | null
+        }
+        Insert: {
+          delivered_at?: string | null
+          delivery_status?: string
+          failure_reason?: string | null
+          id?: string
+          message_content?: string | null
+          message_id: string
+          message_type?: string
+          read_at?: string | null
+          recipient_phone: string
+          sent_at?: string
+          sent_by?: string | null
+          template_name?: string | null
+          template_variables?: Json | null
+          webhook_data?: Json | null
+        }
+        Update: {
+          delivered_at?: string | null
+          delivery_status?: string
+          failure_reason?: string | null
+          id?: string
+          message_content?: string | null
+          message_id?: string
+          message_type?: string
+          read_at?: string | null
+          recipient_phone?: string
+          sent_at?: string
+          sent_by?: string | null
+          template_name?: string | null
+          template_variables?: Json | null
+          webhook_data?: Json | null
+        }
+        Relationships: []
+      }
+      whatsapp_api_templates: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          language_code: string
+          meta_template_id: string | null
+          rejection_reason: string | null
+          status: string
+          template_category: string
+          template_content: Json
+          template_name: string
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          language_code?: string
+          meta_template_id?: string | null
+          rejection_reason?: string | null
+          status?: string
+          template_category: string
+          template_content: Json
+          template_name: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          language_code?: string
+          meta_template_id?: string | null
+          rejection_reason?: string | null
+          status?: string
+          template_category?: string
+          template_content?: Json
+          template_name?: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Relationships: []
+      }
+      whatsapp_api_webhook_events: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_type: string
+          id: string
+          message_id: string | null
+          phone_number: string | null
+          processed: boolean | null
+          processed_at: string | null
+          raw_payload: Json
+          webhook_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_type: string
+          id?: string
+          message_id?: string | null
+          phone_number?: string | null
+          processed?: boolean | null
+          processed_at?: string | null
+          raw_payload: Json
+          webhook_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          message_id?: string | null
+          phone_number?: string | null
+          processed?: boolean | null
+          processed_at?: string | null
+          raw_payload?: Json
+          webhook_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_auth: {
         Row: {
           code_expires_at: string | null
@@ -4446,52 +4923,52 @@ export type Database = {
       admin_get_all_profiles: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          created_at: string
-          updated_at: string
-          role: Database["public"]["Enums"]["user_role"]
-          full_name: string
-          avatar_url: string
-          phone_number: string
           address: string
-          location: string
-          professional_type: string
-          years_of_experience: string
-          care_types: string[]
-          specialized_care: string[]
           available_for_matching: boolean
+          avatar_url: string
+          care_types: string[]
+          created_at: string
           email: string
+          full_name: string
+          id: string
+          location: string
+          phone_number: string
+          professional_type: string
+          role: Database["public"]["Enums"]["user_role"]
+          specialized_care: string[]
+          updated_at: string
+          years_of_experience: string
         }[]
       }
       admin_get_all_profiles_secure: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          created_at: string
-          updated_at: string
-          role: Database["public"]["Enums"]["user_role"]
-          full_name: string
-          avatar_url: string
-          phone_number: string
           address: string
-          location: string
-          professional_type: string
-          years_of_experience: string
-          care_types: string[]
-          specialized_care: string[]
           available_for_matching: boolean
+          avatar_url: string
+          care_types: string[]
+          created_at: string
           email: string
+          full_name: string
+          id: string
+          location: string
+          phone_number: string
+          professional_type: string
+          role: Database["public"]["Enums"]["user_role"]
+          specialized_care: string[]
+          updated_at: string
+          years_of_experience: string
         }[]
       }
       admin_get_user_journey_progress: {
         Args: { target_user_id: string }
         Returns: {
-          user_id: string
-          role: string
-          current_step: number
-          total_steps: number
           completion_percentage: number
+          current_step: number
           last_activity_at: string
+          role: string
+          total_steps: number
+          user_id: string
         }[]
       }
       calculate_and_update_journey_progress: {
@@ -4507,7 +4984,7 @@ export type Database = {
         Returns: undefined
       }
       calculate_unified_match_score: {
-        Args: { target_family_user_id: string; target_caregiver_id: string }
+        Args: { target_caregiver_id: string; target_family_user_id: string }
         Returns: Json
       }
       can_access_professional_data: {
@@ -4528,65 +5005,65 @@ export type Database = {
       }
       create_admin_assignment: {
         Args: {
-          target_family_user_id: string
-          target_caregiver_id: string
-          calculated_match_score: number
           admin_override_score?: number
-          assignment_reason?: string
           assignment_notes?: string
+          assignment_reason?: string
+          calculated_match_score: number
+          target_caregiver_id: string
+          target_family_user_id: string
         }
         Returns: string
       }
       create_automatic_assignment: {
         Args: {
-          target_family_user_id: string
-          target_caregiver_id: string
+          algorithm_version_param?: string
+          assignment_explanation?: string
           calculated_match_score: number
           calculated_shift_compatibility_score?: number
-          assignment_explanation?: string
-          algorithm_version_param?: string
+          target_caregiver_id: string
+          target_family_user_id: string
         }
         Returns: string
       }
       create_unified_assignment: {
         Args: {
-          target_family_user_id: string
-          target_caregiver_id: string
-          assignment_type_param: string
           admin_override_score_param?: number
-          assignment_reason_param?: string
           assignment_notes_param?: string
+          assignment_reason_param?: string
+          assignment_type_param: string
           care_plan_id_param?: string
+          target_caregiver_id: string
+          target_family_user_id: string
         }
         Returns: string
       }
       detect_medication_conflicts: {
         Args: {
-          p_medication_id: string
           p_administered_at: string
+          p_medication_id: string
           p_time_window_hours?: number
         }
         Returns: {
-          id: string
           administered_at: string
           administered_by: string
           administered_by_role: string
-          status: string
+          id: string
           notes: string
+          status: string
         }[]
       }
       detect_stale_assignments: {
         Args: Record<PropertyKey, never>
         Returns: {
-          assignment_type: string
           assignment_id: string
-          family_user_id: string
+          assignment_type: string
           caregiver_id: string
+          family_user_id: string
           issue: string
         }[]
       }
       format_whatsapp_number: {
-        Args: { phone_input: string; country_code_input?: string }
+        Args: { country_code_input?: string; phone_input: string }
         Returns: string
       }
       generate_admin_configured_slots: {
@@ -4601,6 +5078,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_family_profiles_for_professional_chat: {
+        Args: { professional_user_id: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          id: string
+        }[]
+      }
       get_feature_vote_count: {
         Args: { feature_id: string }
         Returns: number
@@ -4608,54 +5093,69 @@ export type Database = {
       get_professional_accessible_family_profiles: {
         Args: { professional_id: string }
         Returns: {
-          id: string
           full_name: string
+          id: string
           role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
+      get_public_professional_profiles: {
+        Args: { ids: string[] }
+        Returns: {
+          avatar_url: string
+          care_schedule: string
+          care_types: string[]
+          expected_rate: string
+          full_name: string
+          hourly_rate: string
+          id: string
+          location: string
+          professional_type: string
+          years_of_experience: string
         }[]
       }
       get_user_profile_secure: {
         Args: { target_user_id: string }
         Returns: {
-          id: string
-          created_at: string
-          updated_at: string
-          full_name: string
-          avatar_url: string
-          phone_number: string
-          address: string
-          role: Database["public"]["Enums"]["user_role"]
-          professional_type: string
-          years_of_experience: string
-          care_services: string[]
-          certifications: string[]
-          care_schedule: string
-          custom_schedule: string
-          preferred_work_locations: string
-          hourly_rate: string
-          commute_mode: string
-          languages: string[]
-          emergency_contact: string
-          background_check: boolean
           additional_notes: string
-          first_name: string
-          last_name: string
-          care_recipient_name: string
-          relationship: string
-          care_types: string[]
-          special_needs: string[]
-          budget_preferences: string
-          caregiver_type: string
-          caregiver_preferences: string
-          preferred_contact_method: string
-          location: string
-          specialized_care: string[]
+          address: string
           available_for_matching: boolean
-          video_available: boolean
-          visit_scheduling_status: string
-          visit_payment_status: string
-          visit_payment_reference: string
-          visit_notes: string
+          avatar_url: string
+          background_check: boolean
+          budget_preferences: string
+          care_recipient_name: string
+          care_schedule: string
+          care_services: string[]
+          care_types: string[]
+          caregiver_preferences: string
+          caregiver_type: string
+          certifications: string[]
+          commute_mode: string
+          created_at: string
+          custom_schedule: string
+          emergency_contact: string
+          first_name: string
+          full_name: string
+          hourly_rate: string
+          id: string
+          languages: string[]
           last_login_at: string
+          last_name: string
+          location: string
+          phone_number: string
+          preferred_contact_method: string
+          preferred_work_locations: string
+          professional_type: string
+          relationship: string
+          role: Database["public"]["Enums"]["user_role"]
+          special_needs: string[]
+          specialized_care: string[]
+          updated_at: string
+          video_available: boolean
+          visit_notes: string
+          visit_payment_reference: string
+          visit_payment_status: string
+          visit_scheduling_status: string
+          years_of_experience: string
         }[]
       }
       has_user_voted_for_feature: {
@@ -4677,8 +5177,8 @@ export type Database = {
       reschedule_visit_booking: {
         Args: {
           booking_id: string
-          new_slot_id: string
           new_date: string
+          new_slot_id: string
           new_time: string
           reason?: string
         }
@@ -4697,28 +5197,28 @@ export type Database = {
         Returns: string
       }
       update_care_plan_status: {
-        Args: { plan_id: string; new_status: string }
+        Args: { new_status: string; plan_id: string }
         Returns: undefined
       }
       update_site_visit_status: {
-        Args: { plan_id: string; new_status: string }
+        Args: { new_status: string; plan_id: string }
         Returns: undefined
       }
       update_user_profile: {
         Args:
           | { profile_data: Json }
-          | { user_id_param: string; profile_data: Json }
+          | { profile_data: Json; user_id_param: string }
         Returns: undefined
       }
       update_video_availability: {
-        Args: { user_id_param: string; available: boolean }
+        Args: { available: boolean; user_id_param: string }
         Returns: undefined
       }
       update_visit_payment_status: {
         Args: {
-          user_id_param: string
-          payment_status_param: string
           payment_reference_param?: string
+          payment_status_param: string
+          user_id_param: string
         }
         Returns: undefined
       }

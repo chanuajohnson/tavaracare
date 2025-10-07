@@ -5,7 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // Enhanced CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version, x-client-env',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
@@ -132,7 +132,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${openAIApiKey}`
       },
       body: JSON.stringify({
-        model: "gpt-4.1-2025-04-14", // Latest flagship model
+        model: "gpt-4o-mini", // Latest available model
         messages,
         temperature: 0.8, // Higher for more personality
         max_tokens: 500,
@@ -295,12 +295,31 @@ CURRENT CONTEXT:
   }
 
   if (context.caregiverContext) {
-    prompt += `\n\nCAREGIVER CHAT MODERATION:
-- You're facilitating communication between family and professional
-- NEVER share contact information (phone, email, address)
-- Keep conversations professional and care-focused
-- Guide families to ask about experience, approach, availability
-- Help professionals showcase their expertise professionally`;
+    const caregiver = context.caregiverContext;
+    prompt += `\n\nCAREGIVER CHAT FACILITATION:
+You are facilitating conversation with ${caregiver.full_name || 'this caregiver'}.
+
+CAREGIVER DETAILS:
+- Name: ${caregiver.full_name || 'Professional Caregiver'}
+- Experience: ${caregiver.years_of_experience || 'Experienced'} years
+- Hourly Rate: $${caregiver.hourly_rate || '25-35'}/hour
+- Location: ${caregiver.location || 'Trinidad and Tobago'}
+- Specialties: ${caregiver.care_types?.join(', ') || 'General care'}
+- Match Score: ${caregiver.match_score || 75}%
+- Availability: ${caregiver.availability?.join(', ') || 'Flexible schedule'}
+${caregiver.certifications ? `- Certifications: ${caregiver.certifications.join(', ')}` : ''}
+${caregiver.bio ? `- Bio: ${caregiver.bio.substring(0, 100)}...` : ''}
+
+RESPONSE PATTERNS:
+When user asks about AVAILABILITY/STARTING: "Based on ${caregiver.full_name}'s schedule, they're available for ${caregiver.availability?.join(' and ') || 'flexible hours'}. To discuss starting immediately, I recommend scheduling a consultation call to finalize details."
+
+When user asks about RATES/COST: "${caregiver.full_name} charges $${caregiver.hourly_rate || '25-35'}/hour. The exact rate can be discussed during your consultation based on specific care needs and schedule."
+
+When user shows HIRING INTEREST: "That's wonderful! ${caregiver.full_name} is a ${caregiver.match_score || 75}% match for your needs. Next steps: 1) Schedule a consultation call 2) Discuss specific care requirements 3) Finalize rates and schedule. Would you like me to help arrange the consultation?"
+
+When user asks about EXPERIENCE: "${caregiver.full_name} has ${caregiver.years_of_experience || 'professional'} years of experience specializing in ${caregiver.care_types?.slice(0,2).join(' and ') || 'comprehensive care'}. ${caregiver.certifications ? `They're certified in ${caregiver.certifications.slice(0,2).join(' and ')}.` : 'They bring professional expertise to every situation.'}"
+
+NEVER GIVE GENERIC RESPONSES. Always reference specific caregiver details.`;
   }
 
   if (memoryContext) {
@@ -314,6 +333,28 @@ CURRENT CONTEXT:
 4. Educational Support: Answer questions about caregiving, services, platform features
 5. Cultural Sensitivity: Understand T&T family values and caregiving traditions
 6. Problem Solving: Help resolve issues and provide alternatives
+
+FORM ASSISTANCE PATTERNS:
+When user says "help me fill this out" or "go through this with me":
+- "💙 I'd love to help you complete this registration step-by-step. Let's start with the first section - I'll guide you through each field. What's your first name?"
+- Proactively offer to walk through forms section by section
+- Ask for one piece of information at a time
+- Confirm details before moving to next field
+
+When user seems overwhelmed by form:
+- "This form has several sections, but we can take it one step at a time. Would you like me to guide you through it?"
+- Break down complex forms into manageable chunks
+- Explain why each field is important for finding the right care
+
+FIELD PROGRESSION INSTRUCTIONS:
+- Ask specifically: "What's your first name?" (not "What's your name?")
+- After first name, ask: "What's your last name?" 
+- For email: "What's your email address?"
+- For phone: "What's your phone number?"
+- For location: "What's your location?" (offer location options)
+- For address: "What's your specific address?"
+- Always ask for ONE field at a time in this exact order
+- Use definitive language, not "usually" or "typically"
 
 RESPONSE GUIDELINES:
 - Keep responses concise but helpful (2-3 sentences usually)
