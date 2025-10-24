@@ -19,6 +19,8 @@ export type TrackingActionType =
   | 'subscription_page_view'
   | 'features_page_view'
   | 'profile_page_view'
+  | 'marketing_kit_page_view'
+  | 'errands_page_view'
   
   // Authentication Actions
   | 'auth_login_attempt'
@@ -50,6 +52,11 @@ export type TrackingActionType =
   // Admin Assistant Interactions
   | 'job_letter_request_email'
   | 'job_letter_request_whatsapp'
+  
+  // Marketing Kit Interactions
+  | 'marketing_kit_access_granted'
+  | 'marketing_asset_download'
+  | 'marketing_kit_tab_switch'
   
   // Navigation
   | 'navigation_click'

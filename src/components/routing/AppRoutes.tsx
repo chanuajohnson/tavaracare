@@ -78,6 +78,9 @@ import DemoFamilyRegistration from "@/pages/demo/DemoFamilyRegistration";
 import DemoCareAssessment from "@/pages/demo/DemoCareAssessment";
 import DemoFamilyStory from "@/pages/demo/DemoFamilyStory";
 
+// Marketing Pages
+import MarketingKit from "@/pages/marketing/MarketingKit";
+
 export const AppRoutes = () => {
   const { user } = useAuth();
 
@@ -159,6 +162,9 @@ export const AppRoutes = () => {
       <Route path="/tav-demo" element={<TavDemo />} />
       <Route path="/tav-dashboard" element={<TavDashboard />} />
       <Route path="/implementation-guide" element={<ImplementationGuide />} />
+      
+      {/* Marketing Routes */}
+      <Route path="/marketing-kit" element={<MarketingKit />} />
       
       {/* Demo Routes */}
       <Route path="/demo/registration/family" element={<DemoFamilyRegistration />} />
