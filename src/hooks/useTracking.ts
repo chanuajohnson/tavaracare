@@ -57,6 +57,9 @@ export type TrackingActionType =
   | 'marketing_kit_access_granted'
   | 'marketing_asset_download'
   | 'marketing_kit_tab_switch'
+  | 'marketing_kit_modal_opened'
+  | 'marketing_kit_modal_closed'
+  | 'marketing_materials_interest'
   
   // Navigation
   | 'navigation_click'

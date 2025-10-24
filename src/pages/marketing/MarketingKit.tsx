@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container } from '@/components/ui/container';
 import { HorizontalTabs, HorizontalTabsList, HorizontalTabsTrigger, HorizontalTabsContent } from '@/components/ui/horizontal-scroll-tabs';
 import { Button } from '@/components/ui/button';
-import { LeadCaptureModal } from '@/components/family/LeadCaptureModal';
+import { MarketingLeadCaptureModal } from '@/components/marketing/MarketingLeadCaptureModal';
 import { TavaraBrandTab } from '@/components/marketing/TavaraBrandTab';
 import { ErrandsMaterialsTab } from '@/components/marketing/ErrandsMaterialsTab';
 import { SocialTemplatesTab } from '@/components/marketing/SocialTemplatesTab';
@@ -73,8 +73,6 @@ const MarketingKit = () => {
       processDownload(pendingDownload.assetType, pendingDownload.downloadUrl);
       setPendingDownload(null);
     }
-
-    setShowLeadModal(false);
   };
 
   const handleTabChange = (newTab: string) => {
@@ -100,14 +98,14 @@ const MarketingKit = () => {
           </h1>
           
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            Everything you need to promote Tavara.care and Errands services. 
-            {!hasAccess && ' Download any asset to unlock full access.'}
+            Professional marketing materials for promoting Tavara.care services. Perfect for partners, affiliates, and business marketing.
+            {!hasAccess && ' Unlock access to download all assets.'}
           </p>
 
           {!hasAccess && (
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 max-w-2xl mx-auto">
               <p className="text-sm text-muted-foreground mb-4">
-                📧 Provide your contact details to unlock all marketing materials instantly
+                📧 Business contact details required to access marketing materials
               </p>
               <Button 
                 onClick={() => setShowLeadModal(true)}
@@ -115,7 +113,7 @@ const MarketingKit = () => {
                 className="gap-2"
               >
                 <Download className="h-5 w-5" />
-                Unlock All Assets
+                Get Marketing Kit Access
               </Button>
             </div>
           )}
@@ -168,12 +166,11 @@ const MarketingKit = () => {
         </div>
       </Container>
 
-      {/* Lead Capture Modal */}
-      <LeadCaptureModal
+      {/* Marketing Lead Capture Modal */}
+      <MarketingLeadCaptureModal
         open={showLeadModal}
         onOpenChange={setShowLeadModal}
-        source="marketing_kit_access"
-        onSkipToCaregiverMatching={handleLeadCaptureSuccess}
+        onSuccess={handleLeadCaptureSuccess}
       />
     </div>
   );
