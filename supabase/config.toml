@@ -60,3 +60,6 @@ enable_confirmations = false
 
 [functions.facebook-conversions-api]
 verify_jwt = false
+
+[functions.generate-marketing-image]
+verify_jwt = false

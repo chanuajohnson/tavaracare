@@ -16,48 +16,70 @@ export const SocialTemplatesTab: React.FC<SocialTemplatesTabProps> = ({
       <div>
         <h2 className="text-2xl font-bold mb-2">Instagram Feed Posts (1080x1080)</h2>
         <p className="text-muted-foreground mb-6">
-          Square format posts optimized for Instagram feed and WhatsApp
+          AI-generated square format posts optimized for Instagram feed and WhatsApp
         </p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <AssetCard
-            title="Your Errands Buddy"
-            description="Hero image with pricing and service highlights"
+            title="Pricing Hero Post"
+            description="TT$50 base fee highlight with blue gradient"
             downloadFormat="PNG"
-            fileSize="890 KB"
-            assetType="social_instagram_feed_1"
-            downloadUrl="/marketing/social/instagram/feed-1.png"
+            fileSize="1.2 MB"
+            assetType="social_instagram_pricing_hero"
+            downloadUrl="/marketing/social/instagram/ig-pricing-hero.png"
             onDownload={onDownloadRequest}
             hasAccess={hasAccess}
           />
           
           <AssetCard
-            title="TT$50 Base Fee"
-            description="Pricing highlight card with clear call-to-action"
+            title="Services Grid"
+            description="3x3 icon grid showcasing all errands services"
             downloadFormat="PNG"
-            fileSize="720 KB"
-            assetType="social_instagram_feed_2"
-            downloadUrl="/marketing/social/instagram/feed-2.png"
+            fileSize="1.2 MB"
+            assetType="social_instagram_services_grid"
+            downloadUrl="/marketing/social/instagram/ig-services-grid.png"
             onDownload={onDownloadRequest}
             hasAccess={hasAccess}
           />
           
           <AssetCard
-            title="All Services Grid"
-            description="Icon-based services overview with visual appeal"
+            title="Monthly Plan Promo"
+            description="4 Errands for TT$180 subscription offer"
             downloadFormat="PNG"
-            fileSize="950 KB"
-            assetType="social_instagram_feed_3"
-            downloadUrl="/marketing/social/instagram/feed-3.png"
+            fileSize="1.2 MB"
+            assetType="social_instagram_monthly_plan"
+            downloadUrl="/marketing/social/instagram/ig-monthly-plan.png"
             onDownload={onDownloadRequest}
             hasAccess={hasAccess}
           />
           
           <AssetCard
-            title="Monthly Plans Available"
-            description="Subscription promotion highlighting savings"
+            title="Trinidad Coverage Map"
+            description="T&T map with coverage areas highlighted"
             downloadFormat="PNG"
-            fileSize="810 KB"
+            fileSize="1.2 MB"
+            assetType="social_instagram_trinidad_coverage"
+            downloadUrl="/marketing/social/instagram/ig-trinidad-coverage.png"
+            onDownload={onDownloadRequest}
+            hasAccess={hasAccess}
+          />
+          
+          <AssetCard
+            title="Testimonial Template"
+            description="5-star rating template for customer reviews"
+            downloadFormat="PNG"
+            fileSize="1.2 MB"
+            assetType="social_instagram_testimonial"
+            downloadUrl="/marketing/social/instagram/ig-testimonial.png"
+            onDownload={onDownloadRequest}
+            hasAccess={hasAccess}
+          />
+          
+          <AssetCard
+            title="Book Now CTA"
+            description="Call-to-action post with 3-step booking process"
+            downloadFormat="PNG"
+            fileSize="1.2 MB"
             assetType="social_instagram_feed_4"
             downloadUrl="/marketing/social/instagram/feed-4.png"
             onDownload={onDownloadRequest}

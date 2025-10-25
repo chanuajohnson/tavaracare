@@ -15,40 +15,40 @@ export const ErrandsMaterialsTab: React.FC<ErrandsMaterialsTabProps> = ({
 }) => {
   return (
     <div className="space-y-8">
-      {/* Section: Pricing Guide */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-2xl font-bold">Pricing Guide</h2>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/marketing/errands-pricing">
-              <ExternalLink className="h-4 w-4 mr-2" />
-              View Full Page
+      {/* AI Generation Notice */}
+      <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+              🎨 Generate Custom Marketing Materials
+            </h3>
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              Use AI to create professional pricing guides, QR codes, and social media templates in minutes.
+            </p>
+          </div>
+          <Button variant="default" size="sm" asChild>
+            <Link to="/admin/generate-marketing">
+              Generate Assets
             </Link>
           </Button>
         </div>
+      </div>
+
+      {/* Section: Pricing Guide */}
+      <div>
+        <h2 className="text-2xl font-bold mb-2">Pricing Guide</h2>
         <p className="text-muted-foreground mb-6">
           Printable pricing breakdown with all service tiers and examples
         </p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <AssetCard
-            title="Errands Pricing Sheet"
-            description="Base fee TT$50 + distance charges, with common examples"
+            title="Errands Pricing Guide"
+            description="Complete pricing breakdown for all errands services"
             downloadFormat="PDF"
-            fileSize="1.8 MB"
+            fileSize="2.1 MB"
             assetType="errands_pricing_guide"
             downloadUrl="/marketing/errands/errands-pricing-guide.pdf"
-            onDownload={onDownloadRequest}
-            hasAccess={hasAccess}
-          />
-          
-          <AssetCard
-            title="Quick Pricing Card"
-            description="One-page pricing reference for social media sharing"
-            downloadFormat="PNG"
-            fileSize="420 KB"
-            assetType="errands_pricing_card"
-            downloadUrl="/marketing/errands/pricing-card.png"
             onDownload={onDownloadRequest}
             hasAccess={hasAccess}
           />

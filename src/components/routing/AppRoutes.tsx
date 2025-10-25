@@ -80,6 +80,7 @@ import DemoFamilyStory from "@/pages/demo/DemoFamilyStory";
 
 // Marketing Pages
 import MarketingKit from "@/pages/marketing/MarketingKit";
+import GenerateMarketingAssets from "@/pages/admin/GenerateMarketingAssets";
 
 export const AppRoutes = () => {
   const { user } = useAuth();
@@ -165,6 +166,7 @@ export const AppRoutes = () => {
       
       {/* Marketing Routes */}
       <Route path="/marketing-kit" element={<MarketingKit />} />
+      <Route path="/admin/generate-marketing" element={<GenerateMarketingAssets />} />
       
       {/* Demo Routes */}
       <Route path="/demo/registration/family" element={<DemoFamilyRegistration />} />
