@@ -131,8 +131,8 @@ export const AppRoutes = () => {
       <Route path="/family/medication-management" element={<MedicationManagementPage />} />
       <Route path="/family/care-management" element={<CareManagementPage />} />
       <Route path="/family/care-management/:id" element={<CarePlanDetailPage />} />
-      <Route path="/family/care-management/:id/medications" element={<MedicationManagementPage />} />
-      <Route path="/family/care-management/:id/meals" element={<MealManagementPage />} />
+      <Route path="/family/care-management/:carePlanId/medications" element={<MedicationManagementPage />} />
+      <Route path="/family/care-management/:carePlanId/meals" element={<MealManagementPage />} />
       <Route path="/family/care-management/create" element={<CreateCarePlanPage />} />
       <Route path="/family/care-journey-progress" element={<CareJourneyProgressPage />} />
       
