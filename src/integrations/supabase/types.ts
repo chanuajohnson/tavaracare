@@ -4916,12 +4916,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      admin_delete_user: {
-        Args: { target_user_id: string }
-        Returns: Json
-      }
+      admin_delete_user: { Args: { target_user_id: string }; Returns: Json }
       admin_get_all_profiles: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           address: string
           available_for_matching: boolean
@@ -4941,7 +4938,7 @@ export type Database = {
         }[]
       }
       admin_get_all_profiles_secure: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           address: string
           available_for_matching: boolean
@@ -4987,22 +4984,13 @@ export type Database = {
         Args: { target_caregiver_id: string; target_family_user_id: string }
         Returns: Json
       }
-      can_access_professional_data: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      can_access_professional_data: { Args: never; Returns: boolean }
       cancel_visit_booking: {
         Args: { booking_id: string; reason?: string }
         Returns: undefined
       }
-      cleanup_expired_whatsapp_codes: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      cleanup_stale_assignments: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      cleanup_expired_whatsapp_codes: { Args: never; Returns: undefined }
+      cleanup_stale_assignments: { Args: never; Returns: string }
       create_admin_assignment: {
         Args: {
           admin_override_score?: number
@@ -5053,7 +5041,7 @@ export type Database = {
         }[]
       }
       detect_stale_assignments: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           assignment_id: string
           assignment_type: string
@@ -5066,18 +5054,9 @@ export type Database = {
         Args: { country_code_input?: string; phone_input: string }
         Returns: string
       }
-      generate_admin_configured_slots: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      generate_default_availability_slots: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      get_current_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_admin_configured_slots: { Args: never; Returns: undefined }
+      generate_default_availability_slots: { Args: never; Returns: undefined }
+      get_current_user_role: { Args: never; Returns: string }
       get_family_profiles_for_professional_chat: {
         Args: { professional_user_id: string }
         Returns: {
@@ -5086,10 +5065,7 @@ export type Database = {
           id: string
         }[]
       }
-      get_feature_vote_count: {
-        Args: { feature_id: string }
-        Returns: number
-      }
+      get_feature_vote_count: { Args: { feature_id: string }; Returns: number }
       get_professional_accessible_family_profiles: {
         Args: { professional_id: string }
         Returns: {
@@ -5166,14 +5142,8 @@ export type Database = {
         Args: { phone_input: string }
         Returns: undefined
       }
-      is_current_user_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      recalculate_all_journey_progress: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      is_current_user_admin: { Args: never; Returns: boolean }
+      recalculate_all_journey_progress: { Args: never; Returns: string }
       reschedule_visit_booking: {
         Args: {
           booking_id: string
@@ -5188,10 +5158,7 @@ export type Database = {
         Args: { target_family_user_id: string }
         Returns: undefined
       }
-      sync_admin_role_to_jwt: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      sync_admin_role_to_jwt: { Args: never; Returns: string }
       trigger_automatic_assignment_process: {
         Args: { target_family_user_id?: string }
         Returns: string
@@ -5204,12 +5171,12 @@ export type Database = {
         Args: { new_status: string; plan_id: string }
         Returns: undefined
       }
-      update_user_profile: {
-        Args:
-          | { profile_data: Json }
-          | { profile_data: Json; user_id_param: string }
-        Returns: undefined
-      }
+      update_user_profile:
+        | { Args: { profile_data: Json }; Returns: undefined }
+        | {
+            Args: { profile_data: Json; user_id_param: string }
+            Returns: undefined
+          }
       update_video_availability: {
         Args: { available: boolean; user_id_param: string }
         Returns: undefined
