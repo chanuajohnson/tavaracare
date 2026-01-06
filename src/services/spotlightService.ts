@@ -137,8 +137,8 @@ export const spotlightService = {
     const { data, error } = await supabase
       .from("urgent_availability")
       .select("*")
-      .eq("is_active", true)
-      .order("urgency_level", { ascending: false });
+      .eq("status", "available")
+      .order("featured_order", { ascending: true, nullsFirst: false });
 
     if (error) {
       console.error("Error fetching urgent caregivers:", error);
