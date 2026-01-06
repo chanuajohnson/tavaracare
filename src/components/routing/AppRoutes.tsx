@@ -81,6 +81,8 @@ import DemoFamilyStory from "@/pages/demo/DemoFamilyStory";
 // Marketing Pages
 import MarketingKit from "@/pages/marketing/MarketingKit";
 import GenerateMarketingAssets from "@/pages/admin/GenerateMarketingAssets";
+import UrgentCaregiversPage from "@/pages/UrgentCaregiversPage";
+import TestimonialManagementPage from "@/pages/admin/TestimonialManagementPage";
 
 export const AppRoutes = () => {
   const { user } = useAuth();
@@ -98,6 +100,7 @@ export const AppRoutes = () => {
       <Route path="/errands" element={<ErrandsPage />} />
       <Route path="/faq" element={<FAQPage />} />
       <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+      <Route path="/urgent-caregivers" element={<UrgentCaregiversPage />} />
       
       {/* Registration Routes */}
       <Route path="/registration/family" element={<FamilyRegistration />} />
@@ -155,6 +158,7 @@ export const AppRoutes = () => {
       <Route path="/admin/whatsapp-nudge" element={<WhatsAppNudgePage />} />
       <Route path="/admin/platform-analytics" element={<PlatformAnalyticsPage />} />
       <Route path="/admin/shift-management" element={<ShiftManagementPage />} />
+      <Route path="/admin/testimonials" element={<TestimonialManagementPage />} />
       
       {/* Legacy Routes */}
       <Route path="/legacy/stories" element={<LegacyStoriesPage />} />
