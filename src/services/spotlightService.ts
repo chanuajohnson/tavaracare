@@ -48,7 +48,7 @@ export const spotlightService = {
           full_name,
           avatar_url,
           address,
-          caregiver_specialties
+          care_services
         )
       `)
       .eq("is_active", true)
@@ -72,7 +72,7 @@ export const spotlightService = {
         fullName: item.profiles?.full_name || "Unknown",
         avatarUrl: item.profiles?.avatar_url,
         address: item.profiles?.address,
-        caregiverSpecialties: item.profiles?.caregiver_specialties || [],
+        caregiverSpecialties: item.profiles?.care_services || [],
       },
     }));
   },
