@@ -7,22 +7,51 @@ import { SpotlightCaregiverCard } from "@/components/spotlight/SpotlightCaregive
 import { TestimonialCard } from "@/components/spotlight/TestimonialCard";
 import { useSpotlightCaregivers, useCaregiverTestimonials } from "@/hooks/useSpotlightData";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MatchDetailModal } from "@/components/family/MatchDetailModal";
 
 const UrgentCaregiversPage = () => {
   const navigate = useNavigate();
   const [selectedCaregiver, setSelectedCaregiver] = useState<string | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedCaregiverData, setSelectedCaregiverData] = useState<any>(null);
   
   const { data: spotlightCaregivers, isLoading: isLoadingSpotlight } = useSpotlightCaregivers();
   const { data: testimonials } = useCaregiverTestimonials(selectedCaregiver || undefined);
 
-  const handleViewProfile = (id: string) => {
-    setSelectedCaregiver(id);
-    // Could navigate to a detailed profile page
+  const handleViewDetails = (id: string) => {
+    const caregiver = spotlightCaregivers?.find(c => c.caregiverId === id);
+    if (caregiver) {
+      // Transform spotlight caregiver data to match MatchDetailModal expected format
+      setSelectedCaregiverData({
+        id: caregiver.caregiverId,
+        full_name: caregiver.profile.fullName,
+        avatar_url: caregiver.profile.avatarUrl,
+        location: caregiver.profile.location || caregiver.profile.address,
+        care_types: caregiver.profile.caregiverSpecialties || [],
+        years_of_experience: null,
+        match_score: 95,
+        is_premium: false,
+      });
+      setShowDetailModal(true);
+    }
   };
 
-  const handleRequest = (id: string) => {
-    // Navigate to contact or request form
-    navigate(`/family/matching?caregiver=${id}`);
+  const handleWhatsAppChat = (id: string) => {
+    const caregiver = spotlightCaregivers?.find(c => c.caregiverId === id);
+    if (caregiver?.profile.phoneNumber) {
+      // Remove any non-digit characters and ensure no + prefix for the URL
+      const phone = caregiver.profile.phoneNumber.replace(/\D/g, '');
+      const message = encodeURIComponent(
+        `Hi, I saw your profile on Tavara and would like to discuss care services.`
+      );
+      const url = `https://api.whatsapp.com/send/?phone=${phone}&text=${message}&type=phone_number&app_absent=0`;
+      window.open(url, '_blank');
+    }
+  };
+
+  const handleStartChat = () => {
+    // For now, just close the modal - future upgrade will open chat tab
+    setShowDetailModal(false);
   };
 
   // Calculate average rating for a caregiver
@@ -115,8 +144,8 @@ const UrgentCaregiversPage = () => {
                     specialties={caregiver.profile.caregiverSpecialties}
                     location={caregiver.profile.location || caregiver.profile.address}
                     urgencyLevel="high"
-                    onViewProfile={handleViewProfile}
-                    onRequest={handleRequest}
+                    onViewDetails={handleViewDetails}
+                    onWhatsAppChat={handleWhatsAppChat}
                   />
                 </motion.div>
               ))}
@@ -193,6 +222,14 @@ const UrgentCaregiversPage = () => {
           </div>
         </div>
       </section>
+
+      {/* Match Detail Modal */}
+      <MatchDetailModal
+        open={showDetailModal}
+        onOpenChange={setShowDetailModal}
+        caregiver={selectedCaregiverData}
+        onStartChat={handleStartChat}
+      />
     </div>
   );
 };
