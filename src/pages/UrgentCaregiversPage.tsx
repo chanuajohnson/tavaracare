@@ -38,15 +38,20 @@ const UrgentCaregiversPage = () => {
 
   const handleWhatsAppChat = (id: string) => {
     const caregiver = spotlightCaregivers?.find(c => c.caregiverId === id);
-    if (caregiver?.profile.phoneNumber) {
-      // Remove any non-digit characters and ensure no + prefix for the URL
-      const phone = caregiver.profile.phoneNumber.replace(/\D/g, '');
-      const message = encodeURIComponent(
-        `Hi, I saw your profile on Tavara and would like to discuss care services.`
-      );
-      const url = `https://api.whatsapp.com/send/?phone=${phone}&text=${message}&type=phone_number&app_absent=0`;
-      window.open(url, '_blank');
-    }
+    
+    // Route all inquiries to centralized business number
+    const BUSINESS_WHATSAPP = "8687865357";
+    
+    // Include caregiver details so you know who they're asking about
+    const caregiverHeadline = caregiver?.headline || "a caregiver";
+    const caregiverLocation = caregiver?.profile?.location || caregiver?.profile?.address || "";
+    
+    const message = encodeURIComponent(
+      `Hi Tavara! I'm interested in connecting with the caregiver: "${caregiverHeadline}"${caregiverLocation ? ` from ${caregiverLocation}` : ""}. Please let me know the next steps.`
+    );
+    
+    const url = `https://api.whatsapp.com/send/?phone=${BUSINESS_WHATSAPP}&text=${message}&type=phone_number&app_absent=0`;
+    window.open(url, '_blank');
   };
 
   const handleStartChat = () => {
