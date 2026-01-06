@@ -13,6 +13,7 @@ export interface SpotlightCaregiver {
     fullName: string;
     avatarUrl?: string;
     address?: string;
+    location?: string;
     caregiverSpecialties?: string[];
   };
 }
@@ -48,6 +49,7 @@ export const spotlightService = {
           full_name,
           avatar_url,
           address,
+          location,
           care_services
         )
       `)
@@ -72,6 +74,7 @@ export const spotlightService = {
         fullName: item.profiles?.full_name || "Unknown",
         avatarUrl: item.profiles?.avatar_url,
         address: item.profiles?.address,
+        location: item.profiles?.location,
         caregiverSpecialties: item.profiles?.care_services || [],
       },
     }));
