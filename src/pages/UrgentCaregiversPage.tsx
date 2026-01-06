@@ -113,7 +113,7 @@ const UrgentCaregiversPage = () => {
                     headline={caregiver.headline}
                     description={caregiver.description}
                     specialties={caregiver.profile.caregiverSpecialties}
-                    location={caregiver.profile.address}
+                    location={caregiver.profile.location || caregiver.profile.address}
                     urgencyLevel="high"
                     onViewProfile={handleViewProfile}
                     onRequest={handleRequest}
