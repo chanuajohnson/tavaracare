@@ -1,4 +1,4 @@
-import { Star, MapPin, Award } from "lucide-react";
+import { Star, MapPin, Award, MessageCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,8 +17,8 @@ interface SpotlightCaregiverCardProps {
   averageRating?: number;
   testimonialCount?: number;
   urgencyLevel?: "high" | "medium" | "low";
-  onViewProfile?: (id: string) => void;
-  onRequest?: (id: string) => void;
+  onViewDetails?: (id: string) => void;
+  onWhatsAppChat?: (id: string) => void;
   className?: string;
 }
 
@@ -33,8 +33,8 @@ export const SpotlightCaregiverCard = ({
   averageRating,
   testimonialCount = 0,
   urgencyLevel = "high",
-  onViewProfile,
-  onRequest,
+  onViewDetails,
+  onWhatsAppChat,
   className,
 }: SpotlightCaregiverCardProps) => {
   const initials = name
@@ -66,7 +66,7 @@ export const SpotlightCaregiverCard = ({
         {/* Avatar overlapping header and content */}
         <div className="relative px-6 -mt-8">
           <Avatar className="h-16 w-16 border-4 border-background shadow-md">
-            <AvatarImage src={avatarUrl} alt={name} />
+            <AvatarImage src={avatarUrl} alt={headline} />
             <AvatarFallback className="bg-primary text-primary-foreground text-lg font-semibold">
               {initials}
             </AvatarFallback>
@@ -75,10 +75,9 @@ export const SpotlightCaregiverCard = ({
 
         {/* Content */}
         <div className="p-6 pt-3 space-y-4">
-          {/* Name and headline */}
+          {/* Headline as primary identifier */}
           <div>
-            <h3 className="font-semibold text-lg text-foreground">{name}</h3>
-            <p className="text-sm text-primary font-medium">{headline}</p>
+            <h3 className="font-semibold text-lg text-foreground">{headline}</h3>
           </div>
 
           {/* Description */}
@@ -137,16 +136,17 @@ export const SpotlightCaregiverCard = ({
               variant="outline"
               size="sm"
               className="flex-1"
-              onClick={() => onViewProfile?.(id)}
+              onClick={() => onViewDetails?.(id)}
             >
-              View Profile
+              View Details
             </Button>
             <Button
               size="sm"
-              className="flex-1"
-              onClick={() => onRequest?.(id)}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => onWhatsAppChat?.(id)}
             >
-              Request
+              <MessageCircle className="h-4 w-4 mr-1.5" />
+              WhatsApp
             </Button>
           </div>
         </div>
