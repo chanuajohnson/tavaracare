@@ -1136,6 +1136,148 @@ export type Database = {
         }
         Relationships: []
       }
+      caregiver_spotlight: {
+        Row: {
+          caregiver_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_order: number
+          end_date: string | null
+          featured_image_url: string | null
+          headline: string
+          id: string
+          is_active: boolean
+          start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          caregiver_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          end_date?: string | null
+          featured_image_url?: string | null
+          headline: string
+          id?: string
+          is_active?: boolean
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          caregiver_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          end_date?: string | null
+          featured_image_url?: string | null
+          headline?: string
+          id?: string
+          is_active?: boolean
+          start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caregiver_spotlight_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caregiver_spotlight_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      caregiver_testimonials: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          care_period_end: string | null
+          care_period_start: string | null
+          caregiver_id: string
+          content: string
+          created_at: string
+          family_id: string | null
+          family_name: string
+          family_relationship: string | null
+          id: string
+          is_approved: boolean
+          is_verified: boolean
+          rating: number | null
+          source: string | null
+          updated_at: string
+          whatsapp_conversation_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          care_period_end?: string | null
+          care_period_start?: string | null
+          caregiver_id: string
+          content: string
+          created_at?: string
+          family_id?: string | null
+          family_name: string
+          family_relationship?: string | null
+          id?: string
+          is_approved?: boolean
+          is_verified?: boolean
+          rating?: number | null
+          source?: string | null
+          updated_at?: string
+          whatsapp_conversation_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          care_period_end?: string | null
+          care_period_start?: string | null
+          caregiver_id?: string
+          content?: string
+          created_at?: string
+          family_id?: string | null
+          family_name?: string
+          family_relationship?: string | null
+          id?: string
+          is_approved?: boolean
+          is_verified?: boolean
+          rating?: number | null
+          source?: string | null
+          updated_at?: string
+          whatsapp_conversation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caregiver_testimonials_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caregiver_testimonials_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caregiver_testimonials_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_conversation_flows: {
         Row: {
           created_at: string | null
@@ -3920,6 +4062,69 @@ export type Database = {
           total_lessons?: number
         }
         Relationships: []
+      }
+      urgent_availability: {
+        Row: {
+          admin_featured: boolean
+          available_from: string
+          available_until: string | null
+          caregiver_id: string
+          created_at: string
+          created_by: string | null
+          featured_order: number | null
+          id: string
+          notes: string | null
+          preferred_hours: string | null
+          reason: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_featured?: boolean
+          available_from?: string
+          available_until?: string | null
+          caregiver_id: string
+          created_at?: string
+          created_by?: string | null
+          featured_order?: number | null
+          id?: string
+          notes?: string | null
+          preferred_hours?: string | null
+          reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_featured?: boolean
+          available_from?: string
+          available_until?: string | null
+          caregiver_id?: string
+          created_at?: string
+          created_by?: string | null
+          featured_order?: number | null
+          id?: string
+          notes?: string | null
+          preferred_hours?: string | null
+          reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "urgent_availability_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "urgent_availability_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_cohorts: {
         Row: {
