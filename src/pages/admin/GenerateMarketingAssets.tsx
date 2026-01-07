@@ -6,17 +6,21 @@ import { Loader2, Download, Image, FileText, QrCode } from 'lucide-react';
 import { 
   generateErrandsPricingSheet,
   generateErrandsQRCodes,
-  generateInstagramTemplates 
+  generateInstagramTemplates,
+  generateCaregivingFlyer
 } from '@/utils/marketing/generateMarketingAssets';
+import { Users } from 'lucide-react';
 
 const GenerateMarketingAssets = () => {
   const [loading, setLoading] = useState(false);
   const [generatedAssets, setGeneratedAssets] = useState<{
     pricingSheet?: string;
+    caregivingFlyer?: string;
     qr1?: string;
     qr2?: string;
     instagramTemplates?: Array<{ name: string; imageUrl: string }>;
   }>({});
+  const [flyerLoading, setFlyerLoading] = useState(false);
 
   const downloadImage = (url: string, filename: string) => {
     const link = document.createElement('a');
@@ -59,7 +63,7 @@ const GenerateMarketingAssets = () => {
   };
 
   const handleDownloadAll = () => {
-    if (!generatedAssets.pricingSheet && !generatedAssets.qr1 && !generatedAssets.instagramTemplates) {
+    if (!generatedAssets.pricingSheet && !generatedAssets.caregivingFlyer && !generatedAssets.qr1 && !generatedAssets.instagramTemplates) {
       toast.error('No assets generated yet. Click Generate All first.');
       return;
     }
@@ -68,6 +72,11 @@ const GenerateMarketingAssets = () => {
 
     if (generatedAssets.pricingSheet) {
       downloadImage(generatedAssets.pricingSheet, 'tavara-errands-pricing-guide.png');
+      downloadCount++;
+    }
+
+    if (generatedAssets.caregivingFlyer) {
+      downloadImage(generatedAssets.caregivingFlyer, 'tavara-caregiving-flyer.png');
       downloadCount++;
     }
 
@@ -91,6 +100,22 @@ const GenerateMarketingAssets = () => {
     }
 
     toast.success(`Downloading ${downloadCount} assets...`);
+  };
+
+  const handleGenerateCaregivingFlyer = async () => {
+    setFlyerLoading(true);
+    toast.info('Generating caregiving flyer...');
+    
+    try {
+      const caregivingFlyer = await generateCaregivingFlyer();
+      setGeneratedAssets(prev => ({ ...prev, caregivingFlyer }));
+      toast.success('Caregiving flyer generated! Click to download.');
+    } catch (error) {
+      console.error('Flyer generation error:', error);
+      toast.error('Failed to generate flyer. Please try again.');
+    } finally {
+      setFlyerLoading(false);
+    }
   };
 
   return (
@@ -132,13 +157,61 @@ const GenerateMarketingAssets = () => {
 
             <Button 
               onClick={handleDownloadAll}
-              disabled={!generatedAssets.pricingSheet && !generatedAssets.qr1 && !generatedAssets.instagramTemplates}
+              disabled={!generatedAssets.pricingSheet && !generatedAssets.caregivingFlyer && !generatedAssets.qr1 && !generatedAssets.instagramTemplates}
               size="lg"
               variant="outline"
             >
               <Download className="mr-2 h-4 w-4" />
               Download All
             </Button>
+          </div>
+
+          {/* Caregiving Flyer Generator */}
+          <div className="p-4 border-2 border-dashed border-primary/30 rounded-lg bg-primary/5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-start gap-3">
+                <Users className="h-6 w-6 text-primary mt-0.5" />
+                <div>
+                  <p className="font-semibold">Caregiving Services Flyer</p>
+                  <p className="text-sm text-muted-foreground">Half-page (5.5x8.5") for stores, spas, yoga studios</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleGenerateCaregivingFlyer} 
+                  disabled={flyerLoading || loading}
+                  size="sm"
+                >
+                  {flyerLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    'Generate Flyer'
+                  )}
+                </Button>
+                {generatedAssets.caregivingFlyer && (
+                  <Button 
+                    onClick={() => downloadImage(generatedAssets.caregivingFlyer!, 'tavara-caregiving-flyer.png')}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </Button>
+                )}
+              </div>
+            </div>
+            {generatedAssets.caregivingFlyer && (
+              <div className="mt-4">
+                <img 
+                  src={generatedAssets.caregivingFlyer} 
+                  alt="Caregiving Flyer Preview" 
+                  className="max-w-xs mx-auto rounded-lg shadow-md border"
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
