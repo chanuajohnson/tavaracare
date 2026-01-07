@@ -99,9 +99,10 @@ const GenerateMarketingAssets = () => {
   };
 
   const handleDownloadFlyer = async () => {
-    const flyerElement = document.getElementById('caregiving-flyer');
+    // Use the hidden full-size flyer (no CSS transforms)
+    const flyerElement = document.getElementById('caregiving-flyer-download');
     if (!flyerElement) {
-      toast.error('Flyer not found. Please show preview first.');
+      toast.error('Flyer not found. Please try again.');
       return;
     }
 
@@ -113,7 +114,17 @@ const GenerateMarketingAssets = () => {
         scale: 2, // Higher resolution for print
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        logging: false,
+        removeContainer: true,
+        onclone: (clonedDoc) => {
+          const clonedElement = clonedDoc.getElementById('caregiving-flyer');
+          if (clonedElement) {
+            clonedElement.style.transform = 'none';
+            clonedElement.style.width = '550px';
+            clonedElement.style.height = '850px';
+          }
+        }
       });
 
       const link = document.createElement('a');
@@ -226,9 +237,9 @@ const GenerateMarketingAssets = () => {
             )}
           </div>
 
-          {/* Hidden full-size flyer for download */}
-          <div className="fixed -left-[9999px] -top-[9999px]">
-            <CaregivingFlyerTemplate />
+          {/* Hidden full-size flyer for download - no transforms */}
+          <div style={{ position: 'absolute', left: '-9999px', top: '0' }}>
+            <CaregivingFlyerTemplate id="caregiving-flyer-download" />
           </div>
 
           <div className="space-y-4">
