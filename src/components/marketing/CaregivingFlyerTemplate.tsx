@@ -1,6 +1,6 @@
 import React from 'react';
 import { QRCode } from './QRCode';
-import { Phone, Heart, Pill, Car, UtensilsCrossed, PersonStanding } from 'lucide-react';
+import { Phone, Heart, Pill, Car, UtensilsCrossed, PersonStanding, Quote } from 'lucide-react';
 
 interface CaregivingFlyerTemplateProps {
   id?: string;
@@ -10,11 +10,11 @@ export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = (
   id = 'caregiving-flyer' 
 }) => {
   const services = [
-    { icon: PersonStanding, label: 'Personal Care' },
-    { icon: Heart, label: 'Companionship' },
+    { icon: PersonStanding, label: 'Personal Assistance' },
+    { icon: Heart, label: 'Companionship & Support' },
     { icon: Pill, label: 'Medication Support' },
-    { icon: PersonStanding, label: 'Mobility Assistance' },
-    { icon: UtensilsCrossed, label: 'Meal Preparation' },
+    { icon: PersonStanding, label: 'Safe Mobility Help' },
+    { icon: UtensilsCrossed, label: 'Healthy Meals' },
     { icon: Car, label: 'Transportation' },
   ];
 
@@ -41,38 +41,48 @@ export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = (
           </p>
         </div>
 
-        {/* Main Value Proposition */}
-        <div className="text-center -mt-8">
+        {/* Main Value Proposition - Emotional Headline */}
+        <div className="text-center -mt-6">
           <h2 className="text-3xl font-bold leading-tight" style={{ color: '#1a365d' }}>
-            Compassionate Care<br />
-            for Your Loved Ones
+            Because Someone You Love<br />
+            Deserves to Be Safe & Cared For
           </h2>
-          <p className="mt-3 text-sm max-w-xs mx-auto" style={{ color: '#374151' }}>
-            Trusted, vetted caregivers matched to your family's unique needs
+          <p className="mt-3 text-sm max-w-sm mx-auto leading-relaxed" style={{ color: '#374151' }}>
+            Whether you need help today or you're planning ahead — our team is ready to match you with the right caregiver.
           </p>
         </div>
 
-        {/* Services Grid */}
-        <div className="grid grid-cols-3 gap-4 w-full max-w-md -mt-4">
-          {services.map((service, index) => (
-            <div 
-              key={index} 
-              className="flex flex-col items-center text-center p-2 rounded-lg"
-              style={{ backgroundColor: 'rgba(107, 159, 219, 0.2)' }}
-            >
+        {/* Services Grid with Header */}
+        <div className="w-full max-w-md -mt-2">
+          <p className="text-center font-semibold mb-3" style={{ color: '#6B9FDB' }}>
+            💙 What We Offer:
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            {services.map((service, index) => (
               <div 
-                className="w-10 h-10 rounded-full flex items-center justify-center mb-1"
-                style={{ backgroundColor: '#6B9FDB' }}
+                key={index} 
+                className="flex flex-col items-center text-center p-2 rounded-lg"
+                style={{ backgroundColor: 'rgba(107, 159, 219, 0.15)' }}
               >
-                <service.icon className="w-5 h-5" style={{ color: 'white' }} />
+                <div 
+                  className="w-9 h-9 rounded-full flex items-center justify-center mb-1"
+                  style={{ backgroundColor: '#6B9FDB' }}
+                >
+                  <service.icon className="w-4 h-4" style={{ color: 'white' }} />
+                </div>
+                <span className="text-xs font-medium leading-tight" style={{ color: '#374151' }}>{service.label}</span>
               </div>
-              <span className="text-xs font-medium" style={{ color: '#374151' }}>{service.label}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Call to Action Section */}
-        <div className="w-full space-y-4">
+        <div className="w-full space-y-3">
+          {/* CTA Header */}
+          <p className="text-center font-semibold text-sm" style={{ color: '#1a365d' }}>
+            ✅ Need a caregiver? Chat with us now!
+          </p>
+          
           {/* WhatsApp CTA */}
           <div 
             className="flex items-center justify-center gap-3 py-3 px-4 rounded-lg"
@@ -83,22 +93,35 @@ export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = (
           </div>
 
           {/* QR Code Section */}
-          <div className="flex items-center justify-center gap-4 py-3">
+          <div className="flex items-center justify-center gap-4 py-2">
             <div className="p-2 rounded-lg" style={{ border: '1px solid #e5e7eb' }}>
-              <QRCode url="https://tavara.care" size={80} />
+              <QRCode url="https://tavara.care" size={70} />
             </div>
             <div className="text-left">
-              <p className="font-bold" style={{ color: '#1a365d' }}>Scan to find</p>
-              <p className="font-bold" style={{ color: '#1a365d' }}>a caregiver</p>
+              <p className="font-bold text-sm" style={{ color: '#1a365d' }}>📲 Scan to view</p>
+              <p className="font-bold text-sm" style={{ color: '#1a365d' }}>available caregivers</p>
               <p className="text-xs mt-1" style={{ color: '#6B7280' }}>tavara.care</p>
             </div>
           </div>
         </div>
 
+        {/* Testimonial */}
+        <div className="w-full max-w-sm text-center px-4 py-3 rounded-lg" style={{ backgroundColor: 'rgba(107, 159, 219, 0.1)' }}>
+          <div className="flex justify-center mb-1">
+            <Quote className="w-4 h-4" style={{ color: '#6B9FDB' }} />
+          </div>
+          <p className="text-xs italic leading-relaxed" style={{ color: '#374151' }}>
+            "I love working with families through Tavara. I get to do what I was born to do — care."
+          </p>
+          <p className="text-xs font-semibold mt-1" style={{ color: '#1a365d' }}>
+            — Shenelle, Caregiver since 2022
+          </p>
+        </div>
+
         {/* Footer */}
         <div className="text-center">
           <p className="text-sm font-medium" style={{ color: '#6B9FDB' }}>
-            Serving Trinidad & Tobago
+            🏝️ Proudly serving families across Trinidad & Tobago
           </p>
         </div>
       </div>
