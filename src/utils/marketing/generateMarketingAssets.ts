@@ -176,3 +176,76 @@ export const generateErrandsQRCodes = async () => {
 
   return { qr1: qr1Data?.imageUrl, qr2: qr2Data?.imageUrl };
 };
+
+export const generateCaregivingFlyer = async () => {
+  const prompt = `
+    Create a professional half-page flyer (5.5 x 8.5 inches, portrait orientation) for "Tavara.care" caregiving services.
+    This flyer is designed to attract families seeking care for elderly or special needs loved ones.
+    
+    HEADER SECTION (top 15% of flyer):
+    - "Tavara.care" in elegant, modern serif or clean sans-serif font (large, prominent)
+    - Tagline below: "Compassionate Care for Your Loved Ones" in smaller italic or regular text
+    - Tavara blue (#6B9FDB) accent line or gentle gradient bar underneath
+    
+    VISUAL/HERO SECTION (next 25%):
+    - Warm, professional imagery suggesting elderly care or family caregiving
+    - Show caring interaction: caregiver helping elderly person, or multigenerational family moment
+    - Soft, approachable aesthetic (NOT clinical or sterile)
+    - Blue and white color harmony with warm undertones
+    
+    SERVICES SECTION (middle 30%, icon grid 2x3 layout):
+    Clean rounded boxes or circles with icons and labels:
+    Row 1:
+    - 🧼 Personal Care (bathing, dressing assistance)
+    - 💙 Companionship (friendly conversation, activities)
+    Row 2:
+    - 💊 Medication Support (reminders, organization)
+    - 🚶 Mobility Assistance (walking, transfers)
+    Row 3:
+    - 🍲 Meal Preparation (cooking, nutrition)
+    - 🚗 Transportation (appointments, errands)
+    
+    Each icon should be simple, clean, and easily readable when printed.
+    
+    VALUE PROPOSITION (below services, about 10%):
+    - Bold text: "Trusted, Vetted Caregivers Matched to Your Family's Needs"
+    - Professional, trustworthy feel
+    - Subtle blue accent or background strip
+    
+    CALL TO ACTION SECTION (bottom 15%):
+    Left side:
+    - WhatsApp icon (green) with text: "Message us:"
+    - Phone number: "+1 (868) 786-5357" in bold
+    Right side:
+    - QR code placeholder (square box with rounded corners)
+    - Text below: "Scan to Find a Caregiver"
+    Both CTAs should be equally prominent and easy to read.
+    
+    FOOTER (bottom 5%):
+    - "tavara.care" website in center
+    - "Serving Trinidad & Tobago" below in smaller text
+    
+    DESIGN REQUIREMENTS:
+    - Clean, modern, warm, and professional aesthetic
+    - High contrast for excellent print readability
+    - Tavara blue (#6B9FDB) as primary accent color
+    - White or very light background for easy printing
+    - Dark gray or black text for maximum readability
+    - Plenty of white space - not cluttered
+    - Print-ready quality (crisp lines, clear text)
+    - Half-page format: 5.5 x 8.5 inches portrait orientation
+    - Suitable for leaving at stores, spas, yoga studios
+  `;
+
+  const { data, error } = await supabase.functions.invoke('generate-marketing-image', {
+    body: { 
+      prompt, 
+      width: 825,   // 5.5 inches at 150dpi for web preview (scales well for print)
+      height: 1275, // 8.5 inches at 150dpi
+      outputFormat: 'png' 
+    }
+  });
+
+  if (error) throw error;
+  return data?.imageUrl;
+};
