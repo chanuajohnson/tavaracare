@@ -94,13 +94,13 @@ export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = (
 
           {/* QR Code Section */}
           <div className="flex items-center justify-center gap-4 py-2">
-            <div className="p-2 rounded-lg" style={{ border: '1px solid #e5e7eb' }}>
-              <QRCode url="https://tavara.care" size={70} />
+          <div className="p-2 rounded-lg" style={{ border: '1px solid #e5e7eb' }}>
+              <QRCode url="https://tavara.care/urgent-caregivers" size={70} />
             </div>
             <div className="text-left">
               <p className="font-bold text-sm" style={{ color: '#1a365d' }}>📲 Scan to view</p>
               <p className="font-bold text-sm" style={{ color: '#1a365d' }}>available caregivers</p>
-              <p className="text-xs mt-1" style={{ color: '#6B7280' }}>tavara.care</p>
+              <p className="text-xs mt-1" style={{ color: '#6B7280' }}>tavara.care/urgent-caregivers</p>
             </div>
           </div>
         </div>
