@@ -21,42 +21,33 @@ export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = (
   return (
     <div 
       id={id}
-      className="relative overflow-hidden bg-white"
+      className="bg-white"
       style={{ 
         width: '550px', 
         height: '850px',
         fontFamily: 'system-ui, -apple-system, sans-serif'
       }}
     >
-      {/* Background Image with Overlay */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ 
-          backgroundImage: 'url(/marketing/flyer-background.png)',
-          filter: 'brightness(0.4)'
-        }}
-      />
-      
       {/* Content Container */}
-      <div className="relative z-10 h-full flex flex-col items-center justify-between p-8 text-white">
+      <div className="h-full flex flex-col items-center justify-between p-8">
         
         {/* Header */}
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight" style={{ color: '#6B9FDB' }}>
             Tavara.care
           </h1>
-          <p className="text-lg mt-1 italic opacity-90">
+          <p className="text-lg mt-1 italic" style={{ color: '#6B7280' }}>
             It takes a village to care
           </p>
         </div>
 
         {/* Main Value Proposition */}
         <div className="text-center -mt-8">
-          <h2 className="text-3xl font-bold leading-tight">
+          <h2 className="text-3xl font-bold leading-tight" style={{ color: '#1a365d' }}>
             Compassionate Care<br />
             for Your Loved Ones
           </h2>
-          <p className="mt-3 text-sm opacity-80 max-w-xs mx-auto">
+          <p className="mt-3 text-sm max-w-xs mx-auto" style={{ color: '#374151' }}>
             Trusted, vetted caregivers matched to your family's unique needs
           </p>
         </div>
@@ -73,9 +64,9 @@ export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = (
                 className="w-10 h-10 rounded-full flex items-center justify-center mb-1"
                 style={{ backgroundColor: '#6B9FDB' }}
               >
-                <service.icon className="w-5 h-5 text-white" />
+                <service.icon className="w-5 h-5" style={{ color: 'white' }} />
               </div>
-              <span className="text-xs font-medium">{service.label}</span>
+              <span className="text-xs font-medium" style={{ color: '#374151' }}>{service.label}</span>
             </div>
           ))}
         </div>
@@ -85,21 +76,21 @@ export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = (
           {/* WhatsApp CTA */}
           <div 
             className="flex items-center justify-center gap-3 py-3 px-4 rounded-lg"
-            style={{ backgroundColor: '#25D366' }}
+            style={{ backgroundColor: '#25D366', color: 'white' }}
           >
-            <Phone className="w-5 h-5" />
-            <span className="font-bold text-lg">WhatsApp: +1 (868) 786-5357</span>
+            <Phone className="w-5 h-5" style={{ color: 'white' }} />
+            <span className="font-bold text-lg" style={{ color: 'white' }}>WhatsApp: +1 (868) 786-5357</span>
           </div>
 
           {/* QR Code Section */}
           <div className="flex items-center justify-center gap-4 py-3">
-            <div className="bg-white p-2 rounded-lg">
+            <div className="p-2 rounded-lg" style={{ border: '1px solid #e5e7eb' }}>
               <QRCode url="https://tavara.care" size={80} />
             </div>
             <div className="text-left">
-              <p className="font-bold">Scan to find</p>
-              <p className="font-bold">a caregiver</p>
-              <p className="text-xs opacity-80 mt-1">tavara.care</p>
+              <p className="font-bold" style={{ color: '#1a365d' }}>Scan to find</p>
+              <p className="font-bold" style={{ color: '#1a365d' }}>a caregiver</p>
+              <p className="text-xs mt-1" style={{ color: '#6B7280' }}>tavara.care</p>
             </div>
           </div>
         </div>
