@@ -7,13 +7,14 @@ import { SpotlightCaregiverCard } from "@/components/spotlight/SpotlightCaregive
 import { TestimonialCard } from "@/components/spotlight/TestimonialCard";
 import { useSpotlightCaregivers, useCaregiverTestimonials } from "@/hooks/useSpotlightData";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MatchDetailModal } from "@/components/family/MatchDetailModal";
+import { SpotlightCaregiverDetailModal } from "@/components/spotlight/SpotlightCaregiverDetailModal";
+import { SpotlightCaregiver } from "@/services/spotlightService";
 
 const UrgentCaregiversPage = () => {
   const navigate = useNavigate();
   const [selectedCaregiver, setSelectedCaregiver] = useState<string | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedCaregiverData, setSelectedCaregiverData] = useState<any>(null);
+  const [selectedCaregiverData, setSelectedCaregiverData] = useState<SpotlightCaregiver | null>(null);
   
   const { data: spotlightCaregivers, isLoading: isLoadingSpotlight } = useSpotlightCaregivers();
   const { data: testimonials } = useCaregiverTestimonials(selectedCaregiver || undefined);
@@ -21,17 +22,8 @@ const UrgentCaregiversPage = () => {
   const handleViewDetails = (id: string) => {
     const caregiver = spotlightCaregivers?.find(c => c.caregiverId === id);
     if (caregiver) {
-      // Transform spotlight caregiver data to match MatchDetailModal expected format
-      setSelectedCaregiverData({
-        id: caregiver.caregiverId,
-        full_name: caregiver.profile.fullName,
-        avatar_url: caregiver.profile.avatarUrl,
-        location: caregiver.profile.location || caregiver.profile.address,
-        care_types: caregiver.profile.caregiverSpecialties || [],
-        years_of_experience: null,
-        match_score: 95,
-        is_premium: false,
-      });
+      // Pass the full spotlight caregiver data to the new modal
+      setSelectedCaregiverData(caregiver);
       setShowDetailModal(true);
     }
   };
@@ -52,11 +44,6 @@ const UrgentCaregiversPage = () => {
     
     const url = `https://api.whatsapp.com/send/?phone=${BUSINESS_WHATSAPP}&text=${message}&type=phone_number&app_absent=0`;
     window.open(url, '_blank');
-  };
-
-  const handleStartChat = () => {
-    // For now, just close the modal - future upgrade will open chat tab
-    setShowDetailModal(false);
   };
 
   // Calculate average rating for a caregiver
@@ -228,12 +215,12 @@ const UrgentCaregiversPage = () => {
         </div>
       </section>
 
-      {/* Match Detail Modal */}
-      <MatchDetailModal
+      {/* Spotlight Caregiver Detail Modal */}
+      <SpotlightCaregiverDetailModal
         open={showDetailModal}
         onOpenChange={setShowDetailModal}
         caregiver={selectedCaregiverData}
-        onStartChat={handleStartChat}
+        onWhatsAppChat={handleWhatsAppChat}
       />
     </div>
   );
