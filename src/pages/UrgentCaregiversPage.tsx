@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Heart, Users, Shield, Clock, ArrowLeft } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { Button } from "@/components/ui/button";
 import { SpotlightCaregiverCard } from "@/components/spotlight/SpotlightCaregiverCard";
 import { TestimonialCard } from "@/components/spotlight/TestimonialCard";
@@ -12,9 +13,17 @@ import { SpotlightCaregiver } from "@/services/spotlightService";
 
 const UrgentCaregiversPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selectedCaregiver, setSelectedCaregiver] = useState<string | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCaregiverData, setSelectedCaregiverData] = useState<SpotlightCaregiver | null>(null);
+  
+  // Extract UTM parameters for flyer tracking
+  const utmData = {
+    utm_source: searchParams.get('utm_source') || undefined,
+    utm_content: searchParams.get('utm_content') || undefined,
+    utm_location: searchParams.get('utm_location') || undefined,
+  };
   
   const { data: spotlightCaregivers, isLoading: isLoadingSpotlight } = useSpotlightCaregivers();
   const { data: testimonials } = useCaregiverTestimonials(selectedCaregiver || undefined);
@@ -56,6 +65,13 @@ const UrgentCaregiversPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Track page view with UTM params for flyer analytics */}
+      <PageViewTracker 
+        actionType="urgent_caregivers_page_view"
+        additionalData={utmData}
+        journeyStage="discovery"
+      />
+      
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-background py-16 md:py-24">
         <div className="container mx-auto px-4">
