@@ -4467,6 +4467,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_subscriptions: {
         Row: {
           created_at: string | null
@@ -5390,6 +5411,13 @@ export type Database = {
           years_of_experience: string
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_user_voted_for_feature: {
         Args: { feature_id: string; user_id: string }
         Returns: boolean
@@ -5461,6 +5489,7 @@ export type Database = {
         | "cancelled"
         | "completed"
         | "locked"
+      app_role: "admin" | "moderator" | "user"
       care_urgency:
         | "immediate"
         | "within_week"
@@ -5638,6 +5667,7 @@ export const Constants = {
         "completed",
         "locked",
       ],
+      app_role: ["admin", "moderator", "user"],
       care_urgency: [
         "immediate",
         "within_week",
