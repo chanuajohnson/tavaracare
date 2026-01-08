@@ -15,6 +15,8 @@ import { FlyerAnalyticsDashboard } from '@/components/marketing/FlyerAnalyticsDa
 import html2canvas from 'html2canvas';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { Navigate } from 'react-router-dom';
 
 interface FlyerLocation {
   id: string;
@@ -33,6 +35,8 @@ interface FlyerLocation {
 }
 
 const FlyerLocations = () => {
+  const { user, isLoading: authLoading } = useAuth();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [locations, setLocations] = useState<FlyerLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -53,9 +57,43 @@ const FlyerLocations = () => {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Check admin status
   useEffect(() => {
-    fetchLocations();
-  }, []);
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase.rpc('has_role', {
+          _user_id: user.id,
+          _role: 'admin'
+        });
+        
+        if (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+          return;
+        }
+        
+        setIsAdmin(data ?? false);
+      } catch (err) {
+        console.error('Error checking admin status:', err);
+        setIsAdmin(false);
+      }
+    };
+    
+    if (!authLoading) {
+      checkAdminStatus();
+    }
+  }, [user, authLoading]);
+
+  useEffect(() => {
+    if (isAdmin === true) {
+      fetchLocations();
+    }
+  }, [isAdmin]);
 
   const fetchLocations = async () => {
     try {
@@ -73,6 +111,29 @@ const FlyerLocations = () => {
       setLoading(false);
     }
   };
+
+  // Redirect if not authenticated
+  if (!authLoading && !user) {
+    toast.error('Please sign in to access this page');
+    return <Navigate to="/auth" replace />;
+  }
+
+  // Show loading while checking auth/admin status
+  if (authLoading || isAdmin === null) {
+    return (
+      <div className="container mx-auto py-10 max-w-6xl">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect if not admin
+  if (!isAdmin) {
+    toast.error('Admin access required');
+    return <Navigate to="/" replace />;
+  }
 
   const handleAddLocation = async () => {
     if (!category || !businessName) {
@@ -316,7 +377,7 @@ const FlyerLocations = () => {
     return acc;
   }, {} as Record<string, FlyerLocation[]>);
 
-  if (loading) {
+  if (loading && locations.length === 0) {
     return (
       <div className="container mx-auto py-10 max-w-6xl">
         <div className="flex items-center justify-center h-64">
