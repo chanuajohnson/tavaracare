@@ -4,11 +4,22 @@ import { Phone, Heart, Pill, Car, UtensilsCrossed, PersonStanding, Quote } from 
 
 interface CaregivingFlyerTemplateProps {
   id?: string;
+  variant?: 'A' | 'B';
 }
 
 export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = ({ 
-  id = 'caregiving-flyer' 
+  id = 'caregiving-flyer',
+  variant = 'A'
 }) => {
+  // Variant-specific content
+  const headlineText = variant === 'B' 
+    ? 'Match with a caregiver today' 
+    : 'Find care now';
+
+  const qrUrl = variant === 'B'
+    ? 'https://tavara.care/urgent-caregivers?utm_source=flyer&utm_content=match_caregiver'
+    : 'https://tavara.care/urgent-caregivers?utm_source=flyer&utm_content=find_care_now';
+
   const services = [
     { icon: PersonStanding, label: 'Personal Assistance' },
     { icon: Heart, label: 'Companionship & Support' },
@@ -41,15 +52,11 @@ export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = (
           </p>
         </div>
 
-        {/* Main Value Proposition - Emotional Headline */}
-        <div className="text-center -mt-6">
-          <h2 className="text-3xl font-bold leading-tight" style={{ color: '#1a365d' }}>
-            Because Someone You Love<br />
-            Deserves to Be Safe & Cared For
+        {/* Main Value Proposition - Punchy Headline */}
+        <div className="text-center -mt-4">
+          <h2 className="text-4xl font-bold leading-tight" style={{ color: '#1a365d' }}>
+            {headlineText}
           </h2>
-          <p className="mt-3 text-sm max-w-sm mx-auto leading-relaxed" style={{ color: '#374151' }}>
-            Whether you need help today or you're planning ahead — our team is ready to match you with the right caregiver.
-          </p>
         </div>
 
         {/* Services Grid with Header */}
@@ -94,8 +101,8 @@ export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = (
 
           {/* QR Code Section */}
           <div className="flex items-center justify-center gap-4 py-2">
-          <div className="p-2 rounded-lg" style={{ border: '1px solid #e5e7eb' }}>
-              <QRCode url="https://tavara.care/urgent-caregivers" size={70} />
+            <div className="p-2 rounded-lg" style={{ border: '1px solid #e5e7eb' }}>
+              <QRCode url={qrUrl} size={70} />
             </div>
             <div className="text-left">
               <p className="font-bold text-sm" style={{ color: '#1a365d' }}>📲 Scan to view</p>
@@ -114,7 +121,7 @@ export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = (
             "I love working with families through Tavara. I get to do what I was born to do — care."
           </p>
           <p className="text-xs font-semibold mt-1" style={{ color: '#1a365d' }}>
-            — Shenelle, Caregiver since 2022
+            — Shenelle, Caregiver since 2025
           </p>
         </div>
 
