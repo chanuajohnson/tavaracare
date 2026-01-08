@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, MapPin, Download, Loader2, Trash2, BarChart3, Edit2 } from 'lucide-react';
+import { Plus, MapPin, Download, Loader2, Trash2, BarChart3, Edit2, CheckSquare, Square } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { FLYER_CATEGORIES, generateLocationCode, getCategoryByCode } from '@/constants/flyerCategories';
 import { CaregivingFlyerTemplate } from '@/components/marketing/CaregivingFlyerTemplate';
 import { FlyerAnalyticsDashboard } from '@/components/marketing/FlyerAnalyticsDashboard';
@@ -39,6 +40,8 @@ const FlyerLocations = () => {
   const [editingLocation, setEditingLocation] = useState<FlyerLocation | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState('30');
+  const [selectedLocations, setSelectedLocations] = useState<Set<string>>(new Set());
+  const [batchDownloading, setBatchDownloading] = useState(false);
   
   // Form state
   const [category, setCategory] = useState('');
@@ -249,6 +252,47 @@ const FlyerLocations = () => {
     }
   };
 
+  const handleSelectAll = () => {
+    if (selectedLocations.size === locations.length) {
+      setSelectedLocations(new Set());
+    } else {
+      setSelectedLocations(new Set(locations.map(l => l.id)));
+    }
+  };
+
+  const handleToggleSelection = (id: string) => {
+    const newSet = new Set(selectedLocations);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedLocations(newSet);
+  };
+
+  const handleBatchDownload = async () => {
+    const selected = locations.filter(l => selectedLocations.has(l.id));
+    if (selected.length === 0) return;
+
+    setBatchDownloading(true);
+    let successCount = 0;
+
+    for (const location of selected) {
+      try {
+        await handleDownloadFlyer(location);
+        successCount++;
+        // Small delay between downloads to prevent browser issues
+        await new Promise(r => setTimeout(r, 400));
+      } catch (error) {
+        console.error(`Failed to download flyer for ${location.business_name}:`, error);
+      }
+    }
+
+    toast.success(`Downloaded ${successCount} of ${selected.length} flyers!`);
+    setSelectedLocations(new Set());
+    setBatchDownloading(false);
+  };
+
   const handleUpdateFlyerCount = async (id: string, count: number) => {
     try {
       const { error } = await supabase
@@ -307,40 +351,79 @@ const FlyerLocations = () => {
 
         {/* Locations Tab */}
         <TabsContent value="locations" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1 mr-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-2xl font-bold">{locations.length}</div>
-                  <p className="text-sm text-muted-foreground">Total Locations</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-2xl font-bold">{Object.keys(groupedLocations).length}</div>
-                  <p className="text-sm text-muted-foreground">Categories</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-2xl font-bold">{locations.reduce((sum, l) => sum + l.flyers_count, 0)}</div>
-                  <p className="text-sm text-muted-foreground">Flyers Distributed</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-2xl font-bold">{locations.filter(l => l.placed_date).length}</div>
-                  <p className="text-sm text-muted-foreground">Active Placements</p>
-                </CardContent>
-              </Card>
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between items-center flex-wrap gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold">{locations.length}</div>
+                    <p className="text-sm text-muted-foreground">Total Locations</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold">{Object.keys(groupedLocations).length}</div>
+                    <p className="text-sm text-muted-foreground">Categories</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold">{locations.reduce((sum, l) => sum + l.flyers_count, 0)}</div>
+                    <p className="text-sm text-muted-foreground">Flyers Distributed</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold">{locations.filter(l => l.placed_date).length}</div>
+                    <p className="text-sm text-muted-foreground">Active Placements</p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-            <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Location
+            
+            {/* Batch Actions */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleSelectAll}
+                  disabled={locations.length === 0}
+                >
+                  {selectedLocations.size === locations.length && locations.length > 0 ? (
+                    <>
+                      <CheckSquare className="mr-2 h-4 w-4" />
+                      Deselect All
+                    </>
+                  ) : (
+                    <>
+                      <Square className="mr-2 h-4 w-4" />
+                      Select All
+                    </>
+                  )}
                 </Button>
-              </DialogTrigger>
+                {selectedLocations.size > 0 && (
+                  <Button 
+                    onClick={handleBatchDownload} 
+                    disabled={batchDownloading}
+                    size="sm"
+                  >
+                    {batchDownloading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" />
+                    )}
+                    Download {selectedLocations.size} Flyer{selectedLocations.size > 1 ? 's' : ''}
+                  </Button>
+                )}
+              </div>
+              <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Location
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle>Add Distribution Location</DialogTitle>
@@ -421,8 +504,9 @@ const FlyerLocations = () => {
                     Add Location
                   </Button>
                 </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
 
           {/* Locations by Category */}
@@ -443,9 +527,14 @@ const FlyerLocations = () => {
                     {locs.map((loc) => (
                       <div 
                         key={loc.id} 
-                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
+                        className={`flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 ${selectedLocations.has(loc.id) ? 'bg-primary/5 border-primary/30' : ''}`}
                       >
                         <div className="flex items-start gap-3">
+                          <Checkbox 
+                            checked={selectedLocations.has(loc.id)}
+                            onCheckedChange={() => handleToggleSelection(loc.id)}
+                            className="mt-1"
+                          />
                           <MapPin className="h-5 w-5 text-primary mt-0.5" />
                           <div>
                             <p className="font-medium">{loc.business_name}</p>
