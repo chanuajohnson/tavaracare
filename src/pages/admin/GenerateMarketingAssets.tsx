@@ -21,6 +21,7 @@ const GenerateMarketingAssets = () => {
   }>({});
   const [flyerLoading, setFlyerLoading] = useState(false);
   const [showFlyerPreview, setShowFlyerPreview] = useState(false);
+  const [previewVariant, setPreviewVariant] = useState<'A' | 'B'>('A');
   const flyerRef = useRef<HTMLDivElement>(null);
 
   const downloadImage = (url: string, filename: string) => {
@@ -98,27 +99,26 @@ const GenerateMarketingAssets = () => {
     toast.success(`Downloading ${downloadCount} assets...`);
   };
 
-  const handleDownloadFlyer = async () => {
-    // Use the hidden full-size flyer (no CSS transforms)
-    const flyerElement = document.getElementById('caregiving-flyer-download');
+  const handleDownloadFlyer = async (variant: 'A' | 'B') => {
+    const flyerElement = document.getElementById(`caregiving-flyer-variant-${variant.toLowerCase()}`);
     if (!flyerElement) {
       toast.error('Flyer not found. Please try again.');
       return;
     }
 
     setFlyerLoading(true);
-    toast.info('Generating print-ready flyer...');
+    toast.info(`Generating Variant ${variant} flyer...`);
 
     try {
       const canvas = await html2canvas(flyerElement, {
-        scale: 2, // Higher resolution for print
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
         removeContainer: true,
         onclone: (clonedDoc) => {
-          const clonedElement = clonedDoc.getElementById('caregiving-flyer');
+          const clonedElement = clonedDoc.getElementById(`caregiving-flyer-variant-${variant.toLowerCase()}`);
           if (clonedElement) {
             clonedElement.style.transform = 'none';
             clonedElement.style.width = '550px';
@@ -128,11 +128,11 @@ const GenerateMarketingAssets = () => {
       });
 
       const link = document.createElement('a');
-      link.download = 'tavara-caregiving-flyer.png';
+      link.download = `tavara-flyer-variant-${variant.toLowerCase()}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
 
-      toast.success('Flyer downloaded! Ready for printing.');
+      toast.success(`Variant ${variant} downloaded!`);
     } catch (error) {
       console.error('Flyer download error:', error);
       toast.error('Failed to download flyer.');
@@ -141,6 +141,54 @@ const GenerateMarketingAssets = () => {
     }
   };
 
+  const handleDownloadBothFlyers = async () => {
+    setFlyerLoading(true);
+    toast.info('Generating both flyer variants...');
+    
+    try {
+      // Download Variant A
+      const flyerA = document.getElementById('caregiving-flyer-variant-a');
+      if (flyerA) {
+        const canvasA = await html2canvas(flyerA, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+        });
+        const linkA = document.createElement('a');
+        linkA.download = 'tavara-flyer-variant-a.png';
+        linkA.href = canvasA.toDataURL('image/png');
+        linkA.click();
+      }
+
+      // Small delay between downloads
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Download Variant B
+      const flyerB = document.getElementById('caregiving-flyer-variant-b');
+      if (flyerB) {
+        const canvasB = await html2canvas(flyerB, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+        });
+        const linkB = document.createElement('a');
+        linkB.download = 'tavara-flyer-variant-b.png';
+        linkB.href = canvasB.toDataURL('image/png');
+        linkB.click();
+      }
+
+      toast.success('Both flyer variants downloaded!');
+    } catch (error) {
+      console.error('Flyer download error:', error);
+      toast.error('Failed to download flyers.');
+    } finally {
+      setFlyerLoading(false);
+    }
+  };
 
   return (
     <div className="container mx-auto py-10 max-w-4xl">
@@ -190,56 +238,102 @@ const GenerateMarketingAssets = () => {
             </Button>
           </div>
 
-          {/* Caregiving Flyer Generator */}
+          {/* Caregiving Flyer Generator - A/B Test Variants */}
           <div className="p-4 border-2 border-dashed border-primary/30 rounded-lg bg-primary/5">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-start gap-3">
                 <Users className="h-6 w-6 text-primary mt-0.5" />
                 <div>
-                  <p className="font-semibold">Caregiving Services Flyer</p>
-                  <p className="text-sm text-muted-foreground">Half-page (5.5x8.5") with authentic Tavara imagery</p>
+                  <p className="font-semibold">Caregiving A/B Test Flyers</p>
+                  <p className="text-sm text-muted-foreground">Two variants with trackable QR codes for testing</p>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={() => setShowFlyerPreview(!showFlyerPreview)} 
-                  size="sm"
-                  variant="outline"
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  {showFlyerPreview ? 'Hide' : 'Preview'}
-                </Button>
-                <Button 
-                  onClick={handleDownloadFlyer} 
-                  disabled={flyerLoading}
-                  size="sm"
-                >
-                  {flyerLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Downloading...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="mr-2 h-4 w-4" />
-                      Download PNG
-                    </>
-                  )}
-                </Button>
+              <Button 
+                onClick={() => setShowFlyerPreview(!showFlyerPreview)} 
+                size="sm"
+                variant="outline"
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                {showFlyerPreview ? 'Hide' : 'Preview'}
+              </Button>
+            </div>
+
+            {/* Variant Info */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border">
+                <p className="font-semibold text-sm mb-1">Variant A</p>
+                <p className="text-lg font-bold text-primary">"Find care now"</p>
+                <p className="text-xs text-muted-foreground mt-1">UTM: find_care_now</p>
+              </div>
+              <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border">
+                <p className="font-semibold text-sm mb-1">Variant B</p>
+                <p className="text-lg font-bold text-primary">"Match with a caregiver today"</p>
+                <p className="text-xs text-muted-foreground mt-1">UTM: match_caregiver</p>
               </div>
             </div>
+
+            {/* Download Buttons */}
+            <div className="flex gap-2 flex-wrap">
+              <Button 
+                onClick={() => handleDownloadFlyer('A')} 
+                disabled={flyerLoading}
+                size="sm"
+                variant="outline"
+              >
+                {flyerLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                Download A
+              </Button>
+              <Button 
+                onClick={() => handleDownloadFlyer('B')} 
+                disabled={flyerLoading}
+                size="sm"
+                variant="outline"
+              >
+                {flyerLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                Download B
+              </Button>
+              <Button 
+                onClick={handleDownloadBothFlyers} 
+                disabled={flyerLoading}
+                size="sm"
+              >
+                {flyerLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                Download Both
+              </Button>
+            </div>
+
+            {/* Preview Section */}
             {showFlyerPreview && (
-              <div className="mt-4 flex justify-center">
-                <div className="transform scale-50 origin-top" ref={flyerRef}>
-                  <CaregivingFlyerTemplate />
+              <div className="mt-4">
+                <div className="flex gap-2 mb-4 justify-center">
+                  <Button 
+                    onClick={() => setPreviewVariant('A')} 
+                    size="sm"
+                    variant={previewVariant === 'A' ? 'default' : 'outline'}
+                  >
+                    Preview A
+                  </Button>
+                  <Button 
+                    onClick={() => setPreviewVariant('B')} 
+                    size="sm"
+                    variant={previewVariant === 'B' ? 'default' : 'outline'}
+                  >
+                    Preview B
+                  </Button>
+                </div>
+                <div className="flex justify-center">
+                  <div className="transform scale-50 origin-top" ref={flyerRef}>
+                    <CaregivingFlyerTemplate variant={previewVariant} />
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Hidden full-size flyer for download - no transforms */}
+          {/* Hidden full-size flyers for download - both variants */}
           <div style={{ position: 'absolute', left: '-9999px', top: '0' }}>
-            <CaregivingFlyerTemplate id="caregiving-flyer-download" />
+            <CaregivingFlyerTemplate id="caregiving-flyer-variant-a" variant="A" />
+            <CaregivingFlyerTemplate id="caregiving-flyer-variant-b" variant="B" />
           </div>
 
           <div className="space-y-4">
@@ -297,6 +391,7 @@ const GenerateMarketingAssets = () => {
             <p>⏱️ <strong>Estimated time:</strong> 2-3 minutes for all assets</p>
             <p>💡 <strong>Tip:</strong> Generated images use Tavara blue (#6B9FDB) for consistent branding</p>
             <p>📱 <strong>Note:</strong> Assets are high-resolution and suitable for both digital and print use</p>
+            <p>📊 <strong>A/B Testing:</strong> Each flyer variant has a unique UTM parameter for tracking</p>
           </div>
         </CardContent>
       </Card>
