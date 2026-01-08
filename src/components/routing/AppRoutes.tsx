@@ -81,6 +81,7 @@ import DemoFamilyStory from "@/pages/demo/DemoFamilyStory";
 // Marketing Pages
 import MarketingKit from "@/pages/marketing/MarketingKit";
 import GenerateMarketingAssets from "@/pages/admin/GenerateMarketingAssets";
+import FlyerLocations from "@/pages/admin/FlyerLocations";
 import UrgentCaregiversPage from "@/pages/UrgentCaregiversPage";
 import TestimonialManagementPage from "@/pages/admin/TestimonialManagementPage";
 
@@ -171,6 +172,7 @@ export const AppRoutes = () => {
       {/* Marketing Routes */}
       <Route path="/marketing-kit" element={<MarketingKit />} />
       <Route path="/admin/generate-marketing" element={<GenerateMarketingAssets />} />
+      <Route path="/admin/flyer-locations" element={<FlyerLocations />} />
       
       {/* Demo Routes */}
       <Route path="/demo/registration/family" element={<DemoFamilyRegistration />} />

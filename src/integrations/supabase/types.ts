@@ -1878,6 +1878,57 @@ export type Database = {
           },
         ]
       }
+      flyer_locations: {
+        Row: {
+          address: string | null
+          business_name: string
+          category: string
+          code: string
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string | null
+          flyers_count: number | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          placed_date: string | null
+          updated_at: string | null
+          variant: string | null
+        }
+        Insert: {
+          address?: string | null
+          business_name: string
+          category: string
+          code: string
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          flyers_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          placed_date?: string | null
+          updated_at?: string | null
+          variant?: string | null
+        }
+        Update: {
+          address?: string | null
+          business_name?: string
+          category?: string
+          code?: string
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          flyers_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          placed_date?: string | null
+          updated_at?: string | null
+          variant?: string | null
+        }
+        Relationships: []
+      }
       goal_completions: {
         Row: {
           additional_data: Json | null
