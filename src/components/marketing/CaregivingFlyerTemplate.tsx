@@ -5,20 +5,29 @@ import { Phone, Heart, Pill, Car, UtensilsCrossed, PersonStanding, Quote } from 
 interface CaregivingFlyerTemplateProps {
   id?: string;
   variant?: 'A' | 'B';
+  locationCode?: string;
 }
 
 export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = ({ 
   id = 'caregiving-flyer',
-  variant = 'A'
+  variant = 'A',
+  locationCode
 }) => {
   // Variant-specific content
   const headlineText = variant === 'B' 
     ? 'Match with a caregiver today' 
     : 'Find care now';
 
-  const qrUrl = variant === 'B'
-    ? 'https://tavara.care/urgent-caregivers?utm_source=flyer&utm_content=match_caregiver'
-    : 'https://tavara.care/urgent-caregivers?utm_source=flyer&utm_content=find_care_now';
+  // Build URL with all tracking parameters
+  const baseUrl = 'https://tavara.care/urgent-caregivers';
+  const params = new URLSearchParams({
+    utm_source: 'flyer',
+    utm_content: variant === 'B' ? 'match_caregiver' : 'find_care_now',
+  });
+  if (locationCode) {
+    params.set('utm_location', locationCode);
+  }
+  const qrUrl = `${baseUrl}?${params.toString()}`;
 
   const services = [
     { icon: PersonStanding, label: 'Personal Assistance' },
