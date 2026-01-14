@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings, UserCheck } from "lucide-react";
+import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings, UserCheck, MapPin } from "lucide-react";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
@@ -101,6 +101,10 @@ export default function AdminDashboard() {
     setShowMatchingInterface(true);
   };
 
+  const handleFlyerLocationsClick = () => {
+    navigate('/admin/flyer-locations');
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -111,14 +115,14 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 mb-8">
         <Button
           onClick={handleMatchingClick}
           className="h-20 flex flex-col items-center justify-center gap-2 relative"
           variant="outline"
         >
           <UserCheck className="h-6 w-6" />
-          <span className="text-sm font-medium text-center leading-tight">Caregiver Matching</span>
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Caregiver Matching</span>
           {pendingMatchesCount > 0 && (
             <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
               {pendingMatchesCount}
@@ -131,7 +135,7 @@ export default function AdminDashboard() {
           variant="outline"
         >
           <Video className="h-6 w-6" />
-          <span className="text-sm font-medium text-center leading-tight">Hero Video Management</span>
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Hero Video Management</span>
         </Button>
 
         <Button
@@ -140,7 +144,7 @@ export default function AdminDashboard() {
           variant="outline"
         >
           <Calendar className="h-6 w-6" />
-          <span className="text-sm font-medium text-center leading-tight">Visit Schedule Management</span>
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Visit Schedule Management</span>
           {pendingSchedulingCount > 0 && (
             <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
               {pendingSchedulingCount}
@@ -154,7 +158,7 @@ export default function AdminDashboard() {
           variant="outline"
         >
           <Settings className="h-6 w-6" />
-          <span className="text-sm font-medium text-center leading-tight">Shift Configuration Management</span>
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Shift Configuration</span>
         </Button>
 
         <Button
@@ -163,7 +167,7 @@ export default function AdminDashboard() {
           variant="outline"
         >
           <MessageCircle className="h-6 w-6" />
-          <span className="text-sm font-medium text-center leading-tight">WhatsApp Nudge System</span>
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">WhatsApp Nudge System</span>
         </Button>
         
         <Button
@@ -172,7 +176,7 @@ export default function AdminDashboard() {
           variant="outline"
         >
           <MessageSquare className="h-6 w-6" />
-          <span className="text-sm font-medium text-center leading-tight">TAVARA Feedback</span>
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">TAVARA Feedback</span>
         </Button>
         
         <Button
@@ -181,7 +185,7 @@ export default function AdminDashboard() {
           variant="outline"
         >
           <TrendingUp className="h-6 w-6" />
-          <span className="text-sm font-medium text-center leading-tight">User Journey Analytics</span>
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">User Journey Analytics</span>
         </Button>
         
         <Button
@@ -190,7 +194,16 @@ export default function AdminDashboard() {
           variant="outline"
         >
           <BarChart className="h-6 w-6" />
-          <span className="text-sm font-medium text-center leading-tight">Platform Analytics</span>
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Platform Analytics</span>
+        </Button>
+
+        <Button
+          onClick={handleFlyerLocationsClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <MapPin className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Flyer Locations</span>
         </Button>
       </div>
 
