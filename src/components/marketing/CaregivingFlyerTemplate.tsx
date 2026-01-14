@@ -19,7 +19,7 @@ export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = (
     : 'Find Care Now';
 
   // Build URL with all tracking parameters - use Lovable deployment for latest tracking code
-  const baseUrl = 'https://tavaracare.lovable.app/urgent-caregivers';
+  const baseUrl = 'https://tavara.care/urgent-caregivers';
   const params = new URLSearchParams({
     utm_source: 'flyer',
     utm_content: variant === 'B' ? 'match_caregiver' : 'find_care_now',
