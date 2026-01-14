@@ -60,12 +60,12 @@ export function ShiftsTab({ shifts, formatDate, formatTime }: ShiftsTabProps) {
                       )}
                     </div>
                     <Badge className={`
-                      ${shift.status === 'assigned' ? 'bg-green-100 text-green-800' :
+                      ${shift.status === 'confirmed' ? 'bg-green-100 text-green-800' :
                         shift.status === 'open' ? 'bg-amber-100 text-amber-800' :
                           shift.status === 'cancelled' ? 'bg-red-100 text-red-800' :
                             'bg-blue-100 text-blue-800'}
                     `}>
-                      {shift.status === 'assigned' ? 'Assigned' :
+                      {shift.status === 'confirmed' ? 'Confirmed' :
                         shift.status === 'open' ? 'Open' :
                           shift.status === 'cancelled' ? 'Cancelled' :
                             shift.status || 'Scheduled'}

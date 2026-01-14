@@ -44,6 +44,9 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
   const [trialCompleted, setTrialCompleted] = useState(false);
   const [visitStatus, setVisitStatus] = useState<string>('not_started');
   const [visitDate, setVisitDate] = useState<string | null>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [careAssessment, setCareAssessment] = useState<any>(null);
+  const [careRecipient, setCareRecipient] = useState<any>(null);
 
   const [steps, setSteps] = useState<JourneyStep[]>([
     // Foundation Steps (1-6)
@@ -193,6 +196,25 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
   const handleStepAction = (step: JourneyStep) => {
     if (!step.accessible) return;
     
+    // Steps 1-3 use consistent edit logic
+    if (step.id === 1) {
+      const isCompleted = !!(user && profile?.full_name);
+      navigate(isCompleted ? '/registration/family?edit=true' : '/registration/family');
+      return;
+    }
+    
+    if (step.id === 2) {
+      const isCompleted = !!careAssessment;
+      navigate(isCompleted ? '/family/care-assessment?mode=edit' : '/family/care-assessment');
+      return;
+    }
+    
+    if (step.id === 3) {
+      const isCompleted = !!(careRecipient && careRecipient.full_name);
+      navigate(isCompleted ? '/family/story?edit=true' : '/family/story');
+      return;
+    }
+    
     if (step.id === 4) {
       const canAccessMatching = steps[0]?.completed && steps[1]?.completed && steps[2]?.completed;
       if (!canAccessMatching) return;
@@ -318,37 +340,53 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
       setLoading(true);
       
       // Get user profile completion and visit status
-      const { data: profile } = await supabase
+      const { data: profileData } = await supabase
         .from('profiles')
         .select('full_name, phone_number, visit_scheduling_status, visit_scheduled_date, visit_notes')
         .eq('id', user.id)
         .maybeSingle();
 
-      setVisitStatus(profile?.visit_scheduling_status || 'not_started');
-      setVisitDate(profile?.visit_scheduled_date || null);
+      setProfile(profileData);
+
+      console.log('🔍 FamilyJourneyProgress step completion check:', {
+        profileName: profileData?.full_name,
+        hasProfile: !!(user && profileData?.full_name)
+      });
+
+      setVisitStatus(profileData?.visit_scheduling_status || 'not_started');
+      setVisitDate(profileData?.visit_scheduled_date || null);
 
       // Parse visit notes for care model
       let visitNotes = null;
       try {
-        visitNotes = profile?.visit_notes ? JSON.parse(profile.visit_notes) : null;
+        visitNotes = profileData?.visit_notes ? JSON.parse(profileData.visit_notes) : null;
       } catch (error) {
         console.error('Error parsing visit notes:', error);
       }
       setCareModel(visitNotes?.care_model || null);
 
       // Check care assessment
-      const { data: careAssessment } = await supabase
+      const { data: careAssessmentData } = await supabase
         .from('care_needs_family')
         .select('id')
         .eq('profile_id', user.id)
         .maybeSingle();
 
+      setCareAssessment(careAssessmentData);
+
       // Check care recipient profile
-      const { data: careRecipient } = await supabase
+      const { data: careRecipientData } = await supabase
         .from('care_recipient_profiles')
         .select('id, full_name')
         .eq('user_id', user.id)
         .maybeSingle();
+
+      setCareRecipient(careRecipientData);
+
+      console.log('🔍 FamilyJourneyProgress data fetched:', {
+        careAssessment: !!careAssessmentData,
+        careRecipient: !!(careRecipientData && careRecipientData.full_name)
+      });
 
       // Check care plans
       const { data: carePlansData } = await supabase
@@ -385,16 +423,16 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
         
         switch (step.id) {
           case 1: // Profile completion
-            completed = !!(user && profile?.full_name);
+            completed = !!(user && profileData?.full_name);
             break;
           case 2: // Care assessment
-            completed = !!careAssessment;
+            completed = !!careAssessmentData;
             break;
           case 3: // Legacy story
-            completed = !!(careRecipient && careRecipient.full_name);
+            completed = !!(careRecipientData && careRecipientData.full_name);
             break;
           case 4: // Caregiver matches
-            completed = !!careRecipient;
+            completed = !!careRecipientData;
             break;
           case 5: // Medication management
             completed = !!(medications && medications.length > 0);
@@ -403,10 +441,10 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
             completed = !!(mealPlans && mealPlans.length > 0);
             break;
           case 7: // Schedule visit
-            completed = profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed';
+            completed = profileData?.visit_scheduling_status === 'scheduled' || profileData?.visit_scheduling_status === 'completed';
             break;
           case 8: // Confirm visit
-            completed = profile?.visit_scheduling_status === 'completed';
+            completed = profileData?.visit_scheduling_status === 'completed';
             break;
           case 9: // Schedule trial day
             completed = hasTrialPayment;

@@ -13,6 +13,7 @@ export interface ProfessionalProfileFields {
   yearsOfExperience?: string;
   workType?: string;
   availability?: string[];
+  customSchedule?: string;
   backgroundCheck?: boolean;
   backgroundCheckProofUrl?: string;
   legallyAuthorized?: boolean;
@@ -44,6 +45,7 @@ export interface DbProfessionalProfileFields {
   years_of_experience?: string;
   work_type?: string;
   availability?: string[];
+  custom_schedule?: string;
   background_check?: boolean;
   background_check_proof_url?: string;
   legally_authorized?: boolean;

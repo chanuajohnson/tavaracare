@@ -14,6 +14,8 @@ export interface TAVConversationContext {
   formFields?: Record<string, any>;
   userRole?: string;
   sessionId: string;
+  caregiverContext?: any; // Added for caregiver chat support
+  isDemoMode?: boolean; // Added for demo mode support
 }
 
 export class TAVAIService {
@@ -45,28 +47,32 @@ export class TAVAIService {
         { role: 'user', content: message }
       ];
 
-      // Call the existing chat-gpt edge function
-      const { data, error } = await supabase.functions.invoke('chat-gpt', {
+      // Add detailed logging
+      console.log('🚀 Calling tav-chat-enhanced function:', {
+        message: message.substring(0, 50) + '...',
+        contextPage: context.currentPage,
+        hasCaregiver: !!context.caregiverContext,
+        caregiverName: context.caregiverContext?.full_name
+      });
+
+      // Use enhanced TAV service for better responses
+      const { data, error } = await supabase.functions.invoke('tav-chat-enhanced', {
         body: {
-          messages,
-          sessionId: context.sessionId,
-          userRole: context.userRole,
-          temperature: 0.7,
-          maxTokens: 200,
-          fieldContext: {
-            currentPage: context.currentPage,
-            currentForm: context.currentForm,
-            formFields: context.formFields
-          }
+          message,
+          context,
+          conversationHistory,
+          enableStreaming: false,
+          enableMemory: true
         }
       });
 
       if (error) {
-        console.error('TAV AI Service error:', error);
+        console.error('❌ TAV AI Service error:', error);
         return this.getFallbackResponse(context);
       }
 
-      return data.message || this.getFallbackResponse(context);
+      console.log('✅ TAV AI Service response received:', data?.message?.substring(0, 100) + '...');
+      return data?.message || this.getFallbackResponse(context);
     } catch (error) {
       console.error('TAV AI Service error:', error);
       return this.getFallbackResponse(context);
@@ -80,12 +86,59 @@ Current context:
 - Page: ${context.currentPage}
 - User role: ${context.userRole || 'guest'}`;
 
+    // Add demo mode context
+    if (context.isDemoMode) {
+      prompt += `
+- DEMO MODE: This is a demonstration experience for prospective users
+- Guide the user through the demo workflow to show Tavara's capabilities
+- Emphasize how real families and professionals use these features
+- Encourage form completion to demonstrate the full experience
+- Be enthusiastic about showing Tavara's value proposition`;
+    }
+
     if (context.currentForm) {
       prompt += `\n- Current form: ${context.currentForm}`;
     }
 
     if (context.formFields && Object.keys(context.formFields).length > 0) {
       prompt += `\n- Available form fields: ${Object.keys(context.formFields).join(', ')}`;
+      
+      // Add special handling for location dropdown fields
+      const locationField = Object.values(context.formFields).find((field: any) => 
+        field?.name === 'location' && field?.type === 'select'
+      );
+      
+      if (locationField) {
+        prompt += `\n\nIMPORTANT - Location Field: This is a dropdown with these Trinidad & Tobago locations: Port of Spain, San Fernando, Chaguanas, Arima, Point Fortin, Freeport, Sangre Grande, Rio Claro, Couva, Princes Town, Penal, Debe, Tunapuna, Piarco, Marabella, Fyzabad, Siparia, Moruga, Toco, Valencia, Mayaro, Scarborough, Roxborough, Charlotteville, Plymouth. Present these as selectable options and help users choose from the list rather than asking them to type freely.`;
+      }
+    }
+
+    // Add enhanced caregiver chat context
+    if (context.caregiverContext) {
+      const caregiver = context.caregiverContext;
+      prompt += `\n\nENHANCED CAREGIVER CHAT MODE:
+You are TAV, helping a family connect with this specific professional caregiver:
+
+CAREGIVER PROFILE:
+- Name: ${caregiver.full_name || 'Professional Caregiver'}
+- Location: ${caregiver.location || 'Trinidad and Tobago'}
+- Experience: ${caregiver.years_of_experience || 'Professional experience'}
+- Specialties: ${caregiver.care_types?.join(', ') || 'General care'}
+- Match Score: ${caregiver.match_score || 'High'}% compatibility
+${caregiver.match_explanation ? `- Match Reason: ${caregiver.match_explanation}` : ''}
+${caregiver.shift_compatibility_score ? `- Schedule Compatibility: ${caregiver.shift_compatibility_score}%` : ''}
+
+ENHANCED GUIDELINES:
+- Provide specific, helpful responses about THIS caregiver
+- Draw from their actual profile to answer questions
+- Highlight relevant experience and qualifications
+- Guide toward practical next steps (consultation, rates discussion)
+- Build confidence in this specific match
+- Keep responses warm, informative, and action-oriented
+- Use the caregiver's name when appropriate
+- Reference specific compatibility factors
+- NEVER share contact information - guide through platform instead
+- Focus on professional caregiving topics and this caregiver's strengths`;
     }
 
     prompt += `\n\nGuidelines:
@@ -97,10 +150,31 @@ Current context:
 - If on a form page, offer to help fill it out step by step
 - If not on a form, guide them to relevant actions`;
 
+    // Add demo-specific guidelines
+    if (context.isDemoMode) {
+      prompt += `
+- DEMO FOCUS: Highlight how this demonstrates real Tavara workflows
+- Encourage completing the demo forms to see the full experience
+- Explain how real users benefit from each feature
+- Show enthusiasm for Tavara's capabilities
+- Guide toward form completion and next demo steps`;
+    }
+
     return prompt;
   }
 
   private getFallbackResponse(context: TAVConversationContext): string {
+    console.warn('🔄 Using fallback response due to AI service failure');
+    
+    if (context.caregiverContext) {
+      const caregiver = context.caregiverContext;
+      const name = caregiver.full_name || 'this caregiver';
+      const experience = caregiver.years_of_experience || 'professional experience';
+      const rate = caregiver.hourly_rate ? `$${caregiver.hourly_rate}/hour` : 'competitive rates';
+      
+      return `💙 I'd love to help you learn more about ${name}! They bring ${experience} years of experience at ${rate}. What specific questions do you have about their availability or caregiving approach?`;
+    }
+    
     if (context.currentForm) {
       return "💙 I'm here to help you with this form. What would you like assistance with?";
     }

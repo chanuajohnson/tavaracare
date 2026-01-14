@@ -336,9 +336,10 @@ export default function CommunityRegistration() {
         enable_community_notifications: data.enableCommunityNotifications
       };
       
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .upsert(profileData);
+      // Use SECURITY DEFINER function to bypass RLS and prevent recursion
+      const { data: result, error: updateError } = await supabase.rpc('update_user_profile', {
+        profile_data: profileData
+      });
       
       if (updateError) {
         console.error("Profile update error:", updateError);

@@ -1,16 +1,15 @@
-
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Shield, Sparkles, Users, ChevronDown } from "lucide-react";
+import { Shield, Sparkles, MessageCircle, ChevronDown, Video } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { MatchingTracker } from "@/components/tracking/MatchingTracker";
-import { useCaregiverMatches } from "@/hooks/useCaregiverMatches";
+import { useUnifiedMatches } from "@/hooks/useUnifiedMatches";
 import { CaregiverMatchCard } from "./CaregiverMatchCard";
-import { CaregiverProfileModal } from "./CaregiverProfileModal";
+import { GuidedCaregiverChatModal } from "./GuidedCaregiverChatModal";
 
 interface CaregiverMatchingModalProps {
   open: boolean;
@@ -33,8 +32,8 @@ export const CaregiverMatchingModal = ({
 }: CaregiverMatchingModalProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const { caregivers, isLoading: caregiverLoading, dataLoaded } = useCaregiverMatches(true);
+  const [showChatModal, setShowChatModal] = useState(false);
+  const { matches, isLoading: caregiverLoading } = useUnifiedMatches('family', true);
 
   useEffect(() => {
     if (open) {
@@ -60,7 +59,7 @@ export const CaregiverMatchingModal = ({
     }
   }, [open]);
 
-  const bestMatch = caregivers[0];
+  const bestMatch = matches[0];
   const currentMessage = MAGICAL_MESSAGES[currentMessageIndex];
 
   return (
@@ -72,7 +71,7 @@ export const CaregiverMatchingModal = ({
             additionalData={{
               referrer: referringPagePath,
               access_type: 'modal_view',
-              shown_matches: caregivers.length
+              shown_matches: matches.length
             }}
           />
           
@@ -98,7 +97,6 @@ export const CaregiverMatchingModal = ({
                 >
                   <div className="text-center space-y-6 py-12">
                     <div className="flex flex-col items-center space-y-6">
-                      {/* Enhanced magical loading circle with more sparkles */}
                       <div className="relative">
                         <div className="animate-spin rounded-full h-20 w-20 border-4 border-blue-200 border-t-blue-600"></div>
                         <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-blue-500 animate-pulse" />
@@ -136,29 +134,28 @@ export const CaregiverMatchingModal = ({
                   transition={{ duration: 0.5 }}
                   className="space-y-6"
                 >
-                  {/* Premium Feature Notice - Now as Magical Accordion */}
-                  <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 relative overflow-hidden">
-                    {/* Magical background sparkles */}
+                  {/* Premium Video Call Feature Notice - Enhanced Accordion */}
+                  <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 relative overflow-hidden">
                     <div className="absolute inset-0 pointer-events-none">
-                      <Sparkles className="absolute top-4 right-4 h-4 w-4 text-blue-400 animate-pulse" />
-                      <Sparkles className="absolute bottom-4 left-4 h-3 w-3 text-purple-400 animate-pulse delay-300" />
+                      <Sparkles className="absolute top-4 right-4 h-4 w-4 text-purple-400 animate-pulse" />
+                      <Sparkles className="absolute bottom-4 left-4 h-3 w-3 text-indigo-400 animate-pulse delay-300" />
                       <Sparkles className="absolute top-1/2 right-1/4 h-2 w-2 text-pink-400 animate-pulse delay-600" />
                     </div>
                     
                     <Accordion type="single" collapsible className="w-full">
-                      <AccordionItem value="premium-details" className="border-none">
+                      <AccordionItem value="video-details" className="border-none">
                         <AccordionTrigger className="hover:no-underline group p-6 pb-0">
                           <div className="flex items-center space-x-3 w-full">
                             <div className="relative">
-                              <Shield className="h-6 w-6 text-blue-600" />
-                              <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-blue-500 animate-pulse group-hover:animate-spin" />
+                              <Video className="h-6 w-6 text-purple-600" />
+                              <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-purple-500 animate-pulse group-hover:animate-spin" />
                             </div>
                             <div className="text-left flex-1">
-                              <h3 className="text-lg font-semibold text-blue-900 group-hover:text-blue-700 transition-colors">
-                                Premium Matching Service ✨
+                              <h3 className="text-lg font-semibold text-purple-900 group-hover:text-purple-700 transition-colors">
+                                Skip Chat - Book Video Visit ✨
                               </h3>
-                              <p className="text-sm text-blue-700 opacity-80">
-                                Click to discover premium benefits
+                              <p className="text-sm text-purple-700 opacity-80">
+                                Click to see instant video call benefits
                               </p>
                             </div>
                             <motion.div
@@ -166,8 +163,8 @@ export const CaregiverMatchingModal = ({
                               whileHover={{ scale: 1.1 }}
                               transition={{ duration: 0.2 }}
                             >
-                              <ChevronDown className="h-5 w-5 text-blue-600" />
-                              <Sparkles className="absolute -top-2 -right-2 h-3 w-3 text-purple-400 animate-pulse opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ChevronDown className="h-5 w-5 text-purple-600" />
+                              <Sparkles className="absolute -top-2 -right-2 h-3 w-3 text-indigo-400 animate-pulse opacity-0 group-hover:opacity-100 transition-opacity" />
                             </motion.div>
                           </div>
                         </AccordionTrigger>
@@ -179,16 +176,15 @@ export const CaregiverMatchingModal = ({
                             transition={{ duration: 0.3 }}
                             className="space-y-4 relative"
                           >
-                            {/* Additional magical sparkles for content */}
                             <div className="absolute inset-0 pointer-events-none">
                               <Sparkles className="absolute top-2 right-8 h-3 w-3 text-yellow-400 animate-pulse delay-200" />
                               <Sparkles className="absolute bottom-2 left-8 h-2 w-2 text-green-400 animate-pulse delay-500" />
                             </div>
                             
-                            <div className="relative bg-white/50 rounded-lg p-4 backdrop-blur-sm border border-blue-200/50">
-                              <p className="text-blue-800">
-                                You're viewing your best match. Unlock our full caregiver network with verified professionals, 
-                                background checks, and personalized matching based on your exact requirements.
+                            <div className="relative bg-white/50 rounded-lg p-4 backdrop-blur-sm border border-purple-200/50">
+                              <p className="text-purple-800">
+                                Skip the getting-to-know phase and book an instant video visit with your caregiver match! 
+                                Meet face-to-face in a secure, TAV-moderated video call to discuss care needs and availability directly.
                               </p>
                             </div>
                             
@@ -198,16 +194,16 @@ export const CaregiverMatchingModal = ({
                               transition={{ duration: 0.2 }}
                             >
                               <SubscriptionFeatureLink
-                                featureType="Full Caregiver Access"
+                                featureType="Video Call Access"
                                 returnPath="/family/matching"
                                 referringPagePath={referringPagePath}
                                 referringPageLabel={referringPageLabel}
                               >
-                                <Button className="bg-blue-600 hover:bg-blue-700 text-white w-full relative overflow-hidden group">
-                                  {/* Shimmer effect */}
+                                <Button className="bg-purple-600 hover:bg-purple-700 text-white w-full relative overflow-hidden group">
                                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                                   <span className="relative flex items-center justify-center gap-2">
-                                    Unlock All Matches
+                                    <Video className="h-4 w-4" />
+                                    Book Instant Video Visit
                                     <Sparkles className="h-4 w-4 animate-pulse" />
                                   </span>
                                 </Button>
@@ -219,7 +215,7 @@ export const CaregiverMatchingModal = ({
                     </Accordion>
                   </Card>
 
-                  {/* Magical Caregiver Match - Enhanced with sparkles and glow */}
+                  {/* Magical Caregiver Match */}
                   {bestMatch ? (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
@@ -238,7 +234,6 @@ export const CaregiverMatchingModal = ({
                       </div>
 
                       <Card className="overflow-hidden bg-white shadow-lg border-2 border-transparent bg-gradient-to-r from-white via-white to-white relative">
-                        {/* Subtle glow effect */}
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-100/20 via-purple-100/20 to-pink-100/20 rounded-lg opacity-50"></div>
                         
                         <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 relative">
@@ -253,19 +248,17 @@ export const CaregiverMatchingModal = ({
                                 <CardTitle className="text-xl">Your Perfect Match</CardTitle>
                                 <Sparkles className="h-5 w-5 text-green-500 animate-pulse" />
                               </div>
-                              <CardDescription className="text-base">Recommended based on your care needs</CardDescription>
+                              <CardDescription className="text-base">Start a guided conversation or book a video visit</CardDescription>
                             </motion.div>
                             
-                            {/* Animated match percentage */}
                             <motion.div
                               initial={{ scale: 0, rotate: -180 }}
                               animate={{ scale: 1, rotate: 0 }}
                               transition={{ duration: 0.6, delay: 0.6 }}
                               className="bg-green-500 text-white px-4 py-2 rounded-full font-bold text-lg shadow-lg relative overflow-hidden"
                             >
-                              {/* Shimmer effect */}
                               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
-                              <span className="relative z-10">{bestMatch.match_score}% Match!</span>
+                              <span className="relative z-10">{Math.round(bestMatch.match_score)}% Match!</span>
                             </motion.div>
                           </div>
                         </CardHeader>
@@ -294,20 +287,22 @@ export const CaregiverMatchingModal = ({
                             <Button 
                               variant="default" 
                               className="w-full bg-green-600 hover:bg-green-700 transform hover:scale-105 transition-all duration-200"
-                              onClick={() => setShowProfileModal(true)}
+                              onClick={() => setShowChatModal(true)}
                             >
-                              View Full Profile
+                              <MessageCircle className="h-4 w-4 mr-2" />
+                              Chat
                             </Button>
                             
                             <SubscriptionFeatureLink
-                              featureType="Premium Match Features"
+                              featureType="Video Call Access"
                               returnPath="/family/matching"
                               referringPagePath={referringPagePath}
                               referringPageLabel={referringPageLabel}
                               variant="outline"
                               className="w-full transform hover:scale-105 transition-all duration-200"
                             >
-                              Browse All Matches
+                              <Video className="h-4 w-4 mr-2" />
+                              Book Video Visit
                             </SubscriptionFeatureLink>
                           </motion.div>
                         </CardContent>
@@ -315,27 +310,62 @@ export const CaregiverMatchingModal = ({
                     </motion.div>
                   ) : (
                     <div className="text-center py-6">
-                      <p className="text-gray-500 mb-4">No caregiver matches found</p>
+                      <p className="text-gray-500 mb-4"> <div className="text-center py-6">
+  <div className="max-w-md mx-auto space-y-4">
+    <h3 className="text-lg font-semibold text-gray-800 mb-4">
+      To get matched with the right caregiver for your family:
+    </h3>
+    
+    <div className="text-left space-y-3">
+      <div className="flex items-start gap-3">
+        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+        <p className="text-gray-600">
+          <span className="font-medium">Complete your family profile</span> – so we can understand your real care needs and what matters most.
+        </p>
+      </div>
+      
+      <div className="flex items-start gap-3">
+        <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+        <p className="text-gray-600 text-sm italic">
+          (You may need to register or log in first.)
+        </p>
+      </div>
+    </div>
+    
+    <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+      <div className="flex items-start gap-2">
+        <span className="text-xl">💫</span>
+        <div className="text-left">
+          <p className="text-sm font-medium text-gray-800 mb-1">
+            The more complete your profile, the better your matches.
+          </p>
+          <p className="text-sm text-gray-600">
+            Care is personal—let's make sure your matches are too.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></p>
                     </div>
                   )}
 
-                  {/* Why Only One Match Notice - Enhanced */}
+                  {/* Updated Chat Notice */}
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.8 }}
                   >
                     <Card className="bg-amber-50 border-amber-200 relative overflow-hidden">
-                      {/* Subtle glow */}
                       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-300 opacity-60"></div>
                       <CardContent className="p-4">
                         <div className="flex items-start space-x-3">
-                          <Sparkles className="h-5 w-5 text-amber-600 mt-0.5 animate-pulse" />
+                          <MessageCircle className="h-5 w-5 text-amber-600 mt-0.5 animate-pulse" />
                           <div>
-                            <h4 className="font-medium text-amber-900 mb-1">Why am I seeing only one match?</h4>
+                            <h4 className="font-medium text-amber-900 mb-1">Guided Chat or Premium Video?</h4>
                             <p className="text-sm text-amber-800">
-                              This is your perfect match based on compatibility. Premium members get access to our full network 
-                              of verified caregivers, advanced filtering options, and unlimited matches based on your specific needs.
+                              Our guided chat uses conversation prompts to help you ask the right questions safely. 
+                              Ready to meet face-to-face? Upgrade to book instant video visits and skip the conversation phase entirely.
                             </p>
                           </div>
                         </div>
@@ -349,11 +379,11 @@ export const CaregiverMatchingModal = ({
         </DialogContent>
       </Dialog>
 
-      {/* Profile Modal */}
+      {/* Guided Chat Modal */}
       {bestMatch && (
-        <CaregiverProfileModal
-          open={showProfileModal}
-          onOpenChange={setShowProfileModal}
+        <GuidedCaregiverChatModal
+          open={showChatModal}
+          onOpenChange={setShowChatModal}
           caregiver={bestMatch}
         />
       )}

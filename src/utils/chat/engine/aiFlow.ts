@@ -67,20 +67,20 @@ export const handleAIFlow = async (
           if (questionDetails) {
             let fieldType = "";
             
-            // Try to determine field type from question label or id
-            const label = questionDetails.label.toLowerCase();
+            // Try to determine field type from question text or id
+            const text = questionDetails.text.toLowerCase();
             const id = questionDetails.id?.toLowerCase() || "";
             
-            if (label.includes("email") || id.includes("email")) {
+            if (text.includes("email") || id.includes("email")) {
               fieldType = "email";
-            } else if (label.includes("phone") || id.includes("phone")) {
+            } else if (text.includes("phone") || id.includes("phone")) {
               fieldType = "phone";
             } else if (
-              label.includes("name") || 
+              text.includes("name") || 
               id.includes("name") ||
-              label.includes("first name") || 
+              text.includes("first name") || 
               id.includes("first_name") ||
-              label.includes("last name") || 
+              text.includes("last name") || 
               id.includes("last_name")
             ) {
               fieldType = "name";

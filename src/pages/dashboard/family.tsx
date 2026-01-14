@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { ScheduleVisitModal } from "@/components/family/ScheduleVisitModal";
 import { CancelVisitModal } from "@/components/family/CancelVisitModal";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
-import { FamilyDashboard } from "@/components/family/FamilyDashboard";
+import FamilyDashboard from "@/components/family/FamilyDashboard";
 
 export default function FamilyDashboardPage() {
   const { user } = useAuth();
@@ -28,6 +28,15 @@ export default function FamilyDashboardPage() {
       navigate('/auth');
     }
   }, [user, navigate]);
+
+  // Add debugging for journey progress
+  useEffect(() => {
+    console.log('FamilyDashboardPage: Current journey progress status loaded, loading =', loading);
+    
+    return () => {
+      console.log('FamilyDashboardPage: Component unmounting');
+    };
+  }, [loading]);
 
   if (loading) {
     return (

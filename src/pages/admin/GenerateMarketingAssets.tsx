@@ -1,0 +1,421 @@
+import React, { useState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { Loader2, Download, Image, FileText, QrCode, Users, Eye } from 'lucide-react';
+import { 
+  generateErrandsPricingSheet,
+  generateErrandsQRCodes,
+  generateInstagramTemplates
+} from '@/utils/marketing/generateMarketingAssets';
+import { CaregivingFlyerTemplate } from '@/components/marketing/CaregivingFlyerTemplate';
+import html2canvas from 'html2canvas';
+
+const GenerateMarketingAssets = () => {
+  const [loading, setLoading] = useState(false);
+  const [generatedAssets, setGeneratedAssets] = useState<{
+    pricingSheet?: string;
+    qr1?: string;
+    qr2?: string;
+    instagramTemplates?: Array<{ name: string; imageUrl: string }>;
+  }>({});
+  const [flyerLoading, setFlyerLoading] = useState(false);
+  const [showFlyerPreview, setShowFlyerPreview] = useState(false);
+  const [previewVariant, setPreviewVariant] = useState<'A' | 'B'>('A');
+  const flyerRef = useRef<HTMLDivElement>(null);
+
+  const downloadImage = (url: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+  };
+
+  const handleGenerateAll = async () => {
+    setLoading(true);
+    toast.info('Generating marketing assets... This may take 2-3 minutes.');
+
+    try {
+      // Generate pricing sheet
+      toast.info('Creating pricing guide...');
+      const pricingSheet = await generateErrandsPricingSheet();
+      setGeneratedAssets(prev => ({ ...prev, pricingSheet }));
+      toast.success('Pricing guide generated!');
+      
+      // Generate QR codes
+      toast.info('Generating QR codes...');
+      const qrCodes = await generateErrandsQRCodes();
+      setGeneratedAssets(prev => ({ ...prev, qr1: qrCodes.qr1, qr2: qrCodes.qr2 }));
+      toast.success('QR codes generated!');
+      
+      // Generate Instagram templates
+      toast.info('Creating Instagram templates... (this takes the longest)');
+      const igTemplates = await generateInstagramTemplates();
+      setGeneratedAssets(prev => ({ ...prev, instagramTemplates: igTemplates }));
+      toast.success('Instagram templates generated!');
+
+      toast.success('All assets generated successfully! Click Download All to save them.');
+
+    } catch (error) {
+      console.error('Asset generation error:', error);
+      toast.error('Failed to generate some assets. Check console for details.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadAll = () => {
+    if (!generatedAssets.pricingSheet && !generatedAssets.qr1 && !generatedAssets.instagramTemplates) {
+      toast.error('No assets generated yet. Click Generate All first.');
+      return;
+    }
+
+    let downloadCount = 0;
+
+    if (generatedAssets.pricingSheet) {
+      downloadImage(generatedAssets.pricingSheet, 'tavara-errands-pricing-guide.png');
+      downloadCount++;
+    }
+
+    if (generatedAssets.qr1) {
+      downloadImage(generatedAssets.qr1, 'tavara-qr-errands-page.png');
+      downloadCount++;
+    }
+
+    if (generatedAssets.qr2) {
+      downloadImage(generatedAssets.qr2, 'tavara-qr-whatsapp-booking.png');
+      downloadCount++;
+    }
+
+    if (generatedAssets.instagramTemplates) {
+      generatedAssets.instagramTemplates.forEach((template, index) => {
+        setTimeout(() => {
+          downloadImage(template.imageUrl, `tavara-${template.name}.png`);
+        }, index * 500);
+      });
+      downloadCount += generatedAssets.instagramTemplates.length;
+    }
+
+    toast.success(`Downloading ${downloadCount} assets...`);
+  };
+
+  const handleDownloadFlyer = async (variant: 'A' | 'B') => {
+    const flyerElement = document.getElementById(`caregiving-flyer-variant-${variant.toLowerCase()}`);
+    if (!flyerElement) {
+      toast.error('Flyer not found. Please try again.');
+      return;
+    }
+
+    setFlyerLoading(true);
+    toast.info(`Generating Variant ${variant} flyer...`);
+
+    try {
+      const canvas = await html2canvas(flyerElement, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        removeContainer: true,
+        onclone: (clonedDoc) => {
+          const clonedElement = clonedDoc.getElementById(`caregiving-flyer-variant-${variant.toLowerCase()}`);
+          if (clonedElement) {
+            clonedElement.style.transform = 'none';
+            clonedElement.style.width = '550px';
+            clonedElement.style.height = '850px';
+          }
+        }
+      });
+
+      const link = document.createElement('a');
+      link.download = `tavara-flyer-variant-${variant.toLowerCase()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+      toast.success(`Variant ${variant} downloaded!`);
+    } catch (error) {
+      console.error('Flyer download error:', error);
+      toast.error('Failed to download flyer.');
+    } finally {
+      setFlyerLoading(false);
+    }
+  };
+
+  const handleDownloadBothFlyers = async () => {
+    setFlyerLoading(true);
+    toast.info('Generating both flyer variants...');
+    
+    try {
+      // Download Variant A
+      const flyerA = document.getElementById('caregiving-flyer-variant-a');
+      if (flyerA) {
+        const canvasA = await html2canvas(flyerA, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+        });
+        const linkA = document.createElement('a');
+        linkA.download = 'tavara-flyer-variant-a.png';
+        linkA.href = canvasA.toDataURL('image/png');
+        linkA.click();
+      }
+
+      // Small delay between downloads
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Download Variant B
+      const flyerB = document.getElementById('caregiving-flyer-variant-b');
+      if (flyerB) {
+        const canvasB = await html2canvas(flyerB, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+        });
+        const linkB = document.createElement('a');
+        linkB.download = 'tavara-flyer-variant-b.png';
+        linkB.href = canvasB.toDataURL('image/png');
+        linkB.click();
+      }
+
+      toast.success('Both flyer variants downloaded!');
+    } catch (error) {
+      console.error('Flyer download error:', error);
+      toast.error('Failed to download flyers.');
+    } finally {
+      setFlyerLoading(false);
+    }
+  };
+
+  return (
+    <div className="container mx-auto py-10 max-w-4xl">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Generate Marketing Assets</h1>
+        <p className="text-muted-foreground">
+          Create professional marketing materials for Tavara.care and Errands service
+        </p>
+      </div>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Marketing Asset Generator</CardTitle>
+          <CardDescription>
+            Generate all marketing materials in one click. This will create pricing guides, QR codes, and social media templates.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex gap-4">
+            <Button 
+              onClick={handleGenerateAll} 
+              disabled={loading}
+              size="lg"
+              className="flex-1"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Image className="mr-2 h-4 w-4" />
+                  Generate All Marketing Materials
+                </>
+              )}
+            </Button>
+
+            <Button 
+              onClick={handleDownloadAll}
+              disabled={!generatedAssets.pricingSheet && !generatedAssets.qr1 && !generatedAssets.instagramTemplates}
+              size="lg"
+              variant="outline"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download All
+            </Button>
+          </div>
+
+          {/* Caregiving Flyer Generator - A/B Test Variants */}
+          <div className="p-4 border-2 border-dashed border-primary/30 rounded-lg bg-primary/5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-start gap-3">
+                <Users className="h-6 w-6 text-primary mt-0.5" />
+                <div>
+                  <p className="font-semibold">Caregiving A/B Test Flyers</p>
+                  <p className="text-sm text-muted-foreground">Two variants with trackable QR codes for testing</p>
+                </div>
+              </div>
+              <Button 
+                onClick={() => setShowFlyerPreview(!showFlyerPreview)} 
+                size="sm"
+                variant="outline"
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                {showFlyerPreview ? 'Hide' : 'Preview'}
+              </Button>
+            </div>
+
+            {/* Variant Info */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border">
+                <p className="font-semibold text-sm mb-1">Variant A</p>
+                <p className="text-lg font-bold text-primary">"Find care now"</p>
+                <p className="text-xs text-muted-foreground mt-1">UTM: find_care_now</p>
+              </div>
+              <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border">
+                <p className="font-semibold text-sm mb-1">Variant B</p>
+                <p className="text-lg font-bold text-primary">"Match with a caregiver today"</p>
+                <p className="text-xs text-muted-foreground mt-1">UTM: match_caregiver</p>
+              </div>
+            </div>
+
+            {/* Download Buttons */}
+            <div className="flex gap-2 flex-wrap">
+              <Button 
+                onClick={() => handleDownloadFlyer('A')} 
+                disabled={flyerLoading}
+                size="sm"
+                variant="outline"
+              >
+                {flyerLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                Download A
+              </Button>
+              <Button 
+                onClick={() => handleDownloadFlyer('B')} 
+                disabled={flyerLoading}
+                size="sm"
+                variant="outline"
+              >
+                {flyerLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                Download B
+              </Button>
+              <Button 
+                onClick={handleDownloadBothFlyers} 
+                disabled={flyerLoading}
+                size="sm"
+              >
+                {flyerLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                Download Both
+              </Button>
+            </div>
+
+            {/* Preview Section */}
+            {showFlyerPreview && (
+              <div className="mt-4">
+                <div className="flex gap-2 mb-4 justify-center">
+                  <Button 
+                    onClick={() => setPreviewVariant('A')} 
+                    size="sm"
+                    variant={previewVariant === 'A' ? 'default' : 'outline'}
+                  >
+                    Preview A
+                  </Button>
+                  <Button 
+                    onClick={() => setPreviewVariant('B')} 
+                    size="sm"
+                    variant={previewVariant === 'B' ? 'default' : 'outline'}
+                  >
+                    Preview B
+                  </Button>
+                </div>
+                <div className="flex justify-center">
+                  <div className="transform scale-50 origin-top" ref={flyerRef}>
+                    <CaregivingFlyerTemplate variant={previewVariant} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Hidden full-size flyers for download - both variants */}
+          <div style={{ position: 'absolute', left: '-9999px', top: '0' }}>
+            <CaregivingFlyerTemplate id="caregiving-flyer-variant-a" variant="A" />
+            <CaregivingFlyerTemplate id="caregiving-flyer-variant-b" variant="B" />
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-semibold text-sm">This will generate:</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-3 p-3 border rounded-lg">
+                <FileText className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <p className="font-medium text-sm">Errands Pricing Guide</p>
+                  <p className="text-xs text-muted-foreground">PNG format, print-ready</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 border rounded-lg">
+                <QrCode className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <p className="font-medium text-sm">2 QR Codes</p>
+                  <p className="text-xs text-muted-foreground">Errands page + WhatsApp booking</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 border rounded-lg">
+                <Image className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <p className="font-medium text-sm">6 Instagram Templates</p>
+                  <p className="text-xs text-muted-foreground">1080x1080, post-ready</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 border rounded-lg">
+                <FileText className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <p className="font-medium text-sm">WhatsApp Templates</p>
+                  <p className="text-xs text-muted-foreground">Text file with 8 message templates</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {generatedAssets.pricingSheet || generatedAssets.qr1 || generatedAssets.instagramTemplates ? (
+            <div className="mt-6 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+              <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2">✅ Assets Generated</h4>
+              <ul className="text-sm text-green-800 dark:text-green-200 space-y-1">
+                {generatedAssets.pricingSheet && <li>• Pricing Guide</li>}
+                {generatedAssets.qr1 && <li>• QR Code (Errands Page)</li>}
+                {generatedAssets.qr2 && <li>• QR Code (WhatsApp)</li>}
+                {generatedAssets.instagramTemplates && (
+                  <li>• {generatedAssets.instagramTemplates.length} Instagram Templates</li>
+                )}
+              </ul>
+            </div>
+          ) : null}
+
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p>⏱️ <strong>Estimated time:</strong> 2-3 minutes for all assets</p>
+            <p>💡 <strong>Tip:</strong> Generated images use Tavara blue (#6B9FDB) for consistent branding</p>
+            <p>📱 <strong>Note:</strong> Assets are high-resolution and suitable for both digital and print use</p>
+            <p>📊 <strong>A/B Testing:</strong> Each flyer variant has a unique UTM parameter for tracking</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>WhatsApp Templates</CardTitle>
+          <CardDescription>
+            Pre-written message templates are already available
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <a 
+            href="/marketing/errands/whatsapp-templates.txt" 
+            download
+            className="inline-flex items-center gap-2 text-primary hover:underline"
+          >
+            <Download className="h-4 w-4" />
+            Download WhatsApp Templates (TXT)
+          </a>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default GenerateMarketingAssets;

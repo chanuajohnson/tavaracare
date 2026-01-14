@@ -4,17 +4,28 @@ import { Input } from '@/components/ui/input';
 import { Send, Brain, FormInput, HelpCircle, Loader2 } from 'lucide-react';
 import { useConversationalForm } from '../hooks/useConversationalForm';
 import { useTAVConversation } from '../hooks/useTAVConversation';
+import { useTavaraState } from '../hooks/TavaraStateContext';
+import { formFieldTracker, FieldCompletionStatus } from '@/utils/formFieldTracker';
+import { sectionBasedFormTracker, FormSectionData } from '@/utils/sectionBasedFormTracker';
 import { useLocation } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 
 interface ConversationalFormChatProps {
   role: 'family' | 'professional' | 'community' | null;
+  realTimeDataCallback?: (message: string, isUser: boolean) => void;
 }
 
-export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ role }) => {
+export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ role, realTimeDataCallback }) => {
   const location = useLocation();
   const [message, setMessage] = useState('');
   const [sessionId] = useState(() => uuidv4());
+  const [fieldStatus, setFieldStatus] = useState<FieldCompletionStatus>({ 
+    totalFields: 0, 
+    filledFields: 0, 
+    emptyFields: 0, 
+    completionPercentage: 0 
+  });
+  const [sectionStatus, setSectionStatus] = useState<FormSectionData | null>(null);
   
   const {
     conversationState,
@@ -27,19 +38,66 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
     generateFormGuidance
   } = useConversationalForm();
 
+  // Check if we're in demo mode
+  const isDemoRoute = location.pathname.startsWith('/demo/');
+  
   // TAV AI conversation context
   const tavContext = {
     currentPage: location.pathname,
     currentForm: currentForm?.formId,
     formFields: currentForm?.fields.reduce((acc, field) => {
-      acc[field.name] = field.label;
+      acc[field.name] = field;
       return acc;
-    }, {} as Record<string, string>),
+    }, {} as Record<string, any>),
     userRole: role || undefined,
-    sessionId
+    sessionId,
+    isDemoMode: isDemoRoute
   };
 
-  const { messages: aiMessages, isTyping, sendMessage: sendAIMessage } = useTAVConversation(tavContext);
+  const tavaraState = useTavaraState();
+  
+  // Use prop callback if provided, otherwise fall back to context callback
+  const activeCallback = realTimeDataCallback || tavaraState.realTimeDataCallback;
+  
+  // DEBUG: Log callback availability in ConversationalFormChat
+  console.warn('🔗 [ConversationalFormChat] realTimeDataCallback available:', !!activeCallback, {
+    propCallback: !!realTimeDataCallback,
+    contextCallback: !!tavaraState.realTimeDataCallback,
+    usingProp: !!realTimeDataCallback
+  });
+  
+  const { messages: aiMessages, isTyping, sendMessage: sendAIMessage } = useTAVConversation(
+    tavContext, 
+    activeCallback
+  );
+
+  // Track form field completion status - both field-level and section-level
+  useEffect(() => {
+    if (!isFormPage || !currentForm) return;
+
+    const cleanup = formFieldTracker.watchFormChanges((status) => {
+      setFieldStatus(status);
+    });
+
+    // Set up section-based tracking with polling for real-time updates
+    const updateSectionStatus = () => {
+      if (currentForm?.formId) {
+        const sectionData = sectionBasedFormTracker.getSectionCompletionStatus(currentForm.formId);
+        setSectionStatus(sectionData);
+      }
+    };
+
+    // Initial update
+    updateSectionStatus();
+
+    // Poll for section updates every 500ms while on form page
+    const sectionInterval = setInterval(updateSectionStatus, 500);
+
+    return () => {
+      cleanup();
+      clearInterval(sectionInterval);
+    };
+  }, [isFormPage, currentForm]);
 
   // Initialize with welcome message based on context
   useEffect(() => {
@@ -50,6 +108,34 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
       }
     }
   }, [isFormPage, currentForm, aiMessages.length]);
+
+  // Demo lead capture - monitor section completion (with flag to prevent infinite loop)
+  const [leadCaptureSent, setLeadCaptureSent] = React.useState(false);
+  
+  useEffect(() => {
+    if (!isDemoRoute || !sectionStatus || leadCaptureSent) return;
+
+    // Check if first section is complete (>= 80% completion)
+    // AND ensure we're not interrupting an active conversation
+    if (sectionStatus.allSections && sectionStatus.allSections.length > 0) {
+      const firstSectionCompletion = sectionStatus.allSections[0]?.completionPercentage || 0;
+      
+      // Only trigger if >= 80% complete and there's a natural pause in conversation
+      if (firstSectionCompletion >= 80) {
+        // Check if TAV just asked a question (waiting for user response)
+        const lastMessage = aiMessages[aiMessages.length - 1];
+        const isWaitingForResponse = lastMessage && !lastMessage.isUser && lastMessage.content.includes('?');
+        
+        // Don't interrupt if TAV is waiting for a response
+        if (!isWaitingForResponse) {
+          setLeadCaptureSent(true);
+          setTimeout(() => {
+            sendAIMessage("Demo lead capture: First section nearly complete! Would you like to save progress?");
+          }, 1500);
+        }
+      }
+    }
+  }, [isDemoRoute, sectionStatus, leadCaptureSent, sendAIMessage, aiMessages]);
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;
@@ -99,21 +185,23 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
 
   return (
     <div className="space-y-3">
-      {/* Form Detection Status */}
-      {isFormPage && currentForm && (
+      {/* Form Detection Status - Section-Based */}
+      {isFormPage && currentForm && sectionStatus?.currentSection && (
         <div className="bg-blue-50 rounded-lg p-2 border border-blue-200">
           <div className="flex items-center gap-2 mb-1">
             <FormInput className="h-3 w-3 text-blue-600" />
             <p className="text-xs font-medium text-blue-800">Form Detected</p>
           </div>
           <p className="text-xs text-blue-700">{currentForm.formTitle}</p>
-          <p className="text-xs text-blue-600">{currentForm.fields.length} fields to complete</p>
+          <p className="text-xs text-blue-600">
+            {sectionStatus.currentSection.filledFields} of {sectionStatus.currentSection.totalFields} fields completed ({sectionStatus.currentSection.sectionTitle}).
+          </p>
         </div>
       )}
 
       {/* Conversation History */}
       {allMessages.length > 0 && (
-        <div className="max-h-40 overflow-y-auto space-y-2 border-t pt-2">
+        <div className="flex-1 overflow-y-auto space-y-2 border-t pt-2 min-h-[300px] max-h-[600px]">
           {allMessages.map((msg) => (
             <div
               key={msg.id}
