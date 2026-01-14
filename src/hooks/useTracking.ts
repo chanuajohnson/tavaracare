@@ -4,6 +4,38 @@ import { supabase } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
 import { useAuth } from "@/components/providers/AuthProvider";
 
+/**
+ * Safely get or create a session ID with fallbacks for restrictive browsers
+ * (in-app browsers, private mode, etc.)
+ */
+const getOrCreateSessionId = (): string => {
+  // Try localStorage first (most reliable)
+  try {
+    const existingId = localStorage.getItem('session_id');
+    if (existingId) return existingId;
+    
+    const newId = uuidv4();
+    localStorage.setItem('session_id', newId);
+    return newId;
+  } catch (e) {
+    console.log('[getOrCreateSessionId] localStorage not available, trying sessionStorage');
+    
+    // Try sessionStorage as fallback
+    try {
+      const existingId = sessionStorage.getItem('session_id');
+      if (existingId) return existingId;
+      
+      const newId = uuidv4();
+      sessionStorage.setItem('session_id', newId);
+      return newId;
+    } catch (e2) {
+      console.log('[getOrCreateSessionId] No storage available, using temp ID');
+      // Neither storage available - generate per-request ID
+      return `temp_${uuidv4()}`;
+    }
+  }
+};
+
 export type TrackingActionType = 
   // Page Views
   | 'landing_page_view'
@@ -162,17 +194,15 @@ export function useTracking(options: TrackingOptions = {}) {
       return;
     }
     
+    // Check if this is a critical flyer scan (should retry on failure)
+    const isCriticalTracking = additionalData?.utm_source === 'flyer';
+    
     try {
       setIsLoading(true);
       
-      // Get or create a session ID to track anonymous users
-      const sessionId = localStorage.getItem('session_id') || uuidv4();
-      
-      // Store the session ID if it's new
-      if (!localStorage.getItem('session_id')) {
-        localStorage.setItem('session_id', sessionId);
-        console.log('[trackEngagement] Created new session ID:', sessionId);
-      }
+      // Get or create a session ID using robust method with fallbacks
+      const sessionId = getOrCreateSessionId();
+      console.log('[trackEngagement] Using session ID:', sessionId);
       
       // Add user role to additional data if user is logged in
       const enhancedData = {
@@ -198,11 +228,60 @@ export function useTracking(options: TrackingOptions = {}) {
       
       if (error) {
         console.error('[trackEngagement] Supabase insert FAILED:', error);
+        
+        // Retry once for critical flyer scan tracking with simplified payload
+        if (isCriticalTracking) {
+          console.log('[trackEngagement] Retrying critical flyer scan tracking...');
+          const simplifiedPayload = {
+            user_id: null,
+            action_type: actionType,
+            session_id: getOrCreateSessionId(),
+            additional_data: {
+              utm_source: additionalData.utm_source,
+              utm_content: additionalData.utm_content,
+              utm_location: additionalData.utm_location,
+              retry: true,
+              original_error: error.message
+            }
+          };
+          
+          const { data: retryData, error: retryError } = await supabase
+            .from('cta_engagement_tracking')
+            .insert(simplifiedPayload)
+            .select();
+          
+          if (retryError) {
+            console.error('[trackEngagement] Retry also FAILED:', retryError);
+          } else {
+            console.log('[trackEngagement] Retry SUCCEEDED:', retryData);
+          }
+        }
       } else {
         console.log('[trackEngagement] Supabase insert SUCCESS:', data);
       }
     } catch (error) {
       console.error('[trackEngagement] Unexpected error:', error);
+      
+      // Last resort retry for flyer scans even on unexpected errors
+      if (isCriticalTracking) {
+        try {
+          console.log('[trackEngagement] Last resort retry for flyer scan...');
+          await supabase.from('cta_engagement_tracking').insert({
+            user_id: null,
+            action_type: actionType,
+            session_id: `emergency_${uuidv4()}`,
+            additional_data: {
+              utm_source: additionalData.utm_source,
+              utm_content: additionalData.utm_content,
+              utm_location: additionalData.utm_location,
+              emergency_retry: true
+            }
+          });
+          console.log('[trackEngagement] Emergency retry completed');
+        } catch (emergencyError) {
+          console.error('[trackEngagement] Emergency retry FAILED:', emergencyError);
+        }
+      }
     } finally {
       setIsLoading(false);
     }
