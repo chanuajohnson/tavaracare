@@ -48,20 +48,18 @@ export const useFlyerAnalytics = (dateRange: string) => {
       const endDate = new Date();
       const startDate = subDays(endDate, parseInt(dateRange));
 
-      // Fetch all flyer-related engagements (utm_source = 'flyer')
-      const { data: engagements, error: engError } = await supabase
+      // Fetch flyer-related engagements with server-side filter
+      const { data: flyerVisits, error: engError } = await supabase
         .from('cta_engagement_tracking')
         .select('created_at, additional_data')
         .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString());
+        .lte('created_at', endDate.toISOString())
+        .filter('additional_data->>utm_source', 'eq', 'flyer')
+        .order('created_at', { ascending: false });
 
       if (engError) throw engError;
 
-      // Filter to only flyer visits
-      const flyerVisits = (engagements || []).filter(e => {
-        const ad = e.additional_data as AdditionalDataType;
-        return ad?.utm_source === 'flyer';
-      });
+      console.log('[FlyerAnalytics] Fetched flyer visits:', flyerVisits?.length || 0);
 
       // Fetch flyer locations for enrichment
       const { data: locations, error: locError } = await supabase
