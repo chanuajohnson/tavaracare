@@ -127,15 +127,18 @@ export function useTracking(options: TrackingOptions = {}) {
    * @param additionalData Optional additional data to store with the tracking event
    * @returns Promise that resolves when tracking is complete
    */
-  const trackEngagement = async (actionType: TrackingActionType, additionalData = {}) => {
+  const trackEngagement = async (actionType: TrackingActionType, additionalData: Record<string, any> = {}) => {
     // Skip tracking if disabled in options
     if (options.disabled) {
       console.log('[Tracking disabled by options]', actionType, additionalData);
       return;
     }
     
-    // Skip tracking for admin users
-    if (user?.role === 'admin') {
+    // Skip tracking for admin users UNLESS it's a flyer scan (allow testing)
+    const isAdminUser = user?.role === 'admin';
+    const isFlyerScan = additionalData?.utm_source === 'flyer';
+    
+    if (isAdminUser && !isFlyerScan) {
       console.log('[Tracking disabled for admin user]', actionType, additionalData);
       return;
     }
