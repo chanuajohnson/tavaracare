@@ -1,6 +1,6 @@
 import React from 'react';
 import { QRCode } from './QRCode';
-import { Phone, Heart, Pill, Car, UtensilsCrossed, PersonStanding, Quote } from 'lucide-react';
+import { Phone, Heart, Brain, Home, Quote } from 'lucide-react';
 
 interface CaregivingFlyerTemplateProps {
   id?: string;
@@ -30,12 +30,9 @@ export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = (
   const qrUrl = `${baseUrl}?${params.toString()}`;
 
   const services = [
-    { icon: PersonStanding, label: 'Personal Assistance' },
-    { icon: Heart, label: 'Companionship & Support' },
-    { icon: Pill, label: 'Medication Support' },
-    { icon: PersonStanding, label: 'Safe Mobility Help' },
-    { icon: UtensilsCrossed, label: 'Healthy Meals' },
-    { icon: Car, label: 'Transportation' },
+    { icon: Brain, label: 'Dementia Care', subtext: null },
+    { icon: Home, label: 'Aging in Place', subtext: null },
+    { icon: Heart, label: 'And More...', subtext: 'Meals • Mobility • Meds • Companionship' },
   ];
 
   return (
@@ -81,20 +78,23 @@ export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = (
           <p className="text-center font-semibold mb-3" style={{ color: '#6B9FDB' }}>
             💙 What We Offer:
           </p>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-4">
             {services.map((service, index) => (
               <div 
                 key={index} 
-                className="flex flex-col items-center text-center p-2 rounded-lg"
+                className="flex flex-col items-center text-center p-3 rounded-lg"
                 style={{ backgroundColor: 'rgba(107, 159, 219, 0.15)' }}
               >
                 <div 
-                  className="w-9 h-9 rounded-full flex items-center justify-center mb-1"
+                  className="w-11 h-11 rounded-full flex items-center justify-center mb-2"
                   style={{ backgroundColor: '#6B9FDB' }}
                 >
-                  <service.icon className="w-4 h-4" style={{ color: 'white' }} />
+                  <service.icon className="w-5 h-5" style={{ color: 'white' }} />
                 </div>
-                <span className="text-xs font-medium leading-tight" style={{ color: '#374151' }}>{service.label}</span>
+                <span className="text-sm font-semibold leading-tight" style={{ color: '#374151' }}>{service.label}</span>
+                {service.subtext && (
+                  <span className="text-[10px] mt-1 leading-tight" style={{ color: '#6B7280' }}>{service.subtext}</span>
+                )}
               </div>
             ))}
           </div>
