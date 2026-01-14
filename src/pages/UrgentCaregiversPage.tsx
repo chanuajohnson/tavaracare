@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Heart, Users, Shield, Clock, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SpotlightCaregiverCard } from "@/components/spotlight/SpotlightCaregiverCard";
 import { TestimonialCard } from "@/components/spotlight/TestimonialCard";
@@ -35,6 +36,19 @@ const UrgentCaregiversPage = () => {
     hasUtmParams: Object.keys(utmData).length > 0,
     rawParams: { utmSource, utmContent, utmLocation }
   });
+  
+  // Show visual confirmation for flyer scans (helps debug on mobile)
+  useEffect(() => {
+    if (utmSource === 'flyer' && utmLocation) {
+      // Delay slightly to let tracking complete
+      setTimeout(() => {
+        toast.success(`📍 Flyer scan detected: ${utmLocation}`, {
+          duration: 4000,
+          description: `Variant: ${utmContent || 'unknown'}`
+        });
+      }, 1500);
+    }
+  }, [utmSource, utmLocation, utmContent]);
 
   const { data: spotlightCaregivers, isLoading: isLoadingSpotlight } = useSpotlightCaregivers();
   const { data: testimonials } = useCaregiverTestimonials(selectedCaregiver || undefined);
