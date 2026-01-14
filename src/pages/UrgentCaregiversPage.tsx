@@ -25,6 +25,9 @@ const UrgentCaregiversPage = () => {
     utm_location: searchParams.get('utm_location') || undefined,
   };
   
+  // Debug: Log UTM params on page load for flyer scan testing
+  console.log('[UrgentCaregiversPage] UTM tracking data:', utmData);
+
   const { data: spotlightCaregivers, isLoading: isLoadingSpotlight } = useSpotlightCaregivers();
   const { data: testimonials } = useCaregiverTestimonials(selectedCaregiver || undefined);
 
