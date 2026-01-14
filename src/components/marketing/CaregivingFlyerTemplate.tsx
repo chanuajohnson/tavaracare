@@ -15,8 +15,8 @@ export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = (
 }) => {
   // Variant-specific content
   const headlineText = variant === 'B' 
-    ? 'Match with a caregiver today' 
-    : 'Find care now';
+    ? 'Match With a Caregiver Today' 
+    : 'Find Care Now';
 
   // Build URL with all tracking parameters
   const baseUrl = 'https://tavara.care/urgent-caregivers';
@@ -63,7 +63,15 @@ export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = (
 
         {/* Main Value Proposition - Punchy Headline */}
         <div className="text-center -mt-4">
-          <h2 className="text-4xl font-bold leading-tight" style={{ color: '#1a365d' }}>
+          <h2 
+            className="text-4xl font-bold leading-tight" 
+            style={{ 
+              color: '#1a365d',
+              whiteSpace: 'pre-wrap',
+              wordSpacing: '0.15em',
+              letterSpacing: 'normal'
+            }}
+          >
             {headlineText}
           </h2>
         </div>
