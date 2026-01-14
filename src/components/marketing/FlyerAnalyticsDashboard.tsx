@@ -3,20 +3,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, MapPin, BarChart3, Trophy, RefreshCw, Bug, CheckCircle, XCircle } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { TrendingUp, MapPin, BarChart3, Trophy, RefreshCw, Bug, CheckCircle, XCircle, AlertTriangle, Users, Repeat, Trash2 } from 'lucide-react';
 import { useFlyerAnalytics } from '@/hooks/admin/useFlyerAnalytics';
 import { getCategoryByCode } from '@/constants/flyerCategories';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface FlyerAnalyticsDashboardProps {
   dateRange: string;
 }
 
 export const FlyerAnalyticsDashboard: React.FC<FlyerAnalyticsDashboardProps> = ({ dateRange }) => {
-  const { data, loading, refetch } = useFlyerAnalytics(dateRange);
+  const [excludeTestData, setExcludeTestData] = useState(true);
+  const { data, loading, refetch } = useFlyerAnalytics(dateRange, excludeTestData);
   const [showDebug, setShowDebug] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [cleaningTestData, setCleaningTestData] = useState(false);
   const [debugInfo, setDebugInfo] = useState<{
     connected: boolean;
     totalRecords: number;
@@ -30,9 +34,40 @@ export const FlyerAnalyticsDashboard: React.FC<FlyerAnalyticsDashboardProps> = (
     setRefreshing(false);
   };
 
+  const handleCleanTestData = async () => {
+    if (!data?.testLocationCodes.length) return;
+    
+    const confirmed = window.confirm(
+      `This will archive ${data.testLocationCodes.length} test location(s): ${data.testLocationCodes.join(', ')}. Continue?`
+    );
+    
+    if (!confirmed) return;
+    
+    setCleaningTestData(true);
+    try {
+      // Delete test scans from cta_engagement_tracking
+      for (const locationCode of data.testLocationCodes) {
+        const { error } = await supabase
+          .from('cta_engagement_tracking')
+          .delete()
+          .filter('additional_data->>utm_source', 'eq', 'flyer')
+          .filter('additional_data->>utm_location', 'eq', locationCode);
+        
+        if (error) throw error;
+      }
+      
+      toast.success(`Cleaned up ${data.testLocationCodes.length} test location(s)`);
+      await refetch();
+    } catch (error: any) {
+      console.error('Error cleaning test data:', error);
+      toast.error('Failed to clean test data: ' + error.message);
+    } finally {
+      setCleaningTestData(false);
+    }
+  };
+
   const runDebugCheck = async () => {
     try {
-      // Test connection
       const { data: testData, error: testError } = await supabase
         .from('cta_engagement_tracking')
         .select('id, additional_data')
@@ -48,7 +83,6 @@ export const FlyerAnalyticsDashboard: React.FC<FlyerAnalyticsDashboardProps> = (
         return;
       }
 
-      // Count flyer records
       const flyerRecords = (testData || []).filter(r => {
         const ad = r.additional_data as any;
         return ad?.utm_source === 'flyer';
@@ -67,6 +101,22 @@ export const FlyerAnalyticsDashboard: React.FC<FlyerAnalyticsDashboardProps> = (
         flyerRecords: 0,
         error: err.message || 'Unknown error'
       });
+    }
+  };
+
+  const getSignalColor = (signal: 'green' | 'yellow' | 'red') => {
+    switch (signal) {
+      case 'green': return 'bg-green-500';
+      case 'yellow': return 'bg-yellow-500';
+      case 'red': return 'bg-red-500';
+    }
+  };
+
+  const getSignalLabel = (signal: 'green' | 'yellow' | 'red') => {
+    switch (signal) {
+      case 'green': return 'Scale';
+      case 'yellow': return 'Review';
+      case 'red': return 'Relocate';
     }
   };
 
@@ -101,8 +151,8 @@ export const FlyerAnalyticsDashboard: React.FC<FlyerAnalyticsDashboardProps> = (
   return (
     <div className="space-y-6">
       {/* Controls Bar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button 
             onClick={handleRefresh} 
             variant="outline" 
@@ -123,11 +173,48 @@ export const FlyerAnalyticsDashboard: React.FC<FlyerAnalyticsDashboardProps> = (
             <Bug className="h-4 w-4 mr-2" />
             Debug
           </Button>
+          <Button
+            onClick={() => setExcludeTestData(!excludeTestData)}
+            variant={excludeTestData ? 'secondary' : 'outline'}
+            size="sm"
+          >
+            {excludeTestData ? 'Showing Real Data Only' : 'Showing All Data'}
+          </Button>
+          {data.hasTestData && (
+            <Button
+              onClick={handleCleanTestData}
+              variant="destructive"
+              size="sm"
+              disabled={cleaningTestData}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {cleaningTestData ? 'Cleaning...' : `Clean Test Data (${data.testLocationCodes.length})`}
+            </Button>
+          )}
         </div>
         <Badge variant="outline" className="text-xs">
           Last {dateRange} days
         </Badge>
       </div>
+
+      {/* Statistical Significance Warning */}
+      {!data.isStatisticallySignificant && data.totalScans > 0 && (
+        <Card className="border-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              <div>
+                <p className="font-medium text-yellow-800 dark:text-yellow-200">Need More Data</p>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                  {data.totalScans < 25 && `Need ${25 - data.totalScans} more scans. `}
+                  {data.daysOfData < 7 && `Need ${7 - data.daysOfData} more days of data. `}
+                  Wait before making rollout decisions.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Debug Panel */}
       {showDebug && (
@@ -158,8 +245,11 @@ export const FlyerAnalyticsDashboard: React.FC<FlyerAnalyticsDashboardProps> = (
                   <strong>Analytics Data:</strong>
                   <ul className="list-disc list-inside ml-2">
                     <li>Total Scans: {data.totalScans}</li>
+                    <li>Unique Scans: {data.uniqueScans}</li>
+                    <li>Repeat Scans: {data.repeatScans}</li>
                     <li>Locations: {data.locationScans.length}</li>
-                    <li>Categories: {data.categoryPerformance.length}</li>
+                    <li>Days of Data: {data.daysOfData}</li>
+                    <li>Test Locations: {data.testLocationCodes.join(', ') || 'None'}</li>
                   </ul>
                 </div>
               </>
@@ -188,35 +278,136 @@ export const FlyerAnalyticsDashboard: React.FC<FlyerAnalyticsDashboardProps> = (
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <span className="text-2xl font-bold">{data.uniqueScans}</span>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">Unique Scans</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <Repeat className="h-5 w-5 text-primary" />
+              <span className="text-2xl font-bold">{data.repeatScans}</span>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">Repeat Scans</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
               <MapPin className="h-5 w-5 text-primary" />
               <span className="text-2xl font-bold">{data.locationScans.length}</span>
             </div>
             <p className="text-sm text-muted-foreground mt-1">Active Locations</p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-primary" />
-              <span className="text-lg font-bold truncate">
-                {data.topLocation?.business_name || 'N/A'}
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">Top Location</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              <span className="text-2xl font-bold">{data.categoryPerformance.length}</span>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">Active Categories</p>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Top Location Card (Enhanced) */}
+      {data.topLocation && (
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Trophy className="h-8 w-8 text-yellow-500" />
+                <div>
+                  <p className="text-lg font-bold">{data.topLocation.business_name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {data.topLocation.scans} scans • {data.topLocation.repeatScans} repeat scans
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${getSignalColor(data.topLocation.signal)}`} />
+                <span className="text-sm font-medium">{getSignalLabel(data.topLocation.signal)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Rollout Signals Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            Rollout Signals
+          </CardTitle>
+          <CardDescription>Quick decisions based on scan patterns</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="text-center p-4 bg-green-100 dark:bg-green-950/30 rounded-lg">
+              <div className="text-2xl font-bold text-green-700 dark:text-green-400">
+                {data.locationScans.filter(l => l.signal === 'green').length}
+              </div>
+              <p className="text-sm text-green-600 dark:text-green-500">Scale Here</p>
+              <p className="text-xs text-muted-foreground mt-1">High unique + repeat</p>
+            </div>
+            <div className="text-center p-4 bg-yellow-100 dark:bg-yellow-950/30 rounded-lg">
+              <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">
+                {data.locationScans.filter(l => l.signal === 'yellow').length}
+              </div>
+              <p className="text-sm text-yellow-600 dark:text-yellow-500">Review Placement</p>
+              <p className="text-xs text-muted-foreground mt-1">High unique, low repeat</p>
+            </div>
+            <div className="text-center p-4 bg-red-100 dark:bg-red-950/30 rounded-lg">
+              <div className="text-2xl font-bold text-red-700 dark:text-red-400">
+                {data.locationScans.filter(l => l.signal === 'red').length}
+              </div>
+              <p className="text-sm text-red-600 dark:text-red-500">Relocate</p>
+              <p className="text-xs text-muted-foreground mt-1">Low visibility</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Variant x Location Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Variant × Location Performance</CardTitle>
+          <CardDescription>Which message works best at each location</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {data.variantByLocation.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Location</TableHead>
+                  <TableHead className="text-center">Variant A</TableHead>
+                  <TableHead className="text-center">Variant B</TableHead>
+                  <TableHead className="text-center">Winner</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.variantByLocation.slice(0, 10).map((loc) => (
+                  <TableRow key={loc.location}>
+                    <TableCell className="font-medium">{loc.business_name}</TableCell>
+                    <TableCell className="text-center">{loc.variantA}</TableCell>
+                    <TableCell className="text-center">{loc.variantB}</TableCell>
+                    <TableCell className="text-center">
+                      {loc.variantA > loc.variantB ? (
+                        <Badge variant="default">A</Badge>
+                      ) : loc.variantB > loc.variantA ? (
+                        <Badge variant="secondary">B</Badge>
+                      ) : (
+                        <Badge variant="outline">Tie</Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-center text-muted-foreground py-8">
+              No location data yet.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* A/B Test Performance */}
       <Card>
@@ -300,11 +491,11 @@ export const FlyerAnalyticsDashboard: React.FC<FlyerAnalyticsDashboardProps> = (
         </CardContent>
       </Card>
 
-      {/* Top Locations Table */}
+      {/* Top Locations Table (Enhanced) */}
       <Card>
         <CardHeader>
           <CardTitle>Top Performing Locations</CardTitle>
-          <CardDescription>Ranked by number of scans</CardDescription>
+          <CardDescription>Ranked by number of scans with rollout signals</CardDescription>
         </CardHeader>
         <CardContent>
           {data.locationScans.length > 0 ? (
@@ -317,21 +508,26 @@ export const FlyerAnalyticsDashboard: React.FC<FlyerAnalyticsDashboardProps> = (
                     className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
                   >
                     <div className="flex items-center gap-3">
-                      <span className={`font-bold text-lg ${idx < 3 ? 'text-primary' : 'text-muted-foreground'}`}>
-                        #{idx + 1}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold text-lg ${idx < 3 ? 'text-primary' : 'text-muted-foreground'}`}>
+                          #{idx + 1}
+                        </span>
+                        <div className={`w-2.5 h-2.5 rounded-full ${getSignalColor(loc.signal)}`} />
+                      </div>
                       <div>
                         <p className="font-medium">{loc.business_name}</p>
                         <div className="flex gap-2 text-sm text-muted-foreground">
                           <span>{category?.icon} {category?.label}</span>
                           <span>•</span>
-                          <span>Variant {loc.variant}</span>
+                          <span>A:{loc.variantA} B:{loc.variantB}</span>
                         </div>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-xl font-bold">{loc.scans}</p>
-                      <p className="text-sm text-muted-foreground">scans</p>
+                      <p className="text-sm text-muted-foreground">
+                        {loc.uniqueScans} unique • {loc.repeatScans} repeat
+                      </p>
                     </div>
                   </div>
                 );
@@ -350,7 +546,7 @@ export const FlyerAnalyticsDashboard: React.FC<FlyerAnalyticsDashboardProps> = (
         <Card>
           <CardHeader>
             <CardTitle>Scans Over Time</CardTitle>
-            <CardDescription>Daily flyer scan activity</CardDescription>
+            <CardDescription>Daily flyer scan activity ({data.daysOfData} days of data)</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-64">
