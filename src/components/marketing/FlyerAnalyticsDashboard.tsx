@@ -1,20 +1,76 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, MapPin, BarChart3, Trophy } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { TrendingUp, MapPin, BarChart3, Trophy, RefreshCw, Bug, CheckCircle, XCircle } from 'lucide-react';
 import { useFlyerAnalytics } from '@/hooks/admin/useFlyerAnalytics';
 import { getCategoryByCode } from '@/constants/flyerCategories';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FlyerAnalyticsDashboardProps {
   dateRange: string;
 }
 
 export const FlyerAnalyticsDashboard: React.FC<FlyerAnalyticsDashboardProps> = ({ dateRange }) => {
-  const { data, loading } = useFlyerAnalytics(dateRange);
+  const { data, loading, refetch } = useFlyerAnalytics(dateRange);
+  const [showDebug, setShowDebug] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<{
+    connected: boolean;
+    totalRecords: number;
+    flyerRecords: number;
+    error: string | null;
+  } | null>(null);
 
-  if (loading) {
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
+
+  const runDebugCheck = async () => {
+    try {
+      // Test connection
+      const { data: testData, error: testError } = await supabase
+        .from('cta_engagement_tracking')
+        .select('id, additional_data')
+        .limit(100);
+
+      if (testError) {
+        setDebugInfo({
+          connected: false,
+          totalRecords: 0,
+          flyerRecords: 0,
+          error: testError.message
+        });
+        return;
+      }
+
+      // Count flyer records
+      const flyerRecords = (testData || []).filter(r => {
+        const ad = r.additional_data as any;
+        return ad?.utm_source === 'flyer';
+      });
+
+      setDebugInfo({
+        connected: true,
+        totalRecords: testData?.length || 0,
+        flyerRecords: flyerRecords.length,
+        error: null
+      });
+    } catch (err: any) {
+      setDebugInfo({
+        connected: false,
+        totalRecords: 0,
+        flyerRecords: 0,
+        error: err.message || 'Unknown error'
+      });
+    }
+  };
+
+  if (loading && !refreshing) {
     return (
       <div className="space-y-6 animate-pulse">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -33,6 +89,10 @@ export const FlyerAnalyticsDashboard: React.FC<FlyerAnalyticsDashboardProps> = (
         <CardContent className="py-12 text-center">
           <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground">No analytics data available</p>
+          <Button onClick={handleRefresh} variant="outline" className="mt-4">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
         </CardContent>
       </Card>
     );
@@ -40,6 +100,79 @@ export const FlyerAnalyticsDashboard: React.FC<FlyerAnalyticsDashboardProps> = (
 
   return (
     <div className="space-y-6">
+      {/* Controls Bar */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={handleRefresh} 
+            variant="outline" 
+            size="sm"
+            disabled={refreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh Data'}
+          </Button>
+          <Button 
+            onClick={() => {
+              setShowDebug(!showDebug);
+              if (!showDebug) runDebugCheck();
+            }} 
+            variant="ghost" 
+            size="sm"
+          >
+            <Bug className="h-4 w-4 mr-2" />
+            Debug
+          </Button>
+        </div>
+        <Badge variant="outline" className="text-xs">
+          Last {dateRange} days
+        </Badge>
+      </div>
+
+      {/* Debug Panel */}
+      {showDebug && (
+        <Card className="border-dashed border-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20">
+          <CardHeader className="py-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Bug className="h-4 w-4" />
+              Debug Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {debugInfo ? (
+              <>
+                <div className="flex items-center gap-2">
+                  {debugInfo.connected ? (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-red-500" />
+                  )}
+                  <span>Supabase Connection: {debugInfo.connected ? 'OK' : 'Failed'}</span>
+                </div>
+                <div>Total Records (last 100): {debugInfo.totalRecords}</div>
+                <div>Flyer Scans Found: {debugInfo.flyerRecords}</div>
+                {debugInfo.error && (
+                  <div className="text-red-500">Error: {debugInfo.error}</div>
+                )}
+                <div className="pt-2 border-t">
+                  <strong>Analytics Data:</strong>
+                  <ul className="list-disc list-inside ml-2">
+                    <li>Total Scans: {data.totalScans}</li>
+                    <li>Locations: {data.locationScans.length}</li>
+                    <li>Categories: {data.categoryPerformance.length}</li>
+                  </ul>
+                </div>
+              </>
+            ) : (
+              <p className="text-muted-foreground">Running diagnostics...</p>
+            )}
+            <Button onClick={runDebugCheck} size="sm" variant="outline" className="mt-2">
+              Re-run Check
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
