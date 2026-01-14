@@ -23,12 +23,18 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   `);
 }
 
-// Fallback values for development (optional)
-const developmentFallbackUrl = 'https://cpdfmyemjrefnhddyrck.supabase.co';
-const developmentFallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZGZteWVtanJlZm5oZGR5cmNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk4MjcwODAsImV4cCI6MjA1NTQwMzA4MH0.9LwhYWSuTbiqvSGGPAT7nfz8IFZIgnNzYoa_hLQ_2PY';
+// Production Supabase credentials (safe to hardcode - this is the public anon key)
+const PRODUCTION_SUPABASE_URL = 'https://cpdfmyemjrefnhddyrck.supabase.co';
+const PRODUCTION_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZGZteWVtanJlZm5oZGR5cmNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk4MjcwODAsImV4cCI6MjA1NTQwMzA4MH0.9LwhYWSuTbiqvSGGPAT7nfz8IFZIgnNzYoa_hLQ_2PY';
 
-const finalSupabaseUrl = SUPABASE_URL || (CURRENT_ENV === 'development' ? developmentFallbackUrl : '');
-const finalSupabaseKey = SUPABASE_ANON_KEY || (CURRENT_ENV === 'development' ? developmentFallbackKey : '');
+// Always fall back to production credentials if env vars not set (works on any domain)
+const finalSupabaseUrl = SUPABASE_URL || PRODUCTION_SUPABASE_URL;
+const finalSupabaseKey = SUPABASE_ANON_KEY || PRODUCTION_SUPABASE_ANON_KEY;
+
+// Log when using fallback credentials for debugging
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.log('[Supabase] Using fallback production credentials (env vars not set)');
+}
 
 // Create the Supabase client with modified auth config
 export const supabase = createClient<Database>(
