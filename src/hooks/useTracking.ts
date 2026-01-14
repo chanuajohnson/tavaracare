@@ -117,7 +117,7 @@ const sendToGoogleAnalytics = (actionType: TrackingActionType, additionalData: R
  * Hook for tracking user engagement across the platform
  */
 export function useTracking(options: TrackingOptions = {}) {
-  const { user, isProfileComplete } = useAuth();
+  const { user, userRole, isProfileComplete } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   
   /**
@@ -128,6 +128,14 @@ export function useTracking(options: TrackingOptions = {}) {
    * @returns Promise that resolves when tracking is complete
    */
   const trackEngagement = async (actionType: TrackingActionType, additionalData: Record<string, any> = {}) => {
+    // Debug: Log tracking attempt
+    console.log('[trackEngagement] Attempting to track:', {
+      actionType,
+      additionalData,
+      isAuthenticated: !!user,
+      userId: user?.id || 'anonymous'
+    });
+
     // Skip tracking if disabled in options
     if (options.disabled) {
       console.log('[Tracking disabled by options]', actionType, additionalData);
@@ -135,12 +143,17 @@ export function useTracking(options: TrackingOptions = {}) {
     }
     
     // Skip tracking for admin users UNLESS it's a flyer scan (allow testing)
-    const isAdminUser = user?.role === 'admin';
+    const isAdminUser = userRole === 'admin';
     const isFlyerScan = additionalData?.utm_source === 'flyer';
     
     if (isAdminUser && !isFlyerScan) {
       console.log('[Tracking disabled for admin user]', actionType, additionalData);
       return;
+    }
+    
+    // Log when admin flyer scan bypass is used
+    if (isAdminUser && isFlyerScan) {
+      console.log('[Tracking ENABLED for admin flyer scan test]', actionType, additionalData);
     }
     
     // Skip tracking for caregiver matching related events
@@ -158,31 +171,38 @@ export function useTracking(options: TrackingOptions = {}) {
       // Store the session ID if it's new
       if (!localStorage.getItem('session_id')) {
         localStorage.setItem('session_id', sessionId);
+        console.log('[trackEngagement] Created new session ID:', sessionId);
       }
       
       // Add user role to additional data if user is logged in
       const enhancedData = {
         ...additionalData,
-        user_role: user?.role || 'anonymous',
+        user_role: userRole || 'anonymous',
         user_profile_complete: isProfileComplete || false,
       };
+      
+      // Debug: Log the payload being sent
+      const payload = {
+        user_id: user?.id || null,
+        action_type: actionType,
+        session_id: sessionId,
+        additional_data: enhancedData
+      };
+      console.log('[trackEngagement] Sending to Supabase:', payload);
       
       // Send to Google Analytics
       sendToGoogleAnalytics(actionType, enhancedData);
       
       // Record the tracking event in Supabase
-      const { error } = await supabase.from('cta_engagement_tracking').insert({
-        user_id: user?.id || null,
-        action_type: actionType,
-        session_id: sessionId,
-        additional_data: enhancedData
-      });
+      const { data, error } = await supabase.from('cta_engagement_tracking').insert(payload).select();
       
       if (error) {
-        console.error("Error tracking engagement in Supabase:", error);
+        console.error('[trackEngagement] Supabase insert FAILED:', error);
+      } else {
+        console.log('[trackEngagement] Supabase insert SUCCESS:', data);
       }
     } catch (error) {
-      console.error("Error in trackEngagement:", error);
+      console.error('[trackEngagement] Unexpected error:', error);
     } finally {
       setIsLoading(false);
     }
