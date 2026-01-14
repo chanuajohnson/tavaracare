@@ -1,0 +1,154 @@
+import React from 'react';
+import { QRCode } from './QRCode';
+import { Phone, Heart, Brain, Home, Quote } from 'lucide-react';
+
+interface CaregivingFlyerTemplateProps {
+  id?: string;
+  variant?: 'A' | 'B';
+  locationCode?: string;
+}
+
+export const CaregivingFlyerTemplate: React.FC<CaregivingFlyerTemplateProps> = ({ 
+  id = 'caregiving-flyer',
+  variant = 'A',
+  locationCode
+}) => {
+  // Variant-specific content
+  const headlineText = variant === 'B' 
+    ? 'Match With a Caregiver Today' 
+    : 'Find Care Now';
+
+  // Build URL with all tracking parameters - use Lovable deployment for latest tracking code
+  const baseUrl = 'https://tavara.care/urgent-caregivers';
+  const params = new URLSearchParams({
+    utm_source: 'flyer',
+    utm_content: variant === 'B' ? 'match_caregiver' : 'find_care_now',
+  });
+  if (locationCode) {
+    params.set('utm_location', locationCode);
+  }
+  const qrUrl = `${baseUrl}?${params.toString()}`;
+
+  const services = [
+    { icon: Brain, label: 'Dementia Care', subtext: null },
+    { icon: Home, label: 'Aging in Place', subtext: null },
+    { icon: Heart, label: 'And More...', subtext: 'Meals • Mobility • Meds • Companionship' },
+  ];
+
+  return (
+    <div 
+      id={id}
+      className="bg-white"
+      style={{ 
+        width: '550px', 
+        height: '850px',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }}
+    >
+      {/* Content Container */}
+      <div className="h-full flex flex-col items-center justify-between p-8">
+        
+        {/* Header */}
+        <div className="text-center">
+          <h1 className="text-4xl font-bold tracking-tight" style={{ color: '#6B9FDB' }}>
+            Tavara.care
+          </h1>
+          <p className="text-lg mt-1 italic" style={{ color: '#6B7280' }}>
+            It takes a village to care
+          </p>
+        </div>
+
+        {/* Main Value Proposition - Punchy Headline */}
+        <div className="text-center -mt-4">
+          <h2 
+            className="text-4xl font-bold leading-tight" 
+            style={{ 
+              color: '#1a365d',
+              whiteSpace: 'pre-wrap',
+              wordSpacing: '0.15em',
+              letterSpacing: 'normal'
+            }}
+          >
+            {headlineText}
+          </h2>
+        </div>
+
+        {/* Services Grid with Header */}
+        <div className="w-full max-w-md -mt-2">
+          <p className="text-center font-semibold mb-3" style={{ color: '#6B9FDB' }}>
+            💙 What We Offer:
+          </p>
+          <div className="grid grid-cols-3 gap-4">
+            {services.map((service, index) => (
+              <div 
+                key={index} 
+                className="flex flex-col items-center text-center p-3 rounded-lg"
+                style={{ backgroundColor: 'rgba(107, 159, 219, 0.15)' }}
+              >
+                <div 
+                  className="w-11 h-11 rounded-full flex items-center justify-center mb-2"
+                  style={{ backgroundColor: '#6B9FDB' }}
+                >
+                  <service.icon className="w-5 h-5" style={{ color: 'white' }} />
+                </div>
+                <span className="text-sm font-semibold leading-tight" style={{ color: '#374151' }}>{service.label}</span>
+                {service.subtext && (
+                  <span className="text-[10px] mt-1 leading-tight" style={{ color: '#6B7280' }}>{service.subtext}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Call to Action Section */}
+        <div className="w-full space-y-3">
+          {/* CTA Header */}
+          <p className="text-center font-semibold text-sm" style={{ color: '#1a365d' }}>
+            ✅ Need a caregiver? Chat with us now!
+          </p>
+          
+          {/* WhatsApp CTA */}
+          <div 
+            className="flex items-center justify-center gap-3 py-3 px-4 rounded-lg"
+            style={{ backgroundColor: '#25D366', color: 'white' }}
+          >
+            <Phone className="w-5 h-5" style={{ color: 'white' }} />
+            <span className="font-bold text-lg" style={{ color: 'white' }}>WhatsApp: +1 (868) 786-5357</span>
+          </div>
+
+          {/* QR Code Section */}
+          <div className="flex items-center justify-center gap-4 py-2">
+            <div className="p-2 rounded-lg" style={{ border: '1px solid #e5e7eb' }}>
+              <QRCode url={qrUrl} size={70} />
+            </div>
+            <div className="text-left">
+              <p className="font-bold text-sm" style={{ color: '#1a365d' }}>📲 Scan to view</p>
+              <p className="font-bold text-sm" style={{ color: '#1a365d' }}>available caregivers</p>
+              <p className="text-xs mt-1" style={{ color: '#6B7280' }}>tavara.care/urgent-caregivers</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Testimonial */}
+        <div className="w-full max-w-sm text-center px-4 py-3 rounded-lg" style={{ backgroundColor: 'rgba(107, 159, 219, 0.1)' }}>
+          <div className="flex justify-center mb-1">
+            <Quote className="w-4 h-4" style={{ color: '#6B9FDB' }} />
+          </div>
+          <p className="text-xs italic leading-relaxed" style={{ color: '#374151' }}>
+            "I love working with families through Tavara. I get to do what I was born to do — care."
+          </p>
+          <p className="text-xs font-semibold mt-1" style={{ color: '#1a365d' }}>
+            — Shenelle, Caregiver since 2025
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center">
+          <p className="text-sm font-medium" style={{ color: '#6B9FDB' }}>
+            🏝️ Proudly serving families across Trinidad & Tobago
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -78,6 +78,13 @@ import DemoFamilyRegistration from "@/pages/demo/DemoFamilyRegistration";
 import DemoCareAssessment from "@/pages/demo/DemoCareAssessment";
 import DemoFamilyStory from "@/pages/demo/DemoFamilyStory";
 
+// Marketing Pages
+import MarketingKit from "@/pages/marketing/MarketingKit";
+import GenerateMarketingAssets from "@/pages/admin/GenerateMarketingAssets";
+import FlyerLocations from "@/pages/admin/FlyerLocations";
+import UrgentCaregiversPage from "@/pages/UrgentCaregiversPage";
+import TestimonialManagementPage from "@/pages/admin/TestimonialManagementPage";
+
 export const AppRoutes = () => {
   const { user } = useAuth();
 
@@ -94,6 +101,7 @@ export const AppRoutes = () => {
       <Route path="/errands" element={<ErrandsPage />} />
       <Route path="/faq" element={<FAQPage />} />
       <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+      <Route path="/urgent-caregivers" element={<UrgentCaregiversPage />} />
       
       {/* Registration Routes */}
       <Route path="/registration/family" element={<FamilyRegistration />} />
@@ -127,8 +135,8 @@ export const AppRoutes = () => {
       <Route path="/family/medication-management" element={<MedicationManagementPage />} />
       <Route path="/family/care-management" element={<CareManagementPage />} />
       <Route path="/family/care-management/:id" element={<CarePlanDetailPage />} />
-      <Route path="/family/care-management/:id/medications" element={<MedicationManagementPage />} />
-      <Route path="/family/care-management/:id/meals" element={<MealManagementPage />} />
+      <Route path="/family/care-management/:carePlanId/medications" element={<MedicationManagementPage />} />
+      <Route path="/family/care-management/:carePlanId/meals" element={<MealManagementPage />} />
       <Route path="/family/care-management/create" element={<CreateCarePlanPage />} />
       <Route path="/family/care-journey-progress" element={<CareJourneyProgressPage />} />
       
@@ -151,6 +159,7 @@ export const AppRoutes = () => {
       <Route path="/admin/whatsapp-nudge" element={<WhatsAppNudgePage />} />
       <Route path="/admin/platform-analytics" element={<PlatformAnalyticsPage />} />
       <Route path="/admin/shift-management" element={<ShiftManagementPage />} />
+      <Route path="/admin/testimonials" element={<TestimonialManagementPage />} />
       
       {/* Legacy Routes */}
       <Route path="/legacy/stories" element={<LegacyStoriesPage />} />
@@ -159,6 +168,11 @@ export const AppRoutes = () => {
       <Route path="/tav-demo" element={<TavDemo />} />
       <Route path="/tav-dashboard" element={<TavDashboard />} />
       <Route path="/implementation-guide" element={<ImplementationGuide />} />
+      
+      {/* Marketing Routes */}
+      <Route path="/marketing-kit" element={<MarketingKit />} />
+      <Route path="/admin/generate-marketing" element={<GenerateMarketingAssets />} />
+      <Route path="/admin/flyer-locations" element={<FlyerLocations />} />
       
       {/* Demo Routes */}
       <Route path="/demo/registration/family" element={<DemoFamilyRegistration />} />

@@ -36,6 +36,12 @@ export const useAuthRedirection = (
       return;
     }
 
+    // Skip redirect on admin-specific pages like flyer-locations
+    if (location.pathname.startsWith('/admin/')) {
+      console.log('[AuthProvider] On admin page, skipping redirection');
+      return;
+    }
+
     // CRITICAL FIX: Check for email verification flag specifically
     const skipEmailVerification = hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
     if (skipEmailVerification) {

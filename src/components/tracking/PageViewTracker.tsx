@@ -48,38 +48,60 @@ export const PageViewTracker = ({
     
     // Track the page view
     const trackPageView = async () => {
-      // Store visit sequence in session storage to determine navigation flow
-      const visitHistory = JSON.parse(sessionStorage.getItem('visit_history') || '[]');
-      visitHistory.push({
-        path: location.pathname,
-        timestamp: Date.now()
-      });
-      sessionStorage.setItem('visit_history', JSON.stringify(visitHistory.slice(-10))); // Keep last 10 pages
-      
-      // Calculate time on previous page if available
-      let timeOnPreviousPage = null;
-      if (visitHistory.length > 1) {
-        const previousVisit = visitHistory[visitHistory.length - 2];
-        timeOnPreviousPage = Math.floor((Date.now() - previousVisit.timestamp) / 1000);
+      try {
+        // Store visit sequence in session storage to determine navigation flow
+        let visitHistory: Array<{path: string, timestamp: number}> = [];
+        try {
+          visitHistory = JSON.parse(sessionStorage.getItem('visit_history') || '[]');
+        } catch (e) {
+          console.log('[PageViewTracker] Could not read visit history from sessionStorage');
+        }
+        
+        visitHistory.push({
+          path: location.pathname,
+          timestamp: Date.now()
+        });
+        
+        try {
+          sessionStorage.setItem('visit_history', JSON.stringify(visitHistory.slice(-10))); // Keep last 10 pages
+        } catch (e) {
+          console.log('[PageViewTracker] Could not save visit history to sessionStorage');
+        }
+        
+        // Calculate time on previous page if available
+        let timeOnPreviousPage = null;
+        if (visitHistory.length > 1) {
+          const previousVisit = visitHistory[visitHistory.length - 2];
+          timeOnPreviousPage = Math.floor((Date.now() - previousVisit.timestamp) / 1000);
+        }
+        
+        // Determine if this is a return visit to the page
+        const isReturnVisit = visitHistory.slice(0, -1).some(visit => visit.path === location.pathname);
+        
+        console.log('[PageViewTracker] Tracking page view:', { 
+          actionType, 
+          path: location.pathname,
+          search: location.search,
+          hasAdditionalData: Object.keys(additionalData).length > 0
+        });
+        
+        await trackEngagement(actionType, {
+          ...additionalData,
+          path: location.pathname,
+          search: location.search,
+          referrer: document.referrer,
+          journey_stage: journeyStage || 'navigation',
+          is_return_visit: isReturnVisit,
+          visit_count: visitHistory.length,
+          time_on_previous_page: timeOnPreviousPage,
+          user_status: user ? (isProfileComplete ? 'complete_profile' : 'incomplete_profile') : 'anonymous'
+        });
+        
+        // Update previous path
+        previousPath.current = location.pathname + location.search;
+      } catch (error) {
+        console.error('[PageViewTracker] Error tracking page view:', error);
       }
-      
-      // Determine if this is a return visit to the page
-      const isReturnVisit = visitHistory.slice(0, -1).some(visit => visit.path === location.pathname);
-      
-      await trackEngagement(actionType, {
-        ...additionalData,
-        path: location.pathname,
-        search: location.search,
-        referrer: document.referrer,
-        journey_stage: journeyStage || 'navigation',
-        is_return_visit: isReturnVisit,
-        visit_count: visitHistory.length,
-        time_on_previous_page: timeOnPreviousPage,
-        user_status: user ? (isProfileComplete ? 'complete_profile' : 'incomplete_profile') : 'anonymous'
-      });
-      
-      // Update previous path
-      previousPath.current = location.pathname + location.search;
     };
     
     trackPageView();

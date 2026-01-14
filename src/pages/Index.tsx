@@ -479,6 +479,24 @@ const Index = () => {
             </Button>
           </motion.div>
 
+          {/* Urgent Caregivers CTA Bubble */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.8 }}
+          >
+            <Button
+              onClick={() => navigate("/urgent-caregivers")}
+              size="lg"
+              variant="outline"
+              className="bg-primary/20 border-primary/40 text-white hover:bg-primary/30 hover:text-white font-medium px-6 py-3 rounded-full flex items-center gap-2 animate-pulse"
+              aria-label="View caregivers available to be matched now"
+            >
+              <Heart className="h-5 w-5 text-primary" />
+              Caregivers Available Now
+            </Button>
+          </motion.div>
+
           {/* Scroll Indicator */}
           <motion.div
             initial={{ opacity: 0 }}
