@@ -19,14 +19,22 @@ const UrgentCaregiversPage = () => {
   const [selectedCaregiverData, setSelectedCaregiverData] = useState<SpotlightCaregiver | null>(null);
   
   // Extract UTM parameters for flyer tracking
-  const utmData = {
-    utm_source: searchParams.get('utm_source') || undefined,
-    utm_content: searchParams.get('utm_content') || undefined,
-    utm_location: searchParams.get('utm_location') || undefined,
-  };
+  // Build UTM data object - only include defined values
+  const utmData: Record<string, string> = {};
+  const utmSource = searchParams.get('utm_source');
+  const utmContent = searchParams.get('utm_content');
+  const utmLocation = searchParams.get('utm_location');
+
+  if (utmSource) utmData.utm_source = utmSource;
+  if (utmContent) utmData.utm_content = utmContent;
+  if (utmLocation) utmData.utm_location = utmLocation;
   
   // Debug: Log UTM params on page load for flyer scan testing
-  console.log('[UrgentCaregiversPage] UTM tracking data:', utmData);
+  console.log('[UrgentCaregiversPage] UTM tracking data:', {
+    utmData,
+    hasUtmParams: Object.keys(utmData).length > 0,
+    rawParams: { utmSource, utmContent, utmLocation }
+  });
 
   const { data: spotlightCaregivers, isLoading: isLoadingSpotlight } = useSpotlightCaregivers();
   const { data: testimonials } = useCaregiverTestimonials(selectedCaregiver || undefined);
