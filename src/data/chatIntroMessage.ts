@@ -72,7 +72,7 @@ export const getNextQuestion = (role: string, questionIndex: number): string => 
   const familyQuestions = [
     "Who are you seeking care for? A parent, spouse, child, or someone else?",
     "What type of care assistance do you need? For example, daily activities, medical care, companionship?",
-    "How often do you need care? Daily, weekly, or for specific hours?",
+    "What schedule works best for your care needs? We have options from standard daytime shifts to 24/7 care.",
     "When would you like to start receiving care?",
     "Do you have any specific requirements or preferences for your caregiver?"
   ];
@@ -82,7 +82,7 @@ export const getNextQuestion = (role: string, questionIndex: number): string => 
     "How many years of experience do you have in caregiving?",
     "Do you have any certifications or special training?",
     "What areas of Trinidad & Tobago are you available to work in?",
-    "What is your typical availability? (Days, evenings, weekends)"
+    "What's your typical availability? We have options from standard shifts to live-in care."
   ];
   
   const communityQuestions = [

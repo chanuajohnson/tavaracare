@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -11,6 +10,7 @@ import { useAuthNavigation } from '@/hooks/auth/useAuthNavigation';
 import { useProfileCompletion } from '@/hooks/auth/useProfileCompletion';
 import { useAuthRedirection } from '@/hooks/auth/useAuthRedirection';
 import { useFeatureUpvote } from '@/hooks/auth/useFeatureUpvote';
+import { shouldSkipRedirectForCurrentFlow, AUTH_FLOW_FLAGS, hasAuthFlowFlag } from '@/utils/authFlowUtils';
 
 interface AuthContextType {
   session: Session | null;
@@ -73,9 +73,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isPasswordResetConfirmRoute = location.pathname.includes('/auth/reset-password/confirm');
   const isPasswordRecoveryRef = useRef(false);
   const passwordResetCompleteRef = useRef(false);
+
+  // ENHANCED: Detect development environment for better handling
+  const isDevelopment = window.location.hostname.includes('lovable.app') || 
+                       window.location.hostname === 'localhost';
+
+  // Helper function to check for redirect lock with development override
+  const hasRedirectLock = () => {
+    if (isDevelopment) {
+      // In development, be more lenient with redirect locks
+      const lockTime = sessionStorage.getItem('TAVARA_REDIRECT_LOCK_TIME');
+      if (lockTime) {
+        const timeDiff = Date.now() - parseInt(lockTime);
+        // Clear lock after 3 seconds in development
+        if (timeDiff > 3000) {
+          clearRedirectLock();
+          return false;
+        }
+      }
+    }
+    return sessionStorage.getItem('TAVARA_REDIRECT_LOCK') === 'true';
+  };
+
+  // ENHANCED: Helper function to set redirect lock with timestamp
+  const setRedirectLock = () => {
+    sessionStorage.setItem('TAVARA_REDIRECT_LOCK', 'true');
+    sessionStorage.setItem('TAVARA_REDIRECT_LOCK_TIME', Date.now().toString());
+  };
+
+  // Helper function to clear redirect lock
+  const clearRedirectLock = () => {
+    sessionStorage.removeItem('TAVARA_REDIRECT_LOCK');
+    sessionStorage.removeItem('TAVARA_REDIRECT_LOCK_TIME');
+  };
   
   useEffect(() => {
-    console.log('[App] Route changed to:', location.pathname);
+    console.log('[AuthProvider] Route changed to:', location.pathname);
     
     // Check if we're on the reset password page
     if (isPasswordResetConfirmRoute) {
@@ -91,6 +124,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isPasswordRecoveryRef.current = false;
       passwordResetCompleteRef.current = true;
       sessionStorage.removeItem('passwordResetComplete');
+    }
+
+    // ENHANCED: Clear redirect lock when navigating to auth page
+    if (location.pathname === '/auth') {
+      console.log('[AuthProvider] On auth page, clearing any redirect locks');
+      clearRedirectLock();
     }
   }, [location.pathname]);
 
@@ -131,6 +170,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('[AuthProvider] Signing out...');
       setLoadingWithTimeout(true, 'sign-out');
       
+      // ENHANCED: Clear redirect locks on sign out
+      clearRedirectLock();
+      
       setSession(null);
       setUser(null);
       setUserRole(null);
@@ -153,32 +195,86 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(null);
       setUser(null);
       setUserRole(null);
+      clearRedirectLock();
       setLoadingWithTimeout(false, 'sign-out-error');
       safeNavigate('/', { skipCheck: true });
       toast.success('You have been signed out successfully');
     }
   };
 
-  // Handle post-login redirection only when appropriate
+  // ENHANCED: Handle post-login redirection with improved development support
   useEffect(() => {
+    // CRITICAL: Check skip flags first
+    const skipEmailVerification = hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
+    const skipRedirectForFlow = shouldSkipRedirectForCurrentFlow();
+    const currentRedirectLock = hasRedirectLock();
+    
+    console.log('[AuthProvider] ENHANCED Redirect check:', {
+      isLoading,
+      hasUser: !!user,
+      hasSession: !!session,
+      userRole,
+      isPasswordResetRoute: isPasswordResetConfirmRoute,
+      isPasswordRecovery: isPasswordRecoveryRef.current,
+      skipEmailVerification,
+      skipRedirectForFlow,
+      hasRedirectLock: currentRedirectLock,
+      location: location.pathname,
+      isDevelopment,
+      userMetadata: user?.user_metadata
+    });
+    
+    // NEW: Check if user is already on admin pages - skip redirect entirely
+    const isOnAdminPage = location.pathname.startsWith('/admin/');
+    
     const shouldSkipRedirect = 
       isLoading || 
       !user || 
+      !session ||
       isPasswordResetConfirmRoute || 
       isPasswordRecoveryRef.current ||
-      sessionStorage.getItem('skipPostLoginRedirect');
+      skipRedirectForFlow ||
+      currentRedirectLock ||
+      isOnAdminPage;  // NEW: Skip redirect when already on admin pages
     
     if (shouldSkipRedirect) {
+      if (isOnAdminPage) {
+        console.log('[AuthProvider] SKIPPING post-login redirect - already on admin page');
+      } else if (skipEmailVerification) {
+        console.log('[AuthProvider] SKIPPING post-login redirect - email verification flag is active');
+      } else if (skipRedirectForFlow) {
+        console.log('[AuthProvider] SKIPPING post-login redirect due to other auth flow flags');
+      } else if (currentRedirectLock) {
+        console.log('[AuthProvider] SKIPPING post-login redirect - redirect lock is active');
+        // ENHANCED: In development, auto-clear locks after user interaction
+        if (isDevelopment && location.pathname === '/auth') {
+          setTimeout(() => {
+            console.log('[AuthProvider] Development mode: Auto-clearing redirect lock after 2s');
+            clearRedirectLock();
+          }, 2000);
+        }
+      }
       return;
     }
     
     console.log('[AuthProvider] User loaded. Handling redirection...');
     
-    if (!initialRedirectionDoneRef.current || location.pathname === '/auth') {
+    // ENHANCED: Always attempt redirection if user is on auth page with valid session
+    if (location.pathname === '/auth' || !initialRedirectionDoneRef.current) {
+      console.log('[AuthProvider] Setting redirect lock and handling redirection');
+      setRedirectLock();
+      
       handlePostLoginRedirection();
       initialRedirectionDoneRef.current = true;
+      
+      // ENHANCED: Shorter clear timeout for development
+      const clearTimeout = isDevelopment ? 1500 : 2000;
+      setTimeout(() => {
+        console.log('[AuthProvider] Clearing redirect lock after successful redirection');
+        clearRedirectLock();
+      }, clearTimeout);
     }
-  }, [isLoading, user, userRole, location.pathname, isPasswordResetConfirmRoute]);
+  }, [isLoading, user, session, userRole, location.pathname, isPasswordResetConfirmRoute, isDevelopment]);
 
   useEffect(() => {
     console.log('[AuthProvider] Initial auth check started');
@@ -194,6 +290,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       console.log('[AuthProvider] Auth state changed:', event, newSession ? 'Has session' : 'No session');
       
+      // CRITICAL FIX: Always update session and user state first
+      setSession(newSession);
+      setUser(newSession?.user || null);
+
+      // CRITICAL: Check skip flags IMMEDIATELY after setting session/user
+      const skipEmailVerification = hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
+      const skipRedirectForFlow = shouldSkipRedirectForCurrentFlow();
+      
+      console.log('[AuthProvider] Auth state change - skip flags:', {
+        skipEmailVerification,
+        skipRedirectForFlow,
+        hasRedirectLock: hasRedirectLock()
+      });
+
+      // EARLY RETURN: If email verification or other flows are active, ONLY update state
+      if (skipEmailVerification || skipRedirectForFlow || hasRedirectLock()) {
+        console.log('[AuthProvider] Auth state updated, but SKIPPING all redirect logic - verification or redirect lock active');
+        return;
+      }
+
       // Track password recovery state globally
       if (event === 'PASSWORD_RECOVERY') {
         console.log('[AuthProvider] Password recovery detected - preventing redirects');
@@ -207,15 +323,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         passwordResetCompleteRef.current = false;
       }
 
-      // Don't process auth state changes when on the reset password page
-      if (isPasswordResetConfirmRoute || sessionStorage.getItem('skipPostLoginRedirect')) {
-        console.log('[AuthProvider] Ignoring auth state change on reset password page or due to skip flag');
-        return;
-      }
-      
-      setSession(newSession);
-      setUser(newSession?.user || null);
-      
+      // Only proceed with role/toast logic if NOT during special flows
       if (!isPasswordRecoveryRef.current && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
         if (newSession?.user) {
           if (newSession.user.user_metadata?.role) {
@@ -223,6 +331,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
           
           if (event === 'SIGNED_IN' && !isPasswordResetConfirmRoute && !passwordResetCompleteRef.current) {
+            console.log('[AuthProvider] SIGNED_IN event - Email verification signup path detected');
+            
+            // Send Facebook Conversions API event for family signups via email verification (only on production)
+            if (newSession.user.user_metadata?.role === 'family' && window.location.hostname === 'tavara.care') {
+              console.log('[AuthProvider] Triggering Facebook CAPI for family user email verification signup');
+              try {
+                supabase.functions.invoke('facebook-conversions-api', {
+                  body: { email: newSession.user.email }
+                }).then(() => {
+                  console.log('[AuthProvider] Facebook CAPI CompleteRegistration event sent for family email verification signup');
+                }).catch(error => {
+                  console.error('[AuthProvider] Failed to send Facebook CAPI event:', error);
+                  // Don't block the signup flow for CAPI failures
+                });
+              } catch (error) {
+                console.error('[AuthProvider] Failed to invoke Facebook CAPI function:', error);
+              }
+            }
+            
             toast.success('You have successfully logged in!');
           }
         }
@@ -238,8 +365,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     });
 
-    // Only run initial session check if not on the password reset page
-    if (!isPasswordResetConfirmRoute && !sessionStorage.getItem('skipPostLoginRedirect')) {
+    // Only run initial session check if not on the password reset page and not during specific flows
+    if (!isPasswordResetConfirmRoute && !shouldSkipRedirectForCurrentFlow()) {
       supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
         setSession(initialSession);
         setUser(initialSession?.user || null);

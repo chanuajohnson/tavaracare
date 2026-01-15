@@ -1,230 +1,377 @@
 
-import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
-import { User, Mail, MapPin, Calendar, CheckCircle2, Clock, Send, ArrowRight, Circle } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
-import { useUserSpecificProgress } from "@/hooks/useUserSpecificProgress";
-import { UserWithProgress } from "@/types/adminTypes";
-import { PhoneNumberEditor } from "./PhoneNumberEditor";
-import { TemplateSelector } from "./TemplateSelector";
+import React, { useState, useEffect, useRef } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle, FileText, Download, Share, Shield, Eye, Trash2 } from 'lucide-react';
+import { UserMatchingActions } from './UserMatchingActions';
+import { MatchingStatusToggle } from './MatchingStatusToggle';
+import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
+import { useSpecificUserProfessionalProgress } from '@/hooks/useSpecificUserProfessionalProgress';
+import { useUserSpecificProgress } from '@/hooks/useUserSpecificProgress';
+import { useComprehensiveUserData } from '@/hooks/admin/useComprehensiveUserData';
+import { downloadUserReport, type ReportOptions } from '@/services/admin/userReportGenerator';
+import type { UserRole } from '@/types/userRoles';
+
+// Import formatting functions from the PDF generator to ensure UI consistency
+const formatCareSchedule = (careSchedule: string | null): string => {
+  if (!careSchedule) return 'Not specified';
+  
+  const scheduleMap: Record<string, string> = {
+    'mon_fri_8am_4pm': 'Monday-Friday, 8:00 AM - 4:00 PM',
+    'mon_fri_8am_6pm': 'Monday-Friday, 8:00 AM - 6:00 PM', 
+    'mon_fri_6am_6pm': 'Monday-Friday, 6:00 AM - 6:00 PM',
+    'sat_sun_6am_6pm': 'Saturday-Sunday, 6:00 AM - 6:00 PM',
+    'sat_sun_8am_4pm': 'Saturday-Sunday, 8:00 AM - 4:00 PM',
+    'weekday_evening_4pm_6am': 'Weekday Evening, 4:00 PM - 6:00 AM',
+    'weekday_evening_4pm_8am': 'Weekday Evening, 4:00 PM - 8:00 AM',
+    'weekday_evening_5pm_5am': 'Weekday Evening, 5:00 PM - 5:00 AM',
+    'weekday_evening_5pm_8am': 'Weekday Evening, 5:00 PM - 8:00 AM',
+    'weekday_evening_6pm_6am': 'Weekday Evening, 6:00 PM - 6:00 AM',
+    'weekday_evening_6pm_8am': 'Weekday Evening, 6:00 PM - 8:00 AM',
+    'weekend_evening_4pm_6am': 'Weekend Evening, 4:00 PM - 6:00 AM',
+    'weekend_evening_6pm_6am': 'Weekend Evening, 6:00 PM - 6:00 AM',
+    'flexible': 'Flexible/On-Demand',
+    'live_in_care': 'Live-In Care',
+    '24_7_care': '24/7 Care',
+    'around_clock_shifts': 'Around-the-Clock Shifts',
+    'other': 'Custom Schedule'
+  };
+
+  const schedules = careSchedule.split(',').map(s => s.trim());
+  return schedules.map(s => scheduleMap[s] || s).join(', ');
+};
+
+const formatArray = (arr: any[] | null | undefined, fallback: string = 'None specified'): string => {
+  if (!arr || arr.length === 0) return fallback;
+  return arr.join(', ');
+};
+
+const formatBoolean = (value: boolean | null | undefined): string => {
+  if (value === null || value === undefined) return 'Not specified';
+  return value ? 'Yes' : 'No';
+};
 
 interface UserDetailModalProps {
-  user: UserWithProgress | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onRefresh: () => void;
+  user: any;
+  isOpen: boolean;
+  onClose: () => void;
+  onUserUpdate: () => void;
 }
 
-export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDetailModalProps) {
-  const [sending, setSending] = React.useState(false);
-  const [userPhoneNumber, setUserPhoneNumber] = React.useState<string | null>(null);
-  const [showTemplateSelector, setShowTemplateSelector] = React.useState(false);
-  
-  // Stabilize the parameters to prevent hooks violations
-  const userId = React.useMemo(() => user?.id || '', [user?.id]);
-  const userRole = React.useMemo(() => user?.role || 'family', [user?.role]);
-  
-  // Use the fixed hook that properly handles professional users
-  const { steps, completionPercentage, nextStep, loading } = useUserSpecificProgress(userId, userRole);
+export const UserDetailModal: React.FC<UserDetailModalProps> = ({
+  user,
+  isOpen,
+  onClose,
+  onUserUpdate
+}) => {
+  const [careNeeds, setCareNeeds] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [anonymousReport, setAnonymousReport] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Initialize phone number state when user changes
-  React.useEffect(() => {
-    setUserPhoneNumber(user?.phone_number || null);
-  }, [user?.phone_number]);
+  // Only call hooks when user and role are valid
+  const shouldCallFamilyHook = user?.role === 'family' && user?.id;
+  const shouldCallProfessionalHook = user?.role === 'professional' && user?.id;
+  const shouldCallOtherHook = user?.role && user?.role !== 'family' && user?.role !== 'professional' && user?.id;
 
-  // Early return after all hooks are called
-  if (!user) return null;
+  // Use hooks conditionally with proper fallbacks
+  const familyProgress = useSharedFamilyJourneyData(shouldCallFamilyHook ? user.id : '');
+  const professionalProgress = useSpecificUserProfessionalProgress(shouldCallProfessionalHook ? user.id : '');
+  const otherProgress = useUserSpecificProgress(
+    shouldCallOtherHook ? user.id : '', 
+    shouldCallOtherHook ? (user.role as UserRole) : 'family'
+  );
 
-  const sendNudgeEmail = async (stepType: string) => {
-    setSending(true);
+  // Comprehensive user data for reports
+  const { data: comprehensiveData, loading: dataLoading } = useComprehensiveUserData(
+    user?.id || '', 
+    user?.role
+  );
+
+  // Safely choose the appropriate progress data with comprehensive null checks
+  const getJourneyProgress = () => {
+    if (!user?.role || !user?.id) {
+      return {
+        loading: false,
+        completionPercentage: 0,
+        nextStep: null,
+        steps: []
+      };
+    }
+
+    if (user.role === 'family' && familyProgress) {
+      return {
+        loading: familyProgress.loading || false,
+        completionPercentage: familyProgress.completionPercentage || 0,
+        nextStep: familyProgress.nextStep || null,
+        steps: Array.isArray(familyProgress.steps) ? familyProgress.steps : []
+      };
+    }
+
+    if (user.role === 'professional' && professionalProgress) {
+      return {
+        loading: professionalProgress.loading || false,
+        completionPercentage: professionalProgress.completionPercentage || 0,
+        nextStep: professionalProgress.nextStep || null,
+        steps: Array.isArray(professionalProgress.steps) ? professionalProgress.steps : []
+      };
+    }
+
+    if (otherProgress) {
+      return {
+        loading: otherProgress.loading || false,
+        completionPercentage: otherProgress.completionPercentage || 0,
+        nextStep: otherProgress.nextStep || null,
+        steps: Array.isArray(otherProgress.steps) ? otherProgress.steps : []
+      };
+    }
+
+    // Fallback for any case
+    return {
+      loading: false,
+      completionPercentage: 0,
+      nextStep: null,
+      steps: []
+    };
+  };
+
+  const journeyProgress = getJourneyProgress();
+
+  useEffect(() => {
+    if (user && isOpen) {
+      fetchUserDetails();
+    }
+  }, [user, isOpen]);
+
+  const fetchUserDetails = async () => {
+    if (!user) return;
+
     try {
-      console.log('Sending nudge email to user:', user.id, 'Type:', stepType);
-      
-      const { error } = await supabase.functions.invoke('send-nudge-email', {
-        body: { 
-          userId: user.id,
-          userEmail: user.email,
-          userName: user.full_name || 'User',
-          userRole: user.role,
-          currentStep: nextStep?.step_number || steps.length,
-          stepType
+      setLoading(true);
+
+      // Fetch care needs for family users
+      if (user.role === 'family') {
+        const { data: needs, error: needsError } = await supabase
+          .from('care_needs_family')
+          .select('*')
+          .eq('profile_id', user.id)
+          .maybeSingle();
+
+        if (needsError && needsError.code !== 'PGRST116') {
+          console.error('Error fetching care needs:', needsError);
+        } else {
+          setCareNeeds(needs);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = () => {
+    const percentage = journeyProgress?.completionPercentage || 0;
+    if (percentage >= 100) return 'text-green-600';
+    if (percentage >= 50) return 'text-blue-600';
+    if (percentage > 0) return 'text-yellow-600';
+    return 'text-gray-600';
+  };
+
+  const getStatusIcon = () => {
+    const percentage = journeyProgress?.completionPercentage || 0;
+    if (percentage >= 100) return <CheckCircle2 className="h-5 w-5 text-green-600" />;
+    if (percentage >= 50) return <Clock className="h-5 w-5 text-blue-600" />;
+    return <Circle className="h-5 w-5 text-yellow-600" />;
+  };
+
+  const getProgressLabel = () => {
+    const percentage = journeyProgress?.completionPercentage || 0;
+    if (percentage >= 100) return "Journey Complete";
+    if (journeyProgress?.nextStep?.title) return journeyProgress.nextStep.title;
+    return "Getting Started";
+  };
+
+  const handleGenerateReport = async () => {
+    if (!comprehensiveData) {
+      toast.error('User data not available for report generation');
+      return;
+    }
+
+    setReportLoading(true);
+    try {
+      const reportOptions: ReportOptions = {
+        anonymous: anonymousReport,
+        includePersonalDetails: !anonymousReport,
+        includeAssessmentData: true,
+        includeChatHistory: true
+      };
+
+      const fileName = await downloadUserReport(comprehensiveData, reportOptions);
+      toast.success(`Report generated: ${fileName}`);
+    } catch (error) {
+      console.error('Error generating report:', error);
+      toast.error('Failed to generate report');
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const handleShareViaWhatsApp = async () => {
+    if (!user?.id) {
+      toast.error('User ID not available');
+      return;
+    }
+
+    try {
+      const reportType = anonymousReport ? 'Anonymous' : 'Complete';
+      const message = `📋 ${reportType} User Report Available\n\nUser: ${user.full_name || 'N/A'}\nRole: ${user.role}\nGenerated: ${new Date().toLocaleDateString()}\n\nReport contains ${anonymousReport ? 'care/professional details without personal information' : 'complete user information including assessment data'}.`;
+
+      const { error } = await supabase.functions.invoke('send-nudge-whatsapp', {
+        body: {
+          userIds: [user.id],
+          message: message,
+          templateId: null
         }
       });
 
       if (error) throw error;
-      
-      toast.success(`Email nudge sent to ${user.full_name || user.email}`);
-      onRefresh();
-    } catch (error: any) {
-      console.error('Error sending email nudge:', error);
-      toast.error(`Failed to send email nudge: ${error.message}`);
-    } finally {
-      setSending(false);
+      toast.success('Report shared via WhatsApp');
+    } catch (error) {
+      console.error('Error sharing via WhatsApp:', error);
+      toast.error('Failed to share via WhatsApp');
     }
   };
 
-  const handleWhatsAppMessage = (message: string) => {
-    if (!userPhoneNumber) {
-      toast.error('No phone number available');
+  const handleDeleteUser = async () => {
+    if (!user?.id) {
+      toast.error('User ID not available');
       return;
     }
 
-    // Clean phone number for WhatsApp (remove + and any spaces)
-    const cleanPhone = userPhoneNumber.replace(/[\s+]/g, '');
+    const userName = user.full_name || 'this user';
+    const userRole = user.role || 'unknown';
     
-    // Create WhatsApp URL and open it
-    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+    // Enhanced confirmation dialog with user details
+    const confirmMessage = `Are you sure you want to permanently delete ${userName} (${userRole})?\n\nThis action cannot be undone and will remove all associated data.`;
     
-    // Log the WhatsApp interaction
-    supabase.from('cta_engagement_tracking').insert({
-      user_id: user.id,
-      action_type: 'admin_whatsapp_template_sent',
-      session_id: `admin-${Date.now()}`,
-      additional_data: {
-        message_preview: message.substring(0, 100),
-        phone_number: userPhoneNumber,
-        admin_user_id: null, // Will be filled by RLS
-        timestamp: new Date().toISOString()
-      }
-    }).then(() => {
-      toast.success(`WhatsApp message sent to ${user.full_name || user.email}`);
-    });
-  };
+    if (!confirm(confirmMessage)) {
+      return;
+    }
 
-  const advanceUserStep = async () => {
+    setDeleteLoading(true);
     try {
-      const currentStepNumber = nextStep?.step_number || steps.length;
-      const totalSteps = steps.length;
-      const newStep = Math.min(currentStepNumber + 1, totalSteps);
-      
-      const { error } = await supabase
-        .from('user_journey_progress')
-        .upsert({
-          user_id: user.id,
-          role: user.role,
-          current_step: newStep,
-          total_steps: totalSteps,
-          completion_percentage: Math.round((newStep / totalSteps) * 100),
-          last_activity_at: new Date().toISOString()
-        });
+      // Use the new SQL function for safe deletion
+      const { data, error } = await supabase.rpc('admin_delete_user', {
+        target_user_id: user.id
+      });
 
-      if (error) throw error;
-      
-      toast.success(`Advanced ${user.full_name || user.email} to step ${newStep}`);
-      onRefresh();
+      if (error) {
+        throw error;
+      }
+
+      // Handle response from the SQL function - cast data to any to access properties
+      const result = data as any;
+      if (result?.success) {
+        toast.success(`User ${userName} deleted successfully`);
+        onClose(); // Close the modal
+        onUserUpdate(); // Refresh the list
+      } else {
+        throw new Error(result?.error || 'Failed to delete user');
+      }
     } catch (error: any) {
-      console.error('Error advancing step:', error);
-      toast.error(`Failed to advance step: ${error.message}`);
+      console.error('Error deleting user:', error);
+      
+      // Handle specific error codes from the SQL function
+      if (error.message?.includes('INSUFFICIENT_PERMISSIONS')) {
+        toast.error('You do not have permission to delete users');
+      } else if (error.message?.includes('SELF_DELETION_PREVENTED')) {
+        toast.error('You cannot delete your own account');
+      } else if (error.message?.includes('USER_NOT_FOUND')) {
+        toast.error('User not found');
+      } else {
+        toast.error(`Failed to delete user: ${error.message}`);
+      }
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
-  const handlePhoneNumberUpdate = (newPhoneNumber: string | null) => {
-    setUserPhoneNumber(newPhoneNumber);
-    // Trigger a refresh to update the user data
-    onRefresh();
-  };
+  if (!user) return null;
 
-  // Check if user is at schedule visit stage or beyond for financial proposals
-  const isAtScheduleVisitStage = completionPercentage >= 70; // Adjust threshold as needed
-
-  // Role-specific information
-  let roleSpecificInfo = null;
-  if (user.role === 'family') {
-    roleSpecificInfo = (
-      <Card>
-        <CardHeader>
-          <CardTitle>Family-Specific Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Details specific to family users go here.</p>
-        </CardContent>
-      </Card>
-    );
-  } else if (user.role === 'professional') {
-    roleSpecificInfo = (
-      <Card>
-        <CardHeader>
-          <CardTitle>Professional-Specific Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Details specific to professional users go here.</p>
-        </CardContent>
-      </Card>
-    );
-  } else if (user.role === 'community') {
-    roleSpecificInfo = (
-      <Card>
-        <CardHeader>
-          <CardTitle>Community-Specific Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Details specific to community users go here.</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Safely access steps with comprehensive null checks
+  const steps = Array.isArray(journeyProgress?.steps) ? journeyProgress.steps : [];
+  const completionPercentage = journeyProgress?.completionPercentage || 0;
+  const nextStep = journeyProgress?.nextStep || null;
+  const isProgressLoading = journeyProgress?.loading || false;
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              {user.full_name || 'Unnamed User'}
-              <Badge variant={user.email_verified ? "default" : "secondary"}>
-                {user.email_verified ? "Verified" : "Unverified"}
-              </Badge>
-            </DialogTitle>
-          </DialogHeader>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            {user.full_name || 'User Details'}
+          </DialogTitle>
+        </DialogHeader>
 
-          <div className="space-y-6">
-            {/* User Overview */}
+        <Tabs defaultValue="profile" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="journey">Journey</TabsTrigger>
+            {user.role === 'family' && (
+              <TabsTrigger value="matching">Matching</TabsTrigger>
+            )}
+            <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="profile" className="space-y-4">
+            {/* Basic Profile Information */}
             <Card>
               <CardHeader>
-                <CardTitle>{user.full_name || 'User Details'}</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Profile Information</span>
+                  <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'professional' ? 'default' : 'secondary'}>
+                    {user.role}
+                  </Badge>
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{user.email}</span>
+                      <Phone className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">{user.phone_number || 'No phone provided'}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm capitalize">{user.role}</span>
-                    </div>
-                    {user.location && (
+                    {user.address && (
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{user.location}</span>
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">{user.address}</span>
                       </div>
                     )}
-                    {/* Enhanced Phone Number Editor */}
-                    <PhoneNumberEditor
-                      userId={user.id}
-                      currentPhoneNumber={userPhoneNumber}
-                      userName={user.full_name || user.email}
-                      onPhoneNumberUpdate={handlePhoneNumberUpdate}
-                    />
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Joined {new Date(user.created_at).toLocaleDateString()}</span>
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">
+                        Joined {new Date(user.created_at).toLocaleDateString()}
+                      </span>
                     </div>
                     {user.last_login_at && (
                       <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">Last login {new Date(user.last_login_at).toLocaleDateString()}</span>
+                        <Activity className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">
+                          Last active {new Date(user.last_login_at).toLocaleDateString()}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -232,166 +379,428 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
               </CardContent>
             </Card>
 
-            {/* Journey Progress */}
-            <Card>
+            {/* Care Needs for Family Users */}
+            {user.role === 'family' && careNeeds && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Care Requirements</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-medium mb-2">Care Recipient</h4>
+                      <p className="text-sm text-gray-600">
+                        {careNeeds.care_recipient_name || 'Not specified'}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium mb-2">Primary Contact</h4>
+                      <p className="text-sm text-gray-600">
+                        {careNeeds.primary_contact_name || 'Not specified'}
+                      </p>
+                      {careNeeds.primary_contact_phone && (
+                        <p className="text-sm text-gray-600">
+                          {careNeeds.primary_contact_phone}
+                        </p>
+                      )}
+                    </div>
+                    {careNeeds.preferred_time_start && careNeeds.preferred_time_end && (
+                      <div>
+                        <h4 className="font-medium mb-2">Preferred Time</h4>
+                        <p className="text-sm text-gray-600">
+                          {careNeeds.preferred_time_start} - {careNeeds.preferred_time_end}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Matching Status for Professional and Family Users */}
+            {(user.role === 'professional' || user.role === 'family') && (
+              <MatchingStatusToggle
+                userId={user.id}
+                currentStatus={user.available_for_matching ?? true}
+                userFullName={user.full_name || 'Unknown User'}
+                onStatusChange={onUserUpdate}
+              />
+            )}
+
+            {/* Admin Actions */}
+            <Card className="border-red-200 bg-red-50">
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Journey Progress
-                  <Badge variant="outline">
-                    {completionPercentage}% Complete
-                  </Badge>
+                <CardTitle className="text-red-800 flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Admin Actions
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <Progress value={completionPercentage} className="w-full" />
-                
-                {loading ? (
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-sm text-red-700">
+                    Danger Zone: These actions cannot be undone.
+                  </p>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteUser}
+                    disabled={user.role === 'admin' || deleteLoading}
+                    className="w-full"
+                  >
+                    {deleteLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Deleting...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Trash2 className="h-4 w-4" />
+                        Delete User Permanently
+                      </div>
+                    )}
+                  </Button>
+                  {user.role === 'admin' && (
+                    <p className="text-xs text-gray-500">
+                      Admin users cannot be deleted for security reasons.
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="journey" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Journey Progress</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isProgressLoading ? (
                   <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                    <p className="text-sm text-gray-500 mt-2">Loading journey progress...</p>
+                    <div className="text-sm text-gray-500">Loading progress...</div>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {steps.map((step) => {
-                      const isCurrent = nextStep?.step_number === step.step_number;
-                      
-                      return (
-                        <div key={step.id} className={`flex items-center gap-2 p-2 rounded ${
-                          isCurrent ? 'bg-blue-50 border border-blue-200' : 
-                          step.completed ? 'bg-green-50' : 'bg-gray-50'
-                        }`}>
-                          {step.completed ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-500" />
-                          ) : isCurrent ? (
-                            <Clock className="h-4 w-4 text-blue-500" />
-                          ) : (
-                            <Circle className="h-4 w-4 text-gray-300" />
-                          )}
-                          <span className={`text-sm flex-1 ${isCurrent ? 'font-medium text-blue-700' : ''}`}>
-                            {step.step_number}. {step.title}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {step.description}
-                          </span>
-                          {isCurrent && (
-                            <Badge variant="secondary" className="ml-auto">
-                              Current
-                            </Badge>
-                          )}
+                  <div className="space-y-6">
+                    {/* Overall Progress */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {getStatusIcon()}
+                          <div>
+                            <h3 className={`font-medium ${getStatusColor()}`}>
+                              {getProgressLabel()}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {steps.filter(s => s?.completed).length} of {steps.length} steps completed
+                            </p>
+                          </div>
                         </div>
-                      );
-                    })}
+                        <Badge variant="outline" className="text-lg px-3 py-1">
+                          {completionPercentage}%
+                        </Badge>
+                      </div>
+                      <Progress value={completionPercentage} className="h-3" />
+                    </div>
+
+                    {/* Step Details with comprehensive null checks */}
+                    {steps.length > 0 ? (
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-gray-900">Journey Steps</h4>
+                        <div className="space-y-2">
+                          {steps.map((step, index) => {
+                            // Safely access step properties with fallbacks
+                            const stepId = step?.id || step?.step_number || index;
+                            const stepTitle = step?.title || 'Untitled Step';
+                            const stepDescription = step?.description || 'No description available';
+                            const isCompleted = Boolean(step?.completed);
+                            const isAccessible = step?.accessible !== false; // Default to true if not specified
+                            const isOptional = Boolean(step?.optional || step?.is_optional);
+
+                            return (
+                              <div key={stepId} className="flex items-center gap-3 p-3 rounded-lg border">
+                                <div className="flex-shrink-0">
+                                  {isCompleted ? (
+                                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                  ) : isAccessible ? (
+                                    <Circle className="h-5 w-5 text-blue-600" />
+                                  ) : (
+                                    <Circle className="h-5 w-5 text-gray-400" />
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className={`font-medium ${isCompleted ? 'text-green-800' : isAccessible ? 'text-gray-900' : 'text-gray-500'}`}>
+                                    {stepTitle}
+                                  </h5>
+                                  <p className="text-sm text-gray-600">{stepDescription}</p>
+                                  {isOptional && (
+                                    <Badge variant="outline" className="mt-1 text-xs">Optional</Badge>
+                                  )}
+                                </div>
+                                <div className="flex-shrink-0">
+                                  <Badge variant={isCompleted ? 'default' : isAccessible ? 'secondary' : 'outline'}>
+                                    {isCompleted ? 'Complete' : isAccessible ? 'Available' : 'Locked'}
+                                  </Badge>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>No journey progress data available for this user.</p>
+                      </div>
+                    )}
+
+                    {/* Next Step Recommendation with null checks */}
+                    {nextStep && nextStep.title && (
+                      <Card className="bg-blue-50 border-blue-200">
+                        <CardContent className="pt-4">
+                          <div className="flex items-start gap-3">
+                            <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
+                            <div>
+                              <h4 className="font-medium text-blue-900">Next Recommended Step</h4>
+                              <p className="text-sm text-blue-800 mt-1">
+                                {nextStep.title}
+                              </p>
+                              {nextStep.description && (
+                                <p className="text-sm text-blue-700 mt-1">
+                                  {nextStep.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
 
-            {roleSpecificInfo}
+          {user.role === 'family' && (
+            <TabsContent value="matching" className="space-y-4">
+              <UserMatchingActions user={user} onUserUpdate={onUserUpdate} />
+            </TabsContent>
+          )}
 
-            <Separator />
-
-            {/* Enhanced Admin Actions with Template System */}
+          <TabsContent value="reports" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Admin Actions</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  User Report Generator
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Primary Communication Actions */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <Button 
-                      onClick={() => sendNudgeEmail('current_step')}
-                      disabled={sending}
-                      className="flex items-center gap-2"
-                    >
-                      <Mail className="h-4 w-4" />
-                      Email Current Step
-                    </Button>
-                    
-                    <Button 
-                      onClick={() => setShowTemplateSelector(true)}
-                      disabled={!userPhoneNumber}
-                      variant="outline"
-                      className="flex items-center gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                    >
-                      <Send className="h-4 w-4" />
-                      WhatsApp with Template
-                    </Button>
-                    
-                    <Button 
-                      onClick={advanceUserStep}
-                      disabled={completionPercentage >= 100}
-                      variant="outline"
-                      className="flex items-center gap-2"
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                      Advance Step
-                    </Button>
+              <CardContent className="space-y-6">
+                {dataLoading ? (
+                  <div className="text-center py-4">
+                    <div className="text-sm text-gray-500">Loading comprehensive user data...</div>
                   </div>
-                  
-                  {/* Welcome Messages */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button 
-                      onClick={() => sendNudgeEmail('welcome')}
-                      disabled={sending}
-                      variant="outline"
-                      className="flex items-center gap-2"
-                    >
-                      <Mail className="h-4 w-4" />
-                      Send Welcome Email
-                    </Button>
-                  </div>
+                ) : comprehensiveData ? (
+                  <>
+                    {/* Report Summary */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Card className="p-4">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className={`h-4 w-4 ${comprehensiveData.registrationComplete ? 'text-green-600' : 'text-gray-400'}`} />
+                          <span className="text-sm font-medium">Registration</span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {comprehensiveData.registrationComplete ? 'Complete' : 'Incomplete'}
+                        </p>
+                      </Card>
+                      
+                      <Card className="p-4">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className={`h-4 w-4 ${comprehensiveData.assessmentComplete ? 'text-green-600' : 'text-gray-400'}`} />
+                          <span className="text-sm font-medium">Assessment</span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {comprehensiveData.assessmentComplete ? 'Complete' : 'Incomplete'}
+                        </p>
+                      </Card>
+                      
+                      <Card className="p-4">
+                        <div className="flex items-center gap-2">
+                          <Activity className="h-4 w-4 text-blue-600" />
+                          <span className="text-sm font-medium">Chat History</span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {comprehensiveData.chatbotResponses.length} responses
+                        </p>
+                      </Card>
+                    </div>
 
-                  {/* Financial Proposal Actions - Show only if at schedule visit stage */}
-                  {isAtScheduleVisitStage && (
+                    {/* Comprehensive Data Display */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-gray-900">Available Data</h4>
+                      
+                      {/* Basic Profile */}
+                      <Card className="p-4">
+                        <h5 className="font-medium mb-2">Profile Information</h5>
+                        <div className="grid grid-cols-1 gap-2 text-sm">
+                          <div><strong>Full Name:</strong> {comprehensiveData.profile.full_name || 'Not provided'}</div>
+                          <div><strong>Role:</strong> {comprehensiveData.profile.role}</div>
+                          <div><strong>Phone:</strong> {comprehensiveData.profile.phone_number || 'Not provided'}</div>
+                          <div><strong>Address:</strong> {comprehensiveData.profile.address || 'Not provided'}</div>
+                          <div><strong>Preferred Contact Method:</strong> {comprehensiveData.profile.preferred_contact_method || 'Not specified'}</div>
+                          <div><strong>Care Hours:</strong> {formatCareSchedule(comprehensiveData.profile.care_schedule)}</div>
+                          {comprehensiveData.profile.role === 'family' && (
+                            <>
+                              <div><strong>Care Recipient:</strong> {comprehensiveData.profile.care_recipient_name || 'Not provided'}</div>
+                              <div><strong>Relationship:</strong> {comprehensiveData.profile.relationship || 'Not provided'}</div>
+                            </>
+                          )}
+                          {comprehensiveData.profile.role === 'professional' && (
+                            <>
+                              <div><strong>Experience:</strong> {comprehensiveData.profile.years_of_experience || 'Not provided'} years</div>
+                              <div><strong>Available for Matching:</strong> {comprehensiveData.profile.available_for_matching ? 'Yes' : 'No'}</div>
+                            </>
+                          )}
+                        </div>
+                      </Card>
+
+                      {/* Family Profile Details */}
+                      {comprehensiveData.profile.role === 'family' && (
+                        <Card className="p-4">
+                          <h5 className="font-medium mb-2">Family Profile Details</h5>
+                          <div className="text-sm space-y-1">
+                            <div><strong>Care Types:</strong> {formatArray(comprehensiveData.profile.care_types)}</div>
+                            <div><strong>Special Needs:</strong> {formatArray(comprehensiveData.profile.special_needs)}</div>
+                            <div><strong>Budget Preferences:</strong> {comprehensiveData.profile.budget_preferences || 'Not specified'}</div>
+                            <div><strong>Caregiver Type:</strong> {comprehensiveData.profile.caregiver_type || 'Not specified'}</div>
+                            <div><strong>Caregiver Preferences:</strong> {comprehensiveData.profile.caregiver_preferences || 'Not specified'}</div>
+                            <div><strong>Custom Care Schedule:</strong> {comprehensiveData.profile.custom_schedule || 'Not specified'}</div>
+                            <div><strong>Additional Notes:</strong> {comprehensiveData.profile.additional_notes || 'None provided'}</div>
+                          </div>
+                        </Card>
+                      )}
+
+                      {/* Professional Capabilities & Services */}
+                      {comprehensiveData.profile.role === 'professional' && (
+                        <Card className="p-4">
+                          <h5 className="font-medium mb-2">Professional Capabilities & Services</h5>
+                          <div className="text-sm space-y-1">
+                            <div><strong>Bio:</strong> {comprehensiveData.profile.bio || 'Not provided'}</div>
+                            <div><strong>Certifications:</strong> {formatArray(comprehensiveData.profile.certifications)}</div>
+                            <div><strong>Specializations:</strong> {formatArray(comprehensiveData.profile.specializations)}</div>
+                            <div><strong>Languages:</strong> {formatArray(comprehensiveData.profile.languages)}</div>
+                            <div><strong>Care Services:</strong> {formatArray(comprehensiveData.profile.care_services)}</div>
+                            <div><strong>Care Types:</strong> {formatArray(comprehensiveData.profile.care_types)}</div>
+                            <div><strong>Caregiving Areas:</strong> {formatArray(comprehensiveData.profile.caregiving_areas)}</div>
+                            <div><strong>Professional Type:</strong> {comprehensiveData.profile.professional_type || 'Not specified'}</div>
+                            <div><strong>Caregiver Type:</strong> {comprehensiveData.profile.caregiver_type || 'Not specified'}</div>
+                            <div><strong>Housekeeping Available:</strong> {formatBoolean(comprehensiveData.profile.housekeeping_available)}</div>
+                            <div><strong>Transportation Available:</strong> {formatBoolean(comprehensiveData.profile.transportation_available)}</div>
+                            <div><strong>Meal Preparation Available:</strong> {formatBoolean(comprehensiveData.profile.meal_preparation_available)}</div>
+                            <div><strong>Personal Care Available:</strong> {formatBoolean(comprehensiveData.profile.personal_care_available)}</div>
+                            <div><strong>Companionship Available:</strong> {formatBoolean(comprehensiveData.profile.companionship_available)}</div>
+                            <div><strong>Work Locations:</strong> {formatArray(comprehensiveData.profile.work_locations)}</div>
+                            <div><strong>Video Available:</strong> {formatBoolean(comprehensiveData.profile.video_available)}</div>
+                            <div><strong>Expected Hourly Rate:</strong> {comprehensiveData.profile.expected_hourly_rate ? `$${comprehensiveData.profile.expected_hourly_rate}` : 'Not specified'}</div>
+                          </div>
+                        </Card>
+                      )}
+
+                      {/* Administrative Status */}
+                      <Card className="p-4">
+                        <h5 className="font-medium mb-2">Administrative Status</h5>
+                        <div className="text-sm space-y-1">
+                          <div><strong>Visit Payment Status:</strong> {comprehensiveData.profile.visit_payment_status || 'Not specified'}</div>
+                          <div><strong>Visit Type Preference:</strong> {comprehensiveData.profile.visit_type_preference || 'Not specified'}</div>
+                          <div><strong>Ready for Admin Scheduling:</strong> {formatBoolean(comprehensiveData.profile.ready_for_admin_scheduling)}</div>
+                          <div><strong>Background Check Completed:</strong> {formatBoolean(comprehensiveData.profile.background_check_completed)}</div>
+                          <div><strong>Visit Payment Reference:</strong> {comprehensiveData.profile.visit_payment_reference || 'Not specified'}</div>
+                          {comprehensiveData.profile.admin_visit_scheduled_date && (
+                            <div><strong>Admin Visit Scheduled:</strong> {new Date(comprehensiveData.profile.admin_visit_scheduled_date).toLocaleDateString()}</div>
+                          )}
+                          {comprehensiveData.profile.admin_visit_completed_date && (
+                            <div><strong>Admin Visit Completed:</strong> {new Date(comprehensiveData.profile.admin_visit_completed_date).toLocaleDateString()}</div>
+                          )}
+                        </div>
+                      </Card>
+
+                      {/* Care Recipient Profile (Family only) */}
+                      {comprehensiveData.profile.role === 'family' && comprehensiveData.careRecipient && (
+                        <Card className="p-4">
+                          <h5 className="font-medium mb-2">Care Recipient Profile</h5>
+                          <div className="text-sm space-y-1">
+                            <div><strong>Birth Year:</strong> {comprehensiveData.careRecipient.birth_year || 'Not provided'}</div>
+                            <div><strong>Personality:</strong> {formatArray(comprehensiveData.careRecipient.personality_traits)}</div>
+                            <div><strong>Interests:</strong> {formatArray(comprehensiveData.careRecipient.hobbies_interests)}</div>
+                            <div><strong>Career:</strong> {formatArray(comprehensiveData.careRecipient.career_fields)}</div>
+                            <div><strong>Challenges:</strong> {formatArray(comprehensiveData.careRecipient.challenges)}</div>
+                            <div><strong>Cultural Preferences:</strong> {comprehensiveData.careRecipient.cultural_preferences || 'Not specified'}</div>
+                          </div>
+                        </Card>
+                      )}
+                    </div>
+
+                    {/* Report Options */}
                     <div className="border-t pt-4">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Financial Proposals & Payment Options</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          <span className="text-sm font-medium">Anonymous Report</span>
+                        </div>
+                        <Switch
+                          checked={anonymousReport}
+                          onCheckedChange={setAnonymousReport}
+                          aria-label="Generate anonymous report"
+                        />
+                      </div>
+                      
+                      <p className="text-xs text-gray-600 mb-4">
+                        {anonymousReport 
+                          ? 'Personal details (name, phone, address) will be removed from the report'
+                          : 'Complete report with all personal and assessment information'
+                        }
+                      </p>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
                         <Button 
-                          onClick={() => sendNudgeEmail('financial_proposal')}
-                          disabled={sending}
-                          variant="outline"
-                          className="flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                          onClick={handleGenerateReport}
+                          disabled={reportLoading}
+                          className="flex items-center gap-2"
                         >
-                          <Mail className="h-4 w-4" />
-                          Email Financial Proposal
+                          <Download className="h-4 w-4" />
+                          {reportLoading ? 'Generating...' : 'Download PDF'}
+                        </Button>
+                        
+                        <Button 
+                          variant="outline"
+                          onClick={handleShareViaWhatsApp}
+                          className="flex items-center gap-2"
+                        >
+                          <Share className="h-4 w-4" />
+                          Share via WhatsApp
                         </Button>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Available because user is at "Schedule Visit" stage or beyond
-                      </p>
                     </div>
-                  )}
-
-                  {/* Phone Number Status */}
-                  {!userPhoneNumber && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
-                      <p className="text-sm text-amber-700">
-                        📞 No phone number on file - WhatsApp options are disabled. Add a phone number above to enable WhatsApp communication.
-                      </p>
-                    </div>
-                  )}
-                </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No comprehensive data available for this user.</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </TabsContent>
 
-      {/* Template Selector Dialog */}
-      <TemplateSelector
-        open={showTemplateSelector}
-        onOpenChange={setShowTemplateSelector}
-        userRole={user.role as 'family' | 'professional' | 'community'}
-        userName={user.full_name || 'User'}
-        userPhone={userPhoneNumber || ''}
-        userProgress={{
-          completion_percentage: completionPercentage,
-          current_step: nextStep?.step_number,
-          next_step: nextStep
-        }}
-        onSendMessage={handleWhatsAppMessage}
-      />
-    </>
+          <TabsContent value="activity" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Activity tracking coming soon...</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
-}
+};

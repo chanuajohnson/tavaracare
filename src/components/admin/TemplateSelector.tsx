@@ -59,8 +59,7 @@ export function TemplateSelector({
         .from('nudge_templates')
         .select('*')
         .eq('role', userRole)
-        .eq('message_type', 'whatsapp')
-        .or('message_type.eq.both')
+        .in('message_type', ['whatsapp', 'both'])
         .order('stage');
 
       if (error) throw error;
@@ -186,7 +185,7 @@ export function TemplateSelector({
           {templates.length > 0 && (
             <div className="space-y-2">
               <label className="text-sm font-medium">
-                Saved Templates for {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                Saved Templates for {userRole.charAt(0).toUpperCase() + userRole.slice(1)} ({templates.length} available)
               </label>
               <Select value={selectedTemplate} onValueChange={handleTemplateSelect}>
                 <SelectTrigger>
@@ -200,11 +199,28 @@ export function TemplateSelector({
                         <Badge variant="outline" className="text-xs">
                           {template.stage.replace('_', ' ')}
                         </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {template.message_type}
+                        </Badge>
                       </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+
+          {loading && (
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+              <p className="text-sm text-gray-500 mt-2">Loading templates...</p>
+            </div>
+          )}
+
+          {!loading && templates.length === 0 && (
+            <div className="text-center py-4 text-gray-500">
+              <p>No WhatsApp templates found for {userRole} role.</p>
+              <p className="text-xs mt-1">Templates need message_type of 'whatsapp' or 'both'</p>
             </div>
           )}
 

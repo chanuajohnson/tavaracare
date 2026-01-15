@@ -36,7 +36,7 @@ export const generatePrompt = async (
     };
   }
 
-  console.log("Found question:", { questionLabel: question.label, questionType: question.type });
+  console.log("Found question:", { questionText: question.text, questionType: question.type });
   
   // Extract the user's name if they've provided it already
   const userName = extractUserName(chatHistory);
@@ -56,7 +56,7 @@ export const generatePrompt = async (
     const systemPrompt = `You are a warm, friendly assistant for Tavara.care, helping someone register for a caregiving platform in Trinidad & Tobago.
 
 Current role: ${role}
-Current question: ${question.label}
+Current question: ${question.text}
 Question type: ${question.type}
 ${isNewSection ? "This is the first question in a new section." : "This is a question in the middle of a section."}
 ${userName ? `The user's name is ${userName}.` : "We don't know the user's name yet."}
@@ -86,7 +86,7 @@ The resulting prompt should match the tone of a friendly person in Trinidad & To
     const aiResponse = await getChatCompletion({
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Please generate a conversational prompt for: "${question.label}"` }
+        { role: 'user', content: `Please generate a conversational prompt for: "${question.text}"` }
       ],
       sessionId: 'prompt-generation',
       userRole: role
@@ -109,27 +109,16 @@ The resulting prompt should match the tone of a friendly person in Trinidad & To
     
     console.log("AI generated prompt:", promptMessage);
     
-    // For select/multiselect/checkbox questions, provide options
-    if (question.type === 'select' || question.type === 'multiselect' || question.type === 'checkbox') {
+    // For select/multi-select questions, provide options
+    if (question.type === 'select' || question.type === 'multi-select') {
       const options = question.options?.map(option => ({
-        id: option,
-        label: option
+        id: option.value,
+        label: option.label
       }));
       
       return {
         message: promptMessage,
         options
-      };
-    }
-    
-    // For confirm questions, provide yes/no options
-    if (question.type === 'confirm') {
-      return {
-        message: promptMessage,
-        options: [
-          { id: "yes", label: "Yes" },
-          { id: "no", label: "No" }
-        ]
       };
     }
     
@@ -175,29 +164,18 @@ const generateSimplePrompt = (
   isNewSection: boolean
 ): PromptResponse => {
   // Add warmth and cultural style to the prompt
-  const warmPrompt = addWarmth(question.label, personalizedGreeting, isNewSection);
+  const warmPrompt = addWarmth(question.text, personalizedGreeting, isNewSection);
   
-  // For select/multiselect/checkbox questions, provide options
-  if (question.type === 'select' || question.type === 'multiselect' || question.type === 'checkbox') {
+  // For select/multi-select questions, provide options
+  if (question.type === 'select' || question.type === 'multi-select') {
     const options = question.options?.map(option => ({
-      id: option,
-      label: option
+      id: option.value,
+      label: option.label
     }));
     
     return {
       message: warmPrompt,
       options
-    };
-  }
-  
-  // For confirm questions, provide yes/no options
-  if (question.type === 'confirm') {
-    return {
-      message: warmPrompt,
-      options: [
-        { id: "yes", label: "Yes" },
-        { id: "no", label: "No" }
-      ]
     };
   }
   

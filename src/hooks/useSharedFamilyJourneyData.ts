@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
 interface JourneyStep {
@@ -21,6 +22,7 @@ interface SharedFamilyJourneyData {
 }
 
 export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyData => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [journeyStage, setJourneyStage] = useState<'foundation' | 'scheduling' | 'trial' | 'conversion'>('foundation');
 
@@ -29,7 +31,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
     { 
       id: 1, 
       title: "Complete Your Profile", 
-      description: "Add your contact information and preferences.", 
+      description: "Add your contact information and care preferences.", 
       completed: false, 
       category: 'foundation',
       accessible: true
@@ -75,7 +77,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       category: 'foundation',
       accessible: true
     },
-    // Scheduling Step (7) - Renumbered from original
+    // Scheduling Steps (7-8)
     { 
       id: 7, 
       title: "Schedule Your Tavara.Care Visit", 
@@ -84,9 +86,17 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       category: 'scheduling',
       accessible: true
     },
-    // Trial Steps (8-10) - Renumbered
     { 
       id: 8, 
+      title: "Confirm Your Visit", 
+      description: "Your visit has been scheduled and confirmed with our care coordinator.", 
+      completed: false, 
+      category: 'scheduling',
+      accessible: false
+    },
+    // Trial Steps (9-11)
+    { 
+      id: 9, 
       title: "Schedule Trial Day (Optional)", 
       description: "Choose a trial date with your matched caregiver. This is an optional step before choosing your care model.", 
       completed: false, 
@@ -95,7 +105,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       accessible: false
     },
     { 
-      id: 9, 
+      id: 10, 
       title: "Pay for Trial Day (Optional)", 
       description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience.", 
       completed: false, 
@@ -104,7 +114,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       accessible: false
     },
     { 
-      id: 10, 
+      id: 11, 
       title: "Begin Your Trial (Optional)", 
       description: "Your caregiver begins the scheduled trial session.", 
       completed: false, 
@@ -112,9 +122,9 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       category: 'trial',
       accessible: false
     },
-    // Conversion Step (11) - Renumbered from 12
+    // Conversion Step (12)
     { 
-      id: 11, 
+      id: 12, 
       title: "Rate & Choose Your Path", 
       description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr) for full support tools. Can skip trial and go directly here after visit confirmation.", 
       completed: false, 
@@ -123,16 +133,48 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
     }
   ]);
 
+  // Enhanced registration completion logic - matches useEnhancedJourneyProgress
+  const calculateRegistrationCompletion = (profile: any) => {
+    if (!profile) return false;
+
+    // Core required fields (must have all)
+    const requiredFields = {
+      full_name: profile.full_name,
+      phone_number: profile.phone_number,
+      address: profile.address,
+      care_recipient_name: profile.care_recipient_name,
+      relationship: profile.relationship
+    };
+
+    const hasAllRequiredFields = Object.entries(requiredFields).every(([field, value]) => {
+      const hasValue = !!(value && String(value).trim());
+      return hasValue;
+    });
+
+    // Enhanced completion indicators (at least one should be present for comprehensive registration)
+    const enhancedFields = {
+      care_types: profile.care_types && Array.isArray(profile.care_types) && profile.care_types.length > 0,
+      care_schedule: profile.care_schedule && String(profile.care_schedule).trim(),
+      budget_preferences: profile.budget_preferences && String(profile.budget_preferences).trim(),
+      caregiver_type: profile.caregiver_type && String(profile.caregiver_type).trim()
+    };
+
+    const hasEnhancedData = Object.values(enhancedFields).some(Boolean);
+
+    // Registration is complete if has all required fields AND at least some enhanced data
+    return hasAllRequiredFields && hasEnhancedData;
+  };
+
   const checkStepCompletion = async () => {
     if (!userId) return;
     
     try {
       setLoading(true);
       
-      // Get user profile completion and visit status
+      // Get comprehensive profile data for enhanced registration completion check
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, phone_number, visit_scheduling_status, visit_scheduled_date, visit_notes')
+        .select('full_name, phone_number, address, care_recipient_name, relationship, care_types, care_schedule, budget_preferences, caregiver_type, visit_scheduling_status, visit_scheduled_date, visit_notes')
         .eq('id', userId)
         .maybeSingle();
 
@@ -158,6 +200,12 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
         .eq('user_id', userId)
         .maybeSingle();
 
+      console.log('🔍 SharedFamilyJourneyData step completion check:', {
+        profileComplete: calculateRegistrationCompletion(profile),
+        careAssessment: !!careAssessment,
+        careRecipient: !!(careRecipient && careRecipient.full_name)
+      });
+
       // Check care plans
       const { data: carePlansData } = await supabase
         .from('care_plans')
@@ -175,6 +223,15 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
         .select('id')
         .in('care_plan_id', (carePlansData || []).map(cp => cp.id));
 
+      // Check visit details
+      const { data: visitData } = await supabase
+        .from('visit_bookings')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_cancelled', false)
+        .order('created_at', { ascending: false })
+        .maybeSingle();
+
       // Check trial payments
       const { data: trialPayments } = await supabase
         .from('payment_transactions')
@@ -185,13 +242,14 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
 
       const hasTrialPayment = trialPayments && trialPayments.length > 0;
 
-      // Update step completion status
+      // Update step completion status with enhanced registration logic
       const updatedSteps = steps.map(step => {
         let completed = false;
+        let accessible = step.accessible;
         
         switch (step.id) {
-          case 1: // Profile completion
-            completed = !!(profile?.full_name);
+          case 1: // Enhanced Profile completion - matches useEnhancedJourneyProgress logic
+            completed = calculateRegistrationCompletion(profile);
             break;
           case 2: // Care assessment
             completed = !!careAssessment;
@@ -201,6 +259,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
             break;
           case 4: // Caregiver matches
             completed = !!careRecipient;
+            accessible = calculateRegistrationCompletion(profile) && !!careAssessment;
             break;
           case 5: // Medication management
             completed = !!(medications && medications.length > 0);
@@ -211,21 +270,54 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
           case 7: // Schedule visit
             completed = profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed';
             break;
-          case 8: // Schedule trial day
-            completed = hasTrialPayment;
+          case 8: // Confirm visit
+            completed = profile?.visit_scheduling_status === 'completed';
+            accessible = profile?.visit_scheduling_status === 'scheduled';
             break;
-          case 9: // Pay for trial day
+          case 9: // Schedule trial day
             completed = hasTrialPayment;
+            accessible = profile?.visit_scheduling_status === 'completed';
             break;
-          case 10: // Begin trial
+          case 10: // Pay for trial day
             completed = hasTrialPayment;
+            accessible = profile?.visit_scheduling_status === 'completed';
             break;
-          case 11: // Rate & choose path
+          case 11: // Begin trial
+            completed = hasTrialPayment;
+            accessible = hasTrialPayment;
+            break;
+          case 12: // Rate & choose path
             completed = !!visitNotes?.care_model;
+            accessible = profile?.visit_scheduling_status === 'completed' || hasTrialPayment;
             break;
         }
         
-        return { ...step, completed };
+        // Add action functions for steps 1, 2, and 3 with consistent edit logic
+        let action;
+        switch (step.id) {
+          case 1:
+            action = () => {
+              const isCompleted = calculateRegistrationCompletion(profile);
+              navigate(isCompleted ? '/registration/family?edit=true' : '/registration/family');
+            };
+            break;
+          case 2:
+            action = () => {
+              const isCompleted = !!careAssessment;
+              navigate(isCompleted ? '/family/care-assessment?mode=edit' : '/family/care-assessment');
+            };
+            break;
+          case 3:
+            action = () => {
+              const isCompleted = !!(careRecipient && careRecipient.full_name);
+              navigate(isCompleted ? '/family/story?edit=true' : '/family/story');
+            };
+            break;
+          default:
+            action = undefined;
+        }
+        
+        return { ...step, completed, accessible, action };
       });
       
       setSteps(updatedSteps);

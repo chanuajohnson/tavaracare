@@ -57,3 +57,9 @@ enable_signup = true
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
 enable_confirmations = false
+
+[functions.facebook-conversions-api]
+verify_jwt = false
+
+[functions.generate-marketing-image]
+verify_jwt = false

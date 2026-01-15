@@ -1,9 +1,9 @@
-
 import { useLocation } from 'react-router-dom';
 import { User } from '@supabase/supabase-js';
 import { UserRole } from '@/types/database';
 import { startTransition } from 'react';
 import { ensureUserProfile } from '@/lib/profile-utils';
+import { shouldSkipRedirectForCurrentFlow, hasAuthFlowFlag, AUTH_FLOW_FLAGS } from '@/utils/authFlowUtils';
 
 export const useAuthRedirection = (
   user: User | null,
@@ -30,9 +30,28 @@ export const useAuthRedirection = (
       return;
     }
 
-    const skipRedirect = sessionStorage.getItem('skipPostLoginRedirect');
-    if (skipRedirect) {
-      console.log('[AuthProvider] Skipping post-login redirect due to skipPostLoginRedirect flag');
+    // Skip redirect on professional-specific pages like message board
+    if (location.pathname.startsWith('/professional/')) {
+      console.log('[AuthProvider] On professional page, skipping redirection');
+      return;
+    }
+
+    // Skip redirect on admin-specific pages like flyer-locations
+    if (location.pathname.startsWith('/admin/')) {
+      console.log('[AuthProvider] On admin page, skipping redirection');
+      return;
+    }
+
+    // CRITICAL FIX: Check for email verification flag specifically
+    const skipEmailVerification = hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
+    if (skipEmailVerification) {
+      console.log('[AuthProvider] SKIPPING handlePostLoginRedirection - email verification redirect flag is active');
+      return;
+    }
+
+    // Use the new specific auth flow flags instead of the old broad flag
+    if (shouldSkipRedirectForCurrentFlow()) {
+      console.log('[AuthProvider] Skipping post-login redirect due to specific auth flow flags');
       return;
     }
     

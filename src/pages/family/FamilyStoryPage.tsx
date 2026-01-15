@@ -1,5 +1,5 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { BookOpen, Sparkles, Heart, Award, Calendar, Briefcase, Users, Brain, LifeBuoy } from "lucide-react";
+import { applyPrefillDataToForm } from '@/utils/chat/prefillReader';
 
 const personalityTraits = [
   { id: "meticulous", label: "Meticulous" },
@@ -85,11 +86,9 @@ const challenges = [
   { id: "eating", label: "Eating/Nutrition Challenges" },
 ];
 
-// Generate birth year options (1920 to current year - 18)
 const currentYear = new Date().getFullYear();
 const birthYears = Array.from({ length: currentYear - 1920 - 18 + 1 }, (_, i) => currentYear - 18 - i);
 
-// Form schema using zod
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
   birthYear: z.string(),
@@ -111,14 +110,27 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-const FamilyStoryPage = () => {
+interface FamilyStoryPageProps {
+  isDemo?: boolean;
+}
+
+const FamilyStoryPage = ({ isDemo: isExternalDemo = false }: FamilyStoryPageProps = {}) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [prefillApplied, setPrefillApplied] = useState(false);
+  
+  const isEditMode = searchParams.get('edit') === 'true';
+  const isDemo = isExternalDemo || searchParams.get('demo') === 'true';
   
   const breadcrumbItems = [
-    { label: "Family Dashboard", path: "/dashboard/family" },
-    { label: "Tell Their Story", path: "/family/story" },
+    { 
+      label: isDemo ? "TAV Demo" : "Family Dashboard", 
+      path: isDemo ? "/tav-demo?openDemo=true" : "/dashboard/family" 
+    },
+    { label: isEditMode ? "Edit Their Story" : "Tell Their Story", path: "/family/story" },
   ];
 
   const form = useForm<FormValues>({
@@ -143,7 +155,109 @@ const FamilyStoryPage = () => {
     },
   });
 
+  // Fetch existing data for edit mode
+  useEffect(() => {
+    const fetchExistingData = async () => {
+      if (!user || !isEditMode) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { data: existingData, error } = await supabase
+          .from('care_recipient_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching existing story data:', error);
+          toast.error('Failed to load existing story data');
+          setIsLoading(false);
+          return;
+        }
+
+        if (existingData) {
+          // Prefill form with existing data
+          form.setValue('fullName', existingData.full_name || '');
+          form.setValue('birthYear', existingData.birth_year || '1950');
+          form.setValue('personalityTraits', existingData.personality_traits || []);
+          form.setValue('hobbiesInterests', existingData.hobbies_interests || []);
+          form.setValue('notableEvents', existingData.notable_events || '');
+          form.setValue('careerFields', existingData.career_fields || []);
+          form.setValue('familySocialInfo', existingData.family_social_info || '');
+          form.setValue('caregiverPersonality', existingData.caregiver_personality || []);
+          form.setValue('culturalPreferences', existingData.cultural_preferences || '');
+          form.setValue('dailyRoutines', existingData.daily_routines || '');
+          form.setValue('challenges', existingData.challenges || []);
+          form.setValue('sensitivities', existingData.sensitivities || '');
+          form.setValue('specificRequests', existingData.specific_requests || '');
+          form.setValue('lifeStory', existingData.life_story || '');
+          form.setValue('joyfulThings', existingData.joyful_things || '');
+          form.setValue('uniqueFacts', existingData.unique_facts || '');
+
+          toast.success('Story data loaded for editing');
+        }
+      } catch (error) {
+        console.error('Error in fetchExistingData:', error);
+        toast.error('Failed to load story data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchExistingData();
+  }, [user, isEditMode, form]);
+
+  // Apply prefill data from chat sessions
+  useEffect(() => {
+    if (!prefillApplied && user && !isEditMode) {
+      console.log('Checking for story prefill data...');
+      
+      const setFormValue = (field: string, value: any) => {
+        console.log(`Setting story field ${field} to:`, value);
+        
+        // Map fields to react-hook-form setValue calls
+        if (field === 'fullName' || field === 'full_name' || field === 'care_recipient_name') {
+          form.setValue('fullName', value);
+        } else if (field === 'lifeStory' || field === 'life_story') {
+          form.setValue('lifeStory', value);
+        } else if (field === 'joyfulThings' || field === 'joyful_things') {
+          form.setValue('joyfulThings', value);
+        } else if (field === 'uniqueFacts' || field === 'unique_facts') {
+          form.setValue('uniqueFacts', value);
+        } else if (field === 'culturalPreferences' || field === 'cultural_preferences') {
+          form.setValue('culturalPreferences', value);
+        }
+      };
+      
+      const hasPrefill = applyPrefillDataToForm(
+        setFormValue, 
+        { 
+          logDataReceived: true,
+          formType: 'story'
+        }
+      );
+      
+      if (hasPrefill) {
+        console.log('Successfully applied prefill data to story form');
+        toast.success('Your chat information has been applied to this form');
+      }
+      
+      setPrefillApplied(true);
+    }
+  }, [prefillApplied, user, isEditMode, form]);
+
   const onSubmit = async (data: FormValues) => {
+    // Demo mode - skip database operations
+    if (isExternalDemo || isDemo) {
+      toast.success('Demo Story Complete! 🎉 Your loved one\'s story has been simulated successfully.');
+      setTimeout(() => {
+        navigate('/tav-demo?openDemo=true');
+      }, 1500);
+      return;
+    }
+    
     if (!user) {
       toast.error("You must be logged in to submit this form");
       return;
@@ -181,7 +295,7 @@ const FamilyStoryPage = () => {
         throw error;
       }
 
-      toast.success("Story saved successfully!");
+      toast.success(isEditMode ? "Story updated successfully!" : "Story saved successfully!");
       navigate("/dashboard/family");
     } catch (error) {
       console.error("Error saving story:", error);
@@ -190,6 +304,22 @@ const FamilyStoryPage = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container px-4 py-8">
+          <DashboardHeader breadcrumbItems={breadcrumbItems} />
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading story data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -205,10 +335,13 @@ const FamilyStoryPage = () => {
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg mb-8 border border-primary/10">
             <h1 className="text-3xl font-bold text-primary mb-2 flex items-center">
               <BookOpen className="mr-2 h-8 w-8" />
-              Tell Their Story
+              {isEditMode ? "Edit Their Story" : "Tell Their Story"}
             </h1>
             <p className="text-gray-600 mb-4">
-              Share details about your loved one to help us better understand who they are and how to provide the most personalized care possible.
+              {isEditMode 
+                ? "Update details about your loved one to help us provide the most personalized care possible."
+                : "Share details about your loved one to help us better understand who they are and how to provide the most personalized care possible."
+              }
             </p>
             <div className="flex flex-wrap gap-3">
               {[
@@ -501,52 +634,10 @@ const FamilyStoryPage = () => {
                       </FormItem>
                     )}
                   />
-
-                  <FormField
-                    control={form.control}
-                    name="joyfulThings"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>What Brings Them Joy?</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Activities, topics, or experiences that bring joy and comfort..." 
-                            className="min-h-[100px]"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Describe things that make them smile or feel at ease
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="uniqueFacts"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Something Only Family Members Know</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Special habits, preferences, or quirks that make them unique..." 
-                            className="min-h-[100px]"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Share unique details that help caregivers connect on a deeper level
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </CardContent>
               </Card>
 
-              {/* Section 2: Expanded Care Preferences */}
+              {/* Section 2: Care Preferences */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center text-2xl text-primary">
@@ -753,7 +844,10 @@ const FamilyStoryPage = () => {
                     disabled={isSubmitting}
                     className="min-w-[120px]"
                   >
-                    {isSubmitting ? "Saving..." : "Save Their Story"}
+                    {isSubmitting 
+                      ? (isEditMode ? "Updating..." : "Saving...") 
+                      : (isEditMode ? "Update Their Story" : "Save Their Story")
+                    }
                   </Button>
                 </CardFooter>
               </Card>
