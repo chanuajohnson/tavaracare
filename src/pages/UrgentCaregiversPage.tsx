@@ -12,6 +12,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SpotlightCaregiverDetailModal } from "@/components/spotlight/SpotlightCaregiverDetailModal";
 import { SpotlightCaregiver } from "@/services/spotlightService";
 
+// AI-generated avatar images for featured caregivers
+import carleneAvatar from "@/assets/caregiver-avatar-carlene.jpg";
+import triciaAvatar from "@/assets/caregiver-avatar-tricia.jpg";
+
+// Map caregiver IDs to their custom avatars
+const CAREGIVER_AVATARS: Record<string, string> = {
+  "7d48f2f4-0f6f-4fff-af80-0c00ed7a6e7a": carleneAvatar, // Carlene Williams
+  "8c9ff9f0-0de7-4e71-aa1e-6a0de44c0417": triciaAvatar,  // Tricia Cumm
+};
+
 const UrgentCaregiversPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -56,8 +66,12 @@ const UrgentCaregiversPage = () => {
   const handleViewDetails = (id: string) => {
     const caregiver = spotlightCaregivers?.find(c => c.caregiverId === id);
     if (caregiver) {
-      // Pass the full spotlight caregiver data to the new modal
-      setSelectedCaregiverData(caregiver);
+      // Use custom avatar if available
+      const customAvatar = CAREGIVER_AVATARS[id];
+      const caregiverWithAvatar = customAvatar 
+        ? { ...caregiver, profile: { ...caregiver.profile, avatarUrl: customAvatar } }
+        : caregiver;
+      setSelectedCaregiverData(caregiverWithAvatar);
       setShowDetailModal(true);
     }
   };
@@ -171,11 +185,13 @@ const UrgentCaregiversPage = () => {
                   <SpotlightCaregiverCard
                     id={caregiver.caregiverId}
                     name={caregiver.profile.fullName}
-                    avatarUrl={caregiver.profile.avatarUrl}
+                    firstName={caregiver.profile.firstName}
+                    avatarUrl={CAREGIVER_AVATARS[caregiver.caregiverId] || caregiver.profile.avatarUrl}
                     headline={caregiver.headline}
                     description={caregiver.description}
                     specialties={caregiver.profile.caregiverSpecialties}
                     location={caregiver.profile.location || caregiver.profile.address}
+                    yearsOfExperience={caregiver.profile.yearsOfExperience}
                     urgencyLevel="high"
                     onViewDetails={handleViewDetails}
                     onWhatsAppChat={handleWhatsAppChat}

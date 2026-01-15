@@ -1,4 +1,4 @@
-import { Star, MapPin, Award, MessageCircle } from "lucide-react";
+import { Star, MapPin, Award, MessageCircle, Briefcase } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,11 +9,13 @@ import { cn } from "@/lib/utils";
 interface SpotlightCaregiverCardProps {
   id: string;
   name: string;
+  firstName?: string;
   avatarUrl?: string;
   headline: string;
   description?: string;
   specialties?: string[];
   location?: string;
+  yearsOfExperience?: string;
   averageRating?: number;
   testimonialCount?: number;
   urgencyLevel?: "high" | "medium" | "low";
@@ -25,11 +27,13 @@ interface SpotlightCaregiverCardProps {
 export const SpotlightCaregiverCard = ({
   id,
   name,
+  firstName,
   avatarUrl,
   headline,
   description,
   specialties = [],
   location,
+  yearsOfExperience,
   averageRating,
   testimonialCount = 0,
   urgencyLevel = "high",
@@ -37,12 +41,9 @@ export const SpotlightCaregiverCard = ({
   onWhatsAppChat,
   className,
 }: SpotlightCaregiverCardProps) => {
-  const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+  // Use firstName if available, otherwise extract from name
+  const displayName = firstName || name.split(" ")[0] || "Caregiver";
+  const initials = displayName[0]?.toUpperCase() || "C";
 
   return (
     <Card className={cn("overflow-hidden border-border/50 bg-card hover:shadow-lg transition-shadow", className)}>
@@ -66,7 +67,7 @@ export const SpotlightCaregiverCard = ({
         {/* Avatar overlapping header and content */}
         <div className="relative px-6 -mt-8">
           <Avatar className="h-16 w-16 border-4 border-background shadow-md">
-            <AvatarImage src={avatarUrl} alt={headline} />
+            <AvatarImage src={avatarUrl} alt={displayName} />
             <AvatarFallback className="bg-primary text-primary-foreground text-lg font-semibold">
               {initials}
             </AvatarFallback>
@@ -75,9 +76,26 @@ export const SpotlightCaregiverCard = ({
 
         {/* Content */}
         <div className="p-6 pt-3 space-y-4">
-          {/* Headline as primary identifier */}
+          {/* Name as primary identifier */}
           <div>
-            <h3 className="font-semibold text-lg text-foreground">{headline}</h3>
+            <h3 className="font-semibold text-lg text-foreground">{displayName}</h3>
+            <p className="text-sm text-muted-foreground">{headline}</p>
+          </div>
+
+          {/* Location and Experience */}
+          <div className="space-y-1.5">
+            {location && (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5" />
+                {location}
+              </div>
+            )}
+            {yearsOfExperience && (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Briefcase className="h-3.5 w-3.5" />
+                {yearsOfExperience} of caregiving experience
+              </div>
+            )}
           </div>
 
           {/* Description */}
@@ -85,14 +103,6 @@ export const SpotlightCaregiverCard = ({
             <p className="text-sm text-muted-foreground line-clamp-2">
               {description}
             </p>
-          )}
-
-          {/* Location */}
-          {location && (
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5" />
-              {location}
-            </div>
           )}
 
           {/* Specialties */}

@@ -11,7 +11,8 @@ import {
   Calendar,
   Shield,
   Clock,
-  Heart
+  Heart,
+  Briefcase
 } from "lucide-react";
 import { SpotlightCaregiver } from "@/services/spotlightService";
 
@@ -34,6 +35,10 @@ export const SpotlightCaregiverDetailModal = ({
     onWhatsAppChat(caregiver.caregiverId);
   };
 
+  // Use firstName if available, otherwise extract from fullName
+  const displayName = caregiver.profile.firstName || caregiver.profile.fullName?.split(' ')[0] || "Caregiver";
+  const initials = displayName[0]?.toUpperCase() || "C";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] p-0">
@@ -51,7 +56,7 @@ export const SpotlightCaregiverDetailModal = ({
                     <Avatar className="h-20 w-20 border-4 border-primary/20">
                       <AvatarImage src={caregiver.profile.avatarUrl || undefined} />
                       <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                        <Users className="h-8 w-8" />
+                        {initials}
                       </AvatarFallback>
                     </Avatar>
                     
@@ -75,13 +80,23 @@ export const SpotlightCaregiverDetailModal = ({
                   
                   <div className="flex-1 space-y-4">
                     <div>
-                      <h3 className="text-2xl font-bold mb-2">{caregiver.headline}</h3>
-                      {(caregiver.profile.location || caregiver.profile.address) && (
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <MapPin className="h-4 w-4" />
-                          <span>{caregiver.profile.location || caregiver.profile.address}</span>
-                        </div>
-                      )}
+                      <h3 className="text-2xl font-bold mb-1">{displayName}</h3>
+                      <p className="text-muted-foreground mb-2">{caregiver.headline}</p>
+                      
+                      <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                        {(caregiver.profile.location || caregiver.profile.address) && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            <span>{caregiver.profile.location || caregiver.profile.address}</span>
+                          </div>
+                        )}
+                        {caregiver.profile.yearsOfExperience && (
+                          <div className="flex items-center gap-1">
+                            <Briefcase className="h-4 w-4" />
+                            <span>{caregiver.profile.yearsOfExperience} experience</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     
                     {/* Single WhatsApp Button */}
@@ -104,7 +119,7 @@ export const SpotlightCaregiverDetailModal = ({
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Heart className="h-5 w-5 text-primary" />
-                    About This Caregiver
+                    About {displayName}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -136,7 +151,7 @@ export const SpotlightCaregiverDetailModal = ({
                     </div>
                   ) : (
                     <p className="text-muted-foreground text-sm">
-                      Contact Tavara to learn more about this caregiver's specialties.
+                      Contact Tavara to learn more about {displayName}'s specialties.
                     </p>
                   )}
                 </CardContent>
@@ -184,9 +199,9 @@ export const SpotlightCaregiverDetailModal = ({
                 <div className="flex items-start gap-3">
                   <MessageCircle className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <h4 className="font-medium text-foreground mb-1">Interested in this caregiver?</h4>
+                    <h4 className="font-medium text-foreground mb-1">Interested in {displayName}?</h4>
                     <p className="text-sm text-muted-foreground">
-                      Contact the Tavara team via WhatsApp to learn more about this caregiver 
+                      Contact the Tavara team via WhatsApp to learn more about {displayName} 
                       and start the matching process. We'll help coordinate the next steps.
                     </p>
                   </div>
