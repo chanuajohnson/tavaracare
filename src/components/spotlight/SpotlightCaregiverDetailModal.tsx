@@ -37,7 +37,11 @@ export const SpotlightCaregiverDetailModal = ({
 
   // Use firstName if available, otherwise extract from fullName
   const displayName = caregiver.profile.firstName || caregiver.profile.fullName?.split(' ')[0] || "Caregiver";
-  const initials = displayName[0]?.toUpperCase() || "C";
+  // Get both initials from full name (e.g., "Carlene Williams" → "CW")
+  const nameParts = (caregiver.profile.fullName || "").split(" ");
+  const initials = nameParts.length >= 2 
+    ? `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase()
+    : displayName[0]?.toUpperCase() || "C";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
