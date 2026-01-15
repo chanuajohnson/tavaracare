@@ -4,7 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { TrendingUp, MapPin, BarChart3, Trophy, RefreshCw, Bug, CheckCircle, XCircle, AlertTriangle, Users, Repeat, Trash2 } from 'lucide-react';
+import { TrendingUp, MapPin, BarChart3, Trophy, RefreshCw, Bug, CheckCircle, XCircle, AlertTriangle, Users, Repeat, Trash2, Globe, Smartphone, Monitor, Tablet } from 'lucide-react';
 import { useFlyerAnalytics } from '@/hooks/admin/useFlyerAnalytics';
 import { getCategoryByCode } from '@/constants/flyerCategories';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -328,6 +328,102 @@ export const FlyerAnalyticsDashboard: React.FC<FlyerAnalyticsDashboardProps> = (
           </CardContent>
         </Card>
       )}
+
+      {/* Geographic Breakdown - NEW */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5" />
+            Geographic Breakdown
+          </CardTitle>
+          <CardDescription>Where your flyer scans are coming from</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {data.geoBreakdown && data.geoBreakdown.length > 0 ? (
+            <div className="space-y-4">
+              {data.geoBreakdown.map((geo, idx) => {
+                const maxScans = data.geoBreakdown[0]?.scans || 1;
+                const flagEmoji = geo.countryCode !== 'XX' 
+                  ? String.fromCodePoint(...geo.countryCode.split('').map(c => 0x1F1E6 + c.charCodeAt(0) - 65))
+                  : '🌍';
+                return (
+                  <div key={geo.country} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {idx === 0 && <Trophy className="h-4 w-4 text-yellow-500" />}
+                        <span className="text-lg">{flagEmoji}</span>
+                        <span className="font-medium">{geo.country}</span>
+                      </div>
+                      <span className="font-bold">{geo.scans} scans</span>
+                    </div>
+                    <Progress value={(geo.scans / maxScans) * 100} className="h-2" />
+                    {geo.cities.length > 0 && (
+                      <div className="pl-8 space-y-1">
+                        {geo.cities.slice(0, 3).map(city => (
+                          <div key={city.city} className="flex items-center justify-between text-sm text-muted-foreground">
+                            <span>└ {city.city}</span>
+                            <span>{city.scans} scans</span>
+                          </div>
+                        ))}
+                        {geo.cities.length > 3 && (
+                          <div className="text-xs text-muted-foreground">
+                            +{geo.cities.length - 3} more cities
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Globe className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No geographic data yet.</p>
+              <p className="text-sm">Location data will appear once new flyer scans are recorded.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Device Breakdown - NEW */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Smartphone className="h-5 w-5" />
+            Device Breakdown
+          </CardTitle>
+          <CardDescription>What devices people use to scan flyers</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {data.deviceBreakdown && data.deviceBreakdown.length > 0 ? (
+            <div className="grid md:grid-cols-3 gap-4">
+              {data.deviceBreakdown.map((device) => {
+                const Icon = device.deviceType === 'mobile' ? Smartphone 
+                  : device.deviceType === 'tablet' ? Tablet 
+                  : device.deviceType === 'desktop' ? Monitor 
+                  : Smartphone;
+                const label = device.deviceType.charAt(0).toUpperCase() + device.deviceType.slice(1);
+                return (
+                  <div key={device.deviceType} className="text-center p-4 bg-muted/50 rounded-lg">
+                    <Icon className="h-8 w-8 mx-auto mb-2 text-primary" />
+                    <div className="text-2xl font-bold">{device.scans}</div>
+                    <div className="text-sm text-muted-foreground">{label}</div>
+                    <Progress value={device.percentage} className="h-1 mt-2" />
+                    <div className="text-xs text-muted-foreground mt-1">{device.percentage}%</div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Smartphone className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No device data yet.</p>
+              <p className="text-sm">Device info will appear once new flyer scans are recorded.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Rollout Signals Overview */}
       <Card>

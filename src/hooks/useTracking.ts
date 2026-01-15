@@ -3,6 +3,32 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { getDeviceInfo, DeviceInfo } from "@/utils/deviceDetection";
+
+export interface GeoData {
+  country: string;
+  countryCode: string;
+  region: string;
+  city: string;
+  timezone: string;
+}
+
+/**
+ * Fetch geographic location from edge function
+ */
+export const fetchGeoLocation = async (): Promise<GeoData | null> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('get-geo-location');
+    if (error) {
+      console.error('[fetchGeoLocation] Edge function error:', error);
+      return null;
+    }
+    return data as GeoData;
+  } catch (err) {
+    console.error('[fetchGeoLocation] Failed to fetch geo location:', err);
+    return null;
+  }
+};
 
 /**
  * Safely get or create a session ID with fallbacks for restrictive browsers
@@ -204,11 +230,20 @@ export function useTracking(options: TrackingOptions = {}) {
       const sessionId = getOrCreateSessionId();
       console.log('[trackEngagement] Using session ID:', sessionId);
       
-      // Add user role to additional data if user is logged in
+      // Get device info
+      const deviceInfo = getDeviceInfo();
+      
+      // Add user role and device info to additional data
       const enhancedData = {
         ...additionalData,
         user_role: userRole || 'anonymous',
         user_profile_complete: isProfileComplete || false,
+        // Device info
+        device_type: deviceInfo.deviceType,
+        browser: deviceInfo.browser,
+        os: deviceInfo.os,
+        screen_width: deviceInfo.screenWidth,
+        screen_height: deviceInfo.screenHeight,
       };
       
       // Debug: Log the payload being sent
