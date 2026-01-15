@@ -1,0 +1,173 @@
+===========================================
+TAVARA.CARE ERRANDS - WHATSAPP TEMPLATES
+===========================================
+
+📌 Use these templates to communicate with customers via WhatsApp
+📱 Official WhatsApp: +1 (868) 712-7677
+
+-------------------------------------------
+1. STANDARD BOOKING CONFIRMATION
+-------------------------------------------
+
+Hi [Customer Name]! 👋
+
+Thank you for booking Tavara.care Errands! 
+
+📋 Your Booking Details:
+- Service: [Errands Type]
+- Date: [Date]
+- Time: [Time]
+- Location: [Pickup/Delivery Address]
+- Total Cost: TT$[Amount]
+
+💳 Payment:
+50% deposit (TT$[Deposit Amount]) required via PayPal: [PayPal Link]
+Remaining 50% due upon completion.
+
+We'll confirm once your deposit is received!
+
+Questions? Reply to this message anytime. 😊
+
+Best,
+Tavara.care Team
+
+-------------------------------------------
+2. URGENT ERRANDS REQUEST
+-------------------------------------------
+
+Hi [Customer Name]! 🚨
+
+Got your urgent errands request!
+
+⚡ We can prioritize your order for same-day service with a +TT$30 rush fee.
+
+Total: TT$[Base Price] + TT$30 rush = TT$[Total]
+
+Reply "RUSH" to confirm and we'll get started immediately!
+
+-------------------------------------------
+3. DEPOSIT CONFIRMATION
+-------------------------------------------
+
+✅ Deposit Received!
+
+Hi [Customer Name],
+
+Your TT$[Amount] deposit has been confirmed. 
+
+🎯 Your errands are now scheduled:
+- Service Date: [Date]
+- Estimated Completion: [Time]
+
+You'll receive updates as we complete each task.
+
+Track your order: tavara.care/track/[ORDER-ID]
+
+-------------------------------------------
+4. COMPLETION & FINAL PAYMENT
+-------------------------------------------
+
+✨ Errands Complete!
+
+Hi [Customer Name],
+
+All done! Your items have been [delivered/completed].
+
+📸 [Optional: Attach receipt/delivery photo]
+
+💳 Final Payment Due: TT$[Amount]
+PayPal: [PayPal Link]
+
+Please confirm receipt and we'll close out your order.
+
+Thanks for using Tavara.care Errands! 🙌
+
+-------------------------------------------
+5. INQUIRY RESPONSE
+-------------------------------------------
+
+Hi there! 👋
+
+Thanks for your interest in Tavara.care Errands!
+
+We handle:
+🛒 Grocery shopping
+💊 Pharmacy runs
+🏦 Banking errands
+📦 Package pickup/delivery
+🏪 Store purchases
+🍽️ Food delivery
+...and more!
+
+📍 Base fee: TT$50 (local errands)
+🕐 Available 7 days/week
+
+What can we help you with today?
+
+-------------------------------------------
+6. MONTHLY SUBSCRIPTION OFFER
+-------------------------------------------
+
+💙 Special Offer for You!
+
+Hi [Customer Name],
+
+Since you're a repeat customer, we'd like to offer our Monthly Errands Plan:
+
+✅ 4 Errands for TT$180 (save TT$20!)
+✅ Priority booking
+✅ No rush fees
+✅ Flexible scheduling
+
+Interested? Reply "SUBSCRIBE" to get started!
+
+-------------------------------------------
+7. PRICING BREAKDOWN
+-------------------------------------------
+
+📊 Tavara.care Errands Pricing:
+
+💰 BASE FEE: TT$50
+Covers local errands within your community
+
+💰 CITY ERRANDS: TT$100
+Port of Spain, San Fernando, Chaguanas, banking
+
+💰 BIG HAULS: TT$150+
+Furniture, appliances, bulk shopping, special items
+
+All prices include:
+✓ Professional service
+✓ Careful handling
+✓ Photo updates
+✓ Receipt documentation
+
+Ready to book? Just tell us what you need!
+
+-------------------------------------------
+8. FOLLOW-UP AFTER SERVICE
+-------------------------------------------
+
+Hi [Customer Name]! 💙
+
+Hope everything arrived perfectly!
+
+We'd love your feedback:
+⭐ How was your experience?
+💬 Any suggestions for improvement?
+
+As a thank-you, here's 10% off your next errand!
+Code: THANKS10
+
+Need another errand? We're here 7 days a week!
+
+Best,
+Tavara.care Team
+
+===========================================
+END OF TEMPLATES
+===========================================
+
+💡 TIP: Personalize each message with customer name and specific details!
+💡 Always respond within 15 minutes during business hours for best results
+💡 Use emojis to maintain friendly, approachable tone consistent with Tavara brand
