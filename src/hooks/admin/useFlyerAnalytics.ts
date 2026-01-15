@@ -34,6 +34,19 @@ interface VariantLocationData {
   variantB: number;
 }
 
+interface GeoBreakdown {
+  country: string;
+  countryCode: string;
+  scans: number;
+  cities: Array<{ city: string; scans: number }>;
+}
+
+interface DeviceBreakdown {
+  deviceType: string;
+  scans: number;
+  percentage: number;
+}
+
 interface FlyerAnalyticsData {
   locationScans: LocationScanData[];
   variantPerformance: VariantPerformance[];
@@ -48,12 +61,22 @@ interface FlyerAnalyticsData {
   testLocationCodes: string[];
   daysOfData: number;
   isStatisticallySignificant: boolean;
+  // NEW: Geographic and device breakdowns
+  geoBreakdown: GeoBreakdown[];
+  deviceBreakdown: DeviceBreakdown[];
 }
 
 interface AdditionalDataType {
   utm_location?: string;
   utm_content?: string;
   utm_source?: string;
+  country?: string;
+  country_code?: string;
+  city?: string;
+  region?: string;
+  device_type?: string;
+  browser?: string;
+  os?: string;
   [key: string]: any;
 }
 
@@ -124,6 +147,10 @@ export const useFlyerAnalytics = (dateRange: string, excludeTestData: boolean = 
       const categoryCounts: Record<string, { scans: number; locations: Set<string> }> = {};
       const dailyCounts: Record<string, number> = {};
       const allSessions = new Set<string>();
+      
+      // NEW: Geo and device tracking
+      const geoCounts: Record<string, { scans: number; countryCode: string; cities: Record<string, number> }> = {};
+      const deviceCounts: Record<string, number> = { mobile: 0, tablet: 0, desktop: 0, unknown: 0 };
 
       filteredVisits.forEach(visit => {
         const ad = visit.additional_data as AdditionalDataType;
@@ -169,6 +196,21 @@ export const useFlyerAnalytics = (dateRange: string, excludeTestData: boolean = 
         // Count by day
         const day = visit.created_at.split('T')[0];
         dailyCounts[day] = (dailyCounts[day] || 0) + 1;
+        
+        // NEW: Count by geography
+        const country = ad?.country || 'Unknown';
+        const countryCode = ad?.country_code || 'XX';
+        const city = ad?.city || 'Unknown';
+        
+        if (!geoCounts[country]) {
+          geoCounts[country] = { scans: 0, countryCode, cities: {} };
+        }
+        geoCounts[country].scans++;
+        geoCounts[country].cities[city] = (geoCounts[country].cities[city] || 0) + 1;
+        
+        // NEW: Count by device type
+        const deviceType = ad?.device_type || 'unknown';
+        deviceCounts[deviceType] = (deviceCounts[deviceType] || 0) + 1;
       });
 
       // Build location scan data with signals
@@ -237,6 +279,29 @@ export const useFlyerAnalytics = (dateRange: string, excludeTestData: boolean = 
       // Statistical significance: need at least 25 scans and 7 days
       const isStatisticallySignificant = totalScans >= 25 && daysOfData >= 7;
 
+      // Build geo breakdown
+      const geoBreakdown: GeoBreakdown[] = Object.entries(geoCounts)
+        .map(([country, data]) => ({
+          country,
+          countryCode: data.countryCode,
+          scans: data.scans,
+          cities: Object.entries(data.cities)
+            .map(([city, scans]) => ({ city, scans }))
+            .sort((a, b) => b.scans - a.scans)
+        }))
+        .sort((a, b) => b.scans - a.scans);
+
+      // Build device breakdown
+      const totalDeviceScans = Object.values(deviceCounts).reduce((a, b) => a + b, 0);
+      const deviceBreakdown: DeviceBreakdown[] = Object.entries(deviceCounts)
+        .filter(([_, scans]) => scans > 0)
+        .map(([deviceType, scans]) => ({
+          deviceType,
+          scans,
+          percentage: totalDeviceScans > 0 ? Math.round((scans / totalDeviceScans) * 100) : 0
+        }))
+        .sort((a, b) => b.scans - a.scans);
+
       setData({
         locationScans,
         variantPerformance,
@@ -250,7 +315,9 @@ export const useFlyerAnalytics = (dateRange: string, excludeTestData: boolean = 
         hasTestData: testLocationCodes.size > 0,
         testLocationCodes: Array.from(testLocationCodes),
         daysOfData,
-        isStatisticallySignificant
+        isStatisticallySignificant,
+        geoBreakdown,
+        deviceBreakdown
       });
     } catch (error) {
       console.error('Error fetching flyer analytics:', error);
