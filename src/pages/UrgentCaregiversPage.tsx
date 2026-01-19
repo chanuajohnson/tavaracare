@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Heart, Users, Shield, Clock, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -11,7 +11,6 @@ import { useSpotlightCaregivers, useCaregiverTestimonials } from "@/hooks/useSpo
 import { Skeleton } from "@/components/ui/skeleton";
 import { SpotlightCaregiverDetailModal } from "@/components/spotlight/SpotlightCaregiverDetailModal";
 import { SpotlightCaregiver } from "@/services/spotlightService";
-import { fetchGeoLocation, GeoData } from "@/hooks/useTracking";
 
 // AI-generated avatar images for featured caregivers
 import carleneAvatar from "@/assets/caregiver-avatar-carlene.jpg";
@@ -30,10 +29,6 @@ const UrgentCaregiversPage = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCaregiverData, setSelectedCaregiverData] = useState<SpotlightCaregiver | null>(null);
   
-  // Geo data for flyer scans
-  const [geoData, setGeoData] = useState<GeoData | null>(null);
-  const geoFetchedRef = useRef(false);
-  
   // Extract UTM parameters for flyer tracking
   // Build UTM data object - only include defined values
   const utmData: Record<string, string> = {};
@@ -45,37 +40,12 @@ const UrgentCaregiversPage = () => {
   if (utmContent) utmData.utm_content = utmContent;
   if (utmLocation) utmData.utm_location = utmLocation;
   
-  // Fetch geo location for flyer scans (only once)
-  useEffect(() => {
-    const fetchGeo = async () => {
-      if (utmSource === 'flyer' && !geoFetchedRef.current) {
-        geoFetchedRef.current = true;
-        console.log('[UrgentCaregiversPage] Fetching geo location for flyer scan...');
-        const geo = await fetchGeoLocation();
-        if (geo) {
-          console.log('[UrgentCaregiversPage] Geo data received:', geo);
-          setGeoData(geo);
-        }
-      }
-    };
-    fetchGeo();
-  }, [utmSource]);
-  
-  // Add geo data to UTM data for tracking
-  const enrichedUtmData: Record<string, string> = { ...utmData };
-  if (geoData) {
-    enrichedUtmData.country = geoData.country;
-    enrichedUtmData.country_code = geoData.countryCode;
-    enrichedUtmData.city = geoData.city;
-    enrichedUtmData.region = geoData.region;
-  }
-  
   // Debug: Log UTM params on page load for flyer scan testing
+  // Note: Geo data is now fetched inside useTracking hook to avoid race condition
   console.log('[UrgentCaregiversPage] UTM tracking data:', {
-    utmData: enrichedUtmData,
+    utmData,
     hasUtmParams: Object.keys(utmData).length > 0,
-    rawParams: { utmSource, utmContent, utmLocation },
-    geoData
+    rawParams: { utmSource, utmContent, utmLocation }
   });
   
   // Show visual confirmation for flyer scans (helps debug on mobile)
@@ -135,10 +105,10 @@ const UrgentCaregiversPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Track page view with UTM params + geo data for flyer analytics */}
+      {/* Track page view with UTM params - geo data now fetched inside useTracking */}
       <PageViewTracker 
         actionType="urgent_caregivers_page_view"
-        additionalData={enrichedUtmData}
+        additionalData={utmData}
         journeyStage="discovery"
       />
       

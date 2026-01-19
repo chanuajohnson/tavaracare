@@ -15,12 +15,24 @@ interface GeoData {
 }
 
 serve(async (req) => {
+  console.log('[get-geo-location] ========== FUNCTION INVOKED ==========');
+  console.log('[get-geo-location] Method:', req.method);
+  console.log('[get-geo-location] URL:', req.url);
+  
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
+    console.log('[get-geo-location] Handling OPTIONS preflight');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Log all headers for debugging
+    const headersObj: Record<string, string> = {};
+    req.headers.forEach((value, key) => {
+      headersObj[key] = value;
+    });
+    console.log('[get-geo-location] Request headers:', JSON.stringify(headersObj));
+    
     // Get client IP from various headers (Supabase edge functions)
     const clientIP = 
       req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -28,7 +40,7 @@ serve(async (req) => {
       req.headers.get('cf-connecting-ip') ||
       'unknown';
     
-    console.log('[get-geo-location] Client IP:', clientIP);
+    console.log('[get-geo-location] Detected client IP:', clientIP);
 
     // Skip lookup for localhost/private IPs
     const isPrivateIP = 
