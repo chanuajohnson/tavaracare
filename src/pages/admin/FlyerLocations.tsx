@@ -7,13 +7,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, MapPin, Download, Loader2, Trash2, BarChart3, Edit2, CheckSquare, Square } from 'lucide-react';
+import { Plus, MapPin, Download, Loader2, Trash2, BarChart3, Edit2, CheckSquare, Square, ChevronDown, QrCode, FileImage } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FLYER_CATEGORIES, generateLocationCode, getCategoryByCode } from '@/constants/flyerCategories';
 import { CaregivingFlyerTemplate } from '@/components/marketing/CaregivingFlyerTemplate';
+import { QRCodeDownloadTemplate } from '@/components/marketing/QRCodeDownloadTemplate';
 import { FlyerAnalyticsDashboard } from '@/components/marketing/FlyerAnalyticsDashboard';
 import html2canvas from 'html2canvas';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Navigate } from 'react-router-dom';
@@ -39,7 +41,8 @@ const FlyerLocations = () => {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [locations, setLocations] = useState<FlyerLocation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [addFlyerDialogOpen, setAddFlyerDialogOpen] = useState(false);
+  const [addQRDialogOpen, setAddQRDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<FlyerLocation | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -161,7 +164,7 @@ const FlyerLocations = () => {
       if (error) throw error;
 
       toast.success('Location added successfully');
-      setAddDialogOpen(false);
+      setAddFlyerDialogOpen(false);
       resetForm();
       fetchLocations();
     } catch (error: any) {
@@ -173,6 +176,94 @@ const FlyerLocations = () => {
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleAddQRLocation = async () => {
+    if (!category || !businessName) {
+      toast.error('Please fill in category and business name');
+      return;
+    }
+
+    setSubmitting(true);
+    const code = generateLocationCode(category, businessName);
+
+    try {
+      const { error } = await supabase
+        .from('flyer_locations')
+        .insert({
+          code,
+          category,
+          business_name: businessName,
+          address: address || null,
+          variant: 'A', // Default for QR-only
+          contact_name: null,
+          contact_phone: null,
+          notes: notes || null,
+        });
+
+      if (error) throw error;
+
+      // Download the QR code
+      await downloadQRCode(code, businessName);
+
+      toast.success('Location added and QR code downloaded!');
+      setAddQRDialogOpen(false);
+      resetForm();
+      fetchLocations();
+    } catch (error: any) {
+      console.error('Error adding QR location:', error);
+      if (error.code === '23505') {
+        toast.error('A location with this code already exists');
+      } else {
+        toast.error('Failed to add location');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const downloadQRCode = async (locationCode: string, businessName: string) => {
+    // Temporarily render the QR code template
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    document.body.appendChild(container);
+
+    const qrId = `temp-qr-${locationCode}`;
+    container.innerHTML = `<div id="${qrId}"></div>`;
+
+    const { createRoot } = await import('react-dom/client');
+    const root = createRoot(document.getElementById(qrId)!);
+    
+    await new Promise<void>((resolve) => {
+      root.render(
+        <QRCodeDownloadTemplate 
+          id={qrId} 
+          locationCode={locationCode}
+        />
+      );
+      setTimeout(resolve, 100);
+    });
+
+    try {
+      const qrElement = document.getElementById(qrId);
+      if (!qrElement) throw new Error('QR code not found');
+
+      const canvas = await html2canvas(qrElement, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+      });
+
+      const link = document.createElement('a');
+      link.download = `tavara-qrcode-${locationCode}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } finally {
+      root.unmount();
+      document.body.removeChild(container);
     }
   };
 
@@ -478,93 +569,163 @@ const FlyerLocations = () => {
                   </Button>
                 )}
               </div>
-              <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-                <DialogTrigger asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Location
+                    <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
-                </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Add Distribution Location</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 mt-4">
-                  <div>
-                    <Label>Category *</Label>
-                    <Select value={category} onValueChange={setCategory}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FLYER_CATEGORIES.map((cat) => (
-                          <SelectItem key={cat.code} value={cat.code}>
-                            {cat.icon} {cat.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Business Name *</Label>
-                    <Input 
-                      value={businessName} 
-                      onChange={(e) => setBusinessName(e.target.value)}
-                      placeholder="e.g., Allied Pharmacy"
-                    />
-                  </div>
-                  <div>
-                    <Label>Address</Label>
-                    <Input 
-                      value={address} 
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="e.g., Port of Spain"
-                    />
-                  </div>
-                  <div>
-                    <Label>Flyer Variant</Label>
-                    <Select value={variant} onValueChange={(v) => setVariant(v as 'A' | 'B')}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="A">Variant A - "Find care now"</SelectItem>
-                        <SelectItem value="B">Variant B - "Match with a caregiver today"</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setAddFlyerDialogOpen(true)}>
+                    <FileImage className="mr-2 h-4 w-4" />
+                    Add Location (Flyer)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setAddQRDialogOpen(true)}>
+                    <QrCode className="mr-2 h-4 w-4" />
+                    Add Location (QR Code Only)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Add Flyer Dialog */}
+              <Dialog open={addFlyerDialogOpen} onOpenChange={setAddFlyerDialogOpen}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Add Distribution Location (Flyer)</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
                     <div>
-                      <Label>Contact Name</Label>
+                      <Label>Category *</Label>
+                      <Select value={category} onValueChange={setCategory}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {FLYER_CATEGORIES.map((cat) => (
+                            <SelectItem key={cat.code} value={cat.code}>
+                              {cat.icon} {cat.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Business Name *</Label>
                       <Input 
-                        value={contactName} 
-                        onChange={(e) => setContactName(e.target.value)}
-                        placeholder="Optional"
+                        value={businessName} 
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        placeholder="e.g., Allied Pharmacy"
                       />
                     </div>
                     <div>
-                      <Label>Contact Phone</Label>
+                      <Label>Address</Label>
                       <Input 
-                        value={contactPhone} 
-                        onChange={(e) => setContactPhone(e.target.value)}
-                        placeholder="Optional"
+                        value={address} 
+                        onChange={(e) => setAddress(e.target.value)}
+                        placeholder="e.g., Port of Spain"
                       />
                     </div>
+                    <div>
+                      <Label>Flyer Variant</Label>
+                      <Select value={variant} onValueChange={(v) => setVariant(v as 'A' | 'B')}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="A">Variant A - "Find care now"</SelectItem>
+                          <SelectItem value="B">Variant B - "Match with a caregiver today"</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Contact Name</Label>
+                        <Input 
+                          value={contactName} 
+                          onChange={(e) => setContactName(e.target.value)}
+                          placeholder="Optional"
+                        />
+                      </div>
+                      <div>
+                        <Label>Contact Phone</Label>
+                        <Input 
+                          value={contactPhone} 
+                          onChange={(e) => setContactPhone(e.target.value)}
+                          placeholder="Optional"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Notes</Label>
+                      <Textarea 
+                        value={notes} 
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Any additional notes..."
+                        rows={2}
+                      />
+                    </div>
+                    <Button onClick={handleAddLocation} disabled={submitting} className="w-full">
+                      {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                      Add Location
+                    </Button>
                   </div>
-                  <div>
-                    <Label>Notes</Label>
-                    <Textarea 
-                      value={notes} 
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Any additional notes..."
-                      rows={2}
-                    />
+                </DialogContent>
+              </Dialog>
+
+              {/* Add QR Code Only Dialog */}
+              <Dialog open={addQRDialogOpen} onOpenChange={setAddQRDialogOpen}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Add Location (QR Code Only)</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <Label>Category *</Label>
+                      <Select value={category} onValueChange={setCategory}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {FLYER_CATEGORIES.map((cat) => (
+                            <SelectItem key={cat.code} value={cat.code}>
+                              {cat.icon} {cat.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Business Name *</Label>
+                      <Input 
+                        value={businessName} 
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        placeholder="e.g., Community Center"
+                      />
+                    </div>
+                    <div>
+                      <Label>Address (Optional)</Label>
+                      <Input 
+                        value={address} 
+                        onChange={(e) => setAddress(e.target.value)}
+                        placeholder="e.g., Port of Spain"
+                      />
+                    </div>
+                    <div>
+                      <Label>Notes (Optional)</Label>
+                      <Textarea 
+                        value={notes} 
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Any additional notes..."
+                        rows={2}
+                      />
+                    </div>
+                    <Button onClick={handleAddQRLocation} disabled={submitting} className="w-full">
+                      {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
+                      Add & Download QR Code
+                    </Button>
                   </div>
-                  <Button onClick={handleAddLocation} disabled={submitting} className="w-full">
-                    {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                    Add Location
-                  </Button>
-                </div>
                 </DialogContent>
               </Dialog>
             </div>
@@ -664,10 +825,25 @@ const FlyerLocations = () => {
                 <p className="text-muted-foreground mb-4">
                   Add your first distribution location to start tracking
                 </p>
-                <Button onClick={() => setAddDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Location
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Location
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => setAddFlyerDialogOpen(true)}>
+                      <FileImage className="mr-2 h-4 w-4" />
+                      Add Location (Flyer)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setAddQRDialogOpen(true)}>
+                      <QrCode className="mr-2 h-4 w-4" />
+                      Add Location (QR Code Only)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </CardContent>
             </Card>
           )}
