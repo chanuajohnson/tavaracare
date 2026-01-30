@@ -84,6 +84,7 @@ import GenerateMarketingAssets from "@/pages/admin/GenerateMarketingAssets";
 import FlyerLocations from "@/pages/admin/FlyerLocations";
 import UrgentCaregiversPage from "@/pages/UrgentCaregiversPage";
 import TestimonialManagementPage from "@/pages/admin/TestimonialManagementPage";
+import CampaignLinksPage from "@/pages/admin/CampaignLinksPage";
 
 export const AppRoutes = () => {
   const { user } = useAuth();
@@ -160,6 +161,7 @@ export const AppRoutes = () => {
       <Route path="/admin/platform-analytics" element={<PlatformAnalyticsPage />} />
       <Route path="/admin/shift-management" element={<ShiftManagementPage />} />
       <Route path="/admin/testimonials" element={<TestimonialManagementPage />} />
+      <Route path="/admin/campaign-links" element={<CampaignLinksPage />} />
       
       {/* Legacy Routes */}
       <Route path="/legacy/stories" element={<LegacyStoriesPage />} />

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings, UserCheck, MapPin } from "lucide-react";
+import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings, UserCheck, MapPin, Link2 } from "lucide-react";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
@@ -103,6 +103,10 @@ export default function AdminDashboard() {
 
   const handleFlyerLocationsClick = () => {
     navigate('/admin/flyer-locations');
+  };
+
+  const handleCampaignLinksClick = () => {
+    navigate('/admin/campaign-links');
   };
 
   return (
@@ -204,6 +208,15 @@ export default function AdminDashboard() {
         >
           <MapPin className="h-6 w-6" />
           <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Flyer Locations</span>
+        </Button>
+
+        <Button
+          onClick={handleCampaignLinksClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <Link2 className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Campaign Links</span>
         </Button>
       </div>
 
