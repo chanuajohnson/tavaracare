@@ -19,12 +19,15 @@ import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
 import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
+import { getStoredUTMData, clearUTMData } from '@/utils/utmTracking';
+import { useTracking } from '@/hooks/useTracking';
 
 // Import standardized shift options from chat registration flows
 import { STANDARDIZED_SHIFT_OPTIONS } from '../../data/chatRegistrationFlows';
 
 const ProfessionalRegistration = () => {
   const { user, isLoading: authLoading } = useAuth();
+  const { trackEngagement } = useTracking();
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
   
@@ -486,11 +489,21 @@ const ProfessionalRegistration = () => {
       // Clear chat session data including auto-redirect flag  
       clearChatSessionData(sessionId || undefined);
       
-      // Also clear the auto-redirect flag specifically
-      if (sessionId) {
-        localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
-        localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
-      }
+      // Track registration completion with UTM data
+      const utmData = getStoredUTMData();
+      await trackEngagement('professional_registration_complete', {
+        user_id: user.id,
+        professional_type: finalProfessionalType,
+        ...(utmData && {
+          utm_source: utmData.utm_source,
+          utm_medium: utmData.utm_medium,
+          utm_campaign: utmData.utm_campaign,
+          utm_content: utmData.utm_content
+        })
+      });
+      
+      // Clear UTM data after successful registration
+      clearUTMData();
 
       toast.success('Registration Complete! Your professional caregiver registration has been updated.');
       navigate('/dashboard/professional');

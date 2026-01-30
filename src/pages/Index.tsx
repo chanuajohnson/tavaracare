@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { EnvironmentInfo } from "@/components/debug/EnvironmentInfo";
 import { SupabaseDebugger } from "@/components/debug/SupabaseDebugger";
 import { supabase } from '@/integrations/supabase/client';
+import { captureUTMParams } from '@/utils/utmTracking';
 
 const roles = [
   {
@@ -63,6 +64,14 @@ const Index = () => {
   const comparisonRef = useRef<HTMLDivElement>(null);
   const primaryVideoRef = useRef<HTMLVideoElement>(null);
   const secondaryVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Capture UTM parameters on page load
+  useEffect(() => {
+    const utmData = captureUTMParams();
+    if (utmData) {
+      console.log('[Index] UTM parameters captured:', utmData);
+    }
+  }, []);
 
   // Load active videos from admin settings on component mount
   useEffect(() => {

@@ -22,6 +22,8 @@ import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
 import { CompleteRegistrationButton } from '@/components/demo/CompleteRegistrationButton';
 import { useRealTimeFormSync } from '../../hooks/useRealTimeFormSync';
 import { useTavaraState } from '@/components/tav/hooks/TavaraStateContext';
+import { getStoredUTMData, clearUTMData } from '@/utils/utmTracking';
+import { useTracking } from '@/hooks/useTracking';
 
 interface FamilyRegistrationProps {
   isDemo?: boolean;
@@ -31,6 +33,7 @@ interface FamilyRegistrationProps {
 
 const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realTimeDataCallback }: FamilyRegistrationProps = {}) => {
   const { user } = useAuth();
+  const { trackEngagement } = useTracking();
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
   const isDemo = isExternalDemo || searchParams.get('demo') === 'true';
@@ -571,6 +574,23 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
           localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
           localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
         }
+      }
+
+      // Track registration completion with UTM data (only for new registrations)
+      if (!isEditMode) {
+        const utmData = getStoredUTMData();
+        await trackEngagement('family_registration_complete', {
+          user_id: user?.id,
+          ...(utmData && {
+            utm_source: utmData.utm_source,
+            utm_medium: utmData.utm_medium,
+            utm_campaign: utmData.utm_campaign,
+            utm_content: utmData.utm_content
+          })
+        });
+        
+        // Clear UTM data after successful registration
+        clearUTMData();
       }
 
       const successMessage = isEditMode 

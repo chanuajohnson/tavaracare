@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { Loader2, Upload, Check, X, User } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { getStoredUTMData, clearUTMData } from '@/utils/utmTracking';
+import { useTracking } from '@/hooks/useTracking';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -82,6 +84,7 @@ const COMMUNICATION_CHANNELS = [
 export default function CommunityRegistration() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { trackEngagement } = useTracking();
   const [isLoading, setIsLoading] = useState(false);
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -357,6 +360,21 @@ export default function CommunityRegistration() {
         console.error("Metadata update error:", metadataError);
         // Continue anyway as profile was updated
       }
+      
+      // Track registration completion with UTM data
+      const utmData = getStoredUTMData();
+      await trackEngagement('community_registration_complete', {
+        user_id: userId,
+        ...(utmData && {
+          utm_source: utmData.utm_source,
+          utm_medium: utmData.utm_medium,
+          utm_campaign: utmData.utm_campaign,
+          utm_content: utmData.utm_content
+        })
+      });
+      
+      // Clear UTM data after successful registration
+      clearUTMData();
       
       toast.success("Registration completed successfully!");
       
