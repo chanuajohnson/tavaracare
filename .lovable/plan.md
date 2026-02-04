@@ -1,25 +1,87 @@
 
 
-## Two-Part Solution: Add Missing Caregivers + Create Shareable Marketing Cards
+## Fix "schema 'net' does not exist" Error
+
+The error occurs because a database trigger (`handle_caregiver_availability_change`) is trying to use the `pg_net` extension which isn't enabled.
 
 ---
 
-## Part 1: Fix Missing Caregivers (Database Only)
+## Root Cause
 
-The SQL to add Carrema Canute, Candice Britto, and Daniella Walcott was not executed. You'll need to run these commands in Supabase:
+A migration from August 2025 created a trigger on the `profiles` table that fires when `available_for_matching` changes. It uses `net.http_post()` to call an edge function, but the `pg_net` extension was never enabled.
 
-### Step 1: Go to Supabase SQL Editor
-https://supabase.com/dashboard/project/cpdfmyemjrefnhddyrck/sql/new
+**File:** `supabase/migrations/20250806153934_56012795-ba1d-4b4d-b236-4ba69d3a07c8.sql`
 
-### Step 2: Run these SQL statements
+---
+
+## Two Fix Options
+
+### Option A: Enable pg_net Extension (Recommended if you want auto-recalculation)
+
+Run this SQL in Supabase SQL Editor:
+
+```sql
+-- Enable the pg_net extension
+CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+```
+
+This enables the HTTP extension so the trigger can call edge functions.
+
+**Pros:** Automatic match recalculation works as intended
+**Cons:** Requires the edge function to be deployed and working
+
+---
+
+### Option B: Remove the Trigger (Quick Fix)
+
+Run this SQL in Supabase SQL Editor:
+
+```sql
+-- Drop the problematic trigger
+DROP TRIGGER IF EXISTS trigger_caregiver_availability_change ON profiles;
+
+-- Optionally drop the function too
+DROP FUNCTION IF EXISTS handle_caregiver_availability_change();
+```
+
+**Pros:** Immediate fix, no dependencies
+**Cons:** Loses automatic match recalculation on availability changes
+
+---
+
+## Recommended Action
+
+I recommend **Option B** (removing the trigger) because:
+
+1. The automatic recalculation feature can be triggered manually via admin dashboard
+2. It's simpler and doesn't require additional extension configuration
+3. You can always add it back later with proper pg_net setup
+
+---
+
+## SQL to Run (Option B - Quick Fix)
+
+```sql
+-- Fix: Remove trigger that uses unavailable pg_net extension
+DROP TRIGGER IF EXISTS trigger_caregiver_availability_change ON profiles;
+DROP FUNCTION IF EXISTS handle_caregiver_availability_change();
+```
+
+After running this, the matching toggle will work immediately.
+
+---
+
+## Also Run: Add the 3 Spotlight Caregivers
+
+While you're in the SQL Editor, run this too:
 
 ```sql
 -- Mark caregivers as available
 UPDATE profiles 
 SET available_for_matching = true, updated_at = NOW()
 WHERE id IN (
-  '11a77842-32a0-482b-b3eb-e4c7ed7c5b83',  -- Candice Britto
-  '150ede63-32f4-4c2b-bf2d-2a66344055f6'   -- Daniella Walcott
+  '11a77842-32a0-482b-b3eb-e4c7ed7c5b83',
+  '150ede63-32f4-4c2b-bf2d-2a66344055f6'
 );
 
 -- Add to spotlight
@@ -35,104 +97,12 @@ VALUES
 
 ---
 
-## Part 2: Shareable Caregiver Marketing Cards
-
-Create a feature that generates downloadable/shareable images for caregivers to post on their WhatsApp status, Instagram, Facebook, etc.
-
-### What Caregivers Will Get
-
-A professional image card (optimized for social media) showing:
-- Their first name and photo/initials
-- "Available Now" badge
-- Their specialty headline
-- Their location
-- Tavara branding with QR code to /urgent-caregivers
-- WhatsApp contact number
-
-### How It Works
-
-1. **Admin generates cards** from a new section on the Marketing Assets page
-2. **Downloads personalized PNG** for each spotlight caregiver
-3. **Sends via WhatsApp** to each caregiver with a message like:
-   > "Hi Carlene! Here's your availability card - share it on your WhatsApp status and social media to let families know you're available!"
-
-### Technical Implementation
-
-| Action | File | Description |
-|--------|------|-------------|
-| Create | `src/components/marketing/CaregiverShareCard.tsx` | Shareable card template styled for social media (1080x1080 for Instagram, 9:16 for WhatsApp status) |
-| Modify | `src/pages/admin/GenerateMarketingAssets.tsx` | Add "Generate Caregiver Share Cards" section |
-| Create | `src/utils/marketing/caregiverShareUtils.ts` | Utility functions to generate and download cards |
-
-### Card Design Concept
-
-```text
-┌─────────────────────────────────┐
-│        🏡 Tavara.care           │
-│    "It takes a village"         │
-├─────────────────────────────────┤
-│                                 │
-│         [Avatar/Photo]          │
-│                                 │
-│      ✨ CARLENE ✨              │
-│   Dedicated Care Professional   │
-│                                 │
-│   📍 Princess Town              │
-│   🕐 3-5 Years Experience       │
-│                                 │
-│  ┌───────────────────────────┐  │
-│  │  ✅ AVAILABLE NOW         │  │
-│  │     for families          │  │
-│  └───────────────────────────┘  │
-│                                 │
-│   [QR Code]  📲 WhatsApp me     │
-│              +1 (868) 786-5357  │
-│                                 │
-│  🇹🇹 Serving Trinidad & Tobago  │
-└─────────────────────────────────┘
-```
-
-### Two Card Formats
-
-1. **Instagram/Facebook (1080x1080)** - Square format
-2. **WhatsApp Status (1080x1920)** - Vertical story format
-
-### Admin Workflow
-
-1. Go to Marketing Assets page
-2. Click "Generate Caregiver Share Cards"
-3. System fetches all spotlight caregivers
-4. Generates personalized card for each
-5. Download all or individually
-6. Send to caregivers via WhatsApp
-
-### Message Template for Sending to Caregivers
-
-```text
-Hi [Name]! 💙
-
-Here's your personalized availability card from Tavara.care!
-
-📲 Share it on:
-• WhatsApp Status
-• Facebook
-• Instagram
-
-Let families know you're available for care work!
-
-Need changes? Just reply to this message.
-```
-
----
-
 ## Summary
 
-| Task | Type | Time |
-|------|------|------|
-| Run SQL for 3 new caregivers | Manual (you) | 2 minutes |
-| Create CaregiverShareCard component | Code | New file |
-| Add to Marketing Assets page | Code | Modify existing |
-| Create utility functions | Code | New file |
+| Task | SQL Command | Purpose |
+|------|-------------|---------|
+| Fix toggle error | `DROP TRIGGER...` | Removes broken pg_net dependency |
+| Add spotlight caregivers | `INSERT INTO caregiver_spotlight...` | Shows 5 caregivers on /urgent-caregivers |
 
-This gives caregivers professional, branded content they can immediately share to attract families.
+Run both in the Supabase SQL Editor and the issues will be resolved.
 
