@@ -1,127 +1,74 @@
 
 
-## Save UTM Campaign Links to Database
+## Add Caregivers to Featured Spotlight
 
-This enhancement will store your generated campaign links permanently in the database, connect them to signups, and provide full attribution tracking.
-
----
-
-## What This Means for You
-
-### Current Situation
-- Links saved only in your browser (localStorage)
-- Lost if you clear browser data or use a different device
-- No connection between the link you created and who signed up from it
-
-### After Enhancement
-- Links saved permanently in database
-- Access from any device
-- See exactly: "I created this link on Jan 30 > 5 people clicked it > 3 signed up"
-- Track campaign ROI over time
+This plan will add Carrema Canute, Candice Britto, and Daniella Walcott to the /urgent-caregivers page alongside Carlene and Tricia.
 
 ---
 
-## Database Changes
+## Changes Required
 
-### New Table: `utm_campaign_links`
+### 1. Update Availability Status
+Mark these caregivers as available for matching:
+- **Candice Britto** - currently `available_for_matching = false`
+- **Daniella Walcott** - currently `available_for_matching = false`
 
-| Column | Type | Purpose |
-|--------|------|---------|
-| id | UUID | Unique identifier |
-| platform | text | instagram, tiktok, facebook, etc. |
-| medium | text | bio, paid, story, reel, etc. |
-| campaign | text | Your campaign name |
-| content | text | Optional content ID |
-| full_url | text | The complete generated URL |
-| created_by | UUID | Your admin user ID |
-| created_at | timestamp | When you generated it |
-| is_active | boolean | Can archive old links |
-| notes | text | Optional notes about the campaign |
+### 2. Add to Caregiver Spotlight Table
+Insert new spotlight entries for:
 
-This table will:
-- Store every link you generate
-- Connect to your admin account
-- Allow filtering by platform, date, campaign name
-- Support archiving old campaigns
+| Caregiver | Headline | Description | Order |
+|-----------|----------|-------------|-------|
+| Carrema Canute | Specialized Care Expert | Experienced caregiver in Arima with expertise in cognitive care, memory support, and special needs. Over 10 years of dedicated service. | 3 |
+| Candice Britto | Compassionate Memory Care Specialist | 6-10 years experience providing household and memory care support in Chase Village. | 4 |
+| Daniella Walcott | Trusted In-Home Caregiver | Reliable care professional based in Princess Town with 6-10 years of in-home care experience. | 5 |
 
 ---
 
-## How It Will Connect to Signups
+## Database Operations
 
-When someone registers from a UTM link:
+### Step 1: Update Profiles (mark as available)
+```sql
+UPDATE profiles 
+SET available_for_matching = true, updated_at = NOW()
+WHERE id IN (
+  '11a77842-32a0-482b-b3eb-e4c7ed7c5b83',  -- Candice Britto
+  '150ede63-32f4-4c2b-bf2d-2a66344055f6'   -- Daniella Walcott
+);
+```
 
-```text
-1. User clicks: https://tavara.care?utm_source=instagram&utm_medium=paid&utm_campaign=jan_30_family
-
-2. Landing page captures: {source: "instagram", medium: "paid", campaign: "jan_30_family"}
-
-3. Registration saves to cta_engagement_tracking with UTM data
-
-4. Dashboard queries BOTH tables:
-   - utm_campaign_links: Links you created
-   - cta_engagement_tracking: Signups that happened
-   
-5. Shows: "jan_30_family" link > 3 signups > 25% conversion rate
+### Step 2: Insert Spotlight Entries
+```sql
+INSERT INTO caregiver_spotlight (caregiver_id, headline, description, display_order, is_active)
+VALUES 
+  ('4dedfad6-be2b-4923-b117-37b403f7ac9d', 'Specialized Care Expert', 
+   'Experienced caregiver in Arima with expertise in cognitive care, memory support, and special needs. Over 10 years of dedicated service.', 3, true),
+  ('11a77842-32a0-482b-b3eb-e4c7ed7c5b83', 'Compassionate Memory Care Specialist', 
+   '6-10 years experience providing household and memory care support in Chase Village.', 4, true),
+  ('150ede63-32f4-4c2b-bf2d-2a66344055f6', 'Trusted In-Home Caregiver', 
+   'Reliable care professional based in Princess Town with 6-10 years of in-home care experience.', 5, true);
 ```
 
 ---
 
-## Updated Dashboard View
+## Result After Implementation
 
-After implementation, Campaign Links page will show:
+The /urgent-caregivers page will display 5 featured caregivers:
 
-### Your Created Links Section:
-| Platform | Medium | Campaign | Created | Signups | Copy |
-|----------|--------|----------|---------|---------|------|
-| Instagram | Paid | jan_30_family | Today | 3 | Copy Button |
-| TikTok | Bio | garden_ohm | Yesterday | 1 | Copy Button |
-| Instagram | Bio | bio_link_main | 5 days ago | 0 | Copy Button |
-
-### Signups by Source (unchanged):
-Shows aggregated conversion data from all tracked sources.
+1. **Carlene Williams** - Princess Town (existing)
+2. **Tricia Cumm** - Barrackpore (existing)
+3. **Carrema Canute** - Arima (new)
+4. **Candice Britto** - Chase Village (new)
+5. **Daniella Walcott** - Princess Town (new)
 
 ---
 
-## Technical Implementation
+## Note About Avatars
 
-### Part 1: Database Migration
-Create `utm_campaign_links` table with:
-- RLS policies allowing admin users to create/read/update
-- Indexes for efficient querying by platform, campaign
-
-### Part 2: Update UTMLinkGenerator Component
-- Save to database when copying link (instead of localStorage)
-- Load recent links from database
-- Add optional notes field for campaign context
-- Add archive/delete functionality
-
-### Part 3: Enhanced Campaign Page
-- Show created links with their signup counts
-- Calculate conversion rate per link
-- Add filtering by platform/date range
-- Export capability for reporting
-
-### Part 4: Connect Links to Conversions
-- Query joins utm_campaign_links with cta_engagement_tracking
-- Match by campaign name (utm_campaign)
-- Show which specific links drove which signups
+Currently, only Carlene and Tricia have custom AI-generated avatar images. The new caregivers will show initials (CC, CB, DW) as avatar fallbacks until you provide custom images.
 
 ---
 
-## File Changes Summary
+## No Code Changes Required
 
-| Action | File | Description |
-|--------|------|-------------|
-| Create | SQL Migration | New utm_campaign_links table |
-| Modify | `src/components/admin/UTMLinkGenerator.tsx` | Save to database instead of localStorage |
-| Modify | `src/pages/admin/CampaignLinksPage.tsx` | Show created links with conversion metrics |
-| Modify | `src/utils/utmTracking.ts` | Add database save functions |
-
----
-
-## Security
-
-- Only admin users can create/view campaign links
-- RLS policies ensure data isolation
-- Links are tied to the admin who created them
+This is purely a database update - the existing spotlight system will automatically display the new caregivers once added to the `caregiver_spotlight` table.
 
