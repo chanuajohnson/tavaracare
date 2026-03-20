@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Search, Calendar, ArrowUpRight, Clock, Activity, Plus } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { JourneyVisualSummary } from "@/components/admin/JourneyVisualSummary";
+import { FamilyJourneyProgressPanel } from "@/components/admin/FamilyJourneyProgressPanel";
 
 const UserJourneyPage = () => {
   const [userId, setUserId] = useState<string>("");
@@ -217,6 +218,10 @@ const UserJourneyPage = () => {
         {journeyData.length > 0 && (
           <>
             <JourneyVisualSummary journeyData={journeyData} userProfile={lookedUpProfile} />
+
+            {lookedUpProfile?.role === 'family' && (
+              <FamilyJourneyProgressPanel userId={userId} />
+            )}
 
             <motion.div
               initial={{ opacity: 0 }}
