@@ -10,6 +10,7 @@ import { EnhancedFamilyNextStepsPanel } from "@/components/family/EnhancedFamily
 import { FamilyReadinessChecker } from "@/components/family/FamilyReadinessChecker";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
 import { ProfessionalChatRequestsSection } from "@/components/family/ProfessionalChatRequestsSection";
+import { FamilyMatchNotification } from "@/components/family/FamilyMatchNotification";
 import { LeadCaptureModal } from "@/components/family/LeadCaptureModal";
 import { CaregiverMatchingModal } from "@/components/family/CaregiverMatchingModal";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
@@ -96,6 +97,13 @@ const FamilyDashboard = () => {
 
         {/* Quick Access Menu Bar - Pass the dashboard caregiver matches handler */}
         {user && <FamilyShortcutMenuBar onCaregiverMatchesClick={handleQuickAccessCaregiverMatches} />}
+
+        {/* Match notification banner — real-time, dismissible */}
+        {user && (
+          <div className="mt-4">
+            <FamilyMatchNotification />
+          </div>
+        )}
 
         {user && (
           <motion.div

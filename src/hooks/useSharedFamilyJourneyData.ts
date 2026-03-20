@@ -257,8 +257,8 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
           case 3: // Legacy story
             completed = !!(careRecipient && careRecipient.full_name);
             break;
-          case 4: // Caregiver matches
-            completed = !!careRecipient;
+          case 4: // Caregiver matches - aligned with FamilyReadinessChecker (registration + assessment)
+            completed = calculateRegistrationCompletion(profile) && !!careAssessment;
             accessible = calculateRegistrationCompletion(profile) && !!careAssessment;
             break;
           case 5: // Medication management
