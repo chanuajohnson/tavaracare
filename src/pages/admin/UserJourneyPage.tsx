@@ -260,6 +260,7 @@ const UserJourneyPage = () => {
               ))}
             </div>
           </motion.div>
+          </>
         )}
 
         {journeyData.length === 0 && !isLoading && userId && (
