@@ -98,6 +98,13 @@ const FamilyDashboard = () => {
         {/* Quick Access Menu Bar - Pass the dashboard caregiver matches handler */}
         {user && <FamilyShortcutMenuBar onCaregiverMatchesClick={handleQuickAccessCaregiverMatches} />}
 
+        {/* Match notification banner — real-time, dismissible */}
+        {user && (
+          <div className="mt-4">
+            <FamilyMatchNotification />
+          </div>
+        )}
+
         {user && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
