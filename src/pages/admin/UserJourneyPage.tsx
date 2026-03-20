@@ -10,6 +10,7 @@ import { Search, Calendar, ArrowUpRight, Clock, Activity, Plus } from "lucide-re
 import { useAuth } from "@/components/providers/AuthProvider";
 import { JourneyVisualSummary } from "@/components/admin/JourneyVisualSummary";
 import { FamilyJourneyProgressPanel } from "@/components/admin/FamilyJourneyProgressPanel";
+import { ActiveCaregiverMatchesPanel } from "@/components/admin/ActiveCaregiverMatchesPanel";
 
 const UserJourneyPage = () => {
   const [userId, setUserId] = useState<string>("");
@@ -220,7 +221,10 @@ const UserJourneyPage = () => {
             <JourneyVisualSummary journeyData={journeyData} userProfile={lookedUpProfile} />
 
             {lookedUpProfile?.role === 'family' && (
-              <FamilyJourneyProgressPanel userId={userId} />
+              <>
+                <FamilyJourneyProgressPanel userId={userId} />
+                <ActiveCaregiverMatchesPanel userId={userId} />
+              </>
             )}
 
             <motion.div
