@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Search, Calendar, ArrowUpRight, Clock, Activity, Plus } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { JourneyVisualSummary } from "@/components/admin/JourneyVisualSummary";
 
 const UserJourneyPage = () => {
   const [userId, setUserId] = useState<string>("");
@@ -15,6 +16,7 @@ const UserJourneyPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lookedUpProfile, setLookedUpProfile] = useState<{ full_name: string | null; role: string | null; avatar_url: string | null } | null>(null);
   const { user } = useAuth();
   
   const breadcrumbItems = [
