@@ -221,7 +221,10 @@ const UserJourneyPage = () => {
             <JourneyVisualSummary journeyData={journeyData} userProfile={lookedUpProfile} />
 
             {lookedUpProfile?.role === 'family' && (
-              <FamilyJourneyProgressPanel userId={userId} />
+              <>
+                <FamilyJourneyProgressPanel userId={userId} />
+                <ActiveCaregiverMatchesPanel userId={userId} />
+              </>
             )}
 
             <motion.div
