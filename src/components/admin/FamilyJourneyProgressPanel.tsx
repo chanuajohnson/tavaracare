@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, Circle, Clock } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CheckCircle2, Circle, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 
 interface FamilyJourneyProgressPanelProps {
@@ -11,6 +14,7 @@ interface FamilyJourneyProgressPanelProps {
 
 export const FamilyJourneyProgressPanel = ({ userId }: FamilyJourneyProgressPanelProps) => {
   const { steps, completionPercentage, nextStep, loading, journeyStage } = useSharedFamilyJourneyData(userId);
+  const [isOpen, setIsOpen] = useState(false);
 
   const getStatusColor = () => {
     if (completionPercentage >= 75) return 'text-green-700';
@@ -68,9 +72,9 @@ export const FamilyJourneyProgressPanel = ({ userId }: FamilyJourneyProgressPane
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
-            {/* Overall Progress */}
+          <Collapsible open={isOpen} onOpenChange={setIsOpen}>
             <div className="space-y-4">
+              {/* Always-visible progress summary */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {getStatusIcon()}
@@ -88,79 +92,93 @@ export const FamilyJourneyProgressPanel = ({ userId }: FamilyJourneyProgressPane
                 </Badge>
               </div>
               <Progress value={completionPercentage} className="h-3" />
+
+              {/* Toggle button */}
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-full flex items-center justify-center gap-1 text-muted-foreground">
+                  {isOpen ? (
+                    <>Hide Steps <ChevronUp className="h-4 w-4" /></>
+                  ) : (
+                    <>Show Steps <ChevronDown className="h-4 w-4" /></>
+                  )}
+                </Button>
+              </CollapsibleTrigger>
             </div>
 
-            {/* Step Details */}
-            {steps.length > 0 ? (
-              <div className="space-y-3">
-                <h4 className="font-medium text-gray-900">Journey Steps</h4>
-                <div className="space-y-2">
-                  {steps.map((step, index) => {
-                    const stepId = step?.id || index;
-                    const stepTitle = step?.title || 'Untitled Step';
-                    const stepDescription = step?.description || 'No description available';
-                    const isCompleted = Boolean(step?.completed);
-                    const isAccessible = step?.accessible !== false;
-                    const isOptional = Boolean(step?.optional);
+            {/* Collapsible detail section */}
+            <CollapsibleContent className="space-y-6 pt-4">
+              {/* Step Details */}
+              {steps.length > 0 ? (
+                <div className="space-y-3">
+                  <h4 className="font-medium text-gray-900">Journey Steps</h4>
+                  <div className="space-y-2">
+                    {steps.map((step, index) => {
+                      const stepId = step?.id || index;
+                      const stepTitle = step?.title || 'Untitled Step';
+                      const stepDescription = step?.description || 'No description available';
+                      const isCompleted = Boolean(step?.completed);
+                      const isAccessible = step?.accessible !== false;
+                      const isOptional = Boolean(step?.optional);
 
-                    return (
-                      <div key={stepId} className="flex items-center gap-3 p-3 rounded-lg border">
-                        <div className="flex-shrink-0">
-                          {isCompleted ? (
-                            <CheckCircle2 className="h-5 w-5 text-green-600" />
-                          ) : isAccessible ? (
-                            <Circle className="h-5 w-5 text-blue-600" />
-                          ) : (
-                            <Circle className="h-5 w-5 text-gray-400" />
-                          )}
+                      return (
+                        <div key={stepId} className="flex items-center gap-3 p-3 rounded-lg border">
+                          <div className="flex-shrink-0">
+                            {isCompleted ? (
+                              <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            ) : isAccessible ? (
+                              <Circle className="h-5 w-5 text-blue-600" />
+                            ) : (
+                              <Circle className="h-5 w-5 text-gray-400" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h5 className={`font-medium ${isCompleted ? 'text-green-800' : isAccessible ? 'text-gray-900' : 'text-gray-500'}`}>
+                              {stepTitle}
+                            </h5>
+                            <p className="text-sm text-gray-600 truncate">{stepDescription}</p>
+                            {isOptional && (
+                              <Badge variant="outline" className="mt-1 text-xs">Optional</Badge>
+                            )}
+                          </div>
+                          <div className="flex-shrink-0">
+                            <Badge variant={isCompleted ? 'default' : isAccessible ? 'secondary' : 'outline'}>
+                              {isCompleted ? 'Complete' : isAccessible ? 'Available' : 'Locked'}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h5 className={`font-medium ${isCompleted ? 'text-green-800' : isAccessible ? 'text-gray-900' : 'text-gray-500'}`}>
-                            {stepTitle}
-                          </h5>
-                          <p className="text-sm text-gray-600 truncate">{stepDescription}</p>
-                          {isOptional && (
-                            <Badge variant="outline" className="mt-1 text-xs">Optional</Badge>
-                          )}
-                        </div>
-                        <div className="flex-shrink-0">
-                          <Badge variant={isCompleted ? 'default' : isAccessible ? 'secondary' : 'outline'}>
-                            {isCompleted ? 'Complete' : isAccessible ? 'Available' : 'Locked'}
-                          </Badge>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p>No journey progress data available for this user.</p>
-              </div>
-            )}
-
-            {/* Next Step Recommendation */}
-            {nextStep && nextStep.title && (
-              <Card className="bg-blue-50 border-blue-200">
-                <CardContent className="pt-4">
-                  <div className="flex items-start gap-3">
-                    <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium text-blue-900">Next Recommended Step</h4>
-                      <p className="text-sm text-blue-800 mt-1">
-                        {nextStep.title}
-                      </p>
-                      {nextStep.description && (
-                        <p className="text-sm text-blue-700 mt-1">
-                          {nextStep.description}
-                        </p>
-                      )}
-                    </div>
+                      );
+                    })}
                   </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No journey progress data available for this user.</p>
+                </div>
+              )}
+
+              {/* Next Step Recommendation */}
+              {nextStep && nextStep.title && (
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardContent className="pt-4">
+                    <div className="flex items-start gap-3">
+                      <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium text-blue-900">Next Recommended Step</h4>
+                        <p className="text-sm text-blue-800 mt-1">
+                          {nextStep.title}
+                        </p>
+                        {nextStep.description && (
+                          <p className="text-sm text-blue-700 mt-1">
+                            {nextStep.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
         </CardContent>
       </Card>
     </motion.div>
