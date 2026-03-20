@@ -215,11 +215,14 @@ const UserJourneyPage = () => {
         </Card>
 
         {journeyData.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
+          <>
+            <JourneyVisualSummary journeyData={journeyData} userProfile={lookedUpProfile} />
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
             <h2 className="text-xl font-semibold mb-4">User Journey Timeline</h2>
             <div className="space-y-4">
               {journeyData.map((event, index) => (
