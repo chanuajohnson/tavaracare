@@ -65,20 +65,28 @@ const UserJourneyPage = () => {
     }
 
     setIsLoading(true);
+    setLookedUpProfile(null);
     try {
-      // Fetch user journey tracking data
-      const { data: journeyData, error: journeyError } = await supabase
-        .from("cta_engagement_tracking")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
+      // Fetch journey data and profile in parallel
+      const [journeyResult, profileResult] = await Promise.all([
+        supabase
+          .from("cta_engagement_tracking")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("profiles")
+          .select("full_name, role, avatar_url")
+          .eq("id", userId)
+          .maybeSingle(),
+      ]);
 
-      if (journeyError) {
-        throw journeyError;
-      }
+      if (journeyResult.error) throw journeyResult.error;
 
-      setJourneyData(journeyData || []);
-      if (journeyData?.length === 0) {
+      setJourneyData(journeyResult.data || []);
+      setLookedUpProfile(profileResult.data || null);
+
+      if (journeyResult.data?.length === 0) {
         toast.info("No journey data found for this user");
       }
     } catch (error: any) {
