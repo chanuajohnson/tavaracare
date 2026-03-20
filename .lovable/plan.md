@@ -1,108 +1,69 @@
 
 
-## Fix "schema 'net' does not exist" Error
+## Add Visual Journey Summary to User Journey Analytics Page
 
-The error occurs because a database trigger (`handle_caregiver_availability_change`) is trying to use the `pg_net` extension which isn't enabled.
-
----
-
-## Root Cause
-
-A migration from August 2025 created a trigger on the `profiles` table that fires when `available_for_matching` changes. It uses `net.http_post()` to call an edge function, but the `pg_net` extension was never enabled.
-
-**File:** `supabase/migrations/20250806153934_56012795-ba1d-4b4d-b236-4ba69d3a07c8.sql`
+Add a compact, at-a-glance visual timeline at the top of the journey results (above the existing detailed cards) that shows the user's journey as a horizontal flow with key milestones.
 
 ---
 
-## Two Fix Options
+## What You'll See
 
-### Option A: Enable pg_net Extension (Recommended if you want auto-recalculation)
+After looking up a user, a new summary section appears above the detailed timeline:
 
-Run this SQL in Supabase SQL Editor:
-
-```sql
--- Enable the pg_net extension
-CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
-```
-
-This enables the HTTP extension so the trigger can call edge functions.
-
-**Pros:** Automatic match recalculation works as intended
-**Cons:** Requires the edge function to be deployed and working
-
----
-
-### Option B: Remove the Trigger (Quick Fix)
-
-Run this SQL in Supabase SQL Editor:
-
-```sql
--- Drop the problematic trigger
-DROP TRIGGER IF EXISTS trigger_caregiver_availability_change ON profiles;
-
--- Optionally drop the function too
-DROP FUNCTION IF EXISTS handle_caregiver_availability_change();
-```
-
-**Pros:** Immediate fix, no dependencies
-**Cons:** Loses automatic match recalculation on availability changes
-
----
-
-## Recommended Action
-
-I recommend **Option B** (removing the trigger) because:
-
-1. The automatic recalculation feature can be triggered manually via admin dashboard
-2. It's simpler and doesn't require additional extension configuration
-3. You can always add it back later with proper pg_net setup
-
----
-
-## SQL to Run (Option B - Quick Fix)
-
-```sql
--- Fix: Remove trigger that uses unavailable pg_net extension
-DROP TRIGGER IF EXISTS trigger_caregiver_availability_change ON profiles;
-DROP FUNCTION IF EXISTS handle_caregiver_availability_change();
-```
-
-After running this, the matching toggle will work immediately.
-
----
-
-## Also Run: Add the 3 Spotlight Caregivers
-
-While you're in the SQL Editor, run this too:
-
-```sql
--- Mark caregivers as available
-UPDATE profiles 
-SET available_for_matching = true, updated_at = NOW()
-WHERE id IN (
-  '11a77842-32a0-482b-b3eb-e4c7ed7c5b83',
-  '150ede63-32f4-4c2b-bf2d-2a66344055f6'
-);
-
--- Add to spotlight
-INSERT INTO caregiver_spotlight (caregiver_id, headline, description, display_order, is_active)
-VALUES 
-  ('4dedfad6-be2b-4923-b117-37b403f7ac9d', 'Specialized Care Expert', 
-   'Experienced caregiver in Arima with expertise in cognitive care, memory support, and special needs. Over 10 years of dedicated service.', 3, true),
-  ('11a77842-32a0-482b-b3eb-e4c7ed7c5b83', 'Compassionate Memory Care Specialist', 
-   '6-10 years experience providing household and memory care support in Chase Village.', 4, true),
-  ('150ede63-32f4-4c2b-bf2d-2a66344055f6', 'Trusted In-Home Caregiver', 
-   'Reliable care professional based in Princess Town with 6-10 years of in-home care experience.', 5, true);
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│  👤 Ana Maria Aimey  |  Family  |  First seen: Mar 9  |  10 events │
+│                                                                     │
+│  ●─────────●─────────●─────────────────────●─────────●              │
+│  Register  Assessment Milestone    (7 days)  Dashboard  Care Plan   │
+│  Mar 9     Mar 9      Mar 9                  Mar 16     Mar 16      │
+│                                                                     │
+│  📱 Android/Chrome  |  🔄 2 sessions  |  ⏱ Last active: Mar 16    │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Summary
+## Implementation
 
-| Task | SQL Command | Purpose |
-|------|-------------|---------|
-| Fix toggle error | `DROP TRIGGER...` | Removes broken pg_net dependency |
-| Add spotlight caregivers | `INSERT INTO caregiver_spotlight...` | Shows 5 caregivers on /urgent-caregivers |
+### New Component: `src/components/admin/JourneyVisualSummary.tsx`
 
-Run both in the Supabase SQL Editor and the issues will be resolved.
+A compact card that takes the journey data array and renders:
+
+1. **User info bar** — Name, role, first seen date, total events (fetched from profiles table using the user_id)
+2. **Horizontal milestone timeline** — Color-coded dots connected by lines showing key actions in chronological order, grouped by date. Deduplicates repeated page views, highlights milestones
+3. **Quick stats row** — Device info, number of sessions (grouped by date gaps), last active date, total time tracked
+
+### Modify: `src/pages/admin/UserJourneyPage.tsx`
+
+- Import `JourneyVisualSummary`
+- After data is fetched, also fetch the user's profile (name, role, avatar)
+- Render `<JourneyVisualSummary>` above the existing "User Journey Timeline" section
+- No changes to existing timeline cards below
+
+### Data Processing Logic
+
+- Group events by date to identify sessions
+- Deduplicate consecutive same-action events (e.g., 4 registration page views → "Registration (×4)")
+- Extract key milestones: first registration, assessment, milestone achievements, dashboard access, care plan views
+- Calculate session gaps and time-on-site estimates from `time_on_previous_page` data
+
+### Color Coding
+
+| Event Type | Color | Icon |
+|-----------|-------|------|
+| Registration | Blue | UserPlus |
+| Assessment | Green | ClipboardCheck |
+| Milestone | Gold | Star |
+| Dashboard | Purple | LayoutDashboard |
+| Care Plan | Teal | FileHeart |
+
+### File Changes
+
+| Action | File | Description |
+|--------|------|-------------|
+| Create | `src/components/admin/JourneyVisualSummary.tsx` | Visual timeline summary component |
+| Modify | `src/pages/admin/UserJourneyPage.tsx` | Add profile fetch + render summary above existing timeline |
+
+No existing UI is removed or changed — this is purely additive above the current detailed cards.
 
