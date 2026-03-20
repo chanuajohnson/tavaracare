@@ -10,7 +10,6 @@ import { AppErrorBoundary } from '@/components/common/AppErrorBoundary';
 import { useGlobalErrorHandler } from '@/hooks/useGlobalErrorHandler';
 
 function AppContent() {
-  // Initialize global error handling
   useGlobalErrorHandler();
 
   return (
