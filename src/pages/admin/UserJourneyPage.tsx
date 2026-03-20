@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Search, Calendar, ArrowUpRight, Clock, Activity, Plus } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { JourneyVisualSummary } from "@/components/admin/JourneyVisualSummary";
 
 const UserJourneyPage = () => {
   const [userId, setUserId] = useState<string>("");
@@ -15,6 +16,7 @@ const UserJourneyPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lookedUpProfile, setLookedUpProfile] = useState<{ full_name: string | null; role: string | null; avatar_url: string | null } | null>(null);
   const { user } = useAuth();
   
   const breadcrumbItems = [
@@ -63,20 +65,28 @@ const UserJourneyPage = () => {
     }
 
     setIsLoading(true);
+    setLookedUpProfile(null);
     try {
-      // Fetch user journey tracking data
-      const { data: journeyData, error: journeyError } = await supabase
-        .from("cta_engagement_tracking")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
+      // Fetch journey data and profile in parallel
+      const [journeyResult, profileResult] = await Promise.all([
+        supabase
+          .from("cta_engagement_tracking")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("profiles")
+          .select("full_name, role, avatar_url")
+          .eq("id", userId)
+          .maybeSingle(),
+      ]);
 
-      if (journeyError) {
-        throw journeyError;
-      }
+      if (journeyResult.error) throw journeyResult.error;
 
-      setJourneyData(journeyData || []);
-      if (journeyData?.length === 0) {
+      setJourneyData(journeyResult.data || []);
+      setLookedUpProfile(profileResult.data || null);
+
+      if (journeyResult.data?.length === 0) {
         toast.info("No journey data found for this user");
       }
     } catch (error: any) {
@@ -205,11 +215,14 @@ const UserJourneyPage = () => {
         </Card>
 
         {journeyData.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
+          <>
+            <JourneyVisualSummary journeyData={journeyData} userProfile={lookedUpProfile} />
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
             <h2 className="text-xl font-semibold mb-4">User Journey Timeline</h2>
             <div className="space-y-4">
               {journeyData.map((event, index) => (
@@ -247,6 +260,7 @@ const UserJourneyPage = () => {
               ))}
             </div>
           </motion.div>
+          </>
         )}
 
         {journeyData.length === 0 && !isLoading && userId && (
