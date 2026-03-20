@@ -129,8 +129,8 @@ export const ActiveCaregiverMatchesPanel = ({ userId }: ActiveCaregiverMatchesPa
 
   const getStatusIndicator = (match: CaregiverMatch) => {
     if (!match.is_active) return <span className="inline-block w-2.5 h-2.5 rounded-full bg-muted-foreground/40" title="Inactive" />;
-    if (match.available_for_matching) return <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500" title="Available" />;
-    return <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500" title="Unavailable for new matches" />;
+    if (match.available_for_matching) return <span className="inline-block w-2.5 h-2.5 rounded-full bg-primary" title="Available" />;
+    return <span className="inline-block w-2.5 h-2.5 rounded-full bg-destructive/60" title="Unavailable for new matches" />;
   };
 
   return (
