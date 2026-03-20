@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { SessionContextProvider } from '@supabase/auth-helpers-react'
 import { supabase } from '@/integrations/supabase/client';

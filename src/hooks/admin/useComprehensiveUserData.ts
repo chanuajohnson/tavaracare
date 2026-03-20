@@ -61,10 +61,13 @@ export const useComprehensiveUserData = (userId: string, userRole?: string) => {
           .maybeSingle();
 
         if (careNeedsError && careNeedsError.code !== 'PGRST116') {
-          console.warn('Could not fetch care needs:', careNeedsError);
+          console.warn('⚠️ Could not fetch care needs (possible RLS restriction):', careNeedsError);
         } else {
           careNeeds = careNeedsData;
           assessmentComplete = !!careNeedsData;
+          if (!careNeedsData && profile.role === 'family') {
+            console.warn('⚠️ care_needs_family returned null for family user - may be RLS blocked. User:', userId);
+          }
         }
 
         // Get care recipient profile
