@@ -219,6 +219,10 @@ const UserJourneyPage = () => {
           <>
             <JourneyVisualSummary journeyData={journeyData} userProfile={lookedUpProfile} />
 
+            {lookedUpProfile?.role === 'family' && (
+              <FamilyJourneyProgressPanel userId={userId} />
+            )}
+
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
