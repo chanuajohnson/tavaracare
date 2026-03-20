@@ -10,6 +10,7 @@ import { EnhancedFamilyNextStepsPanel } from "@/components/family/EnhancedFamily
 import { FamilyReadinessChecker } from "@/components/family/FamilyReadinessChecker";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
 import { ProfessionalChatRequestsSection } from "@/components/family/ProfessionalChatRequestsSection";
+import { FamilyMatchNotification } from "@/components/family/FamilyMatchNotification";
 import { LeadCaptureModal } from "@/components/family/LeadCaptureModal";
 import { CaregiverMatchingModal } from "@/components/family/CaregiverMatchingModal";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
