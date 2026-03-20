@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Search, Calendar, ArrowUpRight, Clock, Activity, Plus } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { JourneyVisualSummary } from "@/components/admin/JourneyVisualSummary";
+import { FamilyJourneyProgressPanel } from "@/components/admin/FamilyJourneyProgressPanel";
 
 const UserJourneyPage = () => {
   const [userId, setUserId] = useState<string>("");
