@@ -248,6 +248,7 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
             .from('profiles')
             .select(`
               id,
+              first_name,
               full_name,
               avatar_url,
               location,
