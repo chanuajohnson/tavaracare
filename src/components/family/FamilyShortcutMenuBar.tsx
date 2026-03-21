@@ -18,6 +18,7 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareC
   const { 
     steps, 
     visitDetails, 
+    careRecipient,
     loading
   } = useEnhancedJourneyProgress();
 
