@@ -115,7 +115,41 @@ const FamilyDashboard = () => {
           />
         )}
 
-        {/* Match notification banner — real-time, dismissible */}
+        {/* Rate Information Blurb */}
+        {showRateInfo && (
+          <div className="mt-4">
+            <Card className="bg-blue-50 border-blue-200 relative">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute top-2 right-2 h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setShowRateInfo(false);
+                  localStorage.setItem('tavara_rate_info_dismissed', 'true');
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-1.5 bg-blue-100 rounded-lg shrink-0 mt-0.5">
+                    <DollarSign className="h-5 w-5 text-blue-700" />
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-blue-900">Tavara Care Rates</h4>
+                    <div className="space-y-1 text-sm">
+                      <p><span className="font-medium text-blue-800">$35/hr — Standard:</span> <span className="text-blue-700">Companionship, medication reminders, light meal prep</span></p>
+                      <p><span className="font-medium text-blue-800">$40/hr — Full Service (Recommended):</span> <span className="text-blue-700">GAPP-certified care including meals, light cleaning, personal care</span></p>
+                      <p><span className="font-medium text-blue-800">$45+/hr — Premium:</span> <span className="text-blue-700">Specialized or complex medical care needs</span></p>
+                    </div>
+                    <p className="text-xs text-blue-600">These rates reflect the professional standards of certified caregivers in Trinidad &amp; Tobago.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {user && (
           <div className="mt-4">
             <FamilyMatchNotification />
