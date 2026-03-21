@@ -398,6 +398,12 @@ const FamilyDashboard = () => {
           referringPagePath="/dashboard/family"
           referringPageLabel="Family Dashboard"
         />
+
+        {/* Schedule Visit Modal */}
+        <ScheduleVisitModal
+          open={showScheduleModal}
+          onOpenChange={setShowScheduleModal}
+        />
       </div>
     </div>
   );
