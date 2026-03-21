@@ -368,9 +368,9 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                       </div>
                       
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-1 flex-wrap">
+                            <div className="flex items-center gap-2 sm:gap-3 mb-1 flex-wrap">
                               <div className={`${(step.accessible || isAnonymous) ? 'text-primary' : 'text-gray-300'} flex-shrink-0`}>
                                 {getIcon(step.icon_name)}
                               </div>
@@ -398,7 +398,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                             {/* Enhanced Status Indicators */}
                             {step.step_number === 7 && step.completed && !visitDetails && (
                               <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                                <div className="flex items-center gap-2 text-sm">
+                                <div className="flex items-center gap-2 text-sm flex-wrap">
                                   <Calendar className="h-4 w-4 text-amber-600 flex-shrink-0" />
                                   <span className="text-amber-800 font-medium">Admin Scheduling</span>
                                   <span className="text-amber-700 text-xs">
@@ -437,7 +437,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                             )}
                           </div>
                           
-                          <div className="flex items-center gap-3 flex-shrink-0">
+                          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                             {!step.completed && (
                               <div className="flex items-center text-xs text-muted-foreground gap-1">
                                 <Clock className="h-3 w-3" />
@@ -448,7 +448,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                             <Button 
                               variant="ghost" 
                               size="sm" 
-                              className={`h-8 px-3 font-medium transition-all duration-200 ${
+                              className={`h-8 px-3 font-medium transition-all duration-200 w-full sm:w-auto ${
                                 !(step.accessible || isAnonymous)
                                   ? 'text-gray-400 cursor-not-allowed opacity-50'
                                   : step.step_number === 7 && step.completed && visitDetails
