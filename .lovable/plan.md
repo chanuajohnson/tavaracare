@@ -1,53 +1,68 @@
 
+## Fix Quick Access: Legacy Story is hidden because the dashboard is mixing two different progress systems
 
-## Fix Mobile Layout: Overlapping Text in Journey Cards
+### What’s actually wrong
 
-### Problems (from screenshots)
+I checked the current code and the issue is real:
 
-1. **Stage card headers**: The percentage text ("100%"), stage name ("Foundation"), step count ("6 of 6 steps"), and progress circle all overlap on mobile — they're in a horizontal flex layout with no mobile stacking.
+- `FamilyShortcutMenuBar` is reading the wrong family step numbers from `useEnhancedJourneyProgress`.
+- In `useEnhancedJourneyProgress`, the family UI steps are:
+  - `1` = Profile
+  - `2` = Care Assessment
+  - `3` = Legacy Story
+  - `4` = Caregiver Matches
+  - `7` = Get Started with Care / Scheduling
 
-2. **Main journey header**: Same issue — "100%" overlaps with "Your Care Journey Progress" text and the circular progress indicator.
+But the Quick Access bar currently maps:
+- `registrationStep` to `2`
+- `careAssessmentStep` to `4`
+- `caregiverMatchesStep` to `7`
 
-3. **Step description outdated**: "Schedule Your Tavara.Care Visit" step still shows "Choose to meet your match and a care coordinator virtually (Free) or in person ($300 TTD)." — this should have been updated to reflect Trial Day / Hire Immediately.
+So the wrong buttons are being driven by the wrong steps.
 
-4. **Step cards too wide on mobile**: Button text + status text + icons crowd the right side, causing overflow.
+There is also a second bug:
+- `useEnhancedJourneyProgress` merges `user_journey_progress` into the family steps by array index (`index + 1`) and overwrites the real completion state.
+- For the current family record I checked, there is **no row in `care_recipient_profiles`**, so Legacy Story is actually incomplete.
+- That means the story CTA should show, but the stored progress merge is falsely marking it complete.
 
-### Changes
+### Plan
 
-#### 1. `src/components/family/JourneyStageCard.tsx` — Mobile-optimized stage header (lines 224-310)
+#### 1. Fix the source of truth in `useEnhancedJourneyProgress.ts`
+- Stop letting stored progress override family step-level completion.
+- Keep stored progress only for high-level metrics if needed, like percentage.
+- Use the real family data-driven steps for `completed` / `accessible` on the dashboard.
 
-**Stage header** (lines 224-310): On mobile, stack the layout vertically:
-- Row 1: Icon + stage name + badge (left), chevron (right)
-- Row 2: Progress circle + percentage + step count — in a horizontal row below the name
-- Row 3: Description text
+This avoids the current mismatch where admin-style stored progress hides customer-facing actions incorrectly.
 
-Currently everything is `flex items-start justify-between gap-4` which causes overlap. Change to:
-- Mobile: `flex flex-col gap-3`
-- Desktop: keep current horizontal layout
+#### 2. Fix step mappings in `FamilyShortcutMenuBar.tsx`
+Update Quick Access to use the actual family step ids:
+- Profile = step `1`
+- Assessment = step `2`
+- Legacy Story = step `3`
+- Matches = step `4`
+- Scheduling = step `7`
 
-Specifically:
-- Lines 266-309 (the right-side percentage + circle + chevron): On mobile, move below the title in a compact horizontal row. Hide the large standalone percentage text on mobile (it's duplicated inside the circle anyway). Make progress circle smaller on mobile (w-12 h-12 instead of w-16 h-16).
+Then update button logic to match the journey:
+- **Schedule Care**: show when matches exist and no visit is scheduled
+- **Share Loved One’s Story**: show whenever step 3 is incomplete
+- **Edit Profile**: show only when profile step is completed
+- **Edit Assessment**: show only when assessment step is completed
+- **Care Management**: only after scheduling is actually complete
 
-**Step cards** (lines 360-474): On mobile, stack the button below the description instead of beside it:
-- Lines 440-468: Wrap in `flex-col sm:flex-row` so the button drops below on mobile
-- Make button full-width on mobile
+#### 3. Add a safety fallback for the story CTA
+- Use `careRecipient` from `useEnhancedJourneyProgress` as a direct backup check.
+- If there is no `care_recipient_profiles` record, force the Legacy Story CTA to show even if stored progress is stale.
 
-#### 2. `src/components/family/EnhancedFamilyNextStepsPanel.tsx` — Mobile-optimized main header (lines 250-340)
+That will prevent this from disappearing again because of progress-sync drift.
 
-Same pattern — the main header has percentage + circle overlapping title on mobile:
-- Lines 302-338 (right-side progress): On mobile, place below the title/description instead of beside it
-- Hide the large "100%" text on mobile (circle already shows it)
-- Make circle smaller on mobile (w-14 h-14 instead of w-20 h-20)
+### Files to update
+- `src/hooks/useEnhancedJourneyProgress.ts`
+- `src/components/family/FamilyShortcutMenuBar.tsx`
 
-#### 3. `src/hooks/useEnhancedJourneyProgress.ts` — Verify step 7 description
+### Expected result
+After this fix, the family dashboard Quick Access should correctly show:
+- `Schedule Care`
+- `Share Loved One’s Story`
+- then the edit buttons that actually apply
 
-Check that the step description for "Schedule Your Tavara.Care Visit" was properly updated to mention Trial Day / Hire Immediately instead of "virtually (Free) or in person ($300 TTD)".
-
-### Files Changed
-
-| Action | File | Description |
-|--------|------|-------------|
-| Modify | `src/components/family/JourneyStageCard.tsx` | Stack header layout vertically on mobile, compact progress circle, stack step buttons below on mobile |
-| Modify | `src/components/family/EnhancedFamilyNextStepsPanel.tsx` | Stack main header progress below title on mobile, smaller circle |
-| Verify | `src/hooks/useEnhancedJourneyProgress.ts` | Ensure step 7 description reflects new care options |
-
+And it will reflect the customer’s real state, not an incorrect stored-progress interpretation.
