@@ -5366,6 +5366,7 @@ export type Database = {
           years_of_experience: string
         }[]
       }
+      get_unmatched_family_count: { Args: never; Returns: number }
       get_user_profile_secure: {
         Args: { target_user_id: string }
         Returns: {
