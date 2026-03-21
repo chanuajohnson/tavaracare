@@ -20,7 +20,7 @@ interface ScheduleVisitDialogProps {
   preselectedUser?: {
     id: string;
     full_name: string;
-    preferred_visit_type: 'virtual' | 'in_person';
+    preferred_visit_type: 'virtual' | 'in_person' | 'trial_day' | 'direct_hire';
   };
 }
 
