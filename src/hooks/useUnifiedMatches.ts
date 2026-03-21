@@ -272,7 +272,8 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               other_certification,
               phone_number,
               address,
-              role
+              role,
+              available_for_matching
             `)
             .in('id', caregiverIds)
             .eq('role', 'professional');
