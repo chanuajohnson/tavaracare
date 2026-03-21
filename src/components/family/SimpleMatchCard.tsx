@@ -94,6 +94,7 @@ export const SimpleMatchCard = ({
 }: SimpleMatchCardProps) => {
   const isCompact = variant === 'dashboard';
   const initials = getInitials(caregiver.full_name);
+  const firstName = caregiver.first_name || caregiver.full_name?.split(' ')[0] || 'Caregiver';
   const enhancedData = caregiver.enhanced_match_data;
   const displayScore = enhancedData?.overall_score || caregiver.match_score;
   
