@@ -1,42 +1,75 @@
 
 
-## Show First Names on Caregiver Match Cards (Like Urgent Caregivers Page)
+## Fix: Professional Awareness Banners (RLS) + Harden Family Story Button
 
-### Problem
-Match cards currently show professional type as the title (e.g., "Certified Nursing Assistant", "Gapp Certified") with initials derived from that type (CNA, GC) and "Name protected until subscription" text. The Urgent Caregivers page shows real first names and proper initials (CW, TC) which is more personable.
+### Problem 1: Professional Banners — RLS blocks the query
 
-### Solution
-Fetch `first_name` alongside existing profile data and display it on match cards. Show the professional type as a subtitle/badge instead of the main heading. Use the caregiver's real name for initials.
+The `ProfessionalFamilyAwarenessBanner` runs:
+```sql
+SELECT id FROM profiles WHERE role = 'family'
+```
+But professionals can only see their own profile row via RLS (`id = auth.uid()`). Result: 0 families → banner hidden.
+
+**Fix**: Create a security definer RPC function that returns the count of unmatched families without exposing any PII. The banner calls this function instead of querying profiles directly.
+
+### Problem 2: Family Story Button — likely stale preview, but hardening needed
+
+The code logic is correct. DB confirms no `care_recipient_profiles` record for the logged-in family user. The button should show. This is likely a stale preview. However, to harden:
+- Add explicit debug logging when `showStoryButton` is evaluated
+- Ensure `careRecipient` defaults to `null` (not `undefined`) during loading
 
 ### Changes
 
-#### 1. `src/hooks/useUnifiedMatches.ts`
-- Add `first_name` to the `UnifiedMatch` interface
-- Add `first_name` to the profile SELECT query
-- Pass `first_name` through in the match object
+#### 1. Migration: Create `get_unmatched_family_count()` RPC
 
-#### 2. `src/components/family/SimpleMatchCard.tsx`
-- Extract first name from `caregiver.first_name` or first word of `full_name`
-- Display first name as the card heading (e.g., "Carlene")
-- Show professional type as a subtitle line below the name (e.g., "Certified Nursing Assistant")
-- Remove "Name protected until subscription" text
-- Keep initials derived from `full_name` (real initials like CW, TC)
+```sql
+CREATE OR REPLACE FUNCTION public.get_unmatched_family_count()
+RETURNS integer
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT count(*)::integer
+  FROM profiles p
+  WHERE p.role = 'family'
+    AND NOT EXISTS (
+      SELECT 1 FROM caregiver_assignments ca
+      WHERE ca.family_user_id = p.id AND ca.is_active = true
+    );
+$$;
+```
 
-#### 3. `src/components/family/CaregiverMatchCard.tsx`
-- Same pattern: show first name + professional type subtitle
-- Remove "Name protected until subscription" text
-- Use real initials from `full_name`
+Grant execute to authenticated users.
 
-#### 4. `src/components/family/MatchDetailModal.tsx`
-- Change "Professional Caregiver" heading to show first name
-- Add professional type as subtitle
+#### 2. `src/components/professional/ProfessionalFamilyAwarenessBanner.tsx`
+
+Replace the direct `profiles` + `caregiver_assignments` queries with a single RPC call:
+```ts
+const { data, error } = await supabase.rpc('get_unmatched_family_count');
+```
+This bypasses RLS via security definer and returns just a count (no PII).
+
+#### 3. `src/components/professional/ProfessionalMatchingReadinessBanner.tsx`
+
+Verify it doesn't depend on any RLS-blocked queries. If it's a static banner (just UI nudge), it should show regardless — confirm it renders without data dependencies.
+
+#### 4. `src/components/family/FamilyShortcutMenuBar.tsx`
+
+Add a console log for debugging the story button state. Also add a final fallback: if `loading` is false and `careRecipient` is explicitly null/undefined, force `showStoryButton = true`.
 
 ### Files Changed
 
 | Action | File | Description |
 |--------|------|-------------|
-| Modify | `src/hooks/useUnifiedMatches.ts` | Add `first_name` to query and interface |
-| Modify | `src/components/family/SimpleMatchCard.tsx` | Show first name as title, professional type as subtitle, real initials |
-| Modify | `src/components/family/CaregiverMatchCard.tsx` | Same first-name treatment |
-| Modify | `src/components/family/MatchDetailModal.tsx` | Show first name instead of "Professional Caregiver" |
+| Create | Migration SQL | `get_unmatched_family_count()` security definer function |
+| Modify | `ProfessionalFamilyAwarenessBanner.tsx` | Use RPC instead of direct query |
+| Verify | `ProfessionalMatchingReadinessBanner.tsx` | Ensure no RLS-blocked dependencies |
+| Modify | `FamilyShortcutMenuBar.tsx` | Add debug logging + hardened fallback |
+
+### Result
+
+- Professional dashboard shows blue "X families looking for caregivers" banner
+- Professional dashboard shows amber readiness nudge
+- Family story button reliably appears when care recipient profile is missing
 
