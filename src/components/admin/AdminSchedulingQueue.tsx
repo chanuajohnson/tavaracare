@@ -225,9 +225,13 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
                         </TableCell>
                         <TableCell>
                           {getVisitTypeBadge(request.preferred_visit_type)}
-                          {request.preferred_visit_type === 'in_person' && (
-                            <div className="text-xs text-green-600 mt-1">$300 TTD</div>
-                          )}
+                          {(() => {
+                            const notes = parseVisitNotes(request.visit_notes);
+                            if (notes?.preferred_start_date) {
+                              return <div className="text-xs text-muted-foreground mt-1">Preferred: {new Date(notes.preferred_start_date + 'T00:00:00').toLocaleDateString()}</div>;
+                            }
+                            return null;
+                          })()}
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">

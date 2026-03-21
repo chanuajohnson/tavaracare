@@ -805,8 +805,8 @@ export const useEnhancedJourneyProgress = () => {
       {
         id: "7",
         step_number: 7,
-        title: "Schedule Your Tavara.Care Visit",
-        description: "Meet your match and care coordinator virtually or in person",
+        title: "Get Started with Care",
+        description: "Choose a Trial Day ($320 TTD) or Hire Immediately (from $40/hr)",
         completed: isVisitScheduled,
         accessible: true,
         category: 'scheduling',
