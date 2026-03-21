@@ -43,14 +43,14 @@ export const ScheduleVisitModal = ({
 
     setIsSubmitting(true);
     try {
+      const visitTypeWithDate = `${selectedOption} - ${format(selectedDate, 'PPP')}`;
       const { error } = await supabase
         .from('profiles')
         .update({
           ready_for_admin_scheduling: true,
-          preferred_visit_type: selectedOption,
+          preferred_visit_type: visitTypeWithDate,
           admin_scheduling_requested_at: new Date().toISOString(),
           visit_scheduling_status: 'ready_to_schedule',
-          preferred_start_date: selectedDate.toISOString(),
         })
         .eq('id', user.id);
 
