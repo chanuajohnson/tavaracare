@@ -19,6 +19,7 @@ interface MatchInfo {
 
 export const FamilyMatchNotification = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [matches, setMatches] = useState<MatchInfo[]>([]);
   const [dismissed, setDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
