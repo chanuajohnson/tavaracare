@@ -12,10 +12,11 @@ import { ScheduleVisitDialog } from './ScheduleVisitDialog';
 interface PendingSchedulingRequest {
   id: string;
   full_name: string;
-  preferred_visit_type: 'virtual' | 'in_person';
+  preferred_visit_type: 'virtual' | 'in_person' | 'trial_day' | 'direct_hire';
   admin_scheduling_requested_at: string;
   visit_scheduling_status: string;
   phone_number?: string;
+  visit_notes?: string;
 }
 
 interface AdminSchedulingQueueProps {
