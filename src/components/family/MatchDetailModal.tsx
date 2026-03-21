@@ -70,7 +70,9 @@ export const MatchDetailModal = ({
                     <Avatar className="h-20 w-20 border-4 border-primary/20">
                       <AvatarImage src={caregiver.avatar_url || undefined} />
                       <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                        <Users className="h-8 w-8" />
+                        {caregiver.full_name
+                          ? caregiver.full_name.split(' ').filter(Boolean).map(p => p[0]).join('').substring(0, 2).toUpperCase()
+                          : <Users className="h-8 w-8" />}
                       </AvatarFallback>
                     </Avatar>
                     
