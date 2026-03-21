@@ -101,10 +101,12 @@ export const FamilyMatchNotification = () => {
     return (now.getTime() - created.getTime()) < 48 * 60 * 60 * 1000;
   });
 
-  const scrollToMatches = () => {
+  const viewMatches = () => {
     const el = document.getElementById('family-caregiver-matches');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      navigate('/caregiver/matching');
     }
   };
 
