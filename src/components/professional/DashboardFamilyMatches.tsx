@@ -267,14 +267,16 @@ export const DashboardFamilyMatches = () => {
                       <Avatar className="h-16 w-16 border-2 border-primary/20">
                         <AvatarImage src={family.avatar_url || undefined} />
                         <AvatarFallback className="bg-primary-100 text-primary-800 text-xl">
-                          FU
+                          {family.full_name
+                            ? family.full_name.split(' ').filter(Boolean).map((p: string) => p[0]).join('').substring(0, 2).toUpperCase()
+                            : 'FM'}
                         </AvatarFallback>
                       </Avatar>
                       
                       <div className="mt-2 text-center sm:text-left">
-                        <h3 className="font-semibold">Family User</h3>
-                        <div className="text-xs text-blue-600 mt-1">
-                          * Name protected until connected
+                        <h3 className="font-semibold">{family.full_name?.split(' ')[0] || 'Family'}</h3>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Family seeking care
                         </div>
                         <div className="text-xs text-gray-500 font-mono mt-1">
                           ID: {family.id?.substring(0, 8) || 'N/A'}
