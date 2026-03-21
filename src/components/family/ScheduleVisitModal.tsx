@@ -217,7 +217,7 @@ export const ScheduleVisitModal = ({
           )}
 
           {selectedOption === 'direct_hire' && (
-            <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="bg-accent/30 p-4 rounded-lg border border-accent">
               <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
                 <Briefcase className="h-4 w-4" />
                 Ongoing Care Details
