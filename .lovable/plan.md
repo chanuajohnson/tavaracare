@@ -1,54 +1,32 @@
 
 
-## Fix: Schedule Submit + Admin Queue Visibility
+## Update Quick Access Bar: Add Legacy Story + Conditional Care Management
 
-### Root Cause
+### Problem
 
-**Submit fails** because `profiles.preferred_visit_type` has a CHECK constraint: `CHECK (preferred_visit_type IN ('virtual', 'in_person'))`. We're trying to store `'trial_day - March 21st, 2026'` which violates this constraint.
-
-**Admin queue shows 0** because the submit never succeeds — no rows have `ready_for_admin_scheduling = true`.
+1. **Legacy Story** button should always appear in Quick Access when the user hasn't completed it — currently it's there but positioned after Schedule Care. It should be more prominent.
+2. **Care Management** button shows unconditionally — it should only appear once the user is past the scheduling stage (visit scheduled), since it's not relevant before that.
 
 ### Changes
 
-#### 1. Migration: Drop the CHECK constraint and update allowed values
+#### Modify: `src/components/family/FamilyShortcutMenuBar.tsx`
 
-Drop `profiles_preferred_visit_type_check` so we can store the new values (`trial_day`, `direct_hire`). Store the date separately in `visit_notes` (text field, already exists) instead of appending to the visit type.
+1. **Move Legacy Story button** right after Schedule Care (or after View Matches if scheduling isn't showing yet) — keep its blue styling so it stands out as an action item.
 
-```sql
-ALTER TABLE profiles DROP CONSTRAINT profiles_preferred_visit_type_check;
-ALTER TABLE profiles ADD CONSTRAINT profiles_preferred_visit_type_check 
-  CHECK (preferred_visit_type = ANY (ARRAY['virtual', 'in_person', 'trial_day', 'direct_hire']));
-```
+2. **Make Care Management conditional**: Only show when `isVisitScheduled` is true (user has passed scheduling). This declutters the bar during earlier stages.
 
-#### 2. `src/components/family/ScheduleVisitModal.tsx`
-
-Change the update to store:
-- `preferred_visit_type`: just `'trial_day'` or `'direct_hire'` (passes constraint)
-- `visit_notes`: JSON string with the selected date — `{"preferred_start_date": "2026-03-25", "care_option": "trial_day"}`
-
-#### 3. `src/components/admin/AdminSchedulingQueue.tsx`
-
-Update the admin queue to:
-- Parse `visit_notes` JSON to display the preferred start date and care option
-- Update the `PendingSchedulingRequest` interface to accept the new visit types (`trial_day`, `direct_hire`)
-- Show the care option label ("Trial Day $320" or "Hire Immediately") and preferred date in the queue table
-
-#### 4. Update journey step text
-
-The Care Coordination step still says "Choose to meet your match and a care coordinator virtually (Free) or in person ($300 TTD)." — this should reflect the new options (Trial Day / Hire Immediately). Update in `useEnhancedJourneyProgress.ts`.
+**Button order becomes:**
+- Schedule Care (amber, if in scheduling stage)
+- View Caregiver Matches (if applicable)
+- Share Loved One's Story (blue, if not completed)
+- Edit Profile (outline)
+- Edit Assessment (outline)
+- Care Management (outline, **only after visit scheduled**)
+- Visit Scheduled (green, if scheduled)
 
 ### Files Changed
 
 | Action | File | Description |
 |--------|------|-------------|
-| Create | Migration SQL | Drop old CHECK, add new values |
-| Modify | `src/components/family/ScheduleVisitModal.tsx` | Store visit type as enum value, date in `visit_notes` |
-| Modify | `src/components/admin/AdminSchedulingQueue.tsx` | Display new care options + preferred date, accept new types |
-| Modify | `src/hooks/useEnhancedJourneyProgress.ts` | Update step 7 description text |
-
-### Result
-
-- Submit succeeds — family sees confirmation
-- Admin queue shows the request with care option and preferred start date
-- Journey text matches actual options
+| Modify | `src/components/family/FamilyShortcutMenuBar.tsx` | Reorder buttons, make Care Management conditional on `isVisitScheduled` |
 
