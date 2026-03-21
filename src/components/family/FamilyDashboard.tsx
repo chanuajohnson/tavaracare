@@ -34,6 +34,9 @@ const FamilyDashboard = () => {
   
   // Schedule modal state
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showRateInfo, setShowRateInfo] = useState(() => {
+    return localStorage.getItem('tavara_rate_info_dismissed') !== 'true';
+  });
   
   // Check if user has caregiver matches (step 7 completed)
   const caregiverMatchesStep = steps.find(s => s.step_number === 7);
