@@ -448,11 +448,6 @@ export const generateUserReportPDF = async (
       if (careNeeds.emergency_contact_relationship) {
         careAssessmentData.push(['Emergency Contact Relationship', careNeeds.emergency_contact_relationship]);
       }
-    } else {
-      // In anonymous mode, show relationship only (no names/numbers)
-      if (careNeeds.emergency_contact_relationship) {
-        careAssessmentData.push(['Emergency Contact Relationship', careNeeds.emergency_contact_relationship]);
-      }
     }
 
     autoTable(doc, {
