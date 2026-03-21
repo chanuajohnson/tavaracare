@@ -20,6 +20,7 @@ interface EnhancedMatchData {
 interface Caregiver {
   id: string;
   full_name?: string | null;
+  first_name?: string | null;
   avatar_url?: string | null;
   location?: string | null;
   care_types?: string[] | null;
@@ -93,6 +94,7 @@ export const SimpleMatchCard = ({
 }: SimpleMatchCardProps) => {
   const isCompact = variant === 'dashboard';
   const initials = getInitials(caregiver.full_name);
+  const firstName = caregiver.first_name || caregiver.full_name?.split(' ')[0] || 'Caregiver';
   const enhancedData = caregiver.enhanced_match_data;
   const displayScore = enhancedData?.overall_score || caregiver.match_score;
   
@@ -231,10 +233,10 @@ export const SimpleMatchCard = ({
             <div className="flex items-center justify-between">
               <div>
                 <h3 className={`${isCompact ? 'text-sm' : 'text-base'} font-semibold`}>
-                  {getProfessionalDisplay()}
+                  {firstName}
                 </h3>
-                <div className="text-xs text-blue-600">
-                  * Name protected until subscription
+                <div className="text-xs text-muted-foreground">
+                  {getProfessionalDisplay()}
                 </div>
               </div>
               {isCompact && (

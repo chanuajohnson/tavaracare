@@ -21,6 +21,7 @@ export interface UnifiedMatch {
   match_score: number;
   avatar_url?: string | null;
   full_name?: string | null;            // not displayed (privacy), still useful
+  first_name?: string | null;           // displayed on match cards for personability
   location?: string | null;
 
   // 🔽 used by DashboardCaregiverMatches
@@ -247,6 +248,7 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
             .from('profiles')
             .select(`
               id,
+              first_name,
               full_name,
               avatar_url,
               location,
@@ -411,6 +413,7 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
             
             return {
               id: caregiver.id,
+              first_name: caregiver.first_name,
               full_name: caregiver.full_name,
               avatar_url: caregiver.avatar_url,
               location: caregiver?.location ?? null,
