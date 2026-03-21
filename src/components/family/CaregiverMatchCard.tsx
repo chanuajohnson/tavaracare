@@ -11,6 +11,7 @@ import { toast } from "sonner";
 interface Caregiver {
   id: string;
   full_name?: string | null;
+  first_name?: string | null;
   avatar_url?: string | null;
   location?: string | null;
   care_types?: string[] | null;
