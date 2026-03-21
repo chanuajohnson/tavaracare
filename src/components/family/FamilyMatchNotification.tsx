@@ -95,7 +95,7 @@ export const FamilyMatchNotification = () => {
   useEffect(() => {
     if (!user?.id) return;
 
-    const channel = supabase
+    const assignmentChannel = supabase
       .channel('family-match-notifications')
       .on(
         'postgres_changes',
@@ -111,8 +111,26 @@ export const FamilyMatchNotification = () => {
       )
       .subscribe();
 
+    // Listen for caregiver availability changes
+    const availabilityChannel = supabase
+      .channel('caregiver-availability-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: 'role=eq.professional'
+        },
+        () => {
+          fetchMatches();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(assignmentChannel);
+      supabase.removeChannel(availabilityChannel);
     };
   }, [user?.id]);
 

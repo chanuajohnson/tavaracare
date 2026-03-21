@@ -575,6 +575,30 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
     loadMatches();
   }, [loadMatches]);
 
+  // Real-time subscription: refresh when caregiver availability changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('caregiver-availability-sync')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: 'role=eq.professional'
+        },
+        () => {
+          console.log('useUnifiedMatches: Caregiver availability changed, refreshing matches');
+          loadMatches();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadMatches]);
+
   return {
     matches,
     assignments,
