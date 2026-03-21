@@ -388,7 +388,8 @@ export const useEnhancedJourneyProgress = () => {
           storedCompletionMap.set(index + 1, step.completed);
         });
         
-        // Merge rich step definitions with stored completion status
+        // Merge rich step definitions — real data-driven completion takes priority
+        // over stored progress to prevent stale data from hiding CTAs
         const mergedSteps = richSteps.map(step => ({
           ...step,
           id: String(step.id),
@@ -399,7 +400,8 @@ export const useEnhancedJourneyProgress = () => {
           time_estimate_minutes: 15,
           is_optional: step.optional || false,
           accessible: step.accessible || false,
-          completed: storedCompletionMap.get(step.id) || step.completed,
+          // Use real data-driven completion (from sharedJourneyData) as source of truth
+          completed: step.completed,
             action: () => {
               const isCompleted = storedCompletionMap.get(step.id) || step.completed;
               console.log(`🔘 Action triggered for step ${step.id}, completed: ${isCompleted}`);

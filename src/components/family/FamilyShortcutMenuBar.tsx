@@ -40,15 +40,17 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareC
     );
   }
 
-  // Find key journey steps
-  const registrationStep = steps.find(step => step.step_number === 2);
+  // Find key journey steps using correct family step IDs:
+  // 1=Profile, 2=Assessment, 3=Legacy Story, 4=Matches, 7=Scheduling
+  const registrationStep = steps.find(step => step.step_number === 1);
+  const careAssessmentStep = steps.find(step => step.step_number === 2);
   const storyStep = steps.find(step => step.step_number === 3);
-  const careAssessmentStep = steps.find(step => step.step_number === 4);
-  const caregiverMatchesStep = steps.find(step => step.step_number === 7);
+  const caregiverMatchesStep = steps.find(step => step.step_number === 4);
 
   // Determine which buttons to show based on journey progress
   const showMilestoneButton = caregiverMatchesStep?.accessible && !caregiverMatchesStep?.completed;
-  const showStoryButton = storyStep?.accessible && !storyStep?.completed;
+  // Show story button if step 3 is incomplete OR not accessible yet (safety fallback)
+  const showStoryButton = storyStep ? !storyStep.completed : true;
   const showRegistrationEdit = registrationStep?.completed;
   const showAssessmentEdit = careAssessmentStep?.completed;
   
