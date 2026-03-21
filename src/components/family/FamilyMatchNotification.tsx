@@ -45,8 +45,11 @@ export const FamilyMatchNotification = () => {
         const caregiverIds = data.map(m => m.caregiver_id);
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, professional_type')
+          .select('id, professional_type, available_for_matching')
           .in('id', caregiverIds);
+
+        // Filter to only available caregivers
+        const availableProfiles = (profiles || []).filter(p => p.available_for_matching !== false);
 
         const typeMap: Record<string, string> = {
           gapp: "GAPP Certified",
