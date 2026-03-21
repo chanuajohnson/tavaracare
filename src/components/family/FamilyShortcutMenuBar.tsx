@@ -68,19 +68,6 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareC
         <div className="flex items-center overflow-x-auto whitespace-nowrap py-1 gap-2">
           <span className="text-sm font-medium text-muted-foreground mr-2">Quick Access:</span>
           
-          {/* Milestone: View Caregiver Matches - Primary Achievement Button */}
-          {showMilestoneButton && (
-            <Button 
-              onClick={handleCaregiverMatchesClick}
-              className="flex items-center gap-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white shadow-lg border-2 border-primary/20"
-              size="sm"
-            >
-              <Star className="h-4 w-4 text-yellow-300" />
-              <span className="font-semibold">🎉 VIEW CAREGIVER MATCHES</span>
-              <ArrowRight className="h-3 w-3" />
-            </Button>
-          )}
-
           {/* Schedule Care - prominent amber button when in scheduling stage */}
           {showScheduleButton && onScheduleCareClick && (
             <Button 
@@ -97,7 +84,20 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareC
             </Button>
           )}
 
-          {/* Next Step: Share Loved One's Story */}
+          {/* Milestone: View Caregiver Matches */}
+          {showMilestoneButton && (
+            <Button 
+              onClick={handleCaregiverMatchesClick}
+              className="flex items-center gap-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white shadow-lg border-2 border-primary/20"
+              size="sm"
+            >
+              <Star className="h-4 w-4 text-yellow-300" />
+              <span className="font-semibold">🎉 VIEW CAREGIVER MATCHES</span>
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          )}
+
+          {/* Next Step: Share Loved One's Story - prominent when incomplete */}
           {showStoryButton && (
             <Link 
               to="/family/story"
@@ -138,15 +138,18 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareC
             </Link>
           )}
           
-          <Link to="/family/care-management">
-            <Button variant="outline" size="sm" className="flex items-center gap-1">
-              <Clipboard className="h-4 w-4" />
-              <span>Care Management</span>
-              <ArrowRight className="h-3 w-3" />
-            </Button>
-          </Link>
+          {/* Care Management - only after visit is scheduled */}
+          {isVisitScheduled && (
+            <Link to="/family/care-management">
+              <Button variant="outline" size="sm" className="flex items-center gap-1">
+                <Clipboard className="h-4 w-4" />
+                <span>Care Management</span>
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          )}
 
-          {/* Conditional Visit Scheduled button - distinctive styling */}
+          {/* Visit Scheduled confirmation */}
           {isVisitScheduled && (
             <Link 
               to="/family/care-journey-progress#scheduling"
