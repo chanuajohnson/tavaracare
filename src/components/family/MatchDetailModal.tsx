@@ -88,7 +88,12 @@ export const MatchDetailModal = ({
                   
                   <div className="flex-1 space-y-4">
                     <div>
-                      <h3 className="text-2xl font-bold mb-2">Professional Caregiver</h3>
+                      <h3 className="text-2xl font-bold mb-1">
+                        {caregiver.first_name || caregiver.full_name?.split(' ')[0] || 'Professional Caregiver'}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {caregiver.professional_type || 'Professional Caregiver'}
+                      </p>
                       <div className="flex items-center gap-4 text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <MapPin className="h-4 w-4" />

@@ -413,6 +413,7 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
             
             return {
               id: caregiver.id,
+              first_name: caregiver.first_name,
               full_name: caregiver.full_name,
               avatar_url: caregiver.avatar_url,
               location: caregiver?.location ?? null,

@@ -233,10 +233,10 @@ export const SimpleMatchCard = ({
             <div className="flex items-center justify-between">
               <div>
                 <h3 className={`${isCompact ? 'text-sm' : 'text-base'} font-semibold`}>
-                  {getProfessionalDisplay()}
+                  {firstName}
                 </h3>
-                <div className="text-xs text-blue-600">
-                  * Name protected until subscription
+                <div className="text-xs text-muted-foreground">
+                  {getProfessionalDisplay()}
                 </div>
               </div>
               {isCompact && (
