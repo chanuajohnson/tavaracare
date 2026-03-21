@@ -480,11 +480,9 @@ export const professionalRegistrationFlow: RegistrationSection[] = [
         text: "What is your expected hourly rate?",
         type: "select",
         options: [
-          { value: "under_15", label: "Under $15/hour" },
-          { value: "15_20", label: "$15-$20/hour" },
-          { value: "20_25", label: "$20-$25/hour" },
-          { value: "25_30", label: "$25-$30/hour" },
-          { value: "30_plus", label: "$30+/hour" },
+          { value: "35_hour", label: "$35/hour" },
+          { value: "40_hour", label: "$40/hour" },
+          { value: "45_plus", label: "$45+/hour" },
           { value: "negotiable", label: "Negotiable" }
         ],
         required: true,

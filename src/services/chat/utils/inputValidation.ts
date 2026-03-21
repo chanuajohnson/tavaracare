@@ -113,7 +113,7 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
       if (!budgetPattern.test(trimmedInput) && !trimmedInput.toLowerCase().includes('negotiable')) {
         return { 
           isValid: false, 
-          errorMessage: "Please enter a valid budget amount (e.g., $20-30/hour or Negotiable)" 
+          errorMessage: "Please enter a valid budget amount (e.g., $35-45/hour or Negotiable)" 
         };
       }
       return { isValid: true };

@@ -224,8 +224,8 @@ export const DashboardFamilyMatches = () => {
                   </Label>
                   <Slider 
                     value={budgetRange} 
-                    min={15} 
-                    max={50} 
+                    min={35} 
+                    max={60} 
                     step={5} 
                     onValueChange={(value) => setBudgetRange(value as [number, number])} 
                   />

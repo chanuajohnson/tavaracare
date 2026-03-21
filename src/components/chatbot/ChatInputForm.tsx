@@ -53,7 +53,7 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
     }
     
     if (fieldType === "budget") {
-      return isFocused ? "Enter budget" : "Enter budget range (e.g., $20-30/hour)";
+      return isFocused ? "Enter budget" : "Enter budget range (e.g., $35-45/hour)";
     }
     
     return isMobile ? "Type message..." : "Type your message...";
