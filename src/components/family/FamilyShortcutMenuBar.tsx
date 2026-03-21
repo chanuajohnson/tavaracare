@@ -9,6 +9,7 @@ import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 
 interface FamilyShortcutMenuBarProps {
   onCaregiverMatchesClick?: () => void;
+  onScheduleCareClick?: () => void;
 }
 
 export function FamilyShortcutMenuBar({ onCaregiverMatchesClick }: FamilyShortcutMenuBarProps) {
