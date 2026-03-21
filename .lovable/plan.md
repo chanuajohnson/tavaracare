@@ -1,38 +1,39 @@
 
 
-## Update Budget Rate Options Across the Platform
+## Two Changes: Personalize Professional Family Cards + Add Rate Info Blurb on Family Dashboard
 
-### Problem
-Current budget options include unrealistically low rates ($15-$30/hour) that no caregiver would accept. A family just registered at $20-25/hour which is not viable. Need to replace all options with three tiers starting at $35/hour.
+### 1. Fix Family Match Cards on Professional Dashboard
 
-### New Budget Tiers
+**File**: `src/components/professional/DashboardFamilyMatches.tsx`
 
-| Tier | Value | Label | Description |
-|------|-------|-------|-------------|
-| Standard | `35_hour` | $35/hour | Basic companionship, medication reminders, light meal prep |
-| Full Service | `40_hour` | $40/hour — Recommended | Full GAPP-certified care: meals, light cleaning, personal care, medication management |
-| Premium | `45_plus` | $45+/hour | Premium specialized care: complex medical needs, overnight, advanced certifications |
+The `full_name` field already contains real names (e.g., "Garcia Family", "Colleen Wilson"). The component just hardcodes "FU" and "Family User" instead of using this data.
 
-### Files to Update
+**Changes (around lines 267-278)**:
+- **Avatar initials** (line 270): Replace hardcoded `FU` with initials derived from `family.full_name` — split by spaces, take first letter of each word, join and uppercase, max 2 chars
+- **Name heading** (line 275): Replace `Family User` with `family.full_name?.split(' ')[0] || 'Family'` (show first name only)
+- **Remove "Name protected" text** (lines 276-278): Replace with a muted subtitle showing location or care type context
+- Keep the ID display for admin reference
 
-#### 1. `src/pages/registration/FamilyRegistration.tsx` (lines 1155-1161)
-Replace the 6 old `SelectItem` options with the 3 new tiers. Add a brief helper description below each option or under the select explaining what each tier includes.
+### 2. Add Rate Information Blurb on Family Dashboard
 
-#### 2. `src/data/chatRegistrationFlows.ts` (lines 264-270)
-Replace the family chat registration budget options with the same 3 tiers.
+**File**: `src/components/family/FamilyDashboard.tsx`
 
-#### 3. `src/data/chatRegistrationFlows.ts` (lines 486-491)
-Update the professional "expected rate" options to match: `$35/hour`, `$40/hour`, `$45+/hour`, `Negotiable`.
+Insert a compact informational banner between the `FamilyShortcutMenuBar` and `FamilyMatchNotification` (after line 113).
 
-#### 4. `src/components/professional/DashboardFamilyMatches.tsx` (lines 226-229)
-Update the budget filter slider: change `min={15}` to `min={35}` and `max={50}` to `max={60}`, update default state from `[15, 50]` to `[35, 60]`.
+**New inline component** — a simple blue-tinted info card:
+- Icon: DollarSign or Info
+- Heading: "Tavara Care Rates"
+- Two-line description:
+  - **$35/hr — Standard**: Companionship, medication reminders, light meal prep
+  - **$40/hr — Full Service (Recommended)**: GAPP-certified care including meals, light cleaning, personal care
+  - **$45+/hr — Premium**: Specialized or complex medical care needs
+- Small muted note: "These rates reflect the professional standards of certified caregivers in Trinidad & Tobago."
+- Dismissible (optional localStorage flag so it doesn't annoy repeat visitors)
 
-#### 5. `src/services/chat/utils/inputValidation.ts` (line 116)
-Update the budget validation error message to reflect the new range (e.g., "$35-45+/hour").
+### Files Changed
 
-#### 6. `src/components/chatbot/ChatInputForm.tsx` (line 56)
-Update placeholder text from "$20-30/hour" to "$35-45/hour".
-
-### No database migration needed
-The `budget_preferences` column is a text string — existing records keep their old values. New registrations will use the new values. Display logic throughout the app already handles arbitrary budget strings.
+| Action | File | Description |
+|--------|------|-------------|
+| Modify | `src/components/professional/DashboardFamilyMatches.tsx` | Show first name + real initials, remove "Family User" and "Name protected" |
+| Modify | `src/components/family/FamilyDashboard.tsx` | Add dismissible rate info blurb below Quick Access bar |
 
