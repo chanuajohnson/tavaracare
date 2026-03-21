@@ -1,61 +1,54 @@
 
 
-## Improve Dashboard Clarity: Scheduling Status Banner + Quick Access Alignment
+## Fix: Schedule Submit + Admin Queue Visibility
 
-### Problem
+### Root Cause
 
-The family dashboard doesn't clearly communicate to the user that they're in the **scheduling** stage. The notification banner says "You have 2 caregiver matches" but there's no prominent call-to-action guiding them to the next step: scheduling a trial day or hiring. The Quick Access bar doesn't reflect the current journey stage either.
+**Submit fails** because `profiles.preferred_visit_type` has a CHECK constraint: `CHECK (preferred_visit_type IN ('virtual', 'in_person'))`. We're trying to store `'trial_day - March 21st, 2026'` which violates this constraint.
+
+**Admin queue shows 0** because the submit never succeeds — no rows have `ready_for_admin_scheduling = true`.
 
 ### Changes
 
-#### 1. Add Scheduling Status Banner — New component below match notification
+#### 1. Migration: Drop the CHECK constraint and update allowed values
 
-**Create `src/components/family/SchedulingStatusBanner.tsx`**
+Drop `profiles_preferred_visit_type_check` so we can store the new values (`trial_day`, `direct_hire`). Store the date separately in `visit_notes` (text field, already exists) instead of appending to the visit type.
 
-A colored card (amber/orange gradient) that appears when:
-- User has matches AND
-- Journey stage is `scheduling` or later AND  
-- Visit has NOT been scheduled yet (status is not `scheduled` or `completed`)
+```sql
+ALTER TABLE profiles DROP CONSTRAINT profiles_preferred_visit_type_check;
+ALTER TABLE profiles ADD CONSTRAINT profiles_preferred_visit_type_check 
+  CHECK (preferred_visit_type = ANY (ARRAY['virtual', 'in_person', 'trial_day', 'direct_hire']));
+```
 
-Content:
-- Icon: Calendar
-- Title: **"Next Step: Schedule Your Care"**
-- Description: "You have matched caregivers ready. Choose a Trial Day ($320 TTD) or Hire Immediately ($40/hr) to get started."
-- CTA Button: **"Get Started with Care →"** — opens the ScheduleVisitModal
+#### 2. `src/components/family/ScheduleVisitModal.tsx`
 
-When visit IS scheduled, show a green success banner instead:
-- "Your care visit is scheduled for [date]. We'll confirm your caregiver shortly."
+Change the update to store:
+- `preferred_visit_type`: just `'trial_day'` or `'direct_hire'` (passes constraint)
+- `visit_notes`: JSON string with the selected date — `{"preferred_start_date": "2026-03-25", "care_option": "trial_day"}`
 
-#### 2. Update Quick Access bar to show scheduling CTA
+#### 3. `src/components/admin/AdminSchedulingQueue.tsx`
 
-**Modify `src/components/family/FamilyShortcutMenuBar.tsx`**
+Update the admin queue to:
+- Parse `visit_notes` JSON to display the preferred start date and care option
+- Update the `PendingSchedulingRequest` interface to accept the new visit types (`trial_day`, `direct_hire`)
+- Show the care option label ("Trial Day $320" or "Hire Immediately") and preferred date in the queue table
 
-Add a "Schedule Care" button (amber/orange, prominent) that appears when:
-- Foundation is complete (matches exist)
-- No visit scheduled yet
+#### 4. Update journey step text
 
-This replaces or sits alongside the "VIEW CAREGIVER MATCHES" button depending on stage.
-
-#### 3. Wire the banner into FamilyDashboard
-
-**Modify `src/components/family/FamilyDashboard.tsx`**
-
-Insert `<SchedulingStatusBanner />` between the match notification and the journey progress panel. Pass `onScheduleClick` to open the ScheduleVisitModal.
+The Care Coordination step still says "Choose to meet your match and a care coordinator virtually (Free) or in person ($300 TTD)." — this should reflect the new options (Trial Day / Hire Immediately). Update in `useEnhancedJourneyProgress.ts`.
 
 ### Files Changed
 
 | Action | File | Description |
 |--------|------|-------------|
-| Create | `src/components/family/SchedulingStatusBanner.tsx` | Amber banner showing scheduling next step with CTA, or green confirmation when scheduled |
-| Modify | `src/components/family/FamilyShortcutMenuBar.tsx` | Add "Schedule Care" quick access button for scheduling stage |
-| Modify | `src/components/family/FamilyDashboard.tsx` | Insert SchedulingStatusBanner between match notification and journey panel, wire modal open |
+| Create | Migration SQL | Drop old CHECK, add new values |
+| Modify | `src/components/family/ScheduleVisitModal.tsx` | Store visit type as enum value, date in `visit_notes` |
+| Modify | `src/components/admin/AdminSchedulingQueue.tsx` | Display new care options + preferred date, accept new types |
+| Modify | `src/hooks/useEnhancedJourneyProgress.ts` | Update step 7 description text |
 
 ### Result
 
-After matches appear, the family sees:
-1. **Match notification** (blue): "You have 2 caregiver matches"
-2. **Scheduling banner** (amber): "Next Step: Schedule Your Care — Trial Day or Hire Now" with a big CTA button
-3. **Quick Access** includes a prominent "Schedule Care" button
-
-This makes it unmistakably clear where they are and what to do next.
+- Submit succeeds — family sees confirmation
+- Admin queue shows the request with care option and preferred start date
+- Journey text matches actual options
 
