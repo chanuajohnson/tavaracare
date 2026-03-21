@@ -105,12 +105,28 @@ const FamilyDashboard = () => {
         </motion.div>
 
         {/* Quick Access Menu Bar - Pass the dashboard caregiver matches handler */}
-        {user && <FamilyShortcutMenuBar onCaregiverMatchesClick={handleQuickAccessCaregiverMatches} />}
+        {user && (
+          <FamilyShortcutMenuBar 
+            onCaregiverMatchesClick={handleQuickAccessCaregiverMatches} 
+            onScheduleCareClick={() => setShowScheduleModal(true)}
+          />
+        )}
 
         {/* Match notification banner — real-time, dismissible */}
         {user && (
           <div className="mt-4">
             <FamilyMatchNotification />
+          </div>
+        )}
+
+        {/* Scheduling status banner — amber CTA or green confirmation */}
+        {user && (
+          <div className="mt-4">
+            <SchedulingStatusBanner
+              hasMatches={hasMatches}
+              visitDetails={visitDetails}
+              onScheduleClick={() => setShowScheduleModal(true)}
+            />
           </div>
         )}
 
