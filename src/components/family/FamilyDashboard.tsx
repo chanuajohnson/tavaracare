@@ -9,6 +9,8 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { EnhancedFamilyNextStepsPanel } from "@/components/family/EnhancedFamilyNextStepsPanel";
 import { FamilyReadinessChecker } from "@/components/family/FamilyReadinessChecker";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
+import { SchedulingStatusBanner } from "@/components/family/SchedulingStatusBanner";
+import { ScheduleVisitModal } from "@/components/family/ScheduleVisitModal";
 import { ProfessionalChatRequestsSection } from "@/components/family/ProfessionalChatRequestsSection";
 import { FamilyMatchNotification } from "@/components/family/FamilyMatchNotification";
 import { LeadCaptureModal } from "@/components/family/LeadCaptureModal";
@@ -27,8 +29,15 @@ const FamilyDashboard = () => {
   // Dashboard-level caregiver matching modal state
   const [showDashboardCaregiverModal, setShowDashboardCaregiverModal] = useState(false);
   
-  // Get modal state from the hook instead of managing locally
-  const { setShowCaregiverMatchingModal } = useEnhancedJourneyProgress();
+  // Get modal state and journey data from the hook
+  const { setShowCaregiverMatchingModal, visitDetails, steps } = useEnhancedJourneyProgress();
+  
+  // Schedule modal state
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  
+  // Check if user has caregiver matches (step 7 completed)
+  const caregiverMatchesStep = steps.find(s => s.step_number === 7);
+  const hasMatches = !!caregiverMatchesStep?.completed;
   
   useEffect(() => {
     const scrollToTop = () => {
@@ -96,12 +105,28 @@ const FamilyDashboard = () => {
         </motion.div>
 
         {/* Quick Access Menu Bar - Pass the dashboard caregiver matches handler */}
-        {user && <FamilyShortcutMenuBar onCaregiverMatchesClick={handleQuickAccessCaregiverMatches} />}
+        {user && (
+          <FamilyShortcutMenuBar 
+            onCaregiverMatchesClick={handleQuickAccessCaregiverMatches} 
+            onScheduleCareClick={() => setShowScheduleModal(true)}
+          />
+        )}
 
         {/* Match notification banner — real-time, dismissible */}
         {user && (
           <div className="mt-4">
             <FamilyMatchNotification />
+          </div>
+        )}
+
+        {/* Scheduling status banner — amber CTA or green confirmation */}
+        {user && (
+          <div className="mt-4">
+            <SchedulingStatusBanner
+              hasMatches={hasMatches}
+              visitDetails={visitDetails}
+              onScheduleClick={() => setShowScheduleModal(true)}
+            />
           </div>
         )}
 
@@ -372,6 +397,12 @@ const FamilyDashboard = () => {
           onOpenChange={setShowDashboardCaregiverModal}
           referringPagePath="/dashboard/family"
           referringPageLabel="Family Dashboard"
+        />
+
+        {/* Schedule Visit Modal */}
+        <ScheduleVisitModal
+          open={showScheduleModal}
+          onOpenChange={setShowScheduleModal}
         />
       </div>
     </div>

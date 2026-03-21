@@ -9,9 +9,10 @@ import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 
 interface FamilyShortcutMenuBarProps {
   onCaregiverMatchesClick?: () => void;
+  onScheduleCareClick?: () => void;
 }
 
-export function FamilyShortcutMenuBar({ onCaregiverMatchesClick }: FamilyShortcutMenuBarProps) {
+export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareClick }: FamilyShortcutMenuBarProps) {
   const { isProfileComplete } = useAuth();
   const { trackEngagement } = useTracking();
   const { 
@@ -50,6 +51,9 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick }: FamilyShortcu
   const showStoryButton = storyStep?.accessible && !storyStep?.completed;
   const showRegistrationEdit = registrationStep?.completed;
   const showAssessmentEdit = careAssessmentStep?.completed;
+  
+  // Show schedule button when matches exist but visit not yet scheduled
+  const showScheduleButton = caregiverMatchesStep?.completed && !isVisitScheduled;
 
   const handleCaregiverMatchesClick = () => {
     handleTrackButtonClick('milestone_achievement', 'view_caregiver_matches');
@@ -73,6 +77,22 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick }: FamilyShortcu
             >
               <Star className="h-4 w-4 text-yellow-300" />
               <span className="font-semibold">🎉 VIEW CAREGIVER MATCHES</span>
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          )}
+
+          {/* Schedule Care - prominent amber button when in scheduling stage */}
+          {showScheduleButton && onScheduleCareClick && (
+            <Button 
+              onClick={() => {
+                handleTrackButtonClick('schedule_care_click', 'schedule_care');
+                onScheduleCareClick();
+              }}
+              className="flex items-center gap-1 bg-amber-600 hover:bg-amber-700 text-white shadow-lg font-semibold"
+              size="sm"
+            >
+              <Calendar className="h-4 w-4" />
+              <span>📅 Schedule Care</span>
               <ArrowRight className="h-3 w-3" />
             </Button>
           )}
