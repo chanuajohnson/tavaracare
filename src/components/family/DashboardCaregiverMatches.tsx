@@ -4,19 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, MessageCircle, Eye, Calendar, MapPin, DollarSign, Sparkles, Star } from "lucide-react";
 import { useUnifiedMatches } from "@/hooks/useUnifiedMatches";
-import { CaregiverChatModal } from "./CaregiverChatModal";
 import { MatchBrowserModal } from "./MatchBrowserModal";
 import { MatchDetailModal } from "./MatchDetailModal";
 import { MatchLoadingState } from "@/components/ui/match-loading-state";
-import { FamilyCaregiverLiveChatModal } from "./FamilyCaregiverLiveChatModal";
-import { checkChatEligibilityForFamily, shouldUseLiveChatForCaregiver } from "@/services/chat/chatEligibility";
-import { toast } from "sonner";
+import { openCaregiverWhatsApp } from "@/utils/whatsapp/openCaregiverWhatsApp";
 
 export const DashboardCaregiverMatches = () => {
   const { user } = useAuth();
   const { matches, isLoading } = useUnifiedMatches("family", false);
-  const [showChatModal, setShowChatModal] = useState(false);
-  const [showLiveChatModal, setShowLiveChatModal] = useState(false);
   const [showBrowserModal, setShowBrowserModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCaregiver, setSelectedCaregiver] = useState<any>(null);
@@ -24,8 +19,7 @@ export const DashboardCaregiverMatches = () => {
 
   if (!user) return null;
 
-  const displayMatches = matches.slice(0, 3); // same "preview" feel as Family card
-  const bestMatch = matches[0];
+  const displayMatches = matches.slice(0, 3);
 
   const initials = (name: string) =>
     name
@@ -62,36 +56,31 @@ export const DashboardCaregiverMatches = () => {
     return "text-red-700 bg-red-50 border-red-200";
   };
 
-const scheduleLabels: Record<string, string> = {
-  flexible: "Flexible",
-  mon_fri_6am_6pm: "Mon–Fri, 6 AM–6 PM",
-  sat_sun_6am_6pm: "Sat–Sun, 6 AM–6 PM",
-  weekday_evening_6pm_6am: "Weekday Evenings (6 PM–6 AM)",
-  weekend_evening_6pm_6am: "Weekend Evenings (6 PM–6 AM)",
-  mon_fri_8am_4pm: "Mon–Fri, 8 AM–4 PM",
-  mon_fri_8am_6pm: "Mon–Fri, 8 AM–6 PM",
-  live_in_care: "Live-in Care",
-  "24_7_care": "24/7 Care",
-  // add more known codes as you use them
-};
+  const scheduleLabels: Record<string, string> = {
+    flexible: "Flexible",
+    mon_fri_6am_6pm: "Mon–Fri, 6 AM–6 PM",
+    sat_sun_6am_6pm: "Sat–Sun, 6 AM–6 PM",
+    weekday_evening_6pm_6am: "Weekday Evenings (6 PM–6 AM)",
+    weekend_evening_6pm_6am: "Weekend Evenings (6 PM–6 AM)",
+    mon_fri_8am_4pm: "Mon–Fri, 8 AM–4 PM",
+    mon_fri_8am_6pm: "Mon–Fri, 8 AM–6 PM",
+    live_in_care: "Live-in Care",
+    "24_7_care": "24/7 Care",
+  };
 
-function formatSchedule(raw?: string | null): string | null {
-  if (!raw) return null;
-  return raw
-    .split(",")
-    .map((p) => p.trim())
-    .map((p) => scheduleLabels[p] ?? p.replace(/_/g, " "))
-    .join(" • ");
-}
+  function formatSchedule(raw?: string | null): string | null {
+    if (!raw) return null;
+    return raw
+      .split(",")
+      .map((p) => p.trim())
+      .map((p) => scheduleLabels[p] ?? p.replace(/_/g, " "))
+      .join(" • ");
+  }
 
-  const formatRate = (rate?: string | number) => {
-    if (!rate) return null;
-    if (typeof rate === 'number') return `$${rate}/hr`;
-    if (typeof rate === 'string') {
-      const match = rate.match(/(\d+)/);
-      return match ? `$${match[1]}/hr` : rate;
-    }
-    return rate;
+  const handleChatWhatsApp = (cg: any) => {
+    const label = professionalLabel(cg);
+    const matchScore = cg?.match_score ?? 90;
+    openCaregiverWhatsApp(label, matchScore, cg?.location);
   };
 
   return (
@@ -100,7 +89,7 @@ function formatSchedule(raw?: string | null): string | null {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
             <CardTitle className="text-xl">Your Caregiver Matches</CardTitle>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               {matches.length} caregiver{matches.length === 1 ? "" : "s"} match your care needs and schedule
             </p>
           </div>
@@ -115,8 +104,6 @@ function formatSchedule(raw?: string | null): string | null {
             <MatchLoadingState duration={1200} onComplete={() => setIsLoadingComplete(true)} />
           ) : displayMatches.length ? (
             <div className="space-y-4">
-              {/* TEMP DEBUG — remove after */}
-              {(() => { console.debug('[CG matches in card]', displayMatches.slice(0, 1)[0]); return null; })()}
               {displayMatches.map((cg, idx) => {
                 const label = professionalLabel(cg);
                 const matchScore = cg?.match_score ?? 90;
@@ -124,7 +111,7 @@ function formatSchedule(raw?: string | null): string | null {
                 return (
                   <div
                     key={cg.id}
-                    className={`p-4 rounded-lg border ${cg?.is_premium ? "border-amber-300" : "border-gray-200"} relative`}
+                    className={`p-4 rounded-lg border ${cg?.is_premium ? "border-amber-300" : "border-border"} relative`}
                   >
                     {idx === 0 && (
                       <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
@@ -133,7 +120,6 @@ function formatSchedule(raw?: string | null): string | null {
                     )}
 
                     <div className="flex flex-col sm:flex-row gap-4">
-                      {/* LEFT: avatar + identity + match */}
                       <div className="flex flex-col items-center sm:items-start sm:w-1/4">
                         <div className="h-16 w-16 rounded-full border-2 border-primary/20 bg-primary/10 flex items-center justify-center overflow-hidden">
                           {cg?.avatar_url ? (
@@ -151,16 +137,15 @@ function formatSchedule(raw?: string | null): string | null {
                           <h3 className="font-semibold">{label}</h3>
                           <div className="text-xs text-blue-600 mt-1">* Name protected until subscription</div>
 
-                          <div className="flex items-center justify-center sm:justify-start gap-1 text-sm text-gray-500 mt-1">
+                          <div className="flex items-center justify-center sm:justify-start gap-1 text-sm text-muted-foreground mt-1">
                             <MapPin className="h-3.5 w-3.5" />
                             <span>{cg?.location || "Trinidad and Tobago"}</span>
                           </div>
 
-                          <div className="mt-1 bg-primary-50 rounded px-2 py-1 text-center">
-                            <span className="text-sm font-medium text-primary-700">{matchScore}% Match</span>
+                          <div className="mt-1 bg-primary/5 rounded px-2 py-1 text-center">
+                            <span className="text-sm font-medium text-primary">{matchScore}% Match</span>
                           </div>
 
-                          {/* schedule compatibility pill to mirror family UI */}
                           {typeof cg?.shift_compatibility_score === "number" && (
                             <div className={`mt-1 rounded px-2 py-1 text-center border ${pillClass(cg.shift_compatibility_score)}`}>
                               <span className="text-xs font-medium flex items-center justify-center gap-1">
@@ -172,23 +157,22 @@ function formatSchedule(raw?: string | null): string | null {
                         </div>
                       </div>
 
-                      {/* MIDDLE: details */}
                       <div className="sm:w-2/4 space-y-2">
-                         <div className="flex flex-wrap items-center gap-2 text-sm">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3.5 w-3.5 text-gray-500" />
-                              <span>{formatSchedule(cg.care_schedule) ?? "Schedule available upon request"}</span>
-                            </div>
-                            <span className="text-gray-300">|</span>
-                            <div className="flex items-center gap-1">
-                              <DollarSign className="h-3.5 w-3.5 text-gray-500" />
-                              <span>{cg.hourly_rate ?? "Rate available upon request"}</span>
-                            </div>
-                         </div>
+                        <div className="flex flex-wrap items-center gap-2 text-sm">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>{formatSchedule(cg.care_schedule) ?? "Schedule available upon request"}</span>
+                          </div>
+                          <span className="text-muted-foreground/30">|</span>
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>{cg.hourly_rate ?? "Rate available upon request"}</span>
+                          </div>
+                        </div>
 
                         <div className="text-sm">
                           <span className="font-medium block mb-1">Experience</span>
-                          <div className="text-gray-700">{cg.years_of_experience ?? 'Experience not specified'}</div>
+                          <div className="text-muted-foreground">{cg.years_of_experience ?? 'Experience not specified'}</div>
                         </div>
 
                         {Array.isArray(cg?.care_types) && cg.care_types.length > 0 && (
@@ -196,12 +180,12 @@ function formatSchedule(raw?: string | null): string | null {
                             <span className="font-medium block mb-1">Care Services</span>
                             <div className="flex flex-wrap gap-1">
                               {cg.care_types.slice(0, 6).map((t: string, i: number) => (
-                                <span key={i} className="px-2 py-1 rounded border bg-gray-50 text-gray-700">
+                                <span key={i} className="px-2 py-1 rounded border bg-muted/50 text-muted-foreground">
                                   {t}
                                 </span>
                               ))}
                               {cg.care_types.length > 6 && (
-                                <span className="px-2 py-1 rounded border bg-gray-50 text-gray-700">
+                                <span className="px-2 py-1 rounded border bg-muted/50 text-muted-foreground">
                                   +{cg.care_types.length - 6} more
                                 </span>
                               )}
@@ -219,43 +203,20 @@ function formatSchedule(raw?: string | null): string | null {
                         )}
                       </div>
 
-                      {/* RIGHT: rating + CTAs */}
                       <div className="sm:w-1/4 flex flex-col justify-center space-y-3">
                         <div className="flex">
                           {[1, 2, 3, 4, 5].map((n) => (
                             <Star key={n} className="h-4 w-4 text-amber-400" />
                           ))}
-                          <span className="text-sm text-gray-500 ml-2">5.0</span>
+                          <span className="text-sm text-muted-foreground ml-2">5.0</span>
                         </div>
 
                         <Button
                           className="w-full flex items-center gap-2"
-                          onClick={async () => {
-                            setSelectedCaregiver(cg);
-                            
-                            // Simple journey-based eligibility check
-                            const canChat = await checkChatEligibilityForFamily();
-                            if (!canChat) {
-                              toast.error('Complete your profile and care assessment to start chatting');
-                              return;
-                            }
-
-                            // CONSISTENCY FIX: Force TAV-guided chat for all users
-                            const useLiveChat = await shouldUseLiveChatForCaregiver(cg.id);
-                            console.debug('[DashboardCaregiverMatches] BEFORE consistency override:', { 
-                              caregiverId: cg.id, 
-                              useLiveChat,
-                              timestamp: new Date().toISOString(),
-                              component: 'DashboardCaregiverMatches'
-                            });
-                            
-                            // FORCE TAV-guided chat for consistency
-                            console.debug('[DashboardCaregiverMatches] FORCING TAV-guided chat for consistency');
-                            setShowChatModal(true); // Always use structured chat
-                          }}
+                          onClick={() => handleChatWhatsApp(cg)}
                         >
                           <MessageCircle className="h-4 w-4" />
-                          Chat
+                          Chat on WhatsApp
                         </Button>
 
                         <Button
@@ -281,17 +242,10 @@ function formatSchedule(raw?: string | null): string | null {
               </Button>
             </div>
           ) : (
-            <div className="text-center py-6 text-gray-500">No caregiver matches found</div>
+            <div className="text-center py-6 text-muted-foreground">No caregiver matches found</div>
           )}
         </CardContent>
       </Card>
-
-      {selectedCaregiver && (
-        <>
-          <CaregiverChatModal open={showChatModal} onOpenChange={setShowChatModal} caregiver={selectedCaregiver} />
-          <FamilyCaregiverLiveChatModal open={showLiveChatModal} onOpenChange={setShowLiveChatModal} caregiver={selectedCaregiver} />
-        </>
-      )}
 
       <MatchBrowserModal
         open={showBrowserModal}
@@ -301,26 +255,9 @@ function formatSchedule(raw?: string | null): string | null {
           setSelectedCaregiver(cg);
           setShowDetailModal(true);
         }}
-        onStartChat={async (id) => {
-          const cg = matches.find((m) => m.id === id) || bestMatch;
-          setSelectedCaregiver(cg);
-          
-          const canChat = await checkChatEligibilityForFamily();
-          if (!canChat) {
-            toast.error('Complete your profile and care assessment to start chatting');
-            return;
-          }
-
-          // CONSISTENCY FIX: Force TAV-guided chat for all users
-          const useLiveChat = await shouldUseLiveChatForCaregiver(cg.id);
-          console.debug('[DashboardCaregiverMatches] Browser modal chat routing BEFORE override:', { 
-            caregiverId: cg.id, 
-            useLiveChat,
-            component: 'DashboardCaregiverMatches-BrowserModal'
-          });
-          
-          // FORCE TAV-guided chat for consistency
-          setShowChatModal(true); // Always use structured chat
+        onStartChat={(id) => {
+          const cg = matches.find((m) => m.id === id);
+          if (cg) handleChatWhatsApp(cg);
         }}
       />
 
@@ -331,22 +268,7 @@ function formatSchedule(raw?: string | null): string | null {
         onStartChat={async () => {
           setShowDetailModal(false);
           if (selectedCaregiver) {
-            const canChat = await checkChatEligibilityForFamily();
-            if (!canChat) {
-              toast.error('Complete your profile and care assessment to start chatting');
-              return;
-            }
-
-            // CONSISTENCY FIX: Force TAV-guided chat for all users
-            const useLiveChat = await shouldUseLiveChatForCaregiver(selectedCaregiver.id);
-            console.debug('[DashboardCaregiverMatches] Detail modal chat routing BEFORE override:', { 
-              caregiverId: selectedCaregiver.id, 
-              useLiveChat,
-              component: 'DashboardCaregiverMatches-DetailModal'
-            });
-            
-            // FORCE TAV-guided chat for consistency
-            setShowChatModal(true); // Always use structured chat
+            handleChatWhatsApp(selectedCaregiver);
           }
         }}
       />
