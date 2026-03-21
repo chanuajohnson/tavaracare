@@ -262,12 +262,9 @@ export const familyRegistrationFlow: RegistrationSection[] = [
         text: "What's your budget range for caregiving services?",
         type: "select",
         options: [
-          { value: "under_15", label: "Under $15/hour" },
-          { value: "15_20", label: "$15-$20/hour" },
-          { value: "20_25", label: "$20-$25/hour" },
-          { value: "25_30", label: "$25-$30/hour" },
-          { value: "30_plus", label: "$30+/hour" },
-          { value: "not_sure", label: "Not sure yet" }
+          { value: "35_hour", label: "$35/hour — Standard (companionship, reminders, light meals)" },
+          { value: "40_hour", label: "$40/hour — Full Service ⭐ (meals, cleaning, personal care)" },
+          { value: "45_plus", label: "$45+/hour — Premium (specialized & complex care)" }
         ],
         required: true,
         section: "budget"
