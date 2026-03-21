@@ -34,7 +34,7 @@ export const DashboardFamilyMatches = () => {
   const [specialNeeds, setSpecialNeeds] = useState<string[]>([]);
   const [scheduleType, setScheduleType] = useState<string>("all");
   const [maxDistance, setMaxDistance] = useState<number>(30);
-  const [budgetRange, setBudgetRange] = useState<[number, number]>([15, 50]);
+  const [budgetRange, setBudgetRange] = useState<[number, number]>([35, 60]);
   const [minCompatibility, setMinCompatibility] = useState<number>(0);
 
   const careTypeOptions = ["Elderly Care", "Child Care", "Special Needs", "Medical Support", "Overnight Care", "Companionship", "Housekeeping"];
@@ -224,8 +224,8 @@ export const DashboardFamilyMatches = () => {
                   </Label>
                   <Slider 
                     value={budgetRange} 
-                    min={15} 
-                    max={50} 
+                    min={35} 
+                    max={60} 
                     step={5} 
                     onValueChange={(value) => setBudgetRange(value as [number, number])} 
                   />
