@@ -21,6 +21,7 @@ export interface UnifiedMatch {
   match_score: number;
   avatar_url?: string | null;
   full_name?: string | null;            // not displayed (privacy), still useful
+  first_name?: string | null;           // displayed on match cards for personability
   location?: string | null;
 
   // 🔽 used by DashboardCaregiverMatches
