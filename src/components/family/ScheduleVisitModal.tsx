@@ -153,7 +153,7 @@ export const ScheduleVisitModal = ({
                 <RadioGroupItem value="direct_hire" id="direct_hire" className="mt-1" />
                 <Label htmlFor="direct_hire" className="flex-1 cursor-pointer">
                   <div className="flex items-center gap-2 mb-1">
-                    <Briefcase className="h-5 w-5 text-green-600" />
+                    <Briefcase className="h-5 w-5 text-accent-foreground" />
                     <span className="font-semibold">Hire Immediately</span>
                   </div>
                   <p className="text-sm text-muted-foreground mb-2">
