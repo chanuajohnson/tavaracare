@@ -50,15 +50,17 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
       console.log('Pending requests fetched:', data?.length || 0);
       
       // Transform and validate the data with proper type casting
+      const validTypes = ['virtual', 'in_person', 'trial_day', 'direct_hire'] as const;
       const transformedRequests: PendingSchedulingRequest[] = (data || []).map(request => ({
         id: request.id,
         full_name: request.full_name || 'Unknown',
-        preferred_visit_type: (request.preferred_visit_type === 'virtual' || request.preferred_visit_type === 'in_person') 
-          ? request.preferred_visit_type as 'virtual' | 'in_person'
-          : 'virtual' as 'virtual' | 'in_person',
+        preferred_visit_type: validTypes.includes(request.preferred_visit_type as any)
+          ? request.preferred_visit_type as PendingSchedulingRequest['preferred_visit_type']
+          : 'virtual' as const,
         admin_scheduling_requested_at: request.admin_scheduling_requested_at || new Date().toISOString(),
         visit_scheduling_status: request.visit_scheduling_status || 'ready_to_schedule',
-        phone_number: request.phone_number || undefined
+        phone_number: request.phone_number || undefined,
+        visit_notes: request.visit_notes || undefined
       }));
       
       setPendingRequests(transformedRequests);
