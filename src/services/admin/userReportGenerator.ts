@@ -54,6 +54,55 @@ const formatCurrency = (value: number | null | undefined): string => {
   return `$${value.toFixed(2)}`;
 };
 
+/**
+ * Extract general location from a full address.
+ * e.g. "199 Monica Drive, Block 4, Palmiste, San Fernando" → "Palmiste, San Fernando"
+ * Takes the last 2 comma-separated parts of the address.
+ */
+const extractGeneralLocation = (address: string | null | undefined): string => {
+  if (!address) return 'Not specified';
+  const parts = address.split(',').map(p => p.trim()).filter(Boolean);
+  if (parts.length <= 2) return address; // Already short enough
+  return parts.slice(-2).join(', ');
+};
+
+/**
+ * Collect all active care task booleans from care_needs_family into a readable list
+ */
+const collectCareTasksList = (careNeeds: any): string => {
+  if (!careNeeds) return 'None specified';
+  const tasks: string[] = [];
+  
+  // Core assistance
+  if (careNeeds.assistance_bathing) tasks.push('Bathing');
+  if (careNeeds.assistance_dressing) tasks.push('Dressing');
+  if (careNeeds.assistance_toileting) tasks.push('Toileting');
+  if (careNeeds.assistance_feeding) tasks.push('Feeding');
+  if (careNeeds.assistance_medication) tasks.push('Medication');
+  if (careNeeds.assistance_mobility) tasks.push('Mobility');
+  if (careNeeds.assistance_companionship) tasks.push('Companionship');
+  if (careNeeds.assistance_oral_care) tasks.push('Oral Care');
+  if (careNeeds.assistance_naps) tasks.push('Nap Assistance');
+  
+  // Additional care tasks
+  if (careNeeds.laundry_support) tasks.push('Laundry');
+  if (careNeeds.meal_prep) tasks.push('Meal Preparation');
+  if (careNeeds.memory_reminders) tasks.push('Memory Reminders');
+  if (careNeeds.tidy_room) tasks.push('Tidy Room');
+  if (careNeeds.vitals_check) tasks.push('Vitals Check');
+  if (careNeeds.fresh_air_walks) tasks.push('Fresh Air / Walks');
+  if (careNeeds.grocery_runs) tasks.push('Grocery Runs');
+  if (careNeeds.escort_to_appointments) tasks.push('Escort to Appointments');
+  if (careNeeds.fall_monitoring) tasks.push('Fall Monitoring');
+  if (careNeeds.wandering_prevention) tasks.push('Wandering Prevention');
+  if (careNeeds.equipment_use) tasks.push('Equipment Use');
+  if (careNeeds.gentle_engagement) tasks.push('Gentle Engagement');
+  if (careNeeds.dementia_redirection) tasks.push('Dementia Redirection');
+  if (careNeeds.daily_report_required) tasks.push('Daily Report Required');
+  
+  return tasks.length > 0 ? tasks.join(', ') : 'None specified';
+};
+
 export const generateUserReportPDF = async (
   userData: ComprehensiveUserData,
   options: ReportOptions = {
@@ -71,7 +120,6 @@ export const generateUserReportPDF = async (
   const margin = 20;
   const contentWidth = pageWidth - (margin * 2);
 
-  // Helper function to add new page if needed
   const checkPageBreak = (requiredSpace: number = 20) => {
     if (yPosition + requiredSpace > doc.internal.pageSize.getHeight() - 20) {
       doc.addPage();
@@ -81,14 +129,14 @@ export const generateUserReportPDF = async (
 
   // Header
   doc.setFontSize(20);
-  doc.setTextColor(59, 130, 246); // Primary blue
+  doc.setTextColor(59, 130, 246);
   doc.text('Tavara Care - User Report', margin, yPosition);
   yPosition += 10;
 
   if (options.anonymous) {
     doc.setFontSize(12);
-    doc.setTextColor(239, 68, 68); // Red warning
-    doc.text('⚠️ ANONYMOUS REPORT - Personal details removed', margin, yPosition);
+    doc.setTextColor(239, 68, 68);
+    doc.text('ANONYMOUS REPORT - Personal details removed', margin, yPosition);
     yPosition += 5;
   }
 
@@ -97,7 +145,49 @@ export const generateUserReportPDF = async (
   doc.text(`Generated on: ${format(new Date(), 'PPP')}`, margin, yPosition);
   yPosition += 15;
 
-  // Enhanced Basic Information Section
+  // ===== NURSE-FACING CARE OPPORTUNITY SUMMARY (anonymous only, family only) =====
+  if (options.anonymous && profile.role === 'family') {
+    checkPageBreak(60);
+    doc.setFontSize(16);
+    doc.setTextColor(34, 197, 94);
+    doc.text('Care Opportunity Summary', margin, yPosition);
+    yPosition += 10;
+
+    const summaryData: Array<[string, string]> = [];
+    
+    summaryData.push(['General Location', extractGeneralLocation(profile.address || careNeeds?.care_location)]);
+    summaryData.push(['Relationship to Recipient', profile.relationship || 'Not specified']);
+    summaryData.push(['Care Types Needed', formatArray(profile.care_types)]);
+    summaryData.push(['Care Schedule', formatCareSchedule(profile.care_schedule)]);
+    
+    if (careNeeds?.diagnosed_conditions) {
+      summaryData.push(['Medical Conditions', careNeeds.diagnosed_conditions]);
+    }
+    if (careNeeds?.known_allergies) {
+      summaryData.push(['Known Allergies', careNeeds.known_allergies]);
+    }
+    
+    summaryData.push(['Assistance Required', collectCareTasksList(careNeeds)]);
+    summaryData.push(['Special Needs', formatArray(profile.special_needs)]);
+    summaryData.push(['Budget Range', profile.budget_preferences || 'Not specified']);
+    summaryData.push(['Caregiver Type Preferred', profile.caregiver_type || 'Not specified']);
+
+    autoTable(doc, {
+      startY: yPosition,
+      head: [['Care Opportunity', 'Details']],
+      body: summaryData,
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [34, 197, 94] },
+      margin: { left: margin, right: margin },
+      columnStyles: {
+        1: { cellWidth: contentWidth * 0.65 }
+      }
+    });
+
+    yPosition = (doc as any).lastAutoTable.finalY + 15;
+  }
+
+  // ===== Basic Information Section =====
   checkPageBreak(40);
   doc.setFontSize(16);
   doc.setTextColor(0, 0, 0);
@@ -113,6 +203,8 @@ export const generateUserReportPDF = async (
     basicInfo.push(['Address', profile.address || 'Not provided']);
   } else {
     basicInfo.push(['User ID', profile.id]);
+    // Show general location in anonymous mode
+    basicInfo.push(['General Location', extractGeneralLocation(profile.address || careNeeds?.care_location)]);
   }
   
   basicInfo.push(['Role', profile.role || 'Not specified']);
@@ -120,14 +212,12 @@ export const generateUserReportPDF = async (
   basicInfo.push(['Last Updated', profile.updated_at ? format(new Date(profile.updated_at), 'PPP') : 'Unknown']);
   basicInfo.push(['Preferred Contact Method', profile.preferred_contact_method || 'Not specified']);
   
-  // Care schedule - this was the missing piece!
   if (profile.care_schedule) {
     basicInfo.push(['Care Hours', formatCareSchedule(profile.care_schedule)]);
   } else {
     basicInfo.push(['Care Hours', 'Not specified']);
   }
 
-  // Add basic info table
   autoTable(doc, {
     startY: yPosition,
     head: [['Field', 'Value']],
@@ -139,7 +229,7 @@ export const generateUserReportPDF = async (
 
   yPosition = (doc as any).lastAutoTable.finalY + 15;
 
-  // Family-Specific Comprehensive Section
+  // ===== Family-Specific Section =====
   if (profile.role === 'family') {
     checkPageBreak(40);
     doc.setFontSize(16);
@@ -151,6 +241,8 @@ export const generateUserReportPDF = async (
     if (!options.anonymous) {
       familyDetails.push(['Care Recipient', profile.care_recipient_name || 'Not provided']);
       familyDetails.push(['Relationship', profile.relationship || 'Not provided']);
+    } else {
+      familyDetails.push(['Relationship to Recipient', profile.relationship || 'Not provided']);
     }
     
     familyDetails.push(['Care Types', formatArray(profile.care_types)]);
@@ -176,7 +268,7 @@ export const generateUserReportPDF = async (
     yPosition = (doc as any).lastAutoTable.finalY + 15;
   }
 
-  // Professional Services & Capabilities Section
+  // ===== Professional Section =====
   if (profile.role === 'professional') {
     checkPageBreak(40);
     doc.setFontSize(16);
@@ -199,19 +291,16 @@ export const generateUserReportPDF = async (
     professionalDetails.push(['Professional Type', profile.professional_type || 'Not specified']);
     professionalDetails.push(['Caregiver Type', profile.caregiver_type || 'Not specified']);
     
-    // Service offerings
     professionalDetails.push(['Housekeeping Available', formatBoolean(profile.housekeeping_available)]);
     professionalDetails.push(['Transportation Available', formatBoolean(profile.transportation_available)]);
     professionalDetails.push(['Meal Preparation Available', formatBoolean(profile.meal_preparation_available)]);
     professionalDetails.push(['Personal Care Available', formatBoolean(profile.personal_care_available)]);
     professionalDetails.push(['Companionship Available', formatBoolean(profile.companionship_available)]);
     
-    // Work preferences
     professionalDetails.push(['Work Locations', formatArray(profile.work_locations)]);
     professionalDetails.push(['Video Available', formatBoolean(profile.video_available)]);
     professionalDetails.push(['Available for Matching', formatBoolean(profile.available_for_matching)]);
     
-    // Experience and rates
     if (!options.anonymous) {
       professionalDetails.push(['Expected Hourly Rate', formatCurrency(profile.expected_hourly_rate)]);
       professionalDetails.push(['Years Experience', profile.years_experience?.toString() || 'Not specified']);
@@ -232,7 +321,7 @@ export const generateUserReportPDF = async (
     yPosition = (doc as any).lastAutoTable.finalY + 15;
   }
 
-  // Administrative Status Section
+  // ===== Administrative Status Section =====
   checkPageBreak(40);
   doc.setFontSize(16);
   doc.text('Administrative Status', margin, yPosition);
@@ -269,7 +358,7 @@ export const generateUserReportPDF = async (
 
   yPosition = (doc as any).lastAutoTable.finalY + 15;
 
-  // Care Assessment Section (for families)
+  // ===== ENHANCED Care Assessment Section (for families) =====
   if (profile.role === 'family' && careNeeds && options.includeAssessmentData) {
     checkPageBreak(40);
     
@@ -279,30 +368,70 @@ export const generateUserReportPDF = async (
 
     const careAssessmentData: Array<[string, string]> = [];
     
-    // Care needs
-    const assistanceTypes = [];
-    if (careNeeds.assistance_bathing) assistanceTypes.push('Bathing');
-    if (careNeeds.assistance_dressing) assistanceTypes.push('Dressing');
-    if (careNeeds.assistance_toileting) assistanceTypes.push('Toileting');
-    if (careNeeds.assistance_feeding) assistanceTypes.push('Feeding');
-    if (careNeeds.assistance_medication) assistanceTypes.push('Medication');
-    if (careNeeds.assistance_mobility) assistanceTypes.push('Mobility');
-    if (careNeeds.assistance_companionship) assistanceTypes.push('Companionship');
+    // All care tasks in one comprehensive list
+    careAssessmentData.push(['All Care Tasks Required', collectCareTasksList(careNeeds)]);
     
-    careAssessmentData.push(['Assistance Needed', assistanceTypes.join(', ') || 'None specified']);
-    
+    // Care hours
     if (careNeeds.preferred_time_start && careNeeds.preferred_time_end) {
       careAssessmentData.push(['Preferred Care Hours', `${careNeeds.preferred_time_start} - ${careNeeds.preferred_time_end}`]);
     }
-    
-    if (careNeeds.diagnosed_conditions) {
-      careAssessmentData.push(['Medical Conditions', careNeeds.diagnosed_conditions]);
+    if (careNeeds.preferred_days?.length > 0) {
+      careAssessmentData.push(['Preferred Days', careNeeds.preferred_days.join(', ')]);
     }
+    
+    // Coverage
+    if (careNeeds.weekday_coverage) {
+      careAssessmentData.push(['Weekday Coverage', careNeeds.weekday_coverage]);
+    }
+    if (careNeeds.weekend_coverage) {
+      careAssessmentData.push(['Weekend Coverage', careNeeds.weekend_coverage]);
+    }
+    if (careNeeds.weekend_schedule_type) {
+      careAssessmentData.push(['Weekend Schedule Type', careNeeds.weekend_schedule_type]);
+    }
+    if (careNeeds.plan_type) {
+      careAssessmentData.push(['Care Plan Type', careNeeds.plan_type]);
+    }
+    
+    // Medical info — always show (critical for nurse evaluation)
+    careAssessmentData.push(['Diagnosed Conditions', careNeeds.diagnosed_conditions || 'None reported']);
+    careAssessmentData.push(['Known Allergies', careNeeds.known_allergies || 'None reported']);
+    careAssessmentData.push(['Chronic Illness Type', careNeeds.chronic_illness_type || 'None reported']);
+    
+    // Care location (general only in anonymous mode)
+    if (careNeeds.care_location) {
+      if (options.anonymous) {
+        careAssessmentData.push(['Care Location (Area)', extractGeneralLocation(careNeeds.care_location)]);
+      } else {
+        careAssessmentData.push(['Care Location', careNeeds.care_location]);
+      }
+    }
+    
+    // Communication & preferences
+    careAssessmentData.push(['Communication Method', careNeeds.communication_method || 'Not specified']);
+    careAssessmentData.push(['Check-in Preference', careNeeds.checkin_preference || 'Not specified']);
+    
+    // Cognitive notes
+    if (careNeeds.cognitive_notes) {
+      careAssessmentData.push(['Cognitive Notes', careNeeds.cognitive_notes]);
+    }
+    if (careNeeds.triggers_soothing_techniques) {
+      careAssessmentData.push(['Triggers & Soothing Techniques', careNeeds.triggers_soothing_techniques]);
+    }
+    
+    // Cultural preferences
+    if (careNeeds.cultural_preferences) {
+      careAssessmentData.push(['Cultural Preferences', careNeeds.cultural_preferences]);
+    }
+    
+    // Emergency info
+    careAssessmentData.push(['Emergency Plan', careNeeds.emergency_plan || 'Not specified']);
     
     if (careNeeds.additional_notes) {
       careAssessmentData.push(['Additional Notes', careNeeds.additional_notes]);
     }
 
+    // Contact info — non-anonymous only
     if (!options.anonymous) {
       if (careNeeds.primary_contact_name) {
         careAssessmentData.push(['Primary Contact', careNeeds.primary_contact_name]);
@@ -312,6 +441,17 @@ export const generateUserReportPDF = async (
       }
       if (careNeeds.emergency_contact_name) {
         careAssessmentData.push(['Emergency Contact', careNeeds.emergency_contact_name]);
+      }
+      if (careNeeds.emergency_contact_phone) {
+        careAssessmentData.push(['Emergency Contact Phone', careNeeds.emergency_contact_phone]);
+      }
+      if (careNeeds.emergency_contact_relationship) {
+        careAssessmentData.push(['Emergency Contact Relationship', careNeeds.emergency_contact_relationship]);
+      }
+    } else {
+      // In anonymous mode, show relationship only (no names/numbers)
+      if (careNeeds.emergency_contact_relationship) {
+        careAssessmentData.push(['Emergency Contact Relationship', careNeeds.emergency_contact_relationship]);
       }
     }
 
@@ -330,7 +470,7 @@ export const generateUserReportPDF = async (
     yPosition = (doc as any).lastAutoTable.finalY + 15;
   }
 
-  // Care Recipient Profile (for families)
+  // ===== Care Recipient Profile (for families) =====
   if (profile.role === 'family' && careRecipient && options.includeAssessmentData) {
     checkPageBreak(40);
     
@@ -379,7 +519,7 @@ export const generateUserReportPDF = async (
     yPosition = (doc as any).lastAutoTable.finalY + 15;
   }
 
-  // Chat History Summary
+  // ===== Chat History Summary =====
   if (chatbotResponses.length > 0 && options.includeChatHistory) {
     checkPageBreak(40);
     
@@ -403,7 +543,6 @@ export const generateUserReportPDF = async (
       yPosition += 10;
     }
 
-    // Group responses by section
     const sectionCounts = chatbotResponses.reduce((acc, response) => {
       acc[response.section] = (acc[response.section] || 0) + 1;
       return acc;
@@ -436,7 +575,7 @@ export const generateUserReportPDF = async (
   doc.text(`Report ID: ${userData.profile.id.substring(0, 8)}`, margin, yPosition + 5);
   
   if (options.anonymous) {
-    doc.text('⚠️ This is an anonymous report with personal details removed', margin, yPosition + 10);
+    doc.text('This is an anonymous report with personal details removed', margin, yPosition + 10);
   }
 
   return doc.output('blob');
