@@ -9,6 +9,8 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { EnhancedFamilyNextStepsPanel } from "@/components/family/EnhancedFamilyNextStepsPanel";
 import { FamilyReadinessChecker } from "@/components/family/FamilyReadinessChecker";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
+import { SchedulingStatusBanner } from "@/components/family/SchedulingStatusBanner";
+import { ScheduleVisitModal } from "@/components/family/ScheduleVisitModal";
 import { ProfessionalChatRequestsSection } from "@/components/family/ProfessionalChatRequestsSection";
 import { FamilyMatchNotification } from "@/components/family/FamilyMatchNotification";
 import { LeadCaptureModal } from "@/components/family/LeadCaptureModal";
