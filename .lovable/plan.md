@@ -1,76 +1,74 @@
 
 
-## Fix Navigation for Match & Visit Steps on Family Dashboard
+## Enhance Anonymous Report for Nurse-Facing Care Assessment
 
-### Problems Found
+### Problem
 
-1. **"View your matches" link** in `FamilyMatchNotification` — uses `scrollToMatches()` which looks for `id="family-caregiver-matches"` element. **That id doesn't exist anywhere** in the rendered DOM, so clicking does nothing.
+The current anonymous report strips ALL personal details and replaces them with just a User ID. Nurses evaluating whether to accept an assignment get almost no useful information. Meanwhile, the `care_needs_family` table has rich data (allergies, medical conditions, care location, emergency plan, specific assistance needs) that isn't fully surfaced even in the non-anonymous report.
 
-2. **"View Matches" button** on Step 4 (See Your Instant Caregiver Matches) in the journey panel — the action switch only handles cases 1, 2, 3. Step 4+ all hit `default: console.log('No navigation defined')`.
+### Ana Maria's Data Available But Not in Report
 
-3. **"Visit Scheduled" button** on Step 7 (Schedule Your Tavara.Care Visit) — same issue, no case defined.
+From `care_needs_family`:
+- **Care location**: "199 Monica Drive, Block 4, Palmiste, San Fernando" → anonymous version should show "Palmiste, San Fernando"
+- **Diagnosed conditions**: "High blood pressure"
+- **Known allergies**: "Aspirin allergy"
+- **Emergency plan**: "N/A"
+- **Specific needs**: Feeding ✓, Medication ✓, Laundry ✓, Meal prep ✓, Memory reminders ✓, Tidy room ✓, Vitals check ✓
+- **Communication method**: text
+- **Check-in preference**: voice
+- **Emergency contact relationship**: "Son of Carol Glenn-Aimey"
 
-4. Both switch blocks in `useEnhancedJourneyProgress.ts` (lines 408-429 and 469-490) are identical and both missing cases 4-12.
+### Plan
 
-### What Each Navigation Should Do
+**Modify: `src/services/admin/userReportGenerator.ts`**
 
-| Step | Action | Navigation Target |
-|------|--------|------------------|
-| 4 - See Caregiver Matches | Open match browser or scroll to matches | `/caregiver/matching` (existing route) |
-| 5 - Medication Management | Go to medication setup | `/family/care-management/:carePlanId/medications` or trigger care plan creation |
-| 6 - Meal Management | Go to meal setup | `/family/care-management/:carePlanId/meals` or trigger care plan creation |
-| 7 - Schedule Visit | Open the ScheduleVisitModal already wired in the page | Trigger `setShowScheduleModal(true)` via the hook |
-| 8 - Confirm Visit | Same schedule flow | Same as step 7 |
+#### 1. Add general location to anonymous report
 
-### User Flow After Matching
+In the anonymous Basic Information section (line 114-116), instead of just showing User ID, also show:
+- **General Location**: Extract city/area from address (parse last 2 parts of comma-separated address, e.g. "Palmiste, San Fernando")
+- **Care Schedule** (already shown)
+- **Role** and **Registration Date** (already shown)
 
-Once Ana Maria has matches, her path is:
-1. **View matches** → Browse caregivers, chat with them (TAV-guided chat modal)
-2. **Schedule a visit** → Choose a caregiver, pick virtual (free) or in-person ($300 TTD)
-3. **Admin confirms** → "Admin will contact you within 24 hours" banner appears
-4. **Trial day** → Optional paid trial ($320 TTD)
-5. **Subscribe** → Convert to ongoing care
+Add a helper function `extractGeneralLocation(address)` that takes "199 Monica Drive, Block 4, Palmiste, San Fernando" and returns "Palmiste, San Fernando".
 
-### Implementation
+#### 2. Expand Care Assessment section with all nurse-relevant fields
 
-#### 1. Fix `FamilyMatchNotification` — "View your matches" link
+Currently the assessment section (lines 272-331) only includes:
+- Assistance types (7 boolean fields)
+- Preferred care hours
+- Diagnosed conditions
+- Additional notes
+- Contact info (non-anonymous only)
 
-Change `scrollToMatches` to use `useNavigate` and go to `/caregiver/matching`. This is the existing page that shows all matches with full browsing, chat, and detail capabilities. As a fallback, also try scroll if on the same page.
+**Add these missing fields from `care_needs_family`:**
+- Known allergies
+- Emergency plan
+- Care location (general area only in anonymous mode)
+- Communication method & check-in preference
+- Specific care tasks: laundry_support, meal_prep, memory_reminders, tidy_room, vitals_check, fresh_air_walks, grocery_runs, escort_to_appointments, fall_monitoring, wandering_prevention, equipment_use, gentle_engagement, dementia_redirection
+- Diagnosed conditions (already there)
+- Coverage preferences: weekday_coverage, weekend_coverage, plan_type
 
-**File:** `src/components/family/FamilyMatchNotification.tsx`
-- Add `useNavigate` import
-- Change `scrollToMatches` to navigate to `/caregiver/matching`
+#### 3. Add "Nurse-Facing Summary" section for anonymous reports
 
-#### 2. Add missing step navigation cases in `useEnhancedJourneyProgress.ts`
+Add a new section at the top of anonymous reports titled **"Care Opportunity Summary"** with:
+- General location (area only)
+- Care recipient relationship (e.g. "parent") — no name
+- Care types needed
+- Schedule required
+- Key medical info (conditions, allergies)
+- Assistance categories needed
+- Budget range
 
-Add cases 4-8 in **both** switch blocks (lines 408-429 and 469-490):
-
-- **Case 4** (See Caregiver Matches): `navigate('/caregiver/matching')`
-- **Case 5** (Medication Management): `navigate('/family/care-management')` — let the care management page handle plan selection
-- **Case 6** (Meal Management): `navigate('/family/care-management')` — same
-- **Case 7** (Schedule Visit): `setShowScheduleModal(true)` — use the existing modal state already exposed by the hook
-- **Case 8** (Confirm Visit): `navigate('/dashboard/family')` with a toast "Check your visit status"
-
-**File:** `src/hooks/useEnhancedJourneyProgress.ts`
-
-#### 3. Add anchor id to `FamilyReadinessChecker` wrapper in `FamilyDashboard.tsx`
-
-Add `id="family-caregiver-matches"` to the div wrapping `<FamilyReadinessChecker />` so scroll-based navigation also works as a fallback.
-
-**File:** `src/components/family/FamilyDashboard.tsx` — line ~301
+This gives nurses a quick snapshot without identifying the family.
 
 ### Files Changed
 
 | Action | File | Description |
 |--------|------|-------------|
-| Modify | `src/components/family/FamilyMatchNotification.tsx` | Navigate to /caregiver/matching instead of broken scroll |
-| Modify | `src/hooks/useEnhancedJourneyProgress.ts` | Add cases 4-8 in both switch blocks |
-| Modify | `src/components/family/FamilyDashboard.tsx` | Add anchor id for scroll fallback |
+| Modify | `src/services/admin/userReportGenerator.ts` | Add general location extractor, expand care assessment fields, add nurse-facing summary for anonymous reports |
 
-### Admin Context — Two Visit States You See
+### Result
 
-- **Ana Maria on `/dashboard/admin`**: Shows "Scheduling" status, 42% — this comes from `user_journey_progress` DB table which tracks admin-side progress
-- **"Admin will contact within 24 hours"**: This is the `ScheduleVisitModal` output — the visit was requested but awaits admin confirmation via `/admin/visit-schedule`
-
-Both are correct representations of the same state from different perspectives.
+The anonymous PDF will show: "Palmiste, San Fernando" as location, full care assessment details (allergies, conditions, specific tasks), coverage schedule, and a nurse-facing summary — all without revealing the family name, exact address, or care recipient name.
 
