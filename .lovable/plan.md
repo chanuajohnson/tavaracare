@@ -1,69 +1,76 @@
 
 
-## What Ana Maria Sees Right Now — And the Gaps
+## Fix Navigation for Match & Visit Steps on Family Dashboard
 
-### Current Family Dashboard Experience
+### Problems Found
 
-Ana Maria's dashboard (`/dashboard/family`) has this flow:
+1. **"View your matches" link** in `FamilyMatchNotification` — uses `scrollToMatches()` which looks for `id="family-caregiver-matches"` element. **That id doesn't exist anywhere** in the rendered DOM, so clicking does nothing.
 
-1. **Journey Steps Panel** (`EnhancedFamilyNextStepsPanel`) — shows 17% progress, "Share Your Loved One's Story" as next step. Caregiver Matches step shows as **locked**.
-2. **Readiness Checker** (`FamilyReadinessChecker`) — checks registration + assessment (story is optional). Ana Maria passes this gate, so she **does** see the `DashboardCaregiverMatches` component with her 3 active matches (Carlene Williams, Daniella Walcott, Tricia Cumm).
+2. **"View Matches" button** on Step 4 (See Your Instant Caregiver Matches) in the journey panel — the action switch only handles cases 1, 2, 3. Step 4+ all hit `default: console.log('No navigation defined')`.
 
-### The Disconnect
+3. **"Visit Scheduled" button** on Step 7 (Schedule Your Tavara.Care Visit) — same issue, no case defined.
 
-There's a contradictory UX:
-- The **journey panel** (top of page) says "Caregiver Matches: Locked" at 17%
-- The **readiness checker** (below) shows her matches because it only requires registration + assessment
+4. Both switch blocks in `useEnhancedJourneyProgress.ts` (lines 408-429 and 469-490) are identical and both missing cases 4-12.
 
-So she CAN see matches, but the progress bar tells her she hasn't reached that point yet. Confusing.
+### What Each Navigation Should Do
 
-### What's Missing — No Match Notifications
+| Step | Action | Navigation Target |
+|------|--------|------------------|
+| 4 - See Caregiver Matches | Open match browser or scroll to matches | `/caregiver/matching` (existing route) |
+| 5 - Medication Management | Go to medication setup | `/family/care-management/:carePlanId/medications` or trigger care plan creation |
+| 6 - Meal Management | Go to meal setup | `/family/care-management/:carePlanId/meals` or trigger care plan creation |
+| 7 - Schedule Visit | Open the ScheduleVisitModal already wired in the page | Trigger `setShowScheduleModal(true)` via the hook |
+| 8 - Confirm Visit | Same schedule flow | Same as step 7 |
 
-- `ManualMatchNotification` exists only on the **Professional** dashboard
-- There is **no family-facing notification** when a new match is added (like Carlene Williams)
-- No toast, no banner, no badge — the user has to scroll down to discover matches appeared
-- This is the critical conversion gap you identified
+### User Flow After Matching
 
-### Proposed Fix — Two Changes
+Once Ana Maria has matches, her path is:
+1. **View matches** → Browse caregivers, chat with them (TAV-guided chat modal)
+2. **Schedule a visit** → Choose a caregiver, pick virtual (free) or in-person ($300 TTD)
+3. **Admin confirms** → "Admin will contact you within 24 hours" banner appears
+4. **Trial day** → Optional paid trial ($320 TTD)
+5. **Subscribe** → Convert to ongoing care
 
-#### 1. Add `FamilyMatchNotification` banner to Family Dashboard
+### Implementation
 
-**Create: `src/components/family/FamilyMatchNotification.tsx`**
+#### 1. Fix `FamilyMatchNotification` — "View your matches" link
 
-A notification banner that:
-- Queries `caregiver_assignments` for the logged-in family user where `is_active = true`
-- Subscribes to real-time changes (new matches appear instantly)
-- Shows a dismissible banner at the top: "You have 3 caregiver matches! View your matches →"
-- Highlights NEW matches (created in last 48 hours) with a "New" badge
-- Click scrolls to or navigates to the matches section
+Change `scrollToMatches` to use `useNavigate` and go to `/caregiver/matching`. This is the existing page that shows all matches with full browsing, chat, and detail capabilities. As a fallback, also try scroll if on the same page.
 
-**Modify: `src/components/family/FamilyDashboard.tsx`**
+**File:** `src/components/family/FamilyMatchNotification.tsx`
+- Add `useNavigate` import
+- Change `scrollToMatches` to navigate to `/caregiver/matching`
 
-- Import and render `FamilyMatchNotification` above the `EnhancedFamilyNextStepsPanel` (after the shortcut menu bar)
-- Only renders when user has active matches
+#### 2. Add missing step navigation cases in `useEnhancedJourneyProgress.ts`
 
-#### 2. Fix journey panel to reflect actual readiness state
+Add cases 4-8 in **both** switch blocks (lines 408-429 and 469-490):
 
-**Modify: `src/hooks/useSharedFamilyJourneyData.ts`** (or wherever the 12-step completion is calculated)
+- **Case 4** (See Caregiver Matches): `navigate('/caregiver/matching')`
+- **Case 5** (Medication Management): `navigate('/family/care-management')` — let the care management page handle plan selection
+- **Case 6** (Meal Management): `navigate('/family/care-management')` — same
+- **Case 7** (Schedule Visit): `setShowScheduleModal(true)` — use the existing modal state already exposed by the hook
+- **Case 8** (Confirm Visit): `navigate('/dashboard/family')` with a toast "Check your visit status"
 
-The "Caregiver Matches Unlocked" step currently requires `care_recipient_profiles` (story). But the actual readiness gate (`FamilyReadinessChecker`) only requires registration + assessment. Align them:
-- Step 7 "Caregiver Matches Unlocked" should check: `registrationComplete && careAssessmentComplete` (matching the readiness checker)
-- Story remains its own step but doesn't gate matches
+**File:** `src/hooks/useEnhancedJourneyProgress.ts`
 
-This would bump Ana Maria from 17% (2/12) to ~25% (3/12) — still showing story as incomplete but matches as unlocked, matching what she actually sees.
+#### 3. Add anchor id to `FamilyReadinessChecker` wrapper in `FamilyDashboard.tsx`
+
+Add `id="family-caregiver-matches"` to the div wrapping `<FamilyReadinessChecker />` so scroll-based navigation also works as a fallback.
+
+**File:** `src/components/family/FamilyDashboard.tsx` — line ~301
 
 ### Files Changed
 
 | Action | File | Description |
 |--------|------|-------------|
-| Create | `src/components/family/FamilyMatchNotification.tsx` | Real-time match notification banner for families |
-| Modify | `src/components/family/FamilyDashboard.tsx` | Add notification above journey panel |
-| Modify | `src/hooks/useSharedFamilyJourneyData.ts` | Align "matches unlocked" step with actual readiness logic |
+| Modify | `src/components/family/FamilyMatchNotification.tsx` | Navigate to /caregiver/matching instead of broken scroll |
+| Modify | `src/hooks/useEnhancedJourneyProgress.ts` | Add cases 4-8 in both switch blocks |
+| Modify | `src/components/family/FamilyDashboard.tsx` | Add anchor id for scroll fallback |
 
-### Result After Fix
+### Admin Context — Two Visit States You See
 
-- Ana Maria sees: "You have 3 caregiver matches! View your matches →" banner
-- Journey shows ~25% with matches step as completed
-- New matches (like Carlene) trigger real-time notification
-- Clear path from match → chat → schedule → trial → subscription
+- **Ana Maria on `/dashboard/admin`**: Shows "Scheduling" status, 42% — this comes from `user_journey_progress` DB table which tracks admin-side progress
+- **"Admin will contact within 24 hours"**: This is the `ScheduleVisitModal` output — the visit was requested but awaits admin confirmation via `/admin/visit-schedule`
+
+Both are correct representations of the same state from different perspectives.
 
