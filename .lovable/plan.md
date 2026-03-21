@@ -1,68 +1,57 @@
 
-## Fix Quick Access: Legacy Story is hidden because the dashboard is mixing two different progress systems
 
-### What’s actually wrong
+## Two Fixes: Professional Dashboard Awareness Banners + Family Story Button Reliability
 
-I checked the current code and the issue is real:
+### Problem 1: Family Quick Access — "Share Loved One's Story" still missing
 
-- `FamilyShortcutMenuBar` is reading the wrong family step numbers from `useEnhancedJourneyProgress`.
-- In `useEnhancedJourneyProgress`, the family UI steps are:
-  - `1` = Profile
-  - `2` = Care Assessment
-  - `3` = Legacy Story
-  - `4` = Caregiver Matches
-  - `7` = Get Started with Care / Scheduling
+The `showStoryButton` logic relies on `steps.find(step => step.step_number === 3)?.completed` which goes through a complex merge pipeline. Despite the merge code looking correct, the button doesn't appear — likely a subtle race condition or data timing issue in the merge.
 
-But the Quick Access bar currently maps:
-- `registrationStep` to `2`
-- `careAssessmentStep` to `4`
-- `caregiverMatchesStep` to `7`
+**Fix**: Use a direct, independent check. Destructure `careRecipient` from `useEnhancedJourneyProgress()` and force the story button to show when `careRecipient` is null/missing, bypassing the steps array entirely.
 
-So the wrong buttons are being driven by the wrong steps.
+#### Modify: `src/components/family/FamilyShortcutMenuBar.tsx`
 
-There is also a second bug:
-- `useEnhancedJourneyProgress` merges `user_journey_progress` into the family steps by array index (`index + 1`) and overwrites the real completion state.
-- For the current family record I checked, there is **no row in `care_recipient_profiles`**, so Legacy Story is actually incomplete.
-- That means the story CTA should show, but the stored progress merge is falsely marking it complete.
+- Destructure `careRecipient` alongside `steps, visitDetails, loading`
+- Change `showStoryButton` logic to: `const showStoryButton = !careRecipient?.id || !careRecipient?.full_name;`
+- This is a direct DB-driven check that can't be overridden by stored progress
 
-### Plan
+---
 
-#### 1. Fix the source of truth in `useEnhancedJourneyProgress.ts`
-- Stop letting stored progress override family step-level completion.
-- Keep stored progress only for high-level metrics if needed, like percentage.
-- Use the real family data-driven steps for `completed` / `accessible` on the dashboard.
+### Problem 2: Professional Dashboard — No family awareness or readiness nudges
 
-This avoids the current mismatch where admin-style stored progress hides customer-facing actions incorrectly.
+Caregivers have no visibility into the matching ecosystem. They need two notification banners above the existing content:
 
-#### 2. Fix step mappings in `FamilyShortcutMenuBar.tsx`
-Update Quick Access to use the actual family step ids:
-- Profile = step `1`
-- Assessment = step `2`
-- Legacy Story = step `3`
-- Matches = step `4`
-- Scheduling = step `7`
+1. **Family Activity Banner** (blue): Shows count of unmatched families in the system. "There are X families looking for caregivers — keep your profile updated to get matched!" with a CTA to browse families anonymously.
 
-Then update button logic to match the journey:
-- **Schedule Care**: show when matches exist and no visit is scheduled
-- **Share Loved One’s Story**: show whenever step 3 is incomplete
-- **Edit Profile**: show only when profile step is completed
-- **Edit Assessment**: show only when assessment step is completed
-- **Care Management**: only after scheduling is actually complete
+2. **Matching Readiness Banner** (amber): "Matching is actively happening — make sure your profile, availability, and documents are current." with CTA to Profile Hub.
 
-#### 3. Add a safety fallback for the story CTA
-- Use `careRecipient` from `useEnhancedJourneyProgress` as a direct backup check.
-- If there is no `care_recipient_profiles` record, force the Legacy Story CTA to show even if stored progress is stale.
+#### Create: `src/components/professional/ProfessionalFamilyAwarenessBanner.tsx`
 
-That will prevent this from disappearing again because of progress-sync drift.
+- Queries `profiles` for family count where no active `caregiver_assignments` exist (unmatched families)
+- Real-time subscription on `caregiver_assignments` to update count
+- Blue gradient card with Users icon
+- Shows: "**X families** are actively looking for caregivers in the Tavara network"
+- CTA: "Browse Families →" links to `/caregiver/matching` (existing teaser page with anonymous details)
+- Secondary text: "Keep your profile updated to improve your match chances"
 
-### Files to update
-- `src/hooks/useEnhancedJourneyProgress.ts`
-- `src/components/family/FamilyShortcutMenuBar.tsx`
+#### Create: `src/components/professional/ProfessionalMatchingReadinessBanner.tsx`
 
-### Expected result
-After this fix, the family dashboard Quick Access should correctly show:
-- `Schedule Care`
-- `Share Loved One’s Story`
-- then the edit buttons that actually apply
+- Amber gradient card with AlertCircle/RefreshCw icon
+- Shows: "**Matching is active** — Tavara is connecting families with caregivers"
+- Bullet points: "Update your availability", "Complete all certifications", "Upload required documents"
+- CTA: "Update Profile →" links to `/professional/profile`
+- Only shows when the caregiver's profile is incomplete OR as a persistent gentle reminder
 
-And it will reflect the customer’s real state, not an incorrect stored-progress interpretation.
+#### Modify: `src/pages/dashboard/ProfessionalDashboard.tsx`
+
+- Import both new banner components
+- Insert them above `ManualMatchNotification` in the left column (lg:col-span-2), so they appear above "Messages & Requests" area
+
+### Files Changed
+
+| Action | File | Description |
+|--------|------|-------------|
+| Modify | `src/components/family/FamilyShortcutMenuBar.tsx` | Use `careRecipient` directly for story button visibility |
+| Create | `src/components/professional/ProfessionalFamilyAwarenessBanner.tsx` | Blue banner showing unmatched family count with browse CTA |
+| Create | `src/components/professional/ProfessionalMatchingReadinessBanner.tsx` | Amber banner nudging profile/doc updates during active matching |
+| Modify | `src/pages/dashboard/ProfessionalDashboard.tsx` | Add both banners above ManualMatchNotification |
+
