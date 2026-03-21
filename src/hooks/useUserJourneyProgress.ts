@@ -49,7 +49,7 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
       link: step.id === 1 ? "/registration/family" :
             step.id === 2 ? "/family/care-assessment" :
             step.id === 3 ? "/family/story" :
-            step.id === 4 ? "/caregiver/matching" :
+            step.id === 4 ? "/family/matching" :
             step.id === 5 ? "/family/care-management" :
             step.id === 6 ? "/family/care-management" :
             step.id === 7 ? "/family/schedule-visit" :
