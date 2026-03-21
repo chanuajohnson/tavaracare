@@ -424,9 +424,30 @@ export const useEnhancedJourneyProgress = () => {
                     console.log(`🚀 Navigating to: /family/story${storyEditParam}`);
                     navigate(`/family/story${storyEditParam}`);
                     break;
+                  case 4:
+                    console.log('🚀 Navigating to: /caregiver/matching');
+                    navigate('/caregiver/matching');
+                    break;
+                  case 5:
+                    console.log('🚀 Navigating to: /family/care-management (medications)');
+                    navigate('/family/care-management');
+                    break;
+                  case 6:
+                    console.log('🚀 Navigating to: /family/care-management (meals)');
+                    navigate('/family/care-management');
+                    break;
+                  case 7:
+                    console.log('🚀 Opening Schedule Visit modal');
+                    setShowScheduleModal(true);
+                    break;
+                  case 8:
+                    console.log('🚀 Navigating to family dashboard for visit status');
+                    navigate('/dashboard/family');
+                    toast.info('Check your visit status below.');
+                    break;
                   default:
                     console.log(`No navigation defined for step ${step.id}`);
-                }
+                    break;
               } catch (error) {
                 console.error(`❌ Navigation error for step ${step.id}:`, error);
                 toast.error('Navigation failed. Please try again.');
