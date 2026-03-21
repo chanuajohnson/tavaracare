@@ -34,9 +34,23 @@ export const DashboardCaregiverMatches = () => {
       .join("")
       .toUpperCase();
 
+  const professionalTypeMap: Record<string, string> = {
+    gapp: "GAPP Certified",
+    nurse: "Registered Nurse",
+    cna: "Certified Nursing Assistant",
+    aide: "Professional Care Aide",
+    hha: "Home Health Aide",
+    elderly: "Elderly Care Specialist",
+    special_needs: "Special Needs Caregiver",
+    companion: "Companion Caregiver",
+    live_in: "Live-in Caregiver",
+    other: "Professional Caregiver",
+  };
+
   const professionalLabel = (cg: any) => {
-    if (cg?.professional_type === "gapp") return "GAPP Certified";
-    if (cg?.professional_type) return cg.professional_type;
+    const type = cg?.professional_type?.toLowerCase();
+    if (type && professionalTypeMap[type]) return professionalTypeMap[type];
+    if (type) return type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
     if (cg?.certifications?.length) return cg.certifications[0];
     return "Professional Caregiver";
   };
