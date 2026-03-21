@@ -92,10 +92,22 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
     fetchPendingRequests();
   }, []);
 
-  const getVisitTypeBadge = (type: 'virtual' | 'in_person') => {
-    return type === 'virtual' 
-      ? <Badge variant="secondary" className="flex items-center gap-1"><Video className="h-3 w-3" />Virtual</Badge>
-      : <Badge variant="outline" className="flex items-center gap-1"><Home className="h-3 w-3" />In-Person</Badge>;
+  const getVisitTypeBadge = (type: PendingSchedulingRequest['preferred_visit_type']) => {
+    switch (type) {
+      case 'trial_day':
+        return <Badge className="flex items-center gap-1 bg-blue-100 text-blue-800"><Calendar className="h-3 w-3" />Trial Day $320</Badge>;
+      case 'direct_hire':
+        return <Badge className="flex items-center gap-1 bg-green-100 text-green-800"><Home className="h-3 w-3" />Hire Immediately</Badge>;
+      case 'in_person':
+        return <Badge variant="outline" className="flex items-center gap-1"><Home className="h-3 w-3" />In-Person</Badge>;
+      default:
+        return <Badge variant="secondary" className="flex items-center gap-1"><Video className="h-3 w-3" />Virtual</Badge>;
+    }
+  };
+
+  const parseVisitNotes = (notes?: string) => {
+    if (!notes) return null;
+    try { return JSON.parse(notes); } catch { return null; }
   };
 
   if (loading) {
