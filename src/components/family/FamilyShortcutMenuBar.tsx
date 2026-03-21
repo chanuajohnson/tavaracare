@@ -81,6 +81,22 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareC
             </Button>
           )}
 
+          {/* Schedule Care - prominent amber button when in scheduling stage */}
+          {showScheduleButton && onScheduleCareClick && (
+            <Button 
+              onClick={() => {
+                handleTrackButtonClick('schedule_care_click', 'schedule_care');
+                onScheduleCareClick();
+              }}
+              className="flex items-center gap-1 bg-amber-600 hover:bg-amber-700 text-white shadow-lg font-semibold"
+              size="sm"
+            >
+              <Calendar className="h-4 w-4" />
+              <span>📅 Schedule Care</span>
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          )}
+
           {/* Next Step: Share Loved One's Story */}
           {showStoryButton && (
             <Link 
