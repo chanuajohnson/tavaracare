@@ -45,7 +45,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
     bookingDate: undefined as Date | undefined,
     bookingTime: '',
     selectedSlotId: '',
-    visitType: preselectedUser?.preferred_visit_type || 'virtual' as 'virtual' | 'in_person',
+    visitType: preselectedUser?.preferred_visit_type || 'virtual' as 'virtual' | 'in_person' | 'trial_day' | 'direct_hire',
     familyAddress: '',
     familyPhone: '',
     adminNotes: ''
