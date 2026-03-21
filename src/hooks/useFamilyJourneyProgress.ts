@@ -108,8 +108,8 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
     // Scheduling Steps (7-8)
     { 
       id: 7, 
-      title: "Schedule Your Tavara.Care Visit", 
-      description: "Choose to meet your match and a care coordinator virtually (Free) or in person ($300 TTD).", 
+      title: "Get Started with Care", 
+      description: "Choose a Trial Day ($320 TTD) or Hire Immediately (from $40/hr) to begin your care journey.", 
       completed: false, 
       category: 'scheduling',
       link: "/family/schedule-visit",
