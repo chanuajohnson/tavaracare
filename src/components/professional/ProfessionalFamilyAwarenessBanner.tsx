@@ -11,24 +11,10 @@ export function ProfessionalFamilyAwarenessBanner() {
   useEffect(() => {
     const fetchUnmatchedFamilies = async () => {
       try {
-        // Get family profiles that don't have active caregiver assignments
-        const { data: families, error: famError } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("role", "family");
-
-        if (famError) throw famError;
-
-        const { data: matched, error: matchError } = await supabase
-          .from("caregiver_assignments")
-          .select("family_user_id")
-          .eq("is_active", true);
-
-        if (matchError) throw matchError;
-
-        const matchedIds = new Set((matched || []).map((m) => m.family_user_id));
-        const unmatched = (families || []).filter((f) => !matchedIds.has(f.id));
-        setUnmatchedCount(unmatched.length);
+        const { data, error } = await supabase.rpc('get_unmatched_family_count');
+        if (error) throw error;
+        console.log("[FamilyAwarenessBanner] Unmatched families:", data);
+        setUnmatchedCount(data ?? 0);
       } catch (err) {
         console.error("[FamilyAwarenessBanner] Error:", err);
         setUnmatchedCount(null);
