@@ -378,7 +378,17 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
                 case 'nurse': return 'Registered Nurse';
                 case 'cna': return 'Certified Nursing Assistant';
                 case 'aide': return 'Professional Care Aide';
-                default: return type;
+                case 'hha': return 'Home Health Aide';
+                case 'elderly': return 'Elderly Care Specialist';
+                case 'special_needs': return 'Special Needs Caregiver';
+                case 'companion': return 'Companion Caregiver';
+                case 'live_in': return 'Live-in Caregiver';
+                case 'other': return 'Professional Caregiver';
+                default: {
+                  // Title-case the value: some_type → Some Type
+                  const formatted = type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                  return formatted || 'Professional Caregiver';
+                }
               }
             };
             const getPrimaryCareServices = (services: string[] | null | undefined, types: string[] | null | undefined) => {

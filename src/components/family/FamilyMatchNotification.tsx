@@ -45,14 +45,31 @@ export const FamilyMatchNotification = () => {
         const caregiverIds = data.map(m => m.caregiver_id);
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, full_name')
+          .select('id, professional_type')
           .in('id', caregiverIds);
 
-        const profileMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
+        const typeMap: Record<string, string> = {
+          gapp: "GAPP Certified",
+          nurse: "Registered Nurse",
+          cna: "Certified Nursing Assistant",
+          aide: "Professional Care Aide",
+          hha: "Home Health Aide",
+          elderly: "Elderly Care Specialist",
+          special_needs: "Special Needs Caregiver",
+          companion: "Companion Caregiver",
+          live_in: "Live-in Caregiver",
+          other: "Professional Caregiver",
+        };
+        const getLabel = (type: string | null) => {
+          if (!type) return 'Professional Caregiver';
+          return typeMap[type.toLowerCase()] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        };
+
+        const profileMap = new Map(profiles?.map(p => [p.id, getLabel(p.professional_type)]) || []);
 
         setMatches(data.map(m => ({
           ...m,
-          caregiver_name: profileMap.get(m.caregiver_id) || 'Caregiver'
+          caregiver_name: profileMap.get(m.caregiver_id) || 'Professional Caregiver'
         })));
       } else {
         setMatches([]);
