@@ -309,8 +309,19 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
             }
           }
 
+          // Filter out caregivers who are marked unavailable by admin
+          const availableAssignments = assignmentData.filter((a: any) => {
+            const profile = caregiverProfileMap.get(a.caregiver_id);
+            return profile?.available_for_matching !== false;
+          });
+
+          console.log('useUnifiedMatches: Filtered by availability:', {
+            total: assignmentData.length,
+            available: availableAssignments.length
+          });
+
           // Transform assignments into matches with enhanced caregiver data
-          const processedMatches = assignmentData.map((assignment: any) => {
+          const processedMatches = availableAssignments.map((assignment: any) => {
             const caregiver = caregiverProfileMap.get(assignment.caregiver_id);
             
             // Log assignment and caregiver profile mapping
