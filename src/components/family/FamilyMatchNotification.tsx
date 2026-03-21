@@ -68,9 +68,12 @@ export const FamilyMatchNotification = () => {
           return typeMap[type.toLowerCase()] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         };
 
-        const profileMap = new Map(profiles?.map(p => [p.id, getLabel(p.professional_type)]) || []);
+        const availableIds = new Set(availableProfiles.map(p => p.id));
+        const profileMap = new Map(availableProfiles.map(p => [p.id, getLabel(p.professional_type)]));
 
-        setMatches(data.map(m => ({
+        // Only include matches where caregiver is available
+        const availableMatches = data.filter(m => availableIds.has(m.caregiver_id));
+        setMatches(availableMatches.map(m => ({
           ...m,
           caregiver_name: profileMap.get(m.caregiver_id) || 'Professional Caregiver'
         })));
