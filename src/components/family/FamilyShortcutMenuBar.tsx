@@ -12,7 +12,7 @@ interface FamilyShortcutMenuBarProps {
   onScheduleCareClick?: () => void;
 }
 
-export function FamilyShortcutMenuBar({ onCaregiverMatchesClick }: FamilyShortcutMenuBarProps) {
+export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareClick }: FamilyShortcutMenuBarProps) {
   const { isProfileComplete } = useAuth();
   const { trackEngagement } = useTracking();
   const { 
