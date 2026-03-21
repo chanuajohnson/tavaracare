@@ -51,6 +51,9 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareC
   const showStoryButton = storyStep?.accessible && !storyStep?.completed;
   const showRegistrationEdit = registrationStep?.completed;
   const showAssessmentEdit = careAssessmentStep?.completed;
+  
+  // Show schedule button when matches exist but visit not yet scheduled
+  const showScheduleButton = caregiverMatchesStep?.completed && !isVisitScheduled;
 
   const handleCaregiverMatchesClick = () => {
     handleTrackButtonClick('milestone_achievement', 'view_caregiver_matches');
