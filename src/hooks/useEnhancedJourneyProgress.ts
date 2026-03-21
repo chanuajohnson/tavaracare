@@ -448,6 +448,7 @@ export const useEnhancedJourneyProgress = () => {
                   default:
                     console.log(`No navigation defined for step ${step.id}`);
                     break;
+                }
               } catch (error) {
                 console.error(`❌ Navigation error for step ${step.id}:`, error);
                 toast.error('Navigation failed. Please try again.');
