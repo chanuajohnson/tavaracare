@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +19,7 @@ interface MatchInfo {
 
 export const FamilyMatchNotification = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [matches, setMatches] = useState<MatchInfo[]>([]);
   const [dismissed, setDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -99,10 +101,12 @@ export const FamilyMatchNotification = () => {
     return (now.getTime() - created.getTime()) < 48 * 60 * 60 * 1000;
   });
 
-  const scrollToMatches = () => {
+  const viewMatches = () => {
     const el = document.getElementById('family-caregiver-matches');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      navigate('/caregiver/matching');
     }
   };
 
@@ -142,7 +146,7 @@ export const FamilyMatchNotification = () => {
                     variant="link"
                     size="sm"
                     className="p-0 h-auto text-emerald-700 font-medium mt-1"
-                    onClick={scrollToMatches}
+                    onClick={viewMatches}
                   >
                     View your matches <ArrowRight className="h-3.5 w-3.5 ml-1" />
                   </Button>
