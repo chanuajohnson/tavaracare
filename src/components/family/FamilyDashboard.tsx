@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, FileText, UserCog, Building, Users, ChevronDown, ChevronUp, Heart, Calendar, User, MessageCircle } from "lucide-react";
+import { ArrowRight, FileText, UserCog, Building, Users, ChevronDown, ChevronUp, Heart, Calendar, User, MessageCircle, DollarSign, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { EnhancedFamilyNextStepsPanel } from "@/components/family/EnhancedFamilyNextStepsPanel";
