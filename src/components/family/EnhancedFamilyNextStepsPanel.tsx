@@ -250,12 +250,12 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         {/* Professional Journey Overview Header */}
         <Card className={`border-l-4 border-l-primary bg-white shadow-md hover:shadow-lg transition-shadow duration-300 ${isAnonymous ? 'bg-gradient-to-r from-blue-50/40 to-purple-50/40' : ''}`}>
           <CardHeader className="pb-6">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <CardTitle className="flex items-start gap-3 mb-3">
-                  <List className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
+                  <List className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0 mt-1" />
                   <div className="flex flex-col gap-2 min-w-0">
-                    <span className="text-xl lg:text-2xl font-semibold text-gray-900 leading-tight">
+                    <span className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 leading-tight">
                       {showAllSteps ? "🌿 Complete Care Journey" : "Your Care Journey Progress"}
                     </span>
                     {isAnonymous && (
@@ -273,7 +273,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                   </div>
                 </CardTitle>
                 
-                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4 leading-relaxed">
                   {showAllSteps 
                     ? isAnonymous
                       ? "✨ Experience how families complete their personalized care journey with Tavara's comprehensive support system"
@@ -284,10 +284,10 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                   }
                 </p>
                 
-                <div className="flex flex-wrap items-center gap-3 text-sm">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm">
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">Current stage:</span>
-                    <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full font-medium capitalize">
+                    <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-2 sm:px-3 py-1 rounded-full font-medium capitalize text-xs sm:text-sm">
                       {currentStage}
                     </span>
                   </div>
@@ -298,19 +298,18 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                 </div>
               </div>
               
-              {/* Enhanced Progress Display */}
-              <div className="flex-shrink-0 text-right">
-                <div className="relative mb-2">
-                  <div className="text-3xl font-bold text-primary mb-1">
+              {/* Progress Display - horizontal row on mobile */}
+              <div className="flex items-center gap-3 sm:flex-col sm:items-end sm:gap-2 flex-shrink-0">
+                <div className="sm:text-right">
+                  <div className="text-xl sm:text-3xl font-bold text-primary">
                     {completionPercentage}%
                   </div>
-                  <div className="text-xs text-muted-foreground font-medium">
+                  <div className="text-xs text-muted-foreground font-medium hidden sm:block">
                     {showAllSteps ? "Journey Complete" : "Foundation Progress"}
                   </div>
                 </div>
                 
-                {/* Circular Progress Indicator */}
-                <div className="relative w-20 h-20 mx-auto">
+                <div className="relative w-12 h-12 sm:w-20 sm:h-20">
                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                     <path
                       className="text-gray-200"
@@ -330,7 +329,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-xs font-semibold text-primary">
+                    <div className="text-[10px] sm:text-xs font-semibold text-primary">
                       {Math.round(completionPercentage)}%
                     </div>
                   </div>

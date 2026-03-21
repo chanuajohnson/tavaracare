@@ -221,10 +221,10 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
         className="pb-4 cursor-pointer transition-colors duration-200 hover:bg-gray-50/50"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
           <div className="flex-1 min-w-0">
-            <CardTitle className="flex items-start gap-4 mb-3">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm transition-colors duration-200 ${
+            <CardTitle className="flex items-start gap-3 sm:gap-4 mb-3">
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm transition-colors duration-200 ${
                 stageStatus === 'completed' 
                   ? 'bg-green-100 text-green-600 border border-green-200'
                   : stageStatus === 'in-progress'
@@ -232,14 +232,14 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                     : 'bg-gray-100 text-gray-400 border border-gray-200'
               }`}>
                 {stageStatus === 'completed' ? (
-                  <CheckCircle2 className="h-6 w-6" />
+                  <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6" />
                 ) : (
-                  <Circle className="h-6 w-6" />
+                  <Circle className="h-5 w-5 sm:h-6 sm:w-6" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-3 mb-2">
-                  <span className="text-lg lg:text-xl font-semibold text-gray-900">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                  <span className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900">
                     {stageName}
                   </span>
                   <Badge 
@@ -256,16 +256,17 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                      stageStatus === 'in-progress' ? 'In Progress' : 'Not Started'}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                   {stageDescription}
                 </p>
               </div>
             </CardTitle>
           </div>
           
-          <div className="flex items-center gap-4 flex-shrink-0">
-            <div className="text-right">
-              <div className={`text-2xl font-bold mb-1 ${
+          {/* Progress + Chevron: horizontal row on mobile */}
+          <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0 ml-13 sm:ml-0">
+            <div className="flex items-center gap-2 sm:flex-col sm:items-end sm:gap-0">
+              <div className={`text-lg sm:text-2xl font-bold ${
                 stageStatus === 'completed' ? 'text-green-600' :
                 stageStatus === 'in-progress' ? `text-${currentStageColor}-600` : 'text-gray-400'
               }`}>
@@ -276,8 +277,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
               </div>
             </div>
             
-            {/* Enhanced Progress Circle */}
-            <div className="relative w-16 h-16">
+            <div className="relative w-10 h-10 sm:w-16 sm:h-16">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                 <path
                   className="text-gray-200"
