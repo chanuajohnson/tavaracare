@@ -1,57 +1,42 @@
 
 
-## Two Fixes: Professional Dashboard Awareness Banners + Family Story Button Reliability
+## Show First Names on Caregiver Match Cards (Like Urgent Caregivers Page)
 
-### Problem 1: Family Quick Access — "Share Loved One's Story" still missing
+### Problem
+Match cards currently show professional type as the title (e.g., "Certified Nursing Assistant", "Gapp Certified") with initials derived from that type (CNA, GC) and "Name protected until subscription" text. The Urgent Caregivers page shows real first names and proper initials (CW, TC) which is more personable.
 
-The `showStoryButton` logic relies on `steps.find(step => step.step_number === 3)?.completed` which goes through a complex merge pipeline. Despite the merge code looking correct, the button doesn't appear — likely a subtle race condition or data timing issue in the merge.
+### Solution
+Fetch `first_name` alongside existing profile data and display it on match cards. Show the professional type as a subtitle/badge instead of the main heading. Use the caregiver's real name for initials.
 
-**Fix**: Use a direct, independent check. Destructure `careRecipient` from `useEnhancedJourneyProgress()` and force the story button to show when `careRecipient` is null/missing, bypassing the steps array entirely.
+### Changes
 
-#### Modify: `src/components/family/FamilyShortcutMenuBar.tsx`
+#### 1. `src/hooks/useUnifiedMatches.ts`
+- Add `first_name` to the `UnifiedMatch` interface
+- Add `first_name` to the profile SELECT query
+- Pass `first_name` through in the match object
 
-- Destructure `careRecipient` alongside `steps, visitDetails, loading`
-- Change `showStoryButton` logic to: `const showStoryButton = !careRecipient?.id || !careRecipient?.full_name;`
-- This is a direct DB-driven check that can't be overridden by stored progress
+#### 2. `src/components/family/SimpleMatchCard.tsx`
+- Extract first name from `caregiver.first_name` or first word of `full_name`
+- Display first name as the card heading (e.g., "Carlene")
+- Show professional type as a subtitle line below the name (e.g., "Certified Nursing Assistant")
+- Remove "Name protected until subscription" text
+- Keep initials derived from `full_name` (real initials like CW, TC)
 
----
+#### 3. `src/components/family/CaregiverMatchCard.tsx`
+- Same pattern: show first name + professional type subtitle
+- Remove "Name protected until subscription" text
+- Use real initials from `full_name`
 
-### Problem 2: Professional Dashboard — No family awareness or readiness nudges
-
-Caregivers have no visibility into the matching ecosystem. They need two notification banners above the existing content:
-
-1. **Family Activity Banner** (blue): Shows count of unmatched families in the system. "There are X families looking for caregivers — keep your profile updated to get matched!" with a CTA to browse families anonymously.
-
-2. **Matching Readiness Banner** (amber): "Matching is actively happening — make sure your profile, availability, and documents are current." with CTA to Profile Hub.
-
-#### Create: `src/components/professional/ProfessionalFamilyAwarenessBanner.tsx`
-
-- Queries `profiles` for family count where no active `caregiver_assignments` exist (unmatched families)
-- Real-time subscription on `caregiver_assignments` to update count
-- Blue gradient card with Users icon
-- Shows: "**X families** are actively looking for caregivers in the Tavara network"
-- CTA: "Browse Families →" links to `/caregiver/matching` (existing teaser page with anonymous details)
-- Secondary text: "Keep your profile updated to improve your match chances"
-
-#### Create: `src/components/professional/ProfessionalMatchingReadinessBanner.tsx`
-
-- Amber gradient card with AlertCircle/RefreshCw icon
-- Shows: "**Matching is active** — Tavara is connecting families with caregivers"
-- Bullet points: "Update your availability", "Complete all certifications", "Upload required documents"
-- CTA: "Update Profile →" links to `/professional/profile`
-- Only shows when the caregiver's profile is incomplete OR as a persistent gentle reminder
-
-#### Modify: `src/pages/dashboard/ProfessionalDashboard.tsx`
-
-- Import both new banner components
-- Insert them above `ManualMatchNotification` in the left column (lg:col-span-2), so they appear above "Messages & Requests" area
+#### 4. `src/components/family/MatchDetailModal.tsx`
+- Change "Professional Caregiver" heading to show first name
+- Add professional type as subtitle
 
 ### Files Changed
 
 | Action | File | Description |
 |--------|------|-------------|
-| Modify | `src/components/family/FamilyShortcutMenuBar.tsx` | Use `careRecipient` directly for story button visibility |
-| Create | `src/components/professional/ProfessionalFamilyAwarenessBanner.tsx` | Blue banner showing unmatched family count with browse CTA |
-| Create | `src/components/professional/ProfessionalMatchingReadinessBanner.tsx` | Amber banner nudging profile/doc updates during active matching |
-| Modify | `src/pages/dashboard/ProfessionalDashboard.tsx` | Add both banners above ManualMatchNotification |
+| Modify | `src/hooks/useUnifiedMatches.ts` | Add `first_name` to query and interface |
+| Modify | `src/components/family/SimpleMatchCard.tsx` | Show first name as title, professional type as subtitle, real initials |
+| Modify | `src/components/family/CaregiverMatchCard.tsx` | Same first-name treatment |
+| Modify | `src/components/family/MatchDetailModal.tsx` | Show first name instead of "Professional Caregiver" |
 
