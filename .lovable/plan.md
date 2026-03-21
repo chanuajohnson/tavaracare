@@ -1,77 +1,63 @@
-## Redesign ScheduleVisitModal: From Consultation to Action
-
-### Current Problem
-
-The modal offers a "30-min video call" (free) or "home assessment" ($300). These are consultations — not what families actually want. They want a **caregiver**, not a meeting.
-
-### New Modal Design — 3 Options
-
-The modal becomes **"Get Started with Care"** with three clear action paths:
 
 
-| Option               | Description                                               | Price                      | What Happens                                                          |
-| -------------------- | --------------------------------------------------------- | -------------------------- | --------------------------------------------------------------------- |
-| **Trial Day**        | Full-day caregiver trial (8 hrs) with a matched caregiver | $320 TTD ($40/hr)          | Family picks a preferred date, admin assigns a caregiver and confirms |
-| **Hire Immediately** | Start ongoing care — pick a start date                    | From $40/hr (subscription) | Family selects start date, admin sets up recurring schedule           |
-| &nbsp;               | &nbsp;                                                    | &nbsp;                     | &nbsp;                                                                |
+## Fix Schedule Submit + Replace All Chat with WhatsApp to 8687865357
 
+### Problem 1: Schedule Submit Fails
+The `preferred_start_date` column doesn't exist on the `profiles` table. The update query fails silently.
 
-### User Flow for Each
+**Fix:** Remove `preferred_start_date` from the update and store the date info inside `preferred_visit_type` as a combined string (e.g. `trial_day|2026-03-25`), or add it to an existing text field like `visit_scheduling_status` notes. Simplest: encode date into `preferred_visit_type` value like `trial_day` and put the date into `admin_scheduling_requested_at` field (already exists, currently stores timestamp).
 
-**Trial Day ($320 TTD)**
+Actually, cleaner: just remove `preferred_start_date` from the update and append the date to `preferred_visit_type` string: `trial_day - March 25, 2026`. Admin can read it directly.
 
-1. Select "Trial Day" → pick preferred start date from calendar
-2. System saves request with `visit_type: 'trial_day'`, `payment_status: 'pending'`
-3. Admin sees request, assigns an available caregiver, confirms date
-4. After trial → existing `PostTrialConversionModal` kicks in (direct hire or subscribe)
+### Problem 2: All Chat Buttons Open TAV Modal Instead of WhatsApp
+Three files have chat buttons that open TAV-guided modals. Replace all with WhatsApp to `8687865357` with pre-loaded text identifying the caregiver.
 
-**Hire Immediately**
-
-1. Select "Hire Now" → pick desired start date
-2. System saves with `visit_type: 'direct_hire'`, redirects to subscription/payment flow
-3. Admin assigns caregiver and schedules recurring care
-
-&nbsp;
-
-### Implementation
-
-#### Modify: `src/components/family/ScheduleVisitModal.tsx`
-
-Complete rewrite of the modal content:
-
-- **Title**: "Get Started with Care" instead of "Request Visit Scheduling"
-- **3 radio options** instead of 2, with clear pricing and descriptions:
-  - Trial Day card: calendar icon, "$320 TTD (Full Day)", "Try a matched caregiver for a full 8-hour day"
-  - Hire Now card: briefcase icon, "From $45/hr", "Start ongoing care with your preferred caregiver"  
-  - &nbsp;
-- **Date picker**: Shows when Trial Day or Hire Now is selected — "Select your preferred start date"
-- **Info box**: Changes contextually based on selection:
-  - Trial: "Your $320 trial credit applies toward subscription if you convert"
-  - Hire: "We'll match you with the best available caregiver for your needs"
-  - &nbsp;
-- **Submit**: Saves to `profiles` with the selected `visit_type` value (`trial_day`, `direct_hire`, )
-
-#### DB update in `handleRequestScheduling`:
-
+WhatsApp URL pattern (from existing working code):
 ```
-preferred_visit_type: selectedOption, // 'trial_day' | 'direct_hire' | 'virtual'
-preferred_start_date: selectedDate (if trial/hire),
-visit_scheduling_status: 'ready_to_schedule'
+https://api.whatsapp.com/send/?phone=18687865357&text=...&type=phone_number&app_absent=0
 ```
 
-The existing `preferred_visit_type` column on `profiles` currently accepts `virtual` | `in_person`. We'll use the existing column but store the new values — no migration needed since it's a text field used for admin reference.
+Pre-loaded text should include the caregiver's professional type and match score so Tavara team knows who the family wants to discuss.
+
+### Changes
+
+#### 1. `src/components/family/ScheduleVisitModal.tsx` (~line 46-55)
+Remove `preferred_start_date` from the update. Instead store date in `preferred_visit_type` as `trial_day - March 25, 2026` format so admin can read it.
+
+#### 2. Create shared helper: `src/utils/whatsapp/openCaregiverWhatsApp.ts`
+Simple function used by all 3 files:
+```ts
+export const openCaregiverWhatsApp = (professionalType: string, matchScore: number, location?: string) => {
+  const text = `Hi Tavara! I'm interested in connecting with my matched caregiver: "${professionalType}" (${matchScore}% match${location ? `, ${location}` : ''}). I'd like to learn more about working with them.`;
+  const url = `https://api.whatsapp.com/send/?phone=18687865357&text=${encodeURIComponent(text)}&type=phone_number&app_absent=0`;
+  window.open(url, '_blank');
+};
+```
+
+#### 3. `src/components/family/DashboardCaregiverMatches.tsx`
+- Remove imports: `CaregiverChatModal`, `FamilyCaregiverLiveChatModal`, `checkChatEligibilityForFamily`, `shouldUseLiveChatForCaregiver`
+- Remove state: `showChatModal`, `showLiveChatModal`, `selectedCaregiver` (keep for detail modal)
+- Replace all chat button `onClick` handlers with `openCaregiverWhatsApp(professionalLabel(cg), cg.match_score, cg.location)`
+- Remove `<CaregiverChatModal>` and `<FamilyCaregiverLiveChatModal>` JSX
+- Update `MatchBrowserModal` `onStartChat` to use WhatsApp
+- Update `MatchDetailModal` `onStartChat` to use WhatsApp
+
+#### 4. `src/pages/family/FamilyMatchingPage.tsx`
+- Remove imports: `CaregiverChatModal`, `FamilyCaregiverLiveChatModal`, `checkChatEligibilityForFamily`, `shouldUseLiveChatForCaregiver`
+- Remove state: `showChatModal`, `showLiveChatModal`
+- Replace `handleStartChat` with WhatsApp open using the caregiver's professional type
+- Remove chat modal JSX
+- Update `MatchDetailModal` `onStartChat` to use WhatsApp
+
+#### 5. `src/components/family/FamilyMatchGrid.tsx`
+No changes needed — it just calls `onChatClick` prop which will now trigger WhatsApp from the parent.
 
 ### Files Changed
 
+| Action | File | Description |
+|--------|------|-------------|
+| Modify | `src/components/family/ScheduleVisitModal.tsx` | Fix submit by removing missing column, encode date into visit type string |
+| Create | `src/utils/whatsapp/openCaregiverWhatsApp.ts` | Shared WhatsApp helper with pre-loaded caregiver text |
+| Modify | `src/components/family/DashboardCaregiverMatches.tsx` | Replace TAV chat with WhatsApp, remove chat modals |
+| Modify | `src/pages/family/FamilyMatchingPage.tsx` | Replace TAV chat with WhatsApp, remove chat modals |
 
-| Action | File                                           | Description                                                                                              |
-| ------ | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Modify | `src/components/family/ScheduleVisitModal.tsx` | Complete redesign: 3 options (trial day, hire now, virtual), date picker for trial/hire, contextual info |
-
-
-### What Stays the Same
-
-- Admin-side `ScheduleVisitDialog` and `AdminVisitScheduleManager` — unchanged, admin still confirms and assigns
-- `PostTrialConversionModal` — already handles post-trial conversion at $320 credit
-- Journey step progression — step 7 still triggers this modal
-- All existing DB writes (`ready_for_admin_scheduling`, `visit_scheduling_status`) — same pattern, just new type values
