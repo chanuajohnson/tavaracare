@@ -29,8 +29,15 @@ const FamilyDashboard = () => {
   // Dashboard-level caregiver matching modal state
   const [showDashboardCaregiverModal, setShowDashboardCaregiverModal] = useState(false);
   
-  // Get modal state from the hook instead of managing locally
-  const { setShowCaregiverMatchingModal } = useEnhancedJourneyProgress();
+  // Get modal state and journey data from the hook
+  const { setShowCaregiverMatchingModal, visitDetails, steps } = useEnhancedJourneyProgress();
+  
+  // Schedule modal state
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  
+  // Check if user has caregiver matches (step 7 completed)
+  const caregiverMatchesStep = steps.find(s => s.step_number === 7);
+  const hasMatches = !!caregiverMatchesStep?.completed;
   
   useEffect(() => {
     const scrollToTop = () => {
