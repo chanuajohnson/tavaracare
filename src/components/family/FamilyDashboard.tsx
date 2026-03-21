@@ -298,7 +298,7 @@ const FamilyDashboard = () => {
           </Card>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-8" id="family-caregiver-matches">
           <FamilyReadinessChecker />
         </div>
 

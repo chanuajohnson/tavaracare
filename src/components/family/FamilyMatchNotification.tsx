@@ -146,7 +146,7 @@ export const FamilyMatchNotification = () => {
                     variant="link"
                     size="sm"
                     className="p-0 h-auto text-emerald-700 font-medium mt-1"
-                    onClick={scrollToMatches}
+                    onClick={viewMatches}
                   >
                     View your matches <ArrowRight className="h-3.5 w-3.5 ml-1" />
                   </Button>
