@@ -106,7 +106,7 @@ export const FamilyMatchNotification = () => {
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else {
-      navigate('/caregiver/matching');
+      navigate('/family/matching');
     }
   };
 

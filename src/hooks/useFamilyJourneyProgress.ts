@@ -84,7 +84,7 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
       description: "Now that your loved one's profile is complete, unlock personalized caregiver recommendations.", 
       completed: false, 
       category: 'foundation',
-      link: "/caregiver/matching",
+      link: "/family/matching",
       accessible: false
     },
     { 

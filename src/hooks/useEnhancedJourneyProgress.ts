@@ -425,8 +425,8 @@ export const useEnhancedJourneyProgress = () => {
                     navigate(`/family/story${storyEditParam}`);
                     break;
                   case 4:
-                    console.log('🚀 Navigating to: /caregiver/matching');
-                    navigate('/caregiver/matching');
+                    console.log('🚀 Navigating to: /family/matching');
+                    navigate('/family/matching');
                     break;
                   case 5:
                     console.log('🚀 Navigating to: /family/care-management (medications)');
@@ -508,8 +508,8 @@ export const useEnhancedJourneyProgress = () => {
                 navigate(`/family/story${storyEditParam}`);
                 break;
               case 4:
-                console.log('🚀 Navigating to: /caregiver/matching');
-                navigate('/caregiver/matching');
+                console.log('🚀 Navigating to: /family/matching');
+                navigate('/family/matching');
                 break;
               case 5:
                 console.log('🚀 Navigating to: /family/care-management (medications)');
