@@ -51,7 +51,7 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareC
   // Determine which buttons to show based on journey progress
   const showMilestoneButton = caregiverMatchesStep?.accessible && !caregiverMatchesStep?.completed;
   // Show story button if step 3 is incomplete OR not accessible yet (safety fallback)
-  const showStoryButton = storyStep ? !storyStep.completed : true;
+  const showStoryButton = !careRecipient?.id || !careRecipient?.full_name;
   const showRegistrationEdit = registrationStep?.completed;
   const showAssessmentEdit = careAssessmentStep?.completed;
   

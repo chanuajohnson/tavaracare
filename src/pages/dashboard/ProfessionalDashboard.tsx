@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { EnhancedProfessionalNextStepsPanel } from "@/components/professional/EnhancedProfessionalNextStepsPanel";
+import { ProfessionalFamilyAwarenessBanner } from "@/components/professional/ProfessionalFamilyAwarenessBanner";
+import { ProfessionalMatchingReadinessBanner } from "@/components/professional/ProfessionalMatchingReadinessBanner";
 import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
 import { TrainingProgressTracker } from "@/components/professional/TrainingProgressTracker";
 import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
