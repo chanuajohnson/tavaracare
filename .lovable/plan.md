@@ -1,75 +1,30 @@
 
 
-## Fix: Professional Awareness Banners (RLS) + Harden Family Story Button
+## Fix: DashboardCaregiverMatches Still Shows Old Professional Type Labels
 
-### Problem 1: Professional Banners — RLS blocks the query
+### Root Cause
 
-The `ProfessionalFamilyAwarenessBanner` runs:
-```sql
-SELECT id FROM profiles WHERE role = 'family'
-```
-But professionals can only see their own profile row via RLS (`id = auth.uid()`). Result: 0 families → banner hidden.
+The family dashboard at `/dashboard/family` uses `DashboardCaregiverMatches.tsx` — a completely separate component from `CaregiverMatchCard.tsx` and `SimpleMatchCard.tsx` that were previously updated. This component was missed.
 
-**Fix**: Create a security definer RPC function that returns the count of unmatched families without exposing any PII. The banner calls this function instead of querying profiles directly.
+It currently:
+- Uses `professionalLabel(cg)` as the card heading (shows "Certified Nursing Assistant", "Gapp Certified")
+- Uses `initials(label)` which derives initials from the professional label (gives "CNA", "GC")
+- Still has "Name protected until subscription" text
 
-### Problem 2: Family Story Button — likely stale preview, but hardening needed
+### Fix in `src/components/family/DashboardCaregiverMatches.tsx`
 
-The code logic is correct. DB confirms no `care_recipient_profiles` record for the logged-in family user. The button should show. This is likely a stale preview. However, to harden:
-- Add explicit debug logging when `showStoryButton` is evaluated
-- Ensure `careRecipient` defaults to `null` (not `undefined`) during loading
+1. **Card heading** (line 137): Change from `{label}` to show first name: `{cg.first_name || cg.full_name?.split(' ')[0] || 'Caregiver'}`
 
-### Changes
+2. **Add professional type as subtitle** (line 138): Replace "Name protected until subscription" with `{label}` (the professional type) as a muted subtitle
 
-#### 1. Migration: Create `get_unmatched_family_count()` RPC
-
-```sql
-CREATE OR REPLACE FUNCTION public.get_unmatched_family_count()
-RETURNS integer
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT count(*)::integer
-  FROM profiles p
-  WHERE p.role = 'family'
-    AND NOT EXISTS (
-      SELECT 1 FROM caregiver_assignments ca
-      WHERE ca.family_user_id = p.id AND ca.is_active = true
-    );
-$$;
-```
-
-Grant execute to authenticated users.
-
-#### 2. `src/components/professional/ProfessionalFamilyAwarenessBanner.tsx`
-
-Replace the direct `profiles` + `caregiver_assignments` queries with a single RPC call:
-```ts
-const { data, error } = await supabase.rpc('get_unmatched_family_count');
-```
-This bypasses RLS via security definer and returns just a count (no PII).
-
-#### 3. `src/components/professional/ProfessionalMatchingReadinessBanner.tsx`
-
-Verify it doesn't depend on any RLS-blocked queries. If it's a static banner (just UI nudge), it should show regardless — confirm it renders without data dependencies.
-
-#### 4. `src/components/family/FamilyShortcutMenuBar.tsx`
-
-Add a console log for debugging the story button state. Also add a final fallback: if `loading` is false and `careRecipient` is explicitly null/undefined, force `showStoryButton = true`.
+3. **Avatar initials** (line 132): Change from `initials(label)` to derive from `cg.full_name` instead:
+   ```
+   {cg.full_name ? cg.full_name.split(' ').filter(Boolean).map(p => p[0]).join('').substring(0, 2).toUpperCase() : 'CG'}
+   ```
 
 ### Files Changed
 
 | Action | File | Description |
 |--------|------|-------------|
-| Create | Migration SQL | `get_unmatched_family_count()` security definer function |
-| Modify | `ProfessionalFamilyAwarenessBanner.tsx` | Use RPC instead of direct query |
-| Verify | `ProfessionalMatchingReadinessBanner.tsx` | Ensure no RLS-blocked dependencies |
-| Modify | `FamilyShortcutMenuBar.tsx` | Add debug logging + hardened fallback |
-
-### Result
-
-- Professional dashboard shows blue "X families looking for caregivers" banner
-- Professional dashboard shows amber readiness nudge
-- Family story button reliably appears when care recipient profile is missing
+| Modify | `src/components/family/DashboardCaregiverMatches.tsx` | Show first name as heading, professional type as subtitle, real initials from full_name, remove "Name protected" text |
 
