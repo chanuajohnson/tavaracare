@@ -272,7 +272,8 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               other_certification,
               phone_number,
               address,
-              role
+              role,
+              available_for_matching
             `)
             .in('id', caregiverIds)
             .eq('role', 'professional');
@@ -308,8 +309,19 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
             }
           }
 
+          // Filter out caregivers who are marked unavailable by admin
+          const availableAssignments = assignmentData.filter((a: any) => {
+            const profile = caregiverProfileMap.get(a.caregiver_id);
+            return profile?.available_for_matching !== false;
+          });
+
+          console.log('useUnifiedMatches: Filtered by availability:', {
+            total: assignmentData.length,
+            available: availableAssignments.length
+          });
+
           // Transform assignments into matches with enhanced caregiver data
-          const processedMatches = assignmentData.map((assignment: any) => {
+          const processedMatches = availableAssignments.map((assignment: any) => {
             const caregiver = caregiverProfileMap.get(assignment.caregiver_id);
             
             // Log assignment and caregiver profile mapping
@@ -561,6 +573,30 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
 
   useEffect(() => {
     loadMatches();
+  }, [loadMatches]);
+
+  // Real-time subscription: refresh when caregiver availability changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('caregiver-availability-sync')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: 'role=eq.professional'
+        },
+        () => {
+          console.log('useUnifiedMatches: Caregiver availability changed, refreshing matches');
+          loadMatches();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [loadMatches]);
 
   return {

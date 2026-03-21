@@ -45,8 +45,11 @@ export const FamilyMatchNotification = () => {
         const caregiverIds = data.map(m => m.caregiver_id);
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, professional_type')
+          .select('id, professional_type, available_for_matching')
           .in('id', caregiverIds);
+
+        // Filter to only available caregivers
+        const availableProfiles = (profiles || []).filter(p => p.available_for_matching !== false);
 
         const typeMap: Record<string, string> = {
           gapp: "GAPP Certified",
@@ -65,9 +68,12 @@ export const FamilyMatchNotification = () => {
           return typeMap[type.toLowerCase()] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         };
 
-        const profileMap = new Map(profiles?.map(p => [p.id, getLabel(p.professional_type)]) || []);
+        const availableIds = new Set(availableProfiles.map(p => p.id));
+        const profileMap = new Map(availableProfiles.map(p => [p.id, getLabel(p.professional_type)]));
 
-        setMatches(data.map(m => ({
+        // Only include matches where caregiver is available
+        const availableMatches = data.filter(m => availableIds.has(m.caregiver_id));
+        setMatches(availableMatches.map(m => ({
           ...m,
           caregiver_name: profileMap.get(m.caregiver_id) || 'Professional Caregiver'
         })));
@@ -89,7 +95,7 @@ export const FamilyMatchNotification = () => {
   useEffect(() => {
     if (!user?.id) return;
 
-    const channel = supabase
+    const assignmentChannel = supabase
       .channel('family-match-notifications')
       .on(
         'postgres_changes',
@@ -105,8 +111,26 @@ export const FamilyMatchNotification = () => {
       )
       .subscribe();
 
+    // Listen for caregiver availability changes
+    const availabilityChannel = supabase
+      .channel('caregiver-availability-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: 'role=eq.professional'
+        },
+        () => {
+          fetchMatches();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(assignmentChannel);
+      supabase.removeChannel(availabilityChannel);
     };
   }, [user?.id]);
 
