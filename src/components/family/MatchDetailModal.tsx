@@ -21,12 +21,14 @@ import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionF
 interface Caregiver {
   id: string;
   full_name?: string | null;
+  first_name?: string | null;
   avatar_url?: string | null;
   location?: string | null;
   care_types?: string[] | null;
   years_of_experience?: string | null;
   match_score: number;
   is_premium?: boolean;
+  professional_type?: string;
 }
 
 interface MatchDetailModalProps {
