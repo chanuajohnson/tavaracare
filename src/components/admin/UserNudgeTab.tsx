@@ -186,6 +186,7 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
     } catch (err) {
       console.error('Error fetching last activity:', err);
     }
+  };
 
   const logNudgeSent = async (templateId: string) => {
     try {
