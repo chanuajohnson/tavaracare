@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { EnhancedProfessionalNextStepsPanel } from "@/components/professional/EnhancedProfessionalNextStepsPanel";
 import { ProfessionalFamilyAwarenessBanner } from "@/components/professional/ProfessionalFamilyAwarenessBanner";
