@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sparkles, MessageCircle, Video, MapPin, Clock, DollarSign, Star } from 'lucide-react';
 import { useFamilyMatches } from '@/hooks/useFamilyMatches';
+import { openFamilyWhatsApp } from '@/utils/whatsapp/openFamilyWhatsApp';
 
 interface ProfessionalFamilyMatchModalProps {
   open: boolean;
