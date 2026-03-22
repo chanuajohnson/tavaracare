@@ -18,6 +18,7 @@ import { useUserSpecificProgress } from '@/hooks/useUserSpecificProgress';
 import { useComprehensiveUserData } from '@/hooks/admin/useComprehensiveUserData';
 import { downloadUserReport, type ReportOptions } from '@/services/admin/userReportGenerator';
 import type { UserRole } from '@/types/userRoles';
+import { UserNudgeTab } from './UserNudgeTab';
 
 // Import formatting functions from the PDF generator to ensure UI consistency
 const formatCareSchedule = (careSchedule: string | null): string => {
@@ -324,13 +325,14 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
         </DialogHeader>
 
         <Tabs defaultValue="profile" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="journey">Journey</TabsTrigger>
             {user.role === 'family' && (
               <TabsTrigger value="matching">Matching</TabsTrigger>
             )}
             <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="nudge">Nudge</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
 
@@ -787,6 +789,22 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="nudge" className="space-y-4">
+            <UserNudgeTab
+              user={{
+                id: user.id,
+                full_name: user.full_name || '',
+                role: user.role || 'family',
+                phone_number: user.phone_number,
+              }}
+              journeyProgress={{
+                completionPercentage: journeyProgress.completionPercentage || 0,
+                currentStep: journeyProgress.steps?.filter((s: any) => s.completed).length + 1 || 1,
+                steps: journeyProgress.steps || [],
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-4">
