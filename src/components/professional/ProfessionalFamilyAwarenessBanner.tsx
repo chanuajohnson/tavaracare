@@ -9,11 +9,12 @@ export function ProfessionalFamilyAwarenessBanner() {
   const [unmatchedCount, setUnmatchedCount] = useState<number | null>(null);
 
   useEffect(() => {
+    console.log("[FamilyAwarenessBanner] Component mounted");
     const fetchUnmatchedFamilies = async () => {
       try {
         const { data, error } = await supabase.rpc('get_unmatched_family_count');
         if (error) throw error;
-        console.log("[FamilyAwarenessBanner] Unmatched families:", data);
+        console.log("[FamilyAwarenessBanner] Unmatched families count:", data, "| Will show banner:", (data ?? 0) > 0);
         setUnmatchedCount(data ?? 0);
       } catch (err) {
         console.error("[FamilyAwarenessBanner] Error:", err);
