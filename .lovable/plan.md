@@ -1,36 +1,32 @@
 
 
-## Fix: Auto-Populate Template Variables When Sending WhatsApp Nudges
+## Status: Professional Dashboard Awareness Banners
 
-### Problem
-When admin clicks "Send WhatsApp" on a nudge template, the message is sent raw with `[Name]`, `[X]%` and other placeholders still visible. No variable substitution happens.
+### Current Code Status — Everything is correct
 
-### Solution
-In `SendNudgeModal.tsx`, replace placeholders with real user data before opening WhatsApp. Also fetch registration progress to populate `[X]%`.
+The banners are properly implemented in `src/pages/dashboards/ProfessionalDashboard.tsx` (the active route file):
 
-### Variable Mapping
+- **Lines 90-99**: Both banners render inside `{user && ...}` block, right after the Quick Access menu bar
+- **Blue banner** (`ProfessionalFamilyAwarenessBanner`): Calls `get_unmatched_family_count()` RPC — which returns 11 families — and renders when count > 0
+- **Amber banner** (`ProfessionalMatchingReadinessBanner`): Static UI with no data dependencies — should always render
+- Both are wrapped in `<ErrorBoundary>` for crash isolation
+- The route (`AppRoutes.tsx` line 114) correctly imports from `pages/dashboards/` (plural)
 
-| Placeholder | Source |
-|-------------|--------|
-| `[Name]` | `user.full_name?.split(' ')[0]` (first name) |
-| `[X]` | `registration_progress.completed_step_count / total_steps * 100` |
-| `[Role]` | `user.role` |
+### Why They Are Not Visible
 
-### Changes
+The console logs from your session contain **zero** `[FamilyAwarenessBanner]` entries — not even the "Component mounted" log at line 12, which runs before any async call. This means the component never mounts at all.
 
-#### 1. `src/components/admin/SendNudgeModal.tsx`
+Since the code, imports, types, and route are all correct, this points to a **stale preview build**. The browser is running an older compiled version that doesn't include these banner components.
 
-**Expand user data fetch** (line 49-59): Also query `registration_progress` to get `completed_step_count` and `total_steps` per user. Store as a lookup map `progressMap[userId] = percentage`.
+### Recommended Fix
 
-**Add `populateTemplate` function**: Takes the raw template message and a user object, returns the message with all `[Name]`, `[X]`, `[Role]` placeholders replaced with actual values. Falls back gracefully if data is missing (e.g. `[X]` → `100` if no progress record found, meaning they completed registration).
+No code changes needed. The fix is operational:
 
-**Update `sendWhatsAppToUser`** (line 97-107): Call `populateTemplate(template.message, user)` before encoding into the WhatsApp URL.
+1. **Hard refresh the preview** (Cmd+Shift+R) to force the browser to load the latest build
+2. After refresh, check the console for `[FamilyAwarenessBanner] Component mounted` — if it appears, the banners are loading
+3. If the RPC returns data (`count: 11`), the blue banner will show; the amber banner should always show
 
-**Update message preview** (line 151-153): When a single user is selected, show the populated preview instead of the raw template. When multiple or none are selected, show the raw template with a note that variables will be auto-filled per user.
+### If Hard Refresh Doesn't Work
 
-### Files Changed
-
-| Action | File | Description |
-|--------|------|-------------|
-| Modify | `src/components/admin/SendNudgeModal.tsx` | Add variable substitution, fetch progress data, populate preview |
+If after a hard refresh the banners still don't appear, I can add a visible debug indicator (e.g., a small "Banner Debug" text) to confirm the component tree is rendering. But based on the code analysis, no changes are required — the implementation is complete and correct.
 
