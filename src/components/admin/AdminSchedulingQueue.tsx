@@ -17,6 +17,7 @@ interface PendingSchedulingRequest {
   visit_scheduling_status: string;
   phone_number?: string;
   visit_notes?: string;
+  care_urgency?: string;
 }
 
 interface AdminSchedulingQueueProps {
