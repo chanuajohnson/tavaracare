@@ -171,6 +171,22 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
     }
   };
 
+  const fetchLastActivity = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_journey_progress')
+        .select('last_activity_at')
+        .eq('user_id', user.id)
+        .limit(1)
+        .single();
+
+      if (!error && data?.last_activity_at) {
+        setLastActivityAt(data.last_activity_at);
+      }
+    } catch (err) {
+      console.error('Error fetching last activity:', err);
+    }
+
   const logNudgeSent = async (templateId: string) => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
