@@ -1,52 +1,37 @@
 
 
-## Add "Deal Breakers / Matching Requirements" to Professional & Family Registration
+## Fix User Name + Urgency Visibility Issues
 
-### Problem
-Professionals like Daniella can only specify a preferred location but have no way to state hard requirements like "only match me with families in San Fernando" or "only female patients." Similarly, families can't specify "must have a car" or "must be mature/experienced." These deal breakers are critical for preventing bad matches.
+### Problems Found
 
-### Approach
-Add a new **"Matching Requirements"** section to both registration forms with a free-text field plus common checkbox options. Store in a new `matching_requirements` text column on the `profiles` table. This keeps it simple — admin can review these requirements when making matches, and the matching algorithm can eventually parse them.
+1. **"User1 Family Family Family" should be "Leonie Peltier"**: Database record `7d850934` has wrong `full_name` and `care_urgency = null`.
+
+2. **Urgency badge not visible in UserDetailModal**: The modal checks `user.care_urgency`, but the `user` prop comes from `admin_get_all_profiles_secure` RPC which does NOT return `care_urgency`. The urgency data is available via `comprehensiveData.profile.care_urgency` but is not being used.
+
+3. **Admin user cards don't show urgency**: The `useAdminProfiles` hook calls `admin_get_all_profiles_secure` which doesn't include `care_urgency` in its return columns.
 
 ### Changes
 
-#### 1. Database migration — add `matching_requirements` column
-Add a `matching_requirements` text column (nullable) to `profiles` for both roles. This stores free-text deal breakers.
+#### 1. Database fix — correct Leonie's profile
+- Update `profiles` row `7d850934-a44f-4348-944b-ae7182dca237`:
+  - `full_name` → `'Leonie Peltier'`
+  - `care_urgency` → the value the user set (need to confirm what urgency was intended)
 
-```sql
-ALTER TABLE public.profiles 
-  ADD COLUMN IF NOT EXISTS matching_requirements text NULL;
-```
+#### 2. Update `admin_get_all_profiles_secure` RPC function
+Add `care_urgency` to the return type so admin cards and the modal have access to it.
 
-#### 2. Professional Registration (`src/pages/registration/ProfessionalRegistration.tsx`)
-- Add `matchingRequirements` state variable
-- Add a new card section before "Additional Information" titled **"Matching Preferences & Requirements"** with:
-  - Common checkboxes: "Only match me with families in my preferred location area", "I prefer female care recipients only", "I prefer male care recipients only", "I require families with reliable transportation/parking"
-  - Free-text textarea: "Any other deal breakers or hard requirements for matching?"
-- Save to `matching_requirements` in profileData on submit
-- Pre-populate in edit mode from existing profile data
+#### 3. Fix `UserDetailModal.tsx` urgency badge
+Change the urgency badge to read from `comprehensiveData?.profile?.care_urgency` instead of `user.care_urgency`, since `comprehensiveData` fetches `SELECT *` from profiles and will always have the field.
 
-#### 3. Family Registration (`src/pages/registration/FamilyRegistration.tsx`)
-- Add `matchingRequirements` state variable
-- Add a new card section before "Additional Notes" titled **"Caregiver Requirements & Deal Breakers"** with:
-  - Common checkboxes: "Caregiver must have own transportation", "Caregiver must be in my area", "I prefer a female caregiver", "I prefer a male caregiver", "Caregiver must have specific certifications"
-  - Free-text textarea: "Any other deal breakers or hard requirements?"
-- Save to `matching_requirements` in profileData on submit
-- Pre-populate in edit mode
-
-#### 4. Update `update_user_profile` RPC function
-Add `matching_requirements` field handling to the existing `update_user_profile` database function so it gets persisted.
-
-#### 5. Admin visibility
-Update `UserDetailModal.tsx` to display `matching_requirements` in the profile details so admin can see deal breakers when making matches.
+#### 4. Update `useAdminProfiles.ts` interface
+Add `care_urgency` to the `AdminProfile` interface so TypeScript is aware of the field.
 
 ### Files Changed
 
 | Action | Target | Description |
 |--------|--------|-------------|
-| Migrate | `profiles` table | Add `matching_requirements` text column |
-| Migrate | `update_user_profile` function | Add matching_requirements to the update function |
-| Modify | `ProfessionalRegistration.tsx` | Add "Matching Preferences" section with checkboxes + free text |
-| Modify | `FamilyRegistration.tsx` | Add "Caregiver Requirements" section with checkboxes + free text |
-| Modify | `UserDetailModal.tsx` | Display matching requirements in admin view |
+| Update | `profiles` row `7d850934` (database) | Fix full_name to "Leonie Peltier", set care_urgency |
+| Migrate | `admin_get_all_profiles_secure` function | Add `care_urgency` to return columns |
+| Modify | `src/components/admin/UserDetailModal.tsx` | Read urgency from `comprehensiveData.profile` instead of `user` prop |
+| Modify | `src/hooks/useAdminProfiles.ts` | Add `care_urgency` to `AdminProfile` interface |
 
