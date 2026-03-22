@@ -87,6 +87,18 @@ const ProfessionalDashboard = () => {
         {/* Quick Access Menu Bar - Only show when user is logged in */}
         {user && <ProfessionalShortcutMenuBar />}
 
+        {/* Family Awareness & Matching Readiness Banners */}
+        {user && (
+          <div className="mt-6 space-y-4">
+            <ErrorBoundary level="component" name="FamilyAwarenessBanner">
+              <ProfessionalFamilyAwarenessBanner />
+            </ErrorBoundary>
+            <ErrorBoundary level="component" name="MatchingReadinessBanner">
+              <ProfessionalMatchingReadinessBanner />
+            </ErrorBoundary>
+          </div>
+        )}
+
         {/* Add Chat Requests Section - Only for logged-in users */}
         {user && (
           <motion.div
