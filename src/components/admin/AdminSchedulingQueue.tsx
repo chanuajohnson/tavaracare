@@ -243,6 +243,9 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
                           </div>
                         </TableCell>
                         <TableCell>
+                          {getUrgencyBadge(request.care_urgency)}
+                        </TableCell>
+                        <TableCell>
                           {getVisitTypeBadge(request.preferred_visit_type)}
                           {(() => {
                             const notes = parseVisitNotes(request.visit_notes);
