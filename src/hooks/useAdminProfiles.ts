@@ -18,7 +18,7 @@ export interface AdminProfile {
   specialized_care: string[] | null;
   available_for_matching: boolean;
   email: string | null;
-  care_urgency: 'immediate' | 'within_week' | 'within_month' | 'flexible' | null;
+  care_urgency: 'immediate' | 'within_week' | 'within_month' | 'planning_ahead' | null;
 }
 
 export const useAdminProfiles = () => {
