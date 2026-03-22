@@ -553,7 +553,8 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
         caregiver_type: caregiverType || '',
         caregiver_preferences: caregiverPreferences || '',
         additional_notes: additionalNotes || '',
-        preferred_contact_method: preferredContactMethod || ''
+        preferred_contact_method: preferredContactMethod || '',
+        care_urgency: careUrgency || null
       };
 
       console.log('Updating family profile with data:', profileData);
