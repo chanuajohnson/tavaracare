@@ -211,6 +211,7 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
                             </div>
                             <div>
                               <div className="font-medium">{request.full_name}</div>
+                              <div className="text-xs text-muted-foreground font-mono">ID: {request.id.substring(0, 8)}</div>
                             </div>
                           </div>
                         </TableCell>
