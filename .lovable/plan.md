@@ -1,57 +1,38 @@
 
 
-## Enhance Professional Nudge Templates
+## Add "Care Urgency" Question to Family Registration + Display in Admin
+
+### Problem
+Neither the Family Registration nor Care Assessment asks families **how soon they need care**. The database already has a `care_urgency` enum (`immediate`, `within_week`, `within_month`, `flexible`) and a column on `user_journey_progress`, but nothing populates it. Admin has no way to prioritize families by urgency.
 
 ### Changes
 
-#### 1. Update "New Family On Tavara" template (`ccde653a`)
-Update the existing message to include family location context and match percentage urgency:
+#### 1. Add urgency question to Family Registration (`src/pages/registration/FamilyRegistration.tsx`)
+- Add a new field in Step 4 (Care Schedule step) asking: **"How soon do you need care to begin?"**
+- Options: Immediately / Within a week / Within a month / I'm flexible
+- Maps to enum values: `immediate`, `within_week`, `within_month`, `flexible`
+- Save to `user_journey_progress.urgency` on form submission
 
-> Hi [Name]! 💙 Chan from Tavara Care.
->
-> A new family in **[Location]** has just joined Tavara and is actively looking for care! Based on your profile, you could be a **[X]% match** — don't miss this opportunity.
->
-> ✅ To ensure you're considered for this match:
-> • Make sure your profile is fully completed
-> • Upload your ID and Police Certificate of Character
-> • Add your professional certifications
-> • Confirm your availability and service area
->
-> 💫 Families are matched with the most complete and responsive profiles first. Act quickly!
->
-> 🔗 Update your profile: https://tavaracare.lovable.app/dashboard/professional
->
-> Questions? Just reply here!
-> - Chan, Tavara Care 💙
+#### 2. Add urgency column to profiles table (database migration)
+- Add `care_urgency` column to `profiles` table (type: `care_urgency` enum, nullable)
+- This makes it queryable alongside other profile data without joining `user_journey_progress`
+- Update the registration save logic to write to `profiles.care_urgency`
 
-#### 2. Insert new "Profile & Availability Check" template
-New template (role: `professional`, stage: `availability_check`):
+#### 3. Display urgency in Admin User Detail Modal
+- Show urgency as a colored badge in the admin user journey modal header area
+- `immediate` = red badge, `within_week` = amber, `within_month` = blue, `flexible` = gray
+- Also show in the Admin Scheduling Queue so admin can prioritize
 
-> Hi [Name]! 👋 Chan from Tavara Care.
->
-> We're doing a quick check-in with our care professionals to make sure our records are up to date.
->
-> Could you please confirm:
-> 📍 Your current location/service area — is it still accurate?
-> ✅ Are you still available and open to new care assignments?
-> 📅 Any changes to your schedule or availability?
->
-> Keeping this updated helps us match you with the right families faster — and ensures you don't miss out on opportunities near you.
->
-> 🔗 Update here: https://tavaracare.lovable.app/dashboard/professional
->
-> Just reply to this message if anything has changed, or update your profile directly!
-> - Chan, Tavara Care 💙
-
-### Implementation
-- **Update**: `nudge_templates` row `ccde653a` — replace `message_template` with location/match-aware version
-- **Insert**: 1 new row into `nudge_templates` for "Profile & Availability Check"
-- No code file changes needed — the Nudge tab already picks up templates by role/stage dynamically
+#### 4. Display urgency in Admin Scheduling Queue (`src/components/admin/AdminSchedulingQueue.tsx`)
+- Add an "Urgency" column showing the family's care urgency level with color coding
+- Helps admin prioritize which families to schedule first
 
 ### Files Changed
 
 | Action | Target | Description |
 |--------|--------|-------------|
-| Update | `nudge_templates` (database) | Enhance "New Family On Tavara" with [Location] and [X]% placeholders |
-| Insert | `nudge_templates` (database) | New "Profile & Availability Check" template for professionals |
+| Migrate | `profiles` table | Add `care_urgency` column using existing enum |
+| Modify | `src/pages/registration/FamilyRegistration.tsx` | Add "How soon do you need care?" radio group in Step 4, save to profile |
+| Modify | `src/components/admin/AdminSchedulingQueue.tsx` | Show urgency badge in queue |
+| Modify | Admin user detail component | Show urgency badge in family user modal |
 
