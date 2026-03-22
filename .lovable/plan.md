@@ -1,32 +1,93 @@
 
 
-## Status: Professional Dashboard Awareness Banners
+## Add Family Journey Nudge Templates
 
-### Current Code Status — Everything is correct
+### Problem
+The nudge system only has family templates for steps 1-4 and "stalled". There are no templates for families who have progressed further — like Ana Maria (42%, has care plan, needs legacy story + visit scheduling) or Sarina (25%, needs legacy story + care plan). Existing templates will not be modified.
 
-The banners are properly implemented in `src/pages/dashboards/ProfessionalDashboard.tsx` (the active route file):
+### New Templates to Insert
 
-- **Lines 90-99**: Both banners render inside `{user && ...}` block, right after the Quick Access menu bar
-- **Blue banner** (`ProfessionalFamilyAwarenessBanner`): Calls `get_unmatched_family_count()` RPC — which returns 11 families — and renders when count > 0
-- **Amber banner** (`ProfessionalMatchingReadinessBanner`): Static UI with no data dependencies — should always render
-- Both are wrapped in `<ErrorBoundary>` for crash isolation
-- The route (`AppRoutes.tsx` line 114) correctly imports from `pages/dashboards/` (plural)
+All templates use `role: 'family'`, `message_type: 'whatsapp'` to match the proven professional template pattern with `[Name]` and `[X]%` auto-population.
 
-### Why They Are Not Visible
+| Template | Stage | For Users Like | Message Focus |
+|----------|-------|----------------|---------------|
+| Family Legacy Story | `step_5` | Ana Maria, Sarina | Encourage completing their loved one's legacy story — it helps caregivers provide personalized care |
+| Family Matched - Schedule Care | `step_6` | Ana Maria | Congratulate on being matched, prompt to schedule a one-time care visit or book a site visit |
+| Family Visit Scheduling | `step_7` | Any matched family | Prompt to schedule their home site visit with Tavara |
+| Family Budget Update | `budget_update` | Ana Maria (has $20-25 rate) | Friendly note that rates have been updated, encourage reviewing new tiers in their profile |
+| Family Re-engagement | `re_engagement` | Any inactive family | Warm check-in for families who haven't logged in recently |
 
-The console logs from your session contain **zero** `[FamilyAwarenessBanner]` entries — not even the "Component mounted" log at line 12, which runs before any async call. This means the component never mounts at all.
+### Template Messages
 
-Since the code, imports, types, and route are all correct, this points to a **stale preview build**. The browser is running an older compiled version that doesn't include these banner components.
+**Family Legacy Story (step_5)**:
+> Hi [Name]! 💙 Chan from Tavara Care.
+>
+> You're [X]% through your care journey — great progress! One important step remaining is your loved one's Legacy Story.
+>
+> This helps your caregiver understand who your loved one truly is — their favorite meals, music, routines, and what brings them joy. It makes such a difference in the quality of care they receive.
+>
+> 📖 Complete it here: https://tavaracare.lovable.app/family/story
+>
+> It only takes a few minutes and your caregiver will thank you for it!
+> - Chan, Tavara Care 💙
 
-### Recommended Fix
+**Family Matched - Schedule Care (step_6)**:
+> Hi [Name]! 🎉 Chan from Tavara Care.
+>
+> Great news — you've been matched with a professional caregiver! Your care team is taking shape.
+>
+> Your next step is to schedule a care visit so we can get started. You can:
+> ✅ Schedule a one-time care session
+> ✅ Book a home site visit with our team
+>
+> 📅 Visit your dashboard: https://tavaracare.lovable.app/dashboard/family
+>
+> We're excited to get your family the support they deserve!
+> - Chan, Tavara Care 💙
 
-No code changes needed. The fix is operational:
+**Family Visit Scheduling (step_7)**:
+> Hi [Name]! 👋 Chan from Tavara Care.
+>
+> Just checking in — have you had a chance to schedule your home site visit yet? This is where our team visits your home to finalize the care plan and ensure everything is set up perfectly.
+>
+> 📅 Schedule here: https://tavaracare.lovable.app/family/visit-scheduling
+>
+> It's a quick and easy process. We're here to help every step of the way!
+> - Chan, Tavara Care 💙
 
-1. **Hard refresh the preview** (Cmd+Shift+R) to force the browser to load the latest build
-2. After refresh, check the console for `[FamilyAwarenessBanner] Component mounted` — if it appears, the banners are loading
-3. If the RPC returns data (`count: 11`), the blue banner will show; the amber banner should always show
+**Family Budget Update (budget_update)**:
+> Hi [Name]! 💙 Chan from Tavara Care.
+>
+> We've updated our care rate options to better reflect the professional standards of certified caregivers in Trinidad & Tobago:
+>
+> 💰 $35/hr — Standard: Companionship, medication reminders, light meal prep
+> ⭐ $40/hr — Full Service (Recommended): GAPP-certified care including meals, light cleaning, personal care
+> 👑 $45+/hr — Premium: Specialized or complex medical care
+>
+> Please take a moment to update your budget preferences in your profile to ensure we match you with the right level of care.
+>
+> 🔗 Update here: https://tavaracare.lovable.app/dashboard/family
+> - Chan, Tavara Care 💙
 
-### If Hard Refresh Doesn't Work
+**Family Re-engagement (re_engagement)**:
+> Hi [Name]! 👋 Chan from Tavara Care.
+>
+> We noticed it's been a little while since you visited Tavara. Your care journey is [X]% complete — you're so close!
+>
+> Our caregivers are ready and waiting to support your family. Let's pick up where you left off.
+>
+> 🔗 Continue here: https://tavaracare.lovable.app/dashboard/family
+>
+> Need help? Just reply to this message and we'll guide you through it!
+> - Chan, Tavara Care 💙
 
-If after a hard refresh the banners still don't appear, I can add a visible debug indicator (e.g., a small "Banner Debug" text) to confirm the component tree is rendering. But based on the code analysis, no changes are required — the implementation is complete and correct.
+### Implementation
+
+**Single SQL insert** into `nudge_templates` table with 5 new rows. No code changes needed — the existing WhatsApp template manager and SendNudgeModal already support these templates with auto-populated variables.
+
+### Files Changed
+
+| Action | File | Description |
+|--------|------|-------------|
+| Insert | `nudge_templates` (database) | 5 new family nudge templates for steps 5-7, budget update, and re-engagement |
 
