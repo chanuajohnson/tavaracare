@@ -11,7 +11,7 @@ import { openFamilyWhatsApp } from '@/utils/whatsapp/openFamilyWhatsApp';
 interface ProfessionalFamilyMatchModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onChatWithFamily?: (family: any) => void;
+  onChatWithFamily?: (family: any) => void; // preserved for future use
 }
 
 export const ProfessionalFamilyMatchModal = ({ 
