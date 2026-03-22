@@ -1,40 +1,32 @@
 
 
-## Add Nudge Tab to Admin User Detail Modal
+## Fix: Update Family Step 6 Nudge Template to Match Actual Scheduling Options
 
-### What This Does
-Adds a "Nudge" tab to the user detail modal (between Reports and Activity) that shows all nudge templates relevant to that user's role and journey stage, with the ability to send them directly via WhatsApp — plus a link to the full nudge management page and a create template shortcut.
+### Problem
+The step_6 nudge says "Schedule a one-time care session" and "Book a home site visit" — but the actual scheduling modal offers **Trial Day ($320 TTD for 8hrs)** and **Hire Immediately (from $40/hr)**, plus a free 30-minute virtual consultation.
+
+### Fix
+Update the `message_template` for the existing step_6 nudge template (id: `55a35235-906c-4306-ac5a-25ce48e987e6`) with the correct options:
+
+**Updated message:**
+> Hi [Name]! 🎉 Chan from Tavara Care.
+>
+> Great news — you've been matched with a professional caregiver! Your care team is taking shape.
+>
+> Your next step is to schedule care. Here are your options:
+> 💰 Trial Day — $320 TTD for a full 8-hour day with your matched caregiver (credit applies if you subscribe!)
+> ⭐ Hire Immediately — Ongoing care starting from $40/hr
+> 📞 Not sure yet? Book a free 30-minute virtual consultation first
+>
+> 📅 Get started here: https://tavaracare.lovable.app/dashboard/family
+>
+> We're excited to get your family the support they deserve!
+> - Chan, Tavara Care 💙
 
 ### Implementation
+Single `UPDATE` on `nudge_templates` table — no code changes needed.
 
-#### 1. Create `src/components/admin/UserNudgeTab.tsx` (new component)
-
-A self-contained tab component that receives the user object and their journey progress. It will:
-
-- **Fetch templates** from `nudge_templates` filtered by the user's role
-- **Group templates** into two sections:
-  - "Recommended for this stage" — templates whose `stage` matches the user's current or next step (e.g., `step_5`, `step_6`)
-  - "All available templates" — remaining templates for that role
-- **Show each template** as a card with:
-  - Template name + stage badge
-  - Personalized message preview (auto-populated with `[Name]`, `[X]%`, `[Role]`)
-  - "Send via WhatsApp" button that opens WhatsApp with the populated message to the Tavara business number (18687865357)
-- **Footer links**:
-  - "Manage All Templates" → navigates to `/admin/whatsapp-nudge`
-  - "+ Create Template" → navigates to `/admin/whatsapp-nudge` (the create modal already exists there)
-- **Empty state**: If no templates exist for the role, show a message with a link to create one
-
-#### 2. Modify `src/components/admin/UserDetailModal.tsx`
-
-- Import `UserNudgeTab`
-- Add `<TabsTrigger value="nudge">Nudge</TabsTrigger>` before "Activity" in the tabs list (line 334)
-- Update `grid-cols-5` to `grid-cols-6` to accommodate the new tab
-- Add `<TabsContent value="nudge">` with the `UserNudgeTab` component, passing user data, phone, role, and journey progress
-
-### Files Changed
-
-| Action | File | Description |
-|--------|------|-------------|
-| Create | `src/components/admin/UserNudgeTab.tsx` | Nudge tab showing role-filtered templates with WhatsApp send |
-| Modify | `src/components/admin/UserDetailModal.tsx` | Add Nudge tab trigger and content |
+| Action | Target | Description |
+|--------|--------|-------------|
+| Update | `nudge_templates` row `55a35235...` | Fix step_6 message to reflect Trial Day / Hire Immediately options |
 
