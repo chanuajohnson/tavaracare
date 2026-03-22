@@ -13,7 +13,7 @@ import { Slider } from "@/components/ui/slider";
 import { useTracking } from "@/hooks/useTracking";
 import { toast } from "sonner";
 import { useFamilyMatches } from "@/hooks/useFamilyMatches";
-import { ProfessionalFamilyChatModal } from "./ProfessionalFamilyChatModal";
+import { openFamilyWhatsApp } from '@/utils/whatsapp/openFamilyWhatsApp';
 import { VideoAvailabilityToggle } from "./VideoAvailabilityToggle";
 import { ProfessionalFamilyMatchModal } from "./ProfessionalFamilyMatchModal";
 
@@ -137,8 +137,7 @@ export const DashboardFamilyMatches = () => {
       family_id: family.id,
       source: 'dashboard_widget'
     });
-    setSelectedFamily(family);
-    setShowChatModal(true);
+    openFamilyWhatsApp(family.full_name, family.match_score, family.location);
   };
 
   const getCompatibilityColor = (score: number) => {
@@ -407,14 +406,7 @@ export const DashboardFamilyMatches = () => {
         </CardContent>
       </Card>
 
-      {/* Professional Family Chat Modal */}
-      {selectedFamily && (
-        <ProfessionalFamilyChatModal
-          open={showChatModal}
-          onOpenChange={setShowChatModal}
-          family={selectedFamily}
-        />
-      )}
+      {/* Chat now routes directly to WhatsApp via openFamilyWhatsApp */}
 
       {/* Professional Family Match Modal */}
       <ProfessionalFamilyMatchModal
