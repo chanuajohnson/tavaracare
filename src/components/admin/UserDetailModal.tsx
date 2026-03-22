@@ -342,9 +342,21 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>Profile Information</span>
-                  <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'professional' ? 'default' : 'secondary'}>
-                    {user.role}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {user.role === 'family' && user.care_urgency && (() => {
+                      const urgencyConfig: Record<string, { className: string; label: string }> = {
+                        immediate: { className: 'bg-red-100 text-red-800 border-red-200', label: '🚨 Immediate' },
+                        within_week: { className: 'bg-amber-100 text-amber-800 border-amber-200', label: '📅 Within a week' },
+                        within_month: { className: 'bg-blue-100 text-blue-800 border-blue-200', label: '🗓️ Within a month' },
+                        flexible: { className: 'text-muted-foreground', label: '⏳ Flexible' },
+                      };
+                      const config = urgencyConfig[user.care_urgency];
+                      return config ? <Badge className={config.className}>{config.label}</Badge> : null;
+                    })()}
+                    <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'professional' ? 'default' : 'secondary'}>
+                      {user.role}
+                    </Badge>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">

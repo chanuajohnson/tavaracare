@@ -3206,6 +3206,7 @@ export type Database = {
           care_schedule: string | null
           care_services: string[] | null
           care_types: string[] | null
+          care_urgency: Database["public"]["Enums"]["care_urgency"] | null
           caregiver_preferences: string | null
           caregiver_type: string | null
           caregiving_areas: string[] | null
@@ -3300,6 +3301,7 @@ export type Database = {
           care_schedule?: string | null
           care_services?: string[] | null
           care_types?: string[] | null
+          care_urgency?: Database["public"]["Enums"]["care_urgency"] | null
           caregiver_preferences?: string | null
           caregiver_type?: string | null
           caregiving_areas?: string[] | null
@@ -3394,6 +3396,7 @@ export type Database = {
           care_schedule?: string | null
           care_services?: string[] | null
           care_types?: string[] | null
+          care_urgency?: Database["public"]["Enums"]["care_urgency"] | null
           caregiver_preferences?: string | null
           caregiver_type?: string | null
           caregiving_areas?: string[] | null

@@ -17,6 +17,7 @@ interface PendingSchedulingRequest {
   visit_scheduling_status: string;
   phone_number?: string;
   visit_notes?: string;
+  care_urgency?: string;
 }
 
 interface AdminSchedulingQueueProps {
@@ -37,7 +38,7 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, preferred_visit_type, admin_scheduling_requested_at, visit_scheduling_status, phone_number, visit_notes')
+        .select('id, full_name, preferred_visit_type, admin_scheduling_requested_at, visit_scheduling_status, phone_number, visit_notes, care_urgency')
         .eq('ready_for_admin_scheduling', true)
         .eq('visit_scheduling_status', 'ready_to_schedule')
         .order('admin_scheduling_requested_at', { ascending: true });
@@ -60,7 +61,8 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
         admin_scheduling_requested_at: request.admin_scheduling_requested_at || new Date().toISOString(),
         visit_scheduling_status: request.visit_scheduling_status || 'ready_to_schedule',
         phone_number: request.phone_number || undefined,
-        visit_notes: request.visit_notes || undefined
+        visit_notes: request.visit_notes || undefined,
+        care_urgency: request.care_urgency || undefined
       }));
       
       setPendingRequests(transformedRequests);
@@ -108,6 +110,21 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
   const parseVisitNotes = (notes?: string) => {
     if (!notes) return null;
     try { return JSON.parse(notes); } catch { return null; }
+  };
+
+  const getUrgencyBadge = (urgency?: string) => {
+    switch (urgency) {
+      case 'immediate':
+        return <Badge className="bg-red-100 text-red-800 border-red-200">🚨 Immediate</Badge>;
+      case 'within_week':
+        return <Badge className="bg-amber-100 text-amber-800 border-amber-200">📅 Within a week</Badge>;
+      case 'within_month':
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">🗓️ Within a month</Badge>;
+      case 'flexible':
+        return <Badge variant="outline" className="text-muted-foreground">⏳ Flexible</Badge>;
+      default:
+        return <Badge variant="outline" className="text-muted-foreground">Not set</Badge>;
+    }
   };
 
   if (loading) {
@@ -196,6 +213,7 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
                     <TableRow>
                       <TableHead>Family</TableHead>
                       <TableHead>Contact</TableHead>
+                      <TableHead>Urgency</TableHead>
                       <TableHead>Visit Type</TableHead>
                       <TableHead>Requested</TableHead>
                       <TableHead>Actions</TableHead>
@@ -223,6 +241,9 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
                               <div className="text-gray-400">No phone provided</div>
                             )}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {getUrgencyBadge(request.care_urgency)}
                         </TableCell>
                         <TableCell>
                           {getVisitTypeBadge(request.preferred_visit_type)}

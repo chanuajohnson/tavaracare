@@ -68,6 +68,7 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
   const [caregiverPreferences, setCaregiverPreferences] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [preferredContactMethod, setPreferredContactMethod] = useState('');
+  const [careUrgency, setCareUrgency] = useState('');
   
   const [prefillApplied, setPrefillApplied] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
@@ -154,6 +155,7 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
         setCaregiverPreferences(profile.caregiver_preferences || '');
         setAdditionalNotes(profile.additional_notes || '');
         setPreferredContactMethod(profile.preferred_contact_method || '');
+        setCareUrgency((profile as any).care_urgency || '');
         
         console.log('✅ Form populated with profile data');
         
@@ -551,7 +553,8 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
         caregiver_type: caregiverType || '',
         caregiver_preferences: caregiverPreferences || '',
         additional_notes: additionalNotes || '',
-        preferred_contact_method: preferredContactMethod || ''
+        preferred_contact_method: preferredContactMethod || '',
+        care_urgency: careUrgency || null
       };
 
       console.log('Updating family profile with data:', profileData);
@@ -1130,6 +1133,33 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
                 {validationErrors.some(e => e.includes('care schedule')) && (
                   <p className="text-sm text-red-600 mt-1">Please select at least one care schedule option</p>
                 )}
+              </div>
+
+              {/* Care Urgency */}
+              <div className="space-y-4 pt-4 border-t">
+                <Label className="text-base font-medium">⏰ How soon do you need care to begin?</Label>
+                <p className="text-sm text-muted-foreground">This helps our team prioritize matching you with the right caregiver.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { value: 'immediate', label: '🚨 Immediately', description: 'I need care as soon as possible' },
+                    { value: 'within_week', label: '📅 Within a week', description: 'Care is needed in the next 7 days' },
+                    { value: 'within_month', label: '🗓️ Within a month', description: 'I have some time to plan' },
+                    { value: 'flexible', label: '⏳ I\'m flexible', description: 'No rush, exploring options' },
+                  ].map((option) => (
+                    <div
+                      key={option.value}
+                      onClick={() => setCareUrgency(option.value)}
+                      className={`cursor-pointer rounded-lg border-2 p-4 transition-all ${
+                        careUrgency === option.value
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          : 'border-border hover:border-primary/40'
+                      }`}
+                    >
+                      <div className="font-medium text-sm">{option.label}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{option.description}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
