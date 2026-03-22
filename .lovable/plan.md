@@ -1,34 +1,36 @@
 
 
-## Fix: Professional Dashboard Build Error Blocking Banners
+## Fix: Auto-Populate Template Variables When Sending WhatsApp Nudges
 
-### Root Cause
+### Problem
+When admin clicks "Send WhatsApp" on a nudge template, the message is sent raw with `[Name]`, `[X]%` and other placeholders still visible. No variable substitution happens.
 
-The console shows an HMR failure for `DashboardFamilyMatches.tsx`. When this component fails to load, the entire `ProfessionalDashboard` page crashes — taking the banners down with it, even though the banner components and data are both correct.
+### Solution
+In `SendNudgeModal.tsx`, replace placeholders with real user data before opening WhatsApp. Also fetch registration progress to populate `[X]%`.
 
-- The RPC `get_unmatched_family_count()` returns **11 families** — the blue banner should show
-- The amber banner has zero data dependencies — it should always show
-- Both are correctly placed in `ProfessionalDashboard.tsx` at lines 145-146
+### Variable Mapping
 
-### Fix: Two-part approach
+| Placeholder | Source |
+|-------------|--------|
+| `[Name]` | `user.full_name?.split(' ')[0]` (first name) |
+| `[X]` | `registration_progress.completed_step_count / total_steps * 100` |
+| `[Role]` | `user.role` |
 
-#### 1. Wrap `DashboardFamilyMatches` in an error boundary
+### Changes
 
-Add a try/catch wrapper in `ProfessionalDashboard.tsx` so that if `DashboardFamilyMatches` fails to render, it shows a fallback instead of crashing the entire page. This protects the banners and all other dashboard sections.
+#### 1. `src/components/admin/SendNudgeModal.tsx`
 
-#### 2. Verify `DashboardFamilyMatches.tsx` has no lingering import/syntax issues
+**Expand user data fetch** (line 49-59): Also query `registration_progress` to get `completed_step_count` and `total_steps` per user. Store as a lookup map `progressMap[userId] = percentage`.
 
-The HMR error suggests a transient issue from the last edit cycle. Verify the file compiles cleanly — check all imports resolve, especially `openFamilyWhatsApp` and `ProfessionalFamilyMatchModal`. If there's a stale reference to `ProfessionalFamilyChatModal` (which was removed), remove it.
+**Add `populateTemplate` function**: Takes the raw template message and a user object, returns the message with all `[Name]`, `[X]`, `[Role]` placeholders replaced with actual values. Falls back gracefully if data is missing (e.g. `[X]` → `100` if no progress record found, meaning they completed registration).
 
-#### 3. Add defensive logging to banners
+**Update `sendWhatsAppToUser`** (line 97-107): Call `populateTemplate(template.message, user)` before encoding into the WhatsApp URL.
 
-Add a `console.log` at mount time in `ProfessionalFamilyAwarenessBanner` to confirm it's rendering, and log the RPC result. This provides visibility if the issue recurs.
+**Update message preview** (line 151-153): When a single user is selected, show the populated preview instead of the raw template. When multiple or none are selected, show the raw template with a note that variables will be auto-filled per user.
 
 ### Files Changed
 
 | Action | File | Description |
 |--------|------|-------------|
-| Modify | `src/pages/dashboard/ProfessionalDashboard.tsx` | Wrap `DashboardFamilyMatches` in error boundary to protect banners |
-| Modify | `src/components/professional/DashboardFamilyMatches.tsx` | Verify/fix any stale imports causing build failure |
-| Modify | `src/components/professional/ProfessionalFamilyAwarenessBanner.tsx` | Add mount-time debug logging |
+| Modify | `src/components/admin/SendNudgeModal.tsx` | Add variable substitution, fetch progress data, populate preview |
 
