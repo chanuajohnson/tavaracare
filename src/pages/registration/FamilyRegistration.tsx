@@ -155,7 +155,7 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
         setCaregiverPreferences(profile.caregiver_preferences || '');
         setAdditionalNotes(profile.additional_notes || '');
         setPreferredContactMethod(profile.preferred_contact_method || '');
-        setCareUrgency(profile.care_urgency || '');
+        setCareUrgency((profile as any).care_urgency || '');
         
         console.log('✅ Form populated with profile data');
         
