@@ -117,10 +117,58 @@ export const ScheduleVisitModal = ({
     setIsSubmitting(false);
   };
 
-  const handleOpenChange = (open: boolean) => {
-    if (!open) resetModal();
-    onOpenChange(open);
+  const handleOpenChange = (openState: boolean) => {
+    if (!openState) resetModal();
+    onOpenChange(openState);
   };
+
+  const openWhatsAppAdmin = () => {
+    const text = `Hi Tavara! I'd like to check on my care scheduling request. My name is ${user?.email || 'a family member'}.`;
+    const url = `https://api.whatsapp.com/send/?phone=18687865357&text=${encodeURIComponent(text)}&type=phone_number&app_absent=0`;
+    window.open(url, '_blank');
+  };
+
+  if (checkingStatus) {
+    return (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="max-w-md">
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  if (alreadyScheduled && !isConfirmed) {
+    return (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="max-w-md">
+          <div className="text-center py-6 space-y-4">
+            <CheckCircle className="h-14 w-14 text-green-500 mx-auto" />
+            <h3 className="text-xl font-semibold text-foreground">
+              Care Request Already Submitted!
+            </h3>
+            <p className="text-muted-foreground">
+              Your care request has already been submitted. Our admin team is reviewing it and will be in touch within 24 hours.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Need to talk to someone right away? Message us directly on WhatsApp.
+            </p>
+            <div className="flex flex-col gap-2 pt-2">
+              <Button onClick={openWhatsAppAdmin} className="gap-2">
+                <MessageCircle className="h-4 w-4" />
+                Message Us on WhatsApp
+              </Button>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   if (isConfirmed) {
     return (
