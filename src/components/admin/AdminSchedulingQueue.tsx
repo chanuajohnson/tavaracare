@@ -213,6 +213,7 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
                     <TableRow>
                       <TableHead>Family</TableHead>
                       <TableHead>Contact</TableHead>
+                      <TableHead>Urgency</TableHead>
                       <TableHead>Visit Type</TableHead>
                       <TableHead>Requested</TableHead>
                       <TableHead>Actions</TableHead>
