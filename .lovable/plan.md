@@ -1,26 +1,49 @@
 
 
-## Backfill Ana's Nudge History in admin_communications
+## Fix Schedule Redirect, Enhance Deactivation Flow, and Add Unavailability Nudge
 
-### Problem
-Ana (9874b53e) was sent 2 nudges today (step_6 "Schedule Care" and "Budget Update") but the admin_communications table has zero records for her — because the nudges were sent before the logging fix was deployed. The smart alert incorrectly shows "Inactive 5 days, never nudged."
+### Problems
+1. **Schedule button does nothing**: `handleScheduleVisit` just shows a toast with "Redirecting to visit scheduling..." but never navigates — it's a TODO stub.
+2. **No post-deactivation workflow**: When admin deactivates a caregiver (e.g., Carlene), there's no option to suggest the next best match or notify the family.
+3. **No "caregiver unavailable" nudge template**: Admin needs a template to notify families when a matched caregiver becomes unavailable.
 
-### Fix
-Insert 2 records into `admin_communications` to reflect what was actually sent today:
+### Changes
 
-| Template | Template ID | Sent At |
-|----------|-------------|---------|
-| Family Matched - Schedule Care | `55a35235-906c-4306-ac5a-25ce48e987e6` | 2026-03-22 09:40 (approx) |
-| Family Budget Update | `93c237a5-29d9-422a-9fd8-66f69f9111dc` | 2026-03-22 09:44 (approx) |
+#### 1. Fix Schedule button redirect (`src/components/admin/UserMatchingActions.tsx`)
+- Import `useNavigate` from react-router-dom
+- In `handleScheduleVisit`, navigate to `/admin/visit-schedule` with the family user ID and caregiver info as query params or state
+- The admin scheduling page already exists and supports preselected users
 
-Admin ID: `6d089663-8794-444e-99fa-ae480d3f3c35`
+#### 2. Enhance Deactivate flow (`src/components/admin/UserMatchingActions.tsx`)
+- Replace the instant deactivate with a confirmation dialog that includes:
+  - A checkbox: "Suggest next best available match" (checked by default)
+  - A checkbox: "Send unavailability nudge to family" (checked by default)
+- On confirm:
+  - Deactivate the assignment as before
+  - If "suggest next best" is checked: open the Manual Match interface automatically so admin can assign the replacement
+  - If "send nudge" is checked: open WhatsApp with the pre-filled unavailability message to the family's phone
 
-### Implementation
-Single SQL migration inserting 2 rows into `admin_communications`. No code changes needed — after this, the Nudge tab alert will show "Last nudged 0 days ago" (green).
+#### 3. Add "Caregiver Unavailable" nudge template (database insert)
+New template in `nudge_templates`:
+- **Name**: "Caregiver Unavailable - Next Match"
+- **Role**: `family`
+- **Stage**: `caregiver_change`
+- **Message**:
+  > Hi [Name]! 💙 Chan from Tavara Care.
+  >
+  > We wanted to let you know that one of your matched caregivers is temporarily unavailable. Don't worry — we've already identified your next best match and are working to get them assigned.
+  >
+  > Our admin team will be in touch shortly with your updated care team details.
+  >
+  > 🔗 View your matches: https://tavaracare.lovable.app/family/matching
+  >
+  > Need to talk? Just reply here and we'll help right away!
+  > - Chan, Tavara Care 💙
 
 ### Files Changed
 
-| Action | Target | Description |
-|--------|--------|-------------|
-| Insert | `admin_communications` (database) | 2 records for Ana's nudges sent today |
+| Action | File | Description |
+|--------|------|-------------|
+| Modify | `src/components/admin/UserMatchingActions.tsx` | Fix schedule redirect to `/admin/visit-schedule`; add deactivation confirmation dialog with "suggest next match" and "send nudge" checkboxes |
+| Insert | `nudge_templates` (database) | 1 new "Caregiver Unavailable" family nudge template |
 
