@@ -121,12 +121,16 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
   const [templates, setTemplates] = useState<NudgeTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastNudgedAt, setLastNudgedAt] = useState<string | null>(null);
+  const [lastActivityAt, setLastActivityAt] = useState<string | undefined>(journeyProgress.lastActivityAt);
   const [nudgeLoading, setNudgeLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchTemplates();
     fetchLastNudged();
+    if (!journeyProgress.lastActivityAt) {
+      fetchLastActivity();
+    }
   }, [user.id, user.role]);
 
   const fetchTemplates = async () => {
