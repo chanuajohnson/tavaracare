@@ -13,7 +13,7 @@ import { Slider } from "@/components/ui/slider";
 import { useTracking } from "@/hooks/useTracking";
 import { toast } from "sonner";
 import { useFamilyMatches } from "@/hooks/useFamilyMatches";
-import { ProfessionalFamilyChatModal } from "./ProfessionalFamilyChatModal";
+import { openFamilyWhatsApp } from '@/utils/whatsapp/openFamilyWhatsApp';
 import { VideoAvailabilityToggle } from "./VideoAvailabilityToggle";
 import { ProfessionalFamilyMatchModal } from "./ProfessionalFamilyMatchModal";
 
