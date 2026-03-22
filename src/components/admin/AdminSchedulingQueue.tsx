@@ -38,7 +38,7 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, preferred_visit_type, admin_scheduling_requested_at, visit_scheduling_status, phone_number, visit_notes')
+        .select('id, full_name, preferred_visit_type, admin_scheduling_requested_at, visit_scheduling_status, phone_number, visit_notes, care_urgency')
         .eq('ready_for_admin_scheduling', true)
         .eq('visit_scheduling_status', 'ready_to_schedule')
         .order('admin_scheduling_requested_at', { ascending: true });
