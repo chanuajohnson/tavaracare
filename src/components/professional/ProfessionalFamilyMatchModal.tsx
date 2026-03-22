@@ -193,14 +193,12 @@ export const ProfessionalFamilyMatchModal = ({
                   variant="default" 
                   className="w-full flex items-center gap-2"
                   onClick={() => {
-                    if (onChatWithFamily) {
-                      onChatWithFamily(bestMatch);
-                    }
+                    openFamilyWhatsApp(bestMatch.full_name, bestMatch.match_score, bestMatch.location);
                     onOpenChange(false);
                   }}
                 >
                   <MessageCircle className="h-4 w-4" />
-                  Start Conversation
+                  Chat on WhatsApp
                 </Button>
                 
                 <Button 

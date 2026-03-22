@@ -406,14 +406,7 @@ export const DashboardFamilyMatches = () => {
         </CardContent>
       </Card>
 
-      {/* Professional Family Chat Modal */}
-      {selectedFamily && (
-        <ProfessionalFamilyChatModal
-          open={showChatModal}
-          onOpenChange={setShowChatModal}
-          family={selectedFamily}
-        />
-      )}
+      {/* Chat now routes directly to WhatsApp via openFamilyWhatsApp */}
 
       {/* Professional Family Match Modal */}
       <ProfessionalFamilyMatchModal

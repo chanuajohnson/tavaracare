@@ -61,30 +61,9 @@ export const ProfessionalFamilyChatModal = ({ open, onOpenChange, family }: Prof
   };
 
   const handleSendRequest = async () => {
-    if (!customMessage.trim()) {
-      toast.error('Please enter a message');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const result = await ProfessionalFamilyChatService.sendChatRequest(
-        family.id,
-        customMessage.trim()
-      );
-
-      if (result.success) {
-        setStep('sent');
-        toast.success('Chat request sent successfully!');
-      } else {
-        toast.error(result.error || 'Failed to send chat request');
-      }
-    } catch (error) {
-      console.error('Error sending chat request:', error);
-      toast.error('Failed to send chat request');
-    } finally {
-      setIsSubmitting(false);
-    }
+    openFamilyWhatsApp(family.full_name, family.match_score, family.location);
+    setStep('sent');
+    toast.success('Opening WhatsApp to connect with this family!');
   };
 
   const handleClose = () => {

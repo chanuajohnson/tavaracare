@@ -216,10 +216,13 @@ export const ProfessionalFamilyMatchingModal = ({
                 <Button 
                   variant="default" 
                   className="w-full flex items-center gap-2"
-                  onClick={handleSkipToRegistration}
+                  onClick={() => {
+                    openFamilyWhatsApp(bestMatch.full_name, bestMatch.match_score, bestMatch.location);
+                    onOpenChange(false);
+                  }}
                 >
                   <MessageCircle className="h-4 w-4" />
-                  Connect with Family
+                  Chat on WhatsApp
                 </Button>
                 
                 <Button 
