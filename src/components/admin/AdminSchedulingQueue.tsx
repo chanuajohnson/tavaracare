@@ -61,7 +61,8 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
         admin_scheduling_requested_at: request.admin_scheduling_requested_at || new Date().toISOString(),
         visit_scheduling_status: request.visit_scheduling_status || 'ready_to_schedule',
         phone_number: request.phone_number || undefined,
-        visit_notes: request.visit_notes || undefined
+        visit_notes: request.visit_notes || undefined,
+        care_urgency: request.care_urgency || undefined
       }));
       
       setPendingRequests(transformedRequests);
