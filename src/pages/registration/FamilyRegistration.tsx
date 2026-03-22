@@ -68,6 +68,7 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
   const [caregiverPreferences, setCaregiverPreferences] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [preferredContactMethod, setPreferredContactMethod] = useState('');
+  const [careUrgency, setCareUrgency] = useState('');
   
   const [prefillApplied, setPrefillApplied] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
