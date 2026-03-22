@@ -192,7 +192,11 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const adminId = sessionData?.session?.user?.id;
-      if (!adminId) return;
+      if (!adminId) {
+        console.error('Cannot log nudge: admin session not found');
+        toast.error('Nudge logging failed — admin session not found. Please re-login.');
+        return;
+      }
 
       const { error } = await supabase.from('admin_communications').insert({
         admin_id: adminId,
@@ -205,12 +209,14 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
 
       if (error) {
         console.error('Error logging nudge:', error);
+        toast.error(`Nudge logging failed: ${error.message}`);
       } else {
         // Update local state so alert refreshes immediately
         setLastNudgedAt(new Date().toISOString());
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error logging nudge:', err);
+      toast.error(`Nudge logging failed: ${err.message || 'Unknown error'}`);
     }
   };
 
