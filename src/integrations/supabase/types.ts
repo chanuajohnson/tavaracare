@@ -5224,6 +5224,7 @@ export type Database = {
           available_for_matching: boolean
           avatar_url: string
           care_types: string[]
+          care_urgency: Database["public"]["Enums"]["care_urgency"]
           created_at: string
           email: string
           full_name: string
