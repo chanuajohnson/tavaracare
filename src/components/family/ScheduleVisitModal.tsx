@@ -33,6 +33,38 @@ export const ScheduleVisitModal = ({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [alreadyScheduled, setAlreadyScheduled] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(true);
+
+  // Check if user has already submitted a scheduling request
+  useEffect(() => {
+    const checkSchedulingStatus = async () => {
+      if (!user || !open) {
+        setCheckingStatus(false);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('visit_scheduling_status, ready_for_admin_scheduling')
+          .eq('id', user.id)
+          .single();
+
+        if (!error && data) {
+          setAlreadyScheduled(
+            data.visit_scheduling_status === 'ready_to_schedule' ||
+            data.visit_scheduling_status === 'scheduled' ||
+            data.ready_for_admin_scheduling === true
+          );
+        }
+      } catch (err) {
+        console.error('Error checking scheduling status:', err);
+      } finally {
+        setCheckingStatus(false);
+      }
+    };
+    checkSchedulingStatus();
+  }, [user, open]);
 
   const handleRequestScheduling = async () => {
     if (!user) return;
