@@ -791,6 +791,22 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
             </Card>
           </TabsContent>
 
+          <TabsContent value="nudge" className="space-y-4">
+            <UserNudgeTab
+              user={{
+                id: user.id,
+                full_name: user.full_name || '',
+                role: user.role || 'family',
+                phone_number: user.phone_number,
+              }}
+              journeyProgress={{
+                completionPercentage: journeyProgress.completionPercentage || 0,
+                currentStep: journeyProgress.steps?.filter((s: any) => s.completed).length + 1 || 1,
+                steps: journeyProgress.steps || [],
+              }}
+            />
+          </TabsContent>
+
           <TabsContent value="activity" className="space-y-4">
             <Card>
               <CardHeader>
