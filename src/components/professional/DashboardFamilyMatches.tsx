@@ -137,8 +137,7 @@ export const DashboardFamilyMatches = () => {
       family_id: family.id,
       source: 'dashboard_widget'
     });
-    setSelectedFamily(family);
-    setShowChatModal(true);
+    openFamilyWhatsApp(family.full_name, family.match_score, family.location);
   };
 
   const getCompatibilityColor = (score: number) => {
