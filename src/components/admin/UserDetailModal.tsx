@@ -18,6 +18,7 @@ import { useUserSpecificProgress } from '@/hooks/useUserSpecificProgress';
 import { useComprehensiveUserData } from '@/hooks/admin/useComprehensiveUserData';
 import { downloadUserReport, type ReportOptions } from '@/services/admin/userReportGenerator';
 import type { UserRole } from '@/types/userRoles';
+import { UserNudgeTab } from './UserNudgeTab';
 
 // Import formatting functions from the PDF generator to ensure UI consistency
 const formatCareSchedule = (careSchedule: string | null): string => {
