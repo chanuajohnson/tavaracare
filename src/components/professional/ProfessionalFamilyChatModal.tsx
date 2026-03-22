@@ -108,10 +108,14 @@ export const ProfessionalFamilyChatModal = ({ open, onOpenChange, family }: Prof
               <div className="flex items-center gap-3">
                 <Avatar className="h-12 w-12">
                   <AvatarImage src={family.avatar_url} />
-                  <AvatarFallback>F</AvatarFallback>
+                  <AvatarFallback>
+                    {family.full_name
+                      ? family.full_name.split(' ').filter(Boolean).map((p: string) => p[0]).join('').substring(0, 2).toUpperCase()
+                      : 'FM'}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-semibold">Family Member</h3>
+                  <h3 className="font-semibold">{family.full_name?.split(' ')[0] || 'Family'}</h3>
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <MapPin className="h-3 w-3" />
                     {family.location}
