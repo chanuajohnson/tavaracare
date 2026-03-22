@@ -1,60 +1,34 @@
 
 
-## Fix Professional-Side Family Modals: Personalize + Route All Chats to WhatsApp
+## Fix: Professional Dashboard Build Error Blocking Banners
 
-### Changes Overview
+### Root Cause
 
-Three issues to fix across four files:
-1. Family match modals show "F" initials and "Family Member" — need real names
-2. Chat modal shows "F" and "Family Member" — need real names  
-3. All "Start Conversation" / chat buttons should route to WhatsApp (business number 18687865357), same pattern used on the family side
+The console shows an HMR failure for `DashboardFamilyMatches.tsx`. When this component fails to load, the entire `ProfessionalDashboard` page crashes — taking the banners down with it, even though the banner components and data are both correct.
 
-### About the Automated Chat Systems (for your reference)
+- The RPC `get_unmatched_family_count()` returns **11 families** — the blue banner should show
+- The amber banner has zero data dependencies — it should always show
+- Both are correctly placed in `ProfessionalDashboard.tsx` at lines 145-146
 
-The project has two internal chat systems that will be preserved for future use:
-- **`ProfessionalFamilyChatModal`**: A template-based message composer where professionals pick a pre-written intro message, customize it, then submit via `ProfessionalFamilyChatService` which writes to `caregiver_chat_requests` in the database
-- **`useChatPersistence` + guided chat flow**: A multi-stage conversation system (introduction → interest → guided Q&A → waiting acceptance) with localStorage persistence and database sync via `chat_conversation_flows`
+### Fix: Two-part approach
 
-Both remain in the codebase untouched. We are just routing the UI buttons to WhatsApp instead.
+#### 1. Wrap `DashboardFamilyMatches` in an error boundary
 
-### File Changes
+Add a try/catch wrapper in `ProfessionalDashboard.tsx` so that if `DashboardFamilyMatches` fails to render, it shows a fallback instead of crashing the entire page. This protects the banners and all other dashboard sections.
 
-#### 1. `src/components/professional/ProfessionalFamilyMatchModal.tsx`
-- **Line 97**: Avatar initials — replace `F` with real initials from `bestMatch.full_name`
-- **Line 101**: Replace `Family Member` with `{bestMatch.full_name?.split(' ')[0] || 'Family'}`
-- **Lines 102-104**: Remove "Name protected until connected" text, replace with muted "Family seeking care"
-- **Lines 192-196**: Replace `onChatWithFamily` callback with WhatsApp redirect: `openFamilyWhatsApp(bestMatch.full_name, bestMatch.match_score, bestMatch.location)`
+#### 2. Verify `DashboardFamilyMatches.tsx` has no lingering import/syntax issues
 
-#### 2. `src/components/professional/ProfessionalFamilyMatchingModal.tsx`
-- **Line 109**: Avatar initials — replace `F` with real initials from `bestMatch.full_name`
-- **Line 113**: Replace `Family Seeking Care` heading with first name
-- **Lines 114-116**: Remove "Details protected until connected"
-- **Line 193**: Replace `Family Name:` section — already shows `full_name`, just clean up the label
+The HMR error suggests a transient issue from the last edit cycle. Verify the file compiles cleanly — check all imports resolve, especially `openFamilyWhatsApp` and `ProfessionalFamilyMatchModal`. If there's a stale reference to `ProfessionalFamilyChatModal` (which was removed), remove it.
 
-#### 3. `src/components/professional/ProfessionalFamilyChatModal.tsx`
-- **Line 111**: Avatar initials — replace `F` with real initials from `family.full_name`
-- **Line 114**: Replace `Family Member` with `{family.full_name?.split(' ')[0] || 'Family'}`
-- Replace entire send flow: instead of template selection → review → `ProfessionalFamilyChatService.sendChatRequest()`, the "Send" action opens WhatsApp with pre-filled message including the family context (name, match score, location)
+#### 3. Add defensive logging to banners
 
-#### 4. Create `src/utils/whatsapp/openFamilyWhatsApp.ts`
-New utility mirroring `openCaregiverWhatsApp.ts` but for professional→family direction:
-```
-openFamilyWhatsApp(familyName, matchScore, location)
-→ WhatsApp to 18687865357 with message:
-"Hi Tavara! I'm a caregiver interested in connecting with my matched family: "[name]" ([score]% match, [location]). I'd like to learn more about their care needs."
-```
-
-#### 5. `src/components/professional/DashboardFamilyMatches.tsx`
-- **Lines 135-142**: `handleChatWithFamily` — replace opening `ProfessionalFamilyChatModal` with calling `openFamilyWhatsApp`
-- Remove `ProfessionalFamilyChatModal` import and usage (lines 411-416)
+Add a `console.log` at mount time in `ProfessionalFamilyAwarenessBanner` to confirm it's rendering, and log the RPC result. This provides visibility if the issue recurs.
 
 ### Files Changed
 
 | Action | File | Description |
 |--------|------|-------------|
-| Create | `src/utils/whatsapp/openFamilyWhatsApp.ts` | WhatsApp utility for professional→family direction |
-| Modify | `src/components/professional/ProfessionalFamilyMatchModal.tsx` | Personalize + WhatsApp CTA |
-| Modify | `src/components/professional/ProfessionalFamilyMatchingModal.tsx` | Personalize names/initials |
-| Modify | `src/components/professional/ProfessionalFamilyChatModal.tsx` | Personalize + route send to WhatsApp |
-| Modify | `src/components/professional/DashboardFamilyMatches.tsx` | Route chat button to WhatsApp directly |
+| Modify | `src/pages/dashboard/ProfessionalDashboard.tsx` | Wrap `DashboardFamilyMatches` in error boundary to protect banners |
+| Modify | `src/components/professional/DashboardFamilyMatches.tsx` | Verify/fix any stale imports causing build failure |
+| Modify | `src/components/professional/ProfessionalFamilyAwarenessBanner.tsx` | Add mount-time debug logging |
 
