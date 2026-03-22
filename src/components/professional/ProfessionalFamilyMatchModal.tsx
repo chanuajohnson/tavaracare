@@ -95,13 +95,15 @@ export const ProfessionalFamilyMatchModal = ({
                     <Avatar className="h-16 w-16 border-2 border-primary/20">
                       <AvatarImage src={bestMatch.avatar_url || undefined} />
                       <AvatarFallback className="bg-primary-100 text-primary-800 text-xl">
-                        F
+                        {bestMatch.full_name
+                          ? bestMatch.full_name.split(' ').filter(Boolean).map((p: string) => p[0]).join('').substring(0, 2).toUpperCase()
+                          : 'FM'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-lg">Family Member</h3>
-                      <div className="text-xs text-blue-600 mt-1">
-                        * Name protected until connected
+                      <h3 className="font-semibold text-lg">{bestMatch.full_name?.split(' ')[0] || 'Family'}</h3>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Family seeking care
                       </div>
                       <div className="text-xs text-gray-500 font-mono mt-1">
                         ID: {bestMatch.id?.substring(0, 8) || 'N/A'}
