@@ -1,0 +1,4 @@
+UPDATE nudge_templates 
+SET message_template = E'Hi [Name]! 🎉 Chan from Tavara Care.\n\nGreat news — you''ve been matched with a professional caregiver! Your care team is taking shape.\n\nYour next step is to schedule care. Here are your options:\n💰 Trial Day — $320 TTD for a full 8-hour day with your matched caregiver (credit applies if you subscribe!)\n⭐ Hire Immediately — Ongoing care starting from $40/hr\n📞 Not sure yet? Book a free 30-minute virtual consultation first\n\n📅 Get started here: https://tavaracare.lovable.app/dashboard/family\n\nWe''re excited to get your family the support they deserve!\n- Chan, Tavara Care 💙',
+    updated_at = NOW()
+WHERE id = '55a35235-906c-4306-ac5a-25ce48e987e6';
