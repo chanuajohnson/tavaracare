@@ -288,7 +288,9 @@ const ProfessionalDashboard = () => {
 
         {/* Professional Readiness-Gated Family Matches Section */}
         <div id="family-matches" className="mt-8">
-          <ProfessionalReadinessChecker />
+          <ErrorBoundary level="component" name="ProfessionalReadinessChecker">
+            <ProfessionalReadinessChecker />
+          </ErrorBoundary>
         </div>
 
         {/* Professional Agency */}
