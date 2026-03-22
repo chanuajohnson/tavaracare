@@ -291,7 +291,7 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
   };
 
   // Smart alert
-  const alertInfo = getNudgeAlertInfo(lastNudgedAt, journeyProgress.lastActivityAt);
+  const alertInfo = getNudgeAlertInfo(lastNudgedAt, lastActivityAt);
 
   const getAlertClassName = () => {
     if (alertInfo.variant === 'destructive') return 'border-destructive/50 text-destructive [&>svg]:text-destructive';
