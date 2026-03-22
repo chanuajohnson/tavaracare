@@ -15,6 +15,9 @@ import { ProfessionalShortcutMenuBar } from "@/components/professional/Professio
 import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
 import { ChatRequestsSection } from "@/components/professional/ChatRequestsSection";
 import { ProfessionalReadinessChecker } from "@/components/professional/ProfessionalReadinessChecker";
+import { ProfessionalFamilyAwarenessBanner } from "@/components/professional/ProfessionalFamilyAwarenessBanner";
+import { ProfessionalMatchingReadinessBanner } from "@/components/professional/ProfessionalMatchingReadinessBanner";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { LeadCaptureModal } from "@/components/family/LeadCaptureModal";
 
 const ProfessionalDashboard = () => {
