@@ -1,38 +1,52 @@
 
 
-## Add "Care Urgency" Question to Family Registration + Display in Admin
+## Add "Deal Breakers / Matching Requirements" to Professional & Family Registration
 
 ### Problem
-Neither the Family Registration nor Care Assessment asks families **how soon they need care**. The database already has a `care_urgency` enum (`immediate`, `within_week`, `within_month`, `flexible`) and a column on `user_journey_progress`, but nothing populates it. Admin has no way to prioritize families by urgency.
+Professionals like Daniella can only specify a preferred location but have no way to state hard requirements like "only match me with families in San Fernando" or "only female patients." Similarly, families can't specify "must have a car" or "must be mature/experienced." These deal breakers are critical for preventing bad matches.
+
+### Approach
+Add a new **"Matching Requirements"** section to both registration forms with a free-text field plus common checkbox options. Store in a new `matching_requirements` text column on the `profiles` table. This keeps it simple — admin can review these requirements when making matches, and the matching algorithm can eventually parse them.
 
 ### Changes
 
-#### 1. Add urgency question to Family Registration (`src/pages/registration/FamilyRegistration.tsx`)
-- Add a new field in Step 4 (Care Schedule step) asking: **"How soon do you need care to begin?"**
-- Options: Immediately / Within a week / Within a month / I'm flexible
-- Maps to enum values: `immediate`, `within_week`, `within_month`, `flexible`
-- Save to `user_journey_progress.urgency` on form submission
+#### 1. Database migration — add `matching_requirements` column
+Add a `matching_requirements` text column (nullable) to `profiles` for both roles. This stores free-text deal breakers.
 
-#### 2. Add urgency column to profiles table (database migration)
-- Add `care_urgency` column to `profiles` table (type: `care_urgency` enum, nullable)
-- This makes it queryable alongside other profile data without joining `user_journey_progress`
-- Update the registration save logic to write to `profiles.care_urgency`
+```sql
+ALTER TABLE public.profiles 
+  ADD COLUMN IF NOT EXISTS matching_requirements text NULL;
+```
 
-#### 3. Display urgency in Admin User Detail Modal
-- Show urgency as a colored badge in the admin user journey modal header area
-- `immediate` = red badge, `within_week` = amber, `within_month` = blue, `flexible` = gray
-- Also show in the Admin Scheduling Queue so admin can prioritize
+#### 2. Professional Registration (`src/pages/registration/ProfessionalRegistration.tsx`)
+- Add `matchingRequirements` state variable
+- Add a new card section before "Additional Information" titled **"Matching Preferences & Requirements"** with:
+  - Common checkboxes: "Only match me with families in my preferred location area", "I prefer female care recipients only", "I prefer male care recipients only", "I require families with reliable transportation/parking"
+  - Free-text textarea: "Any other deal breakers or hard requirements for matching?"
+- Save to `matching_requirements` in profileData on submit
+- Pre-populate in edit mode from existing profile data
 
-#### 4. Display urgency in Admin Scheduling Queue (`src/components/admin/AdminSchedulingQueue.tsx`)
-- Add an "Urgency" column showing the family's care urgency level with color coding
-- Helps admin prioritize which families to schedule first
+#### 3. Family Registration (`src/pages/registration/FamilyRegistration.tsx`)
+- Add `matchingRequirements` state variable
+- Add a new card section before "Additional Notes" titled **"Caregiver Requirements & Deal Breakers"** with:
+  - Common checkboxes: "Caregiver must have own transportation", "Caregiver must be in my area", "I prefer a female caregiver", "I prefer a male caregiver", "Caregiver must have specific certifications"
+  - Free-text textarea: "Any other deal breakers or hard requirements?"
+- Save to `matching_requirements` in profileData on submit
+- Pre-populate in edit mode
+
+#### 4. Update `update_user_profile` RPC function
+Add `matching_requirements` field handling to the existing `update_user_profile` database function so it gets persisted.
+
+#### 5. Admin visibility
+Update `UserDetailModal.tsx` to display `matching_requirements` in the profile details so admin can see deal breakers when making matches.
 
 ### Files Changed
 
 | Action | Target | Description |
 |--------|--------|-------------|
-| Migrate | `profiles` table | Add `care_urgency` column using existing enum |
-| Modify | `src/pages/registration/FamilyRegistration.tsx` | Add "How soon do you need care?" radio group in Step 4, save to profile |
-| Modify | `src/components/admin/AdminSchedulingQueue.tsx` | Show urgency badge in queue |
-| Modify | Admin user detail component | Show urgency badge in family user modal |
+| Migrate | `profiles` table | Add `matching_requirements` text column |
+| Migrate | `update_user_profile` function | Add matching_requirements to the update function |
+| Modify | `ProfessionalRegistration.tsx` | Add "Matching Preferences" section with checkboxes + free text |
+| Modify | `FamilyRegistration.tsx` | Add "Caregiver Requirements" section with checkboxes + free text |
+| Modify | `UserDetailModal.tsx` | Display matching requirements in admin view |
 
