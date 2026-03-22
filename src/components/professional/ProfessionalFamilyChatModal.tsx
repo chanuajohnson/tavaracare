@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MessageCircle, Send, Heart, Star, Clock, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
-import { ProfessionalFamilyChatService } from '@/services/professionalFamilyChatService';
+import { openFamilyWhatsApp } from '@/utils/whatsapp/openFamilyWhatsApp';
 
 interface ProfessionalFamilyChatModalProps {
   open: boolean;
