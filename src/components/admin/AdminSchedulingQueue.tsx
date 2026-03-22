@@ -112,6 +112,21 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
     try { return JSON.parse(notes); } catch { return null; }
   };
 
+  const getUrgencyBadge = (urgency?: string) => {
+    switch (urgency) {
+      case 'immediate':
+        return <Badge className="bg-red-100 text-red-800 border-red-200">🚨 Immediate</Badge>;
+      case 'within_week':
+        return <Badge className="bg-amber-100 text-amber-800 border-amber-200">📅 Within a week</Badge>;
+      case 'within_month':
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">🗓️ Within a month</Badge>;
+      case 'flexible':
+        return <Badge variant="outline" className="text-muted-foreground">⏳ Flexible</Badge>;
+      default:
+        return <Badge variant="outline" className="text-muted-foreground">Not set</Badge>;
+    }
+  };
+
   if (loading) {
     return (
       <Card>
