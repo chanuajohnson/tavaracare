@@ -305,6 +305,25 @@ const ProfessionalRegistration = () => {
         setAdditionalNotes(profileData.additional_notes || '');
         setAvatarUrl(profileData.avatar_url || null);
         
+        // Populate matching requirements
+        if (profileData.matching_requirements) {
+          setMatchingRequirements(profileData.matching_requirements);
+          // Parse checkboxes from stored requirements
+          const storedReqs = profileData.matching_requirements;
+          const checkboxOptions = [
+            'Only match me with families in my preferred location area',
+            'I prefer female care recipients only',
+            'I prefer male care recipients only',
+            'I require families with reliable transportation/parking'
+          ];
+          const foundCheckboxes = checkboxOptions.filter(opt => storedReqs.includes(opt));
+          setMatchingCheckboxes(foundCheckboxes);
+          // Extract free text (everything after the checkbox lines)
+          let freeText = storedReqs;
+          foundCheckboxes.forEach(cb => { freeText = freeText.replace(`• ${cb}\n`, '').replace(`• ${cb}`, ''); });
+          setMatchingRequirements(freeText.trim());
+        }
+        
         console.log('✅ Successfully populated all form fields from database');
         toast.success('Your profile has been loaded for editing');
         setUserDataPopulated(true);
