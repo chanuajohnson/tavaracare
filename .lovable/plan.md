@@ -1,49 +1,79 @@
 
 
-## Add Matching Requirements to Registration Forms + Update Admin Reports
+## Add "Incomplete Fields" Smart Nudge for Family Users
 
-### Overview
-Add a "Matching Requirements / Deal Breakers" section to both Professional and Family registration forms, persist it via a new `matching_requirements` column on `profiles`, and display it in the Admin User Detail Modal reports tab. Also ensure care urgency is visible in the reports tab.
+### Problem
+There's no nudge template that dynamically identifies which specific fields a family left blank and explains why each is critical for matching. The existing templates are generic ("complete your profile") without telling the user exactly what's missing.
+
+### Approach
+Add a **"Smart Completion Nudge"** feature to the UserNudgeTab that:
+1. Analyzes the user's `comprehensiveData` (profile + care assessment) to detect blank fields
+2. Generates a personalized WhatsApp message listing exactly what's missing and why each matters for caregiver matching
+3. Available as a special "smart nudge" button alongside existing templates
 
 ### Changes
 
-#### 1. Database migration
-- Add `matching_requirements text NULL` column to `profiles` table
-- Update the `update_user_profile(profile_data jsonb)` RPC function (the one-param version used by registration forms) to include `matching_requirements = COALESCE(profile_data->>'matching_requirements', matching_requirements)` in its UPDATE statement
-- Also update the two-param `update_user_profile(user_id_param, profile_data)` RPC to include the same field
+#### 1. Pass `comprehensiveData` to UserNudgeTab
+Currently the nudge tab only receives basic user info and journey progress. We need to also pass the full profile and care assessment data so it can detect blank fields.
 
-#### 2. Professional Registration (`src/pages/registration/ProfessionalRegistration.tsx`)
-- Add `matchingRequirements` state variable (string, default `''`)
-- Add new Card section **before** the "Additional Information" card (before line 1000) titled **"Matching Preferences & Requirements"** with:
-  - Checkboxes: "Only match me with families in my preferred location area", "I prefer female care recipients only", "I prefer male care recipients only", "I require families with reliable transportation/parking"
-  - Free-text Textarea: "Any other deal breakers or hard requirements for matching?"
-  - Selected checkboxes get prepended to the free-text value as a combined string
-- In `profileData` object (line ~454): add `matching_requirements` combining checkbox selections + free text
-- In `fetchCompleteProfileData`: populate `matchingRequirements` from `profileData.matching_requirements`
-- In `setFormValue`: add case for `matching_requirements`
+- **`UserDetailModal.tsx`**: Pass `comprehensiveData` as a new prop to `<UserNudgeTab />`
+- **`UserNudgeTab.tsx`**: Accept new `comprehensiveData` prop
 
-#### 3. Family Registration (`src/pages/registration/FamilyRegistration.tsx`)
-- Add `matchingRequirements` state variable (string, default `''`)
-- Add new Card section **before** the "Additional Information" card (before line 1228) titled **"Caregiver Requirements & Deal Breakers"** with:
-  - Checkboxes: "Caregiver must have own transportation", "Caregiver must be in my area", "I prefer a female caregiver", "I prefer a male caregiver", "Caregiver must have specific certifications"
-  - Free-text Textarea: "Any other deal breakers or hard requirements?"
-- In `profileData` object (line ~538): add `matching_requirements`
-- In `fetchExistingProfileData`: populate from `profile.matching_requirements`
-- In `setFormValue`: add case for `matching_requirements`
+#### 2. Add blank field detection logic (`UserNudgeTab.tsx`)
+Create a `getIncompleteFields()` function that checks the user's profile and care assessment for critical blank fields:
 
-#### 4. Admin User Detail Modal (`src/components/admin/UserDetailModal.tsx`)
-- **Reports tab — Profile Information card** (~line 657): Add `<div><strong>Matching Requirements:</strong> {comprehensiveData.profile.matching_requirements || 'None specified'}</div>`
-- **Reports tab — Family Profile Details card** (~line 684): Add `<div><strong>Care Urgency:</strong> ...</div>` with formatted urgency label
-- **Reports tab — Profile Information card**: Also show `care_urgency` for family users
-- **Profile tab**: Add matching requirements display below the existing profile info (for both family and professional users)
+**Profile fields checked:**
+- `phone_number` → "Your phone number (so we can reach you quickly)"
+- `address` / `location` → "Your location (to find caregivers near you)"
+- `care_recipient_name` → "Care recipient's name"
+- `relationship` → "Your relationship to the care recipient"
+- `care_types` → "Types of care needed (critical for matching)"
+- `care_schedule` → "Preferred care schedule/hours"
+- `budget_preferences` → "Budget range (helps us find the right fit)"
+- `care_urgency` → "How soon you need care (helps us prioritize)"
+- `matching_requirements` → "Any deal breakers or requirements"
+
+**Care assessment fields checked (from `comprehensiveData.careNeeds`):**
+- `preferred_days` → "Preferred days for care"
+- `preferred_time_start` / `preferred_time_end` → "Preferred care times"
+- `weekday_coverage` (if "none") → "Weekday coverage needs"
+- `weekend_coverage` (if "no") → "Weekend coverage needs"
+- `cultural_preferences` → "Cultural preferences"
+- `additional_notes` → "Additional care notes"
+
+#### 3. Add "Smart Completion Nudge" UI section
+Add a highlighted card at the top of the nudge tab (when incomplete fields are detected) showing:
+- Count of missing fields with a warning badge
+- A "Generate Smart Nudge" button that creates a personalized WhatsApp message like:
+
+> Hi [Name]! 💙 Chan from Tavara Care.
+>
+> We're actively working on finding the right caregiver match for you, but we noticed a few important details are still missing from your profile:
+>
+> ❌ Preferred care schedule — helps us match availability
+> ❌ Budget range — ensures we recommend the right fit
+> ❌ Preferred days/times — critical for scheduling
+>
+> These details are essential for us to source and match you with the best caregiver. The more complete your profile, the faster and more accurate your match will be!
+>
+> 🔗 Update your profile: https://tavaracare.lovable.app/dashboard/family
+> 🔗 Complete care assessment: https://tavaracare.lovable.app/family/care-assessment?mode=edit
+>
+> Questions? Just reply here!
+> — Chan, Tavara Care 💙
+
+- The message is dynamically built from actual missing fields
+- Opens WhatsApp with the pre-filled message (same as existing nudge flow)
+- Logs to `admin_communications` like other nudges
+
+#### 4. Insert a new nudge template for manual use
+Insert a "Profile Completion - Missing Fields" template into `nudge_templates` (stage: `incomplete_fields`, role: `family`) with a generic version of the message for cases where admin wants to use the template selector instead.
 
 ### Files Changed
 
 | Action | Target | Description |
 |--------|--------|-------------|
-| Migrate | `profiles` table | Add `matching_requirements` text column |
-| Migrate | Both `update_user_profile` functions | Add `matching_requirements` field handling |
-| Modify | `ProfessionalRegistration.tsx` | Add matching preferences section with checkboxes + free text |
-| Modify | `FamilyRegistration.tsx` | Add caregiver requirements section with checkboxes + free text |
-| Modify | `UserDetailModal.tsx` | Display matching requirements + care urgency in reports tab |
+| Modify | `UserDetailModal.tsx` | Pass `comprehensiveData` to `UserNudgeTab` |
+| Modify | `UserNudgeTab.tsx` | Add `comprehensiveData` prop, blank field detection, smart nudge UI |
+| Migrate | `nudge_templates` (database) | Insert generic "Profile Completion - Missing Fields" template |
 
