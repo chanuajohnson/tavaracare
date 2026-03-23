@@ -186,6 +186,9 @@ const ProfessionalRegistration = () => {
       case 'custom_schedule': // Added mapping for custom_schedule
         setCustomAvailability(value);
         break;
+      case 'matching_requirements':
+        setMatchingRequirements(value);
+        break;
       default:
         // Handle array fields - Updated to handle both specialties and care_services mapping
         if ((field === 'specialties' || field === 'care_services') && Array.isArray(value)) {
