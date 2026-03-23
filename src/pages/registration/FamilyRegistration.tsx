@@ -573,7 +573,11 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
         caregiver_preferences: caregiverPreferences || '',
         additional_notes: additionalNotes || '',
         preferred_contact_method: preferredContactMethod || '',
-        care_urgency: careUrgency || null
+        care_urgency: careUrgency || null,
+        matching_requirements: [
+          ...matchingCheckboxes.map(cb => `• ${cb}`),
+          matchingRequirements
+        ].filter(Boolean).join('\n').trim() || ''
       };
 
       console.log('Updating family profile with data:', profileData);
