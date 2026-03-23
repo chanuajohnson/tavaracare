@@ -306,10 +306,10 @@ const ProfessionalRegistration = () => {
         setAvatarUrl(profileData.avatar_url || null);
         
         // Populate matching requirements
-        if (profileData.matching_requirements) {
-          setMatchingRequirements(profileData.matching_requirements);
+        if ((profileData as any).matching_requirements) {
+          setMatchingRequirements((profileData as any).matching_requirements);
           // Parse checkboxes from stored requirements
-          const storedReqs = profileData.matching_requirements;
+          const storedReqs = (profileData as any).matching_requirements;
           const checkboxOptions = [
             'Only match me with families in my preferred location area',
             'I prefer female care recipients only',
