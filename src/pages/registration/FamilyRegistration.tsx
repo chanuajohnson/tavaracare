@@ -306,6 +306,9 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
       case 'additional_notes':
         setAdditionalNotes(value);
         break;
+      case 'matching_requirements':
+        setMatchingRequirements(value);
+        break;
       default:
         if (field === 'care_types' && Array.isArray(value)) {
           setCareTypes(value);
