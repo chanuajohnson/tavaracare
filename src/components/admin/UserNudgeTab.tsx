@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { MessageSquare, ExternalLink, Plus, Send, Sparkles, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { MessageSquare, ExternalLink, Plus, Send, Sparkles, AlertTriangle, CheckCircle, Clock, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import type { ComprehensiveUserData } from '@/hooks/admin/useComprehensiveUserData';
 
 interface NudgeTemplate {
   id: string;
@@ -31,6 +32,14 @@ interface UserNudgeTabProps {
     steps?: Array<{ completed: boolean }>;
     lastActivityAt?: string;
   };
+  comprehensiveData?: ComprehensiveUserData | null;
+}
+
+interface IncompleteField {
+  field: string;
+  label: string;
+  reason: string;
+  source: 'profile' | 'assessment';
 }
 
 const populateTemplate = (
@@ -78,7 +87,6 @@ const getNudgeAlertInfo = (
   const daysSinceNudge = lastNudgedAt ? getDaysBetween(lastNudgedAt) : null;
   const daysSinceActivity = lastActivityAt ? getDaysBetween(lastActivityAt) : null;
 
-  // Inactive 3+ days AND not nudged in 7+ days (or never)
   if (daysSinceActivity !== null && daysSinceActivity >= 3 && (daysSinceNudge === null || daysSinceNudge >= 7)) {
     return {
       variant: 'destructive',
@@ -88,7 +96,6 @@ const getNudgeAlertInfo = (
     };
   }
 
-  // Never nudged
   if (daysSinceNudge === null) {
     return {
       variant: 'destructive',
@@ -98,26 +105,123 @@ const getNudgeAlertInfo = (
     };
   }
 
-  // Last nudged 7+ days ago
   if (daysSinceNudge >= 7) {
     return {
-      variant: 'warning' as 'destructive', // will style via className
+      variant: 'warning' as 'destructive',
       icon: <Clock className="h-4 w-4" />,
       title: `Last nudged ${daysSinceNudge} days ago`,
       description: 'It has been a while since this user was contacted.',
     };
   }
 
-  // Recently nudged
   return {
-    variant: 'success' as 'destructive', // will style via className
+    variant: 'success' as 'destructive',
     icon: <CheckCircle className="h-4 w-4" />,
     title: `Last nudged ${daysSinceNudge} day${daysSinceNudge !== 1 ? 's' : ''} ago`,
     description: 'Recently contacted — no immediate action needed.',
   };
 };
 
-export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgress }) => {
+// --- Smart Completion Nudge Logic ---
+
+const getIncompleteFields = (
+  profile: any,
+  careNeeds: any,
+  role: string
+): IncompleteField[] => {
+  const fields: IncompleteField[] = [];
+
+  if (role !== 'family') return fields;
+
+  // Profile fields
+  if (!profile?.phone_number) {
+    fields.push({ field: 'phone_number', label: 'Phone number', reason: 'so we can reach you quickly', source: 'profile' });
+  }
+  if (!profile?.address && !profile?.location) {
+    fields.push({ field: 'address', label: 'Location/address', reason: 'to find caregivers near you', source: 'profile' });
+  }
+  if (!profile?.care_recipient_name) {
+    fields.push({ field: 'care_recipient_name', label: "Care recipient's name", reason: 'essential for personalizing care', source: 'profile' });
+  }
+  if (!profile?.relationship) {
+    fields.push({ field: 'relationship', label: 'Relationship to care recipient', reason: 'helps us understand your situation', source: 'profile' });
+  }
+  if (!profile?.care_types || (Array.isArray(profile.care_types) && profile.care_types.length === 0)) {
+    fields.push({ field: 'care_types', label: 'Types of care needed', reason: 'critical for matching specializations', source: 'profile' });
+  }
+  if (!profile?.care_schedule) {
+    fields.push({ field: 'care_schedule', label: 'Preferred care schedule', reason: 'helps us match caregiver availability', source: 'profile' });
+  }
+  if (!profile?.budget_preferences) {
+    fields.push({ field: 'budget_preferences', label: 'Budget range', reason: 'ensures we recommend the right fit', source: 'profile' });
+  }
+  if (!profile?.care_urgency) {
+    fields.push({ field: 'care_urgency', label: 'How soon you need care', reason: 'helps us prioritize your match', source: 'profile' });
+  }
+  if (!profile?.matching_requirements) {
+    fields.push({ field: 'matching_requirements', label: 'Deal breakers / requirements', reason: 'prevents mismatches', source: 'profile' });
+  }
+
+  // Care assessment fields
+  if (careNeeds) {
+    if (!careNeeds.preferred_days || (Array.isArray(careNeeds.preferred_days) && careNeeds.preferred_days.length === 0)) {
+      fields.push({ field: 'preferred_days', label: 'Preferred days for care', reason: 'critical for scheduling', source: 'assessment' });
+    }
+    if (!careNeeds.preferred_time_start || !careNeeds.preferred_time_end) {
+      fields.push({ field: 'preferred_times', label: 'Preferred care times', reason: 'critical for scheduling', source: 'assessment' });
+    }
+    if (careNeeds.weekday_coverage === 'none' || !careNeeds.weekday_coverage) {
+      fields.push({ field: 'weekday_coverage', label: 'Weekday coverage needs', reason: 'determines caregiver shift planning', source: 'assessment' });
+    }
+    if (careNeeds.weekend_coverage === 'no' || !careNeeds.weekend_coverage) {
+      fields.push({ field: 'weekend_coverage', label: 'Weekend coverage needs', reason: 'determines weekend care planning', source: 'assessment' });
+    }
+    if (!careNeeds.cultural_preferences) {
+      fields.push({ field: 'cultural_preferences', label: 'Cultural preferences', reason: 'ensures a comfortable care environment', source: 'assessment' });
+    }
+    if (!careNeeds.additional_notes) {
+      fields.push({ field: 'additional_notes', label: 'Additional care notes', reason: 'gives caregivers important context', source: 'assessment' });
+    }
+  } else {
+    // No care assessment at all
+    fields.push({ field: 'care_assessment', label: 'Care needs assessment', reason: 'essential for proper caregiver matching', source: 'assessment' });
+  }
+
+  return fields;
+};
+
+const buildSmartNudgeMessage = (
+  userName: string,
+  incompleteFields: IncompleteField[]
+): string => {
+  const firstName = userName?.split(' ')[0] || 'there';
+  const profileFields = incompleteFields.filter(f => f.source === 'profile');
+  const assessmentFields = incompleteFields.filter(f => f.source === 'assessment');
+
+  let message = `Hi ${firstName}! 💙 Chan from Tavara Care.\n\n`;
+  message += `We're actively working on finding the right caregiver match for you, but we noticed a few important details are still missing from your profile:\n\n`;
+
+  for (const field of incompleteFields) {
+    message += `❌ ${field.label} — ${field.reason}\n`;
+  }
+
+  message += `\nThese details are essential for us to source and match you with the best caregiver. The more complete your profile, the faster and more accurate your match will be!\n\n`;
+
+  if (profileFields.length > 0) {
+    message += `🔗 Update your profile: https://tavaracare.lovable.app/dashboard/family\n`;
+  }
+  if (assessmentFields.length > 0) {
+    message += `🔗 Complete care assessment: https://tavaracare.lovable.app/family/care-assessment?mode=edit\n`;
+  }
+
+  message += `\nQuestions? Just reply here!\n— Chan, Tavara Care 💙`;
+
+  return message;
+};
+
+// --- Component ---
+
+export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgress, comprehensiveData }) => {
   const [templates, setTemplates] = useState<NudgeTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastNudgedAt, setLastNudgedAt] = useState<string | null>(null);
@@ -188,7 +292,7 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
     }
   };
 
-  const logNudgeSent = async (templateId: string) => {
+  const logNudgeSent = async (templateId?: string) => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const adminId = sessionData?.session?.user?.id;
@@ -201,8 +305,8 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
       const { error } = await supabase.from('admin_communications').insert({
         admin_id: adminId,
         target_user_id: user.id,
-        message_type: 'whatsapp_nudge',
-        template_id: templateId,
+        message_type: templateId ? 'whatsapp_nudge' : 'whatsapp_smart_nudge',
+        template_id: templateId || null,
         sent_at: new Date().toISOString(),
         delivery_status: 'sent',
       });
@@ -211,7 +315,6 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
         console.error('Error logging nudge:', error);
         toast.error(`Nudge logging failed: ${error.message}`);
       } else {
-        // Update local state so alert refreshes immediately
         setLastNudgedAt(new Date().toISOString());
       }
     } catch (err: any) {
@@ -220,11 +323,9 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
     }
   };
 
-  // Determine current step from journey progress
   const completedCount = journeyProgress.steps?.filter(s => s.completed).length || 0;
   const currentStepNum = journeyProgress.currentStep || completedCount + 1;
 
-  // Split into recommended vs other
   const currentStageKey = `step_${currentStepNum}`;
   const nextStageKey = `step_${currentStepNum + 1}`;
 
@@ -251,10 +352,25 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
       : getTavaraWhatsAppUrl(populated);
 
     window.open(url, '_blank');
-
-    // Log the nudge send
     logNudgeSent(template.id);
     toast.success('WhatsApp opened & nudge logged');
+  };
+
+  // Smart nudge logic
+  const incompleteFields = comprehensiveData
+    ? getIncompleteFields(comprehensiveData.profile, comprehensiveData.careNeeds, user.role)
+    : [];
+
+  const handleSendSmartNudge = () => {
+    const message = buildSmartNudgeMessage(user.full_name, incompleteFields);
+
+    const url = user.phone_number
+      ? getWhatsAppUrl(user.phone_number, message)
+      : getTavaraWhatsAppUrl(message);
+
+    window.open(url, '_blank');
+    logNudgeSent();
+    toast.success('Smart nudge sent & logged');
   };
 
   const renderTemplateCard = (template: NudgeTemplate, isRecommended: boolean) => {
@@ -296,7 +412,6 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
     );
   };
 
-  // Smart alert
   const alertInfo = getNudgeAlertInfo(lastNudgedAt, lastActivityAt);
 
   const getAlertClassName = () => {
@@ -313,7 +428,7 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
     );
   }
 
-  if (templates.length === 0) {
+  if (templates.length === 0 && incompleteFields.length === 0) {
     return (
       <div className="text-center py-8 space-y-3">
         <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground" />
@@ -351,6 +466,50 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
         {user.full_name} is at step {currentStepNum} ({Math.round(journeyProgress.completionPercentage)}% complete)
         {user.phone_number ? ` • ${user.phone_number}` : ' • No phone number on file'}
       </div>
+
+      {/* Smart Completion Nudge — only for family users with incomplete fields */}
+      {user.role === 'family' && incompleteFields.length > 0 && (
+        <Card className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-amber-600" />
+                <span className="font-medium text-sm text-amber-800 dark:text-amber-300">
+                  Smart Completion Nudge
+                </span>
+              </div>
+              <Badge variant="outline" className="text-xs border-amber-500/50 text-amber-700 dark:text-amber-400">
+                {incompleteFields.length} missing field{incompleteFields.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
+
+            <div className="space-y-1">
+              {incompleteFields.slice(0, 6).map((field) => (
+                <div key={field.field} className="flex items-start gap-1.5 text-xs text-amber-800 dark:text-amber-300">
+                  <span>❌</span>
+                  <span>
+                    <strong>{field.label}</strong> — {field.reason}
+                  </span>
+                </div>
+              ))}
+              {incompleteFields.length > 6 && (
+                <div className="text-xs text-amber-700 dark:text-amber-400 pl-5">
+                  ...and {incompleteFields.length - 6} more
+                </div>
+              )}
+            </div>
+
+            <Button
+              size="sm"
+              className="w-full gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={handleSendSmartNudge}
+            >
+              <Send className="h-3.5 w-3.5" />
+              Send Smart Completion Nudge via WhatsApp
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recommended templates */}
       {recommended.length > 0 && (
