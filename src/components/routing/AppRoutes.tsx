@@ -85,6 +85,7 @@ import FlyerLocations from "@/pages/admin/FlyerLocations";
 import UrgentCaregiversPage from "@/pages/UrgentCaregiversPage";
 import TestimonialManagementPage from "@/pages/admin/TestimonialManagementPage";
 import CampaignLinksPage from "@/pages/admin/CampaignLinksPage";
+import JoinAsCaregiver from "@/pages/JoinAsCaregiver";
 
 export const AppRoutes = () => {
   const { user } = useAuth();
