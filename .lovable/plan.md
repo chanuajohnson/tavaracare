@@ -1,29 +1,25 @@
 
 
-## Fix: Missing Columns in Profiles Table
+## Fix: COALESCE Type Mismatch for hourly_rate
 
 ### Problem
-The `update_user_profile(jsonb)` function references two columns that don't exist in the `profiles` table:
-- `drivers_license` (boolean)
-- `own_transportation` (boolean)
-
-This causes a `400 Bad Request` error when any professional tries to complete registration.
+The `update_user_profile(jsonb)` function casts `hourly_rate` to `::numeric`, but the column is actually `text` type. This causes: `COALESCE types numeric and text cannot be matched`.
 
 ### Fix
-
-#### Option A (Recommended): Add the missing columns
-Create a migration to add both columns to the profiles table:
-
+Database migration to recreate `update_user_profile(profile_data jsonb)` with the `hourly_rate` line changed from:
 ```sql
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS drivers_license boolean DEFAULT false;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS own_transportation boolean DEFAULT false;
+hourly_rate = COALESCE((profile_data->>'hourly_rate')::numeric, hourly_rate),
+```
+to:
+```sql
+hourly_rate = COALESCE(profile_data->>'hourly_rate', hourly_rate),
 ```
 
-This is the correct approach since the registration form already collects transportation data (the "Transportation" dropdown in the screenshot shows "Own vehicle"), and these columns are needed to store that data properly.
+Same fix needed in the two-param version `update_user_profile(user_id_param uuid, profile_data jsonb)` which also has `::numeric` cast.
 
 ### Files Changed
 
 | Action | Target | Description |
 |--------|--------|-------------|
-| Migrate | `profiles` table | Add `drivers_license` and `own_transportation` boolean columns |
+| Migrate | `update_user_profile` (both versions) | Remove `::numeric` cast from `hourly_rate` since column is `text` |
 
