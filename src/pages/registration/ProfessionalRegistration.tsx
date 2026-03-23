@@ -533,6 +533,16 @@ const ProfessionalRegistration = () => {
       // Clear UTM data after successful registration
       clearUTMData();
 
+      // Sync journey progress so TAV widget reflects actual completion
+      try {
+        await supabase.rpc('calculate_and_update_journey_progress', {
+          target_user_id: user.id
+        });
+        console.log('Journey progress synced after professional registration save');
+      } catch (progressErr) {
+        console.warn('Failed to sync journey progress:', progressErr);
+      }
+
       toast.success('Registration Complete! Your professional caregiver registration has been updated.');
       navigate('/dashboard/professional');
     } catch (error: any) {
