@@ -170,10 +170,12 @@ const getIncompleteFields = (
     if (!careNeeds.preferred_time_start || !careNeeds.preferred_time_end) {
       fields.push({ field: 'preferred_times', label: 'Preferred care times', reason: 'critical for scheduling', source: 'assessment' });
     }
-    if (careNeeds.weekday_coverage === 'none' || !careNeeds.weekday_coverage) {
+    // Only flag weekday/weekend coverage if truly null/undefined (never answered)
+    // 'none' and 'no' are valid explicit selections meaning no coverage needed
+    if (careNeeds.weekday_coverage === null || careNeeds.weekday_coverage === undefined) {
       fields.push({ field: 'weekday_coverage', label: 'Weekday coverage needs', reason: 'determines caregiver shift planning', source: 'assessment' });
     }
-    if (careNeeds.weekend_coverage === 'no' || !careNeeds.weekend_coverage) {
+    if (careNeeds.weekend_coverage === null || careNeeds.weekend_coverage === undefined) {
       fields.push({ field: 'weekend_coverage', label: 'Weekend coverage needs', reason: 'determines weekend care planning', source: 'assessment' });
     }
     if (!careNeeds.cultural_preferences) {
