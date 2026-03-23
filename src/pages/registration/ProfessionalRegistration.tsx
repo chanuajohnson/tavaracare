@@ -1025,6 +1025,56 @@ const ProfessionalRegistration = () => {
             </CardContent>
           </Card>
 
+          {/* Matching Preferences & Requirements */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>🎯 Matching Preferences & Requirements</CardTitle>
+              <CardDescription>
+                Let us know if you have any deal breakers or hard requirements for matching with families. This helps us avoid non-viable matches.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Common Requirements (select all that apply)</Label>
+                <div className="space-y-3">
+                  {[
+                    { id: 'pref_location', label: 'Only match me with families in my preferred location area' },
+                    { id: 'pref_female', label: 'I prefer female care recipients only' },
+                    { id: 'pref_male', label: 'I prefer male care recipients only' },
+                    { id: 'pref_transport', label: 'I require families with reliable transportation/parking' }
+                  ].map((item) => (
+                    <div key={item.id} className="flex items-start space-x-2">
+                      <Checkbox 
+                        id={item.id} 
+                        checked={matchingCheckboxes.includes(item.label)}
+                        onCheckedChange={(checked) => {
+                          setMatchingCheckboxes(prev => 
+                            checked 
+                              ? [...prev, item.label]
+                              : prev.filter(cb => cb !== item.label)
+                          );
+                        }}
+                        className="mt-1"
+                      />
+                      <Label htmlFor={item.id} className="font-normal">{item.label}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="matchingRequirements">Any other deal breakers or hard requirements for matching?</Label>
+                <Textarea 
+                  id="matchingRequirements" 
+                  placeholder="E.g., I only want to work with families in the San Fernando area, I need families that can accommodate my schedule, etc." 
+                  value={matchingRequirements} 
+                  onChange={(e) => setMatchingRequirements(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Additional Information</CardTitle>

@@ -1248,6 +1248,57 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
             </CardContent>
           </Card>
 
+          {/* Caregiver Requirements & Deal Breakers */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>🎯 Caregiver Requirements & Deal Breakers</CardTitle>
+              <CardDescription>
+                Let us know if you have any hard requirements for your caregiver. This helps us avoid non-viable matches.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Common Requirements (select all that apply)</Label>
+                <div className="space-y-3">
+                  {[
+                    { id: 'fam_transport', label: 'Caregiver must have own transportation' },
+                    { id: 'fam_area', label: 'Caregiver must be in my area' },
+                    { id: 'fam_female', label: 'I prefer a female caregiver' },
+                    { id: 'fam_male', label: 'I prefer a male caregiver' },
+                    { id: 'fam_certs', label: 'Caregiver must have specific certifications' }
+                  ].map((item) => (
+                    <div key={item.id} className="flex items-start space-x-2">
+                      <Checkbox 
+                        id={item.id} 
+                        checked={matchingCheckboxes.includes(item.label)}
+                        onCheckedChange={(checked) => {
+                          setMatchingCheckboxes(prev => 
+                            checked 
+                              ? [...prev, item.label]
+                              : prev.filter(cb => cb !== item.label)
+                          );
+                        }}
+                        className="mt-1"
+                      />
+                      <Label htmlFor={item.id} className="font-normal">{item.label}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="matchingRequirements">Any other deal breakers or hard requirements?</Label>
+                <Textarea 
+                  id="matchingRequirements" 
+                  placeholder="E.g., Must be experienced with dementia patients, must speak Spanish, must be available on weekends, etc." 
+                  value={matchingRequirements} 
+                  onChange={(e) => setMatchingRequirements(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Additional Information */}
           <Card className="mb-8">
             <CardHeader>
