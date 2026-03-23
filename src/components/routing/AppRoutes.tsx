@@ -85,6 +85,7 @@ import FlyerLocations from "@/pages/admin/FlyerLocations";
 import UrgentCaregiversPage from "@/pages/UrgentCaregiversPage";
 import TestimonialManagementPage from "@/pages/admin/TestimonialManagementPage";
 import CampaignLinksPage from "@/pages/admin/CampaignLinksPage";
+import JoinAsCaregiver from "@/pages/JoinAsCaregiver";
 
 export const AppRoutes = () => {
   const { user } = useAuth();
@@ -103,6 +104,7 @@ export const AppRoutes = () => {
       <Route path="/faq" element={<FAQPage />} />
       <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
       <Route path="/urgent-caregivers" element={<UrgentCaregiversPage />} />
+      <Route path="/join-as-caregiver" element={<JoinAsCaregiver />} />
       
       {/* Registration Routes */}
       <Route path="/registration/family" element={<FamilyRegistration />} />
