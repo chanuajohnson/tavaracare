@@ -666,6 +666,17 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             <>
                               <div><strong>Care Recipient:</strong> {comprehensiveData.profile.care_recipient_name || 'Not provided'}</div>
                               <div><strong>Relationship:</strong> {comprehensiveData.profile.relationship || 'Not provided'}</div>
+                              <div><strong>Care Urgency:</strong> {
+                                comprehensiveData.profile.care_urgency 
+                                  ? {
+                                      immediate: '🔴 Immediate',
+                                      within_week: '🟠 Within a Week',
+                                      within_month: '🔵 Within a Month',
+                                      planning_ahead: '⚪ Planning Ahead',
+                                      flexible: '⚪ Flexible'
+                                    }[comprehensiveData.profile.care_urgency as string] || comprehensiveData.profile.care_urgency
+                                  : 'Not specified'
+                              }</div>
                             </>
                           )}
                           {comprehensiveData.profile.role === 'professional' && (
@@ -673,6 +684,12 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                               <div><strong>Experience:</strong> {comprehensiveData.profile.years_of_experience || 'Not provided'} years</div>
                               <div><strong>Available for Matching:</strong> {comprehensiveData.profile.available_for_matching ? 'Yes' : 'No'}</div>
                             </>
+                          )}
+                          {comprehensiveData.profile.matching_requirements && (
+                            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded">
+                              <strong>⚠️ Matching Requirements / Deal Breakers:</strong>
+                              <pre className="whitespace-pre-wrap text-sm mt-1 font-sans">{comprehensiveData.profile.matching_requirements}</pre>
+                            </div>
                           )}
                         </div>
                       </Card>

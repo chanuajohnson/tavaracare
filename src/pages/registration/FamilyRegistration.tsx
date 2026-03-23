@@ -69,6 +69,8 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [preferredContactMethod, setPreferredContactMethod] = useState('');
   const [careUrgency, setCareUrgency] = useState('');
+  const [matchingRequirements, setMatchingRequirements] = useState('');
+  const [matchingCheckboxes, setMatchingCheckboxes] = useState<string[]>([]);
   
   const [prefillApplied, setPrefillApplied] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
@@ -156,6 +158,23 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
         setAdditionalNotes(profile.additional_notes || '');
         setPreferredContactMethod(profile.preferred_contact_method || '');
         setCareUrgency((profile as any).care_urgency || '');
+        
+        // Populate matching requirements
+        if ((profile as any).matching_requirements) {
+          const storedReqs = (profile as any).matching_requirements;
+          const checkboxOptions = [
+            'Caregiver must have own transportation',
+            'Caregiver must be in my area',
+            'I prefer a female caregiver',
+            'I prefer a male caregiver',
+            'Caregiver must have specific certifications'
+          ];
+          const foundCheckboxes = checkboxOptions.filter(opt => storedReqs.includes(opt));
+          setMatchingCheckboxes(foundCheckboxes);
+          let freeText = storedReqs;
+          foundCheckboxes.forEach(cb => { freeText = freeText.replace(`• ${cb}\n`, '').replace(`• ${cb}`, ''); });
+          setMatchingRequirements(freeText.trim());
+        }
         
         console.log('✅ Form populated with profile data');
         
@@ -286,6 +305,9 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
         break;
       case 'additional_notes':
         setAdditionalNotes(value);
+        break;
+      case 'matching_requirements':
+        setMatchingRequirements(value);
         break;
       default:
         if (field === 'care_types' && Array.isArray(value)) {
@@ -554,7 +576,11 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
         caregiver_preferences: caregiverPreferences || '',
         additional_notes: additionalNotes || '',
         preferred_contact_method: preferredContactMethod || '',
-        care_urgency: careUrgency || null
+        care_urgency: careUrgency || null,
+        matching_requirements: [
+          ...matchingCheckboxes.map(cb => `• ${cb}`),
+          matchingRequirements
+        ].filter(Boolean).join('\n').trim() || ''
       };
 
       console.log('Updating family profile with data:', profileData);
@@ -1219,6 +1245,57 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
                   placeholder="Any preferences regarding language, experience, etc." 
                   value={caregiverPreferences} 
                   onChange={(e) => setCaregiverPreferences(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Caregiver Requirements & Deal Breakers */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>🎯 Caregiver Requirements & Deal Breakers</CardTitle>
+              <CardDescription>
+                Let us know if you have any hard requirements for your caregiver. This helps us avoid non-viable matches.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Common Requirements (select all that apply)</Label>
+                <div className="space-y-3">
+                  {[
+                    { id: 'fam_transport', label: 'Caregiver must have own transportation' },
+                    { id: 'fam_area', label: 'Caregiver must be in my area' },
+                    { id: 'fam_female', label: 'I prefer a female caregiver' },
+                    { id: 'fam_male', label: 'I prefer a male caregiver' },
+                    { id: 'fam_certs', label: 'Caregiver must have specific certifications' }
+                  ].map((item) => (
+                    <div key={item.id} className="flex items-start space-x-2">
+                      <Checkbox 
+                        id={item.id} 
+                        checked={matchingCheckboxes.includes(item.label)}
+                        onCheckedChange={(checked) => {
+                          setMatchingCheckboxes(prev => 
+                            checked 
+                              ? [...prev, item.label]
+                              : prev.filter(cb => cb !== item.label)
+                          );
+                        }}
+                        className="mt-1"
+                      />
+                      <Label htmlFor={item.id} className="font-normal">{item.label}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="matchingRequirements">Any other deal breakers or hard requirements?</Label>
+                <Textarea 
+                  id="matchingRequirements" 
+                  placeholder="E.g., Must be experienced with dementia patients, must speak Spanish, must be available on weekends, etc." 
+                  value={matchingRequirements} 
+                  onChange={(e) => setMatchingRequirements(e.target.value)}
                   rows={3}
                 />
               </div>
