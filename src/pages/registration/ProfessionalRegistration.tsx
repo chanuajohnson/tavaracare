@@ -71,6 +71,8 @@ const ProfessionalRegistration = () => {
   const [emergencyContact, setEmergencyContact] = useState('');
   const [backgroundCheck, setBackgroundCheck] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState(''); // Changed from additionalInfo to additionalNotes
+  const [matchingRequirements, setMatchingRequirements] = useState('');
+  const [matchingCheckboxes, setMatchingCheckboxes] = useState<string[]>([]);
   
   const [prefillApplied, setPrefillApplied] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
