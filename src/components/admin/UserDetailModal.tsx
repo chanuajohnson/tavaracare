@@ -835,6 +835,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 currentStep: journeyProgress.steps?.filter((s: any) => s.completed).length + 1 || 1,
                 steps: journeyProgress.steps || [],
               }}
+              comprehensiveData={comprehensiveData}
             />
           </TabsContent>
 
