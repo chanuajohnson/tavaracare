@@ -104,6 +104,7 @@ export const AppRoutes = () => {
       <Route path="/faq" element={<FAQPage />} />
       <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
       <Route path="/urgent-caregivers" element={<UrgentCaregiversPage />} />
+      <Route path="/join-as-caregiver" element={<JoinAsCaregiver />} />
       
       {/* Registration Routes */}
       <Route path="/registration/family" element={<FamilyRegistration />} />
