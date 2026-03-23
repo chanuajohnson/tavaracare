@@ -69,6 +69,8 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [preferredContactMethod, setPreferredContactMethod] = useState('');
   const [careUrgency, setCareUrgency] = useState('');
+  const [matchingRequirements, setMatchingRequirements] = useState('');
+  const [matchingCheckboxes, setMatchingCheckboxes] = useState<string[]>([]);
   
   const [prefillApplied, setPrefillApplied] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
