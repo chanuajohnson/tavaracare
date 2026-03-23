@@ -1,30 +1,50 @@
 
 
-## Two Issues to Address
+## Root Cause: Professional Fields Not Persisting + Progress Discrepancy
 
-### Issue 1: "Bev Vil" Profile Incomplete (why modal keeps appearing)
-**Root cause confirmed:** User `33a739ce` (Bev Vil) has `professional_type = null` and `years_of_experience = null` in the database, even though documents are all uploaded. The readiness modal correctly shows because `isProfileComplete()` requires both fields.
+### Issue 1: Data Not Persisting
 
-This means the professional registration form either wasn't fully completed, or the save failed for these fields. The documents were uploaded separately and saved fine.
+**Root cause found.** The one-param `update_user_profile(profile_data jsonb)` function (used by `ProfessionalRegistration.tsx` at line 507) is **missing all professional-specific fields**. Looking at the function body (lines 12-46 of migration `20260323131242`), it only updates family-oriented fields like `care_recipient_name`, `relationship`, `care_types`, etc.
 
-**Fix:** Two-part approach:
-1. **Immediate data fix** — Update Bev Vil's profile with the correct `professional_type` and `years_of_experience` values (you'll need to tell me what type of professional Bev is and how many years of experience)
-2. **Code fix** — Add validation to the professional registration form to prevent submission if `professional_type` or `years_of_experience` are empty, showing a toast error instead of silently saving incomplete data
+**Missing from the one-param function:**
+- `professional_type`
+- `years_of_experience`
+- `certifications` (array)
+- `care_services` (array — partially there but may not work correctly)
+- `hourly_rate`
+- `commute_mode`
+- `languages`
+- `emergency_contact`
+- `background_check`
+- `preferred_work_locations`
+- `drivers_license`, `own_transportation`, `available_for_matching`
 
-### Issue 2: Caregiver Outreach Strategy
-For finding caregivers to sign up to Tavara, we can build a **Caregiver Recruitment Landing Page** with a referral/outreach system:
+The **two-param version** (`update_user_profile(user_id_param uuid, profile_data jsonb)`) has these fields, but the registration form calls the one-param version. So every time Bev Vil submits, the professional fields silently get ignored.
 
-1. **Create a dedicated `/join-as-caregiver` landing page** — A clean, compelling page explaining why caregivers should join Tavara, with benefits, testimonials, and a prominent "Sign Up" CTA that routes to `/registration/professional`
-2. **Add UTM tracking** — The page captures UTM parameters (source, campaign) so you can track which outreach channels (WhatsApp, social media, flyers) drive the most signups
-3. **Shareable link generator in Admin** — A simple tool in the admin dashboard that generates trackable links like `tavara.care/join-as-caregiver?utm_source=whatsapp&utm_campaign=march2026` for different outreach campaigns
+### Issue 2: Progress Discrepancy (17% TAV vs 33% Admin)
+
+Two different calculation paths:
+- **TAV widget (17%)**: Uses `useStoredJourneyProgress` which reads from `user_journey_progress` DB table — this row was likely set to 17% and never updated when steps were completed
+- **Admin card (33%)**: Uses `useProfessionalProgress` which calculates from actual data (profile fields, documents) — it correctly detects 2/6 steps done (account + documents = 33%)
+
+Both are "correct" given their data source, but they diverge because the `user_journey_progress` table isn't being updated when the user completes steps outside the tracked flow.
+
+### Fix
+
+#### 1. Database migration — Fix the one-param `update_user_profile` function
+Recreate `update_user_profile(profile_data jsonb)` to include ALL professional fields that the two-param version already handles: `professional_type`, `years_of_experience`, `certifications`, `hourly_rate`, `commute_mode`, `languages`, `emergency_contact`, `background_check`, `background_check_proof_url`, `legally_authorized`, `drivers_license`, `own_transportation`, `available_for_matching`, `work_type`, `availability`, `custom_schedule`, `preferred_work_locations`.
+
+#### 2. Update `user_journey_progress` for Bev Vil
+Update Bev Vil's progress row to reflect actual completion (33%, step 4 next) so the TAV widget matches the admin dashboard.
+
+#### 3. Add progress sync after professional registration save
+In `ProfessionalRegistration.tsx`, after successful save, update the `user_journey_progress` table to mark step 2 (profile) as complete so the TAV widget stays in sync.
 
 ### Files Changed
 
 | Action | Target | Description |
 |--------|--------|-------------|
-| Migrate | `profiles` row `33a739ce` | Set `professional_type` and `years_of_experience` to correct values |
-| Modify | `ProfessionalRegistration.tsx` | Add validation preventing save when professional_type or years_of_experience are empty |
-| Create | `src/pages/JoinAsCaregiver.tsx` | Caregiver recruitment landing page |
-| Modify | `src/App.tsx` | Add `/join-as-caregiver` route |
-| Modify | Admin dashboard (optional) | Add shareable link generator for outreach campaigns |
+| Migrate | `update_user_profile(jsonb)` function | Add all missing professional fields to match the two-param version |
+| Migrate | `user_journey_progress` row for `33a739ce` | Set progress to 33% / step 4 |
+| Modify | `ProfessionalRegistration.tsx` | Sync `user_journey_progress` after successful save |
 
