@@ -3221,6 +3221,7 @@ export type Database = {
           created_at: string | null
           custom_availability_alerts: string | null
           custom_schedule: string | null
+          drivers_license: boolean | null
           email_verification_sent_at: string | null
           email_verified: boolean | null
           emergency_contact: string | null
@@ -3253,6 +3254,7 @@ export type Database = {
           other_certification: string | null
           other_medical_condition: string | null
           other_special_needs: string | null
+          own_transportation: boolean | null
           payment_methods: string[] | null
           phone_number: string | null
           preferred_contact_method: string | null
@@ -3317,6 +3319,7 @@ export type Database = {
           created_at?: string | null
           custom_availability_alerts?: string | null
           custom_schedule?: string | null
+          drivers_license?: boolean | null
           email_verification_sent_at?: string | null
           email_verified?: boolean | null
           emergency_contact?: string | null
@@ -3349,6 +3352,7 @@ export type Database = {
           other_certification?: string | null
           other_medical_condition?: string | null
           other_special_needs?: string | null
+          own_transportation?: boolean | null
           payment_methods?: string[] | null
           phone_number?: string | null
           preferred_contact_method?: string | null
@@ -3413,6 +3417,7 @@ export type Database = {
           created_at?: string | null
           custom_availability_alerts?: string | null
           custom_schedule?: string | null
+          drivers_license?: boolean | null
           email_verification_sent_at?: string | null
           email_verified?: boolean | null
           emergency_contact?: string | null
@@ -3445,6 +3450,7 @@ export type Database = {
           other_certification?: string | null
           other_medical_condition?: string | null
           other_special_needs?: string | null
+          own_transportation?: boolean | null
           payment_methods?: string[] | null
           phone_number?: string | null
           preferred_contact_method?: string | null
