@@ -494,7 +494,11 @@ const ProfessionalRegistration = () => {
         languages: languages || [],
         emergency_contact: emergencyContact || '',
         background_check: backgroundCheck ? backgroundCheck === 'yes' || backgroundCheck === 'true' : null,
-        additional_notes: additionalNotes || '' // Changed from additional_info to additional_notes
+        additional_notes: additionalNotes || '',
+        matching_requirements: [
+          ...matchingCheckboxes.map(cb => `• ${cb}`),
+          matchingRequirements
+        ].filter(Boolean).join('\n').trim() || ''
       };
 
       console.log('Updating professional profile with data:', profileData);
