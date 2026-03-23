@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { MessageSquare, ExternalLink, Plus, Send, Sparkles, AlertTriangle, CheckCircle, Clock, Zap } from 'lucide-react';
@@ -170,10 +171,12 @@ const getIncompleteFields = (
     if (!careNeeds.preferred_time_start || !careNeeds.preferred_time_end) {
       fields.push({ field: 'preferred_times', label: 'Preferred care times', reason: 'critical for scheduling', source: 'assessment' });
     }
-    if (careNeeds.weekday_coverage === 'none' || !careNeeds.weekday_coverage) {
+    // Only flag weekday/weekend coverage if truly null/undefined (never answered)
+    // 'none' and 'no' are valid explicit selections meaning no coverage needed
+    if (careNeeds.weekday_coverage === null || careNeeds.weekday_coverage === undefined) {
       fields.push({ field: 'weekday_coverage', label: 'Weekday coverage needs', reason: 'determines caregiver shift planning', source: 'assessment' });
     }
-    if (careNeeds.weekend_coverage === 'no' || !careNeeds.weekend_coverage) {
+    if (careNeeds.weekend_coverage === null || careNeeds.weekend_coverage === undefined) {
       fields.push({ field: 'weekend_coverage', label: 'Weekend coverage needs', reason: 'determines weekend care planning', source: 'assessment' });
     }
     if (!careNeeds.cultural_preferences) {
@@ -467,48 +470,88 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
         {user.phone_number ? ` • ${user.phone_number}` : ' • No phone number on file'}
       </div>
 
-      {/* Smart Completion Nudge — only for family users with incomplete fields */}
-      {user.role === 'family' && incompleteFields.length > 0 && (
-        <Card className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-amber-600" />
-                <span className="font-medium text-sm text-amber-800 dark:text-amber-300">
-                  Smart Completion Nudge
-                </span>
-              </div>
-              <Badge variant="outline" className="text-xs border-amber-500/50 text-amber-700 dark:text-amber-400">
-                {incompleteFields.length} missing field{incompleteFields.length !== 1 ? 's' : ''}
-              </Badge>
-            </div>
-
-            <div className="space-y-1">
-              {incompleteFields.slice(0, 6).map((field) => (
-                <div key={field.field} className="flex items-start gap-1.5 text-xs text-amber-800 dark:text-amber-300">
-                  <span>❌</span>
-                  <span>
-                    <strong>{field.label}</strong> — {field.reason}
+      {/* Smart Completion Nudge — only for family users */}
+      {user.role === 'family' && (
+        <>
+          {!comprehensiveData ? (
+            <Card className="border-muted">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-muted-foreground animate-pulse" />
+                  <span className="font-medium text-sm text-muted-foreground">
+                    Analyzing profile completeness...
                   </span>
                 </div>
-              ))}
-              {incompleteFields.length > 6 && (
-                <div className="text-xs text-amber-700 dark:text-amber-400 pl-5">
-                  ...and {incompleteFields.length - 6} more
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                  <Skeleton className="h-3 w-2/3" />
                 </div>
-              )}
-            </div>
+              </CardContent>
+            </Card>
+          ) : incompleteFields.length > 0 ? (
+            <Card className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-amber-600" />
+                    <span className="font-medium text-sm text-amber-800 dark:text-amber-300">
+                      Smart Completion Nudge
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="text-xs border-amber-500/50 text-amber-700 dark:text-amber-400">
+                    {incompleteFields.length} missing field{incompleteFields.length !== 1 ? 's' : ''}
+                  </Badge>
+                </div>
 
-            <Button
-              size="sm"
-              className="w-full gap-2 bg-amber-600 hover:bg-amber-700 text-white"
-              onClick={handleSendSmartNudge}
-            >
-              <Send className="h-3.5 w-3.5" />
-              Send Smart Completion Nudge via WhatsApp
-            </Button>
-          </CardContent>
-        </Card>
+                <div className="space-y-1">
+                  {incompleteFields.filter(f => f.source === 'profile').length > 0 && (
+                    <div className="text-xs font-medium text-amber-700 dark:text-amber-400 mt-1">Profile Registration:</div>
+                  )}
+                  {incompleteFields.filter(f => f.source === 'profile').map((field) => (
+                    <div key={field.field} className="flex items-start gap-1.5 text-xs text-amber-800 dark:text-amber-300 pl-2">
+                      <span>❌</span>
+                      <span>
+                        <strong>{field.label}</strong> — {field.reason}
+                      </span>
+                    </div>
+                  ))}
+                  {incompleteFields.filter(f => f.source === 'assessment').length > 0 && (
+                    <div className="text-xs font-medium text-amber-700 dark:text-amber-400 mt-2">Care Assessment:</div>
+                  )}
+                  {incompleteFields.filter(f => f.source === 'assessment').map((field) => (
+                    <div key={field.field} className="flex items-start gap-1.5 text-xs text-amber-800 dark:text-amber-300 pl-2">
+                      <span>❌</span>
+                      <span>
+                        <strong>{field.label}</strong> — {field.reason}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  size="sm"
+                  className="w-full gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+                  onClick={handleSendSmartNudge}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Send Smart Completion Nudge via WhatsApp
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-green-500/50 bg-green-50 dark:bg-green-950/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="font-medium text-sm text-green-800 dark:text-green-300">
+                    Profile & assessment fully complete ✓
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
 
       {/* Recommended templates */}
