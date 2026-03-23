@@ -159,6 +159,23 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
         setPreferredContactMethod(profile.preferred_contact_method || '');
         setCareUrgency((profile as any).care_urgency || '');
         
+        // Populate matching requirements
+        if ((profile as any).matching_requirements) {
+          const storedReqs = (profile as any).matching_requirements;
+          const checkboxOptions = [
+            'Caregiver must have own transportation',
+            'Caregiver must be in my area',
+            'I prefer a female caregiver',
+            'I prefer a male caregiver',
+            'Caregiver must have specific certifications'
+          ];
+          const foundCheckboxes = checkboxOptions.filter(opt => storedReqs.includes(opt));
+          setMatchingCheckboxes(foundCheckboxes);
+          let freeText = storedReqs;
+          foundCheckboxes.forEach(cb => { freeText = freeText.replace(`• ${cb}\n`, '').replace(`• ${cb}`, ''); });
+          setMatchingRequirements(freeText.trim());
+        }
+        
         console.log('✅ Form populated with profile data');
         
         // Show feedback when data is loaded for editing
