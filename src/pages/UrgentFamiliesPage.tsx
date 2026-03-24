@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Heart, Users, MapPin, Clock, ArrowLeft, AlertCircle } from "lucide-react";
+import { Heart, Users, MapPin, Clock, ArrowLeft, AlertCircle, MessageCircle, Award } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UrgentBadge } from "@/components/spotlight/UrgentBadge";
 
 interface UrgentFamily {
   id: string;
@@ -15,14 +17,14 @@ interface UrgentFamily {
   location: string | null;
   care_types: string[] | null;
   care_urgency: string | null;
-  care_recipient_name: string | null;
   care_schedule: string | null;
 }
 
-const getFirstNameLastInitial = (name: string): string => {
-  const parts = name.trim().split(' ');
-  if (parts.length === 1) return parts[0];
-  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+const getInitials = (name: string): string => {
+  const parts = name.trim().split(' ').filter(Boolean);
+  if (parts.length === 0) return "F";
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() || "F";
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 };
 
 const getGeneralArea = (location: string | null): string => {
@@ -37,7 +39,7 @@ const useUrgentFamilies = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, location, care_types, care_urgency, care_recipient_name, care_schedule")
+        .select("id, full_name, location, care_types, care_urgency, care_schedule")
         .eq("role", "family")
         .eq("available_for_matching", true)
         .order("updated_at", { ascending: false });
@@ -58,6 +60,32 @@ const CARE_TYPE_LABELS: Record<string, string> = {
   transportation: "🚗 Transportation",
   companionship: "👥 Companionship",
   specialized_care: "🏥 Specialized",
+};
+
+const SCHEDULE_LABELS: Record<string, string> = {
+  mornings: "Morning Care",
+  afternoons: "Afternoon Care",
+  evenings: "Evening Care",
+  overnight: "Overnight Care",
+  full_time: "Full-time Care",
+  flexible: "Flexible Schedule",
+  mon_fri_8am_4pm: "Weekdays 8AM–4PM",
+  mon_fri_8am_6pm: "Weekdays 8AM–6PM",
+  mon_fri_6am_6pm: "Weekdays 6AM–6PM",
+  sat_sun_6am_6pm: "Weekends 6AM–6PM",
+  sat_sun_8am_4pm: "Weekends 8AM–4PM",
+  live_in_care: "Live-In Care",
+  "24_7_care": "24/7 Care",
+};
+
+const getScheduleLabel = (schedule: string | null): string | null => {
+  if (!schedule) return null;
+  const parts = schedule.split(',').map(s => s.trim());
+  const labels = parts
+    .map(p => SCHEDULE_LABELS[p] || p)
+    .slice(0, 2);
+  if (labels.length === 0) return null;
+  return labels.join(' · ') + (parts.length > 2 ? ` +${parts.length - 2}` : '');
 };
 
 const UrgentFamiliesPage = () => {
@@ -143,74 +171,125 @@ const UrgentFamiliesPage = () => {
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-72 rounded-xl" />
+                <Skeleton key={i} className="h-96 rounded-xl" />
               ))}
             </div>
           ) : families && families.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {families.map((family, index) => (
-                <motion.div
-                  key={family.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                >
-                  <Card className="h-full border-border hover:shadow-lg transition-shadow">
-                    <CardContent className="p-6 space-y-4">
-                      {/* Urgency Badge */}
-                      <div className="flex items-center justify-between">
-                        <Badge variant="destructive" className="animate-pulse">
-                          {family.care_urgency === "immediate" ? "🔴 Immediate" : "🟡 This Week"}
-                        </Badge>
-                      </div>
+              {families.map((family, index) => {
+                const initials = getInitials(family.full_name);
+                const area = getGeneralArea(family.location);
+                const scheduleLabel = getScheduleLabel(family.care_schedule);
+                const urgencyLevel = family.care_urgency === "immediate" ? "high" as const : "medium" as const;
 
-                      {/* Family Info - Privacy-safe */}
-                      <div>
-                        <h3 className="text-lg font-semibold text-foreground">
-                          Family in {getGeneralArea(family.location)}
-                        </h3>
-                        {family.care_recipient_name && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Care for: {getFirstNameLastInitial(family.care_recipient_name)}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Location */}
-                      {family.location && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <MapPin className="h-4 w-4 flex-shrink-0" />
-                          <span>{getGeneralArea(family.location)}</span>
+                return (
+                  <motion.div
+                    key={family.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                  >
+                    <Card className="overflow-hidden border-border/50 bg-card hover:shadow-lg transition-shadow h-full">
+                      <CardContent className="p-0">
+                        {/* Gradient header */}
+                        <div className="relative bg-gradient-to-br from-primary/10 to-primary/5 p-6 pb-12">
+                          <div className="flex justify-between items-start">
+                            <UrgentBadge
+                              urgencyLevel={urgencyLevel}
+                              label={family.care_urgency === "immediate" ? "Immediate Need" : "Seeking Care"}
+                            />
+                          </div>
                         </div>
-                      )}
 
-                      {/* Care Types */}
-                      {family.care_types && family.care_types.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {family.care_types.slice(0, 4).map((type) => (
-                            <Badge key={type} variant="secondary" className="text-xs">
-                              {CARE_TYPE_LABELS[type] || type}
-                            </Badge>
-                          ))}
-                          {family.care_types.length > 4 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{family.care_types.length - 4} more
-                            </Badge>
+                        {/* Avatar overlapping header */}
+                        <div className="relative px-6 -mt-8">
+                          <Avatar className="h-16 w-16 border-4 border-background shadow-md">
+                            <AvatarFallback className="bg-primary text-primary-foreground text-lg font-semibold">
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 pt-3 space-y-4">
+                          {/* Title */}
+                          <div>
+                            <h3 className="font-semibold text-lg text-foreground">Family in {area}</h3>
+                            <p className="text-sm text-muted-foreground">Seeking compassionate care</p>
+                          </div>
+
+                          {/* Location & Schedule */}
+                          <div className="space-y-1.5">
+                            {family.location && (
+                              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                <MapPin className="h-3.5 w-3.5" />
+                                {area}
+                              </div>
+                            )}
+                            {scheduleLabel && (
+                              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                <Clock className="h-3.5 w-3.5" />
+                                {scheduleLabel}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Care Types */}
+                          {family.care_types && family.care_types.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {family.care_types.slice(0, 4).map((type) => (
+                                <Badge key={type} variant="secondary" className="text-xs font-normal">
+                                  {CARE_TYPE_LABELS[type] || type}
+                                </Badge>
+                              ))}
+                              {family.care_types.length > 4 && (
+                                <Badge variant="outline" className="text-xs font-normal">
+                                  +{family.care_types.length - 4} more
+                                </Badge>
+                              )}
+                            </div>
                           )}
-                        </div>
-                      )}
 
-                      {/* CTA */}
-                      <Button 
-                        onClick={() => handleWhatsAppInquiry(family)}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        💬 Inquire on WhatsApp
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+                          {/* Status badges */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-primary">
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                              </span>
+                              Seeking care now
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Award className="h-3.5 w-3.5 text-primary" />
+                              Verified Family
+                            </div>
+                          </div>
+
+                          {/* Action buttons */}
+                          <div className="flex gap-2 pt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => handleWhatsAppInquiry(family)}
+                            >
+                              View Details
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                              onClick={() => handleWhatsAppInquiry(family)}
+                            >
+                              <MessageCircle className="h-4 w-4 mr-1.5" />
+                              WhatsApp
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-16 bg-muted/30 rounded-xl">
