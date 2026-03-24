@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Heart, Shield, Clock, Users, Star, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Heart, Shield, Clock, Users, Star, ArrowRight, CheckCircle2, MapPin } from 'lucide-react';
 import { getStoredUTMData } from '@/utils/utmTracking';
 
 const JoinAsCaregiver = () => {
