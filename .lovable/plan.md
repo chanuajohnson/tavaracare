@@ -1,31 +1,53 @@
 
 
-## Fix: Professional Dashboard Not Showing Available Families
+## Add Professional Family Match Notification Banner
 
-### Root Cause
+### Problem
+1. **No match notification banner exists for professionals** -- The family dashboard has `FamilyMatchNotification` ("You have 1 caregiver match!") but there's no equivalent on the professional dashboard. The `ProfessionalFamilyAwarenessBanner` only shows "X families actively looking" — and it returns 0 because both available families already have active assignments (the RPC filters those out).
 
-The `useFamilyMatches` hook (used by `DashboardFamilyMatches` and `ProfessionalFamilyMatchModal`) queries the `profiles` table directly with `supabase.from('profiles').select('*').eq('role', 'family').eq('available_for_matching', true)`. RLS blocks professional users from reading family profile rows, so the query returns 0 results and the empty state ("No families available right now") is shown -- even though 2 families are marked available in admin.
+2. **Current data for chanuajohnson6@gmail.com**: This professional has 5 active family assignments (Chan Johnson, Lana Rivera, Kwame Johnson, Carl Giveet, Sarina Bland). They ARE matched — there's just no banner showing it.
 
-Meanwhile, the `ProfessionalFamilyAwarenessBanner` uses the `get_unmatched_family_count()` RPC (security definer, bypasses RLS) and should be working. If it returns 0, it's because the updated RPC now also checks `available_for_matching = true` AND checks for no active assignments -- which is correct behavior. Need to verify this is showing.
+3. **Awareness banner logic is too restrictive**: `get_unmatched_family_count()` excludes families with ANY active assignment. Both available families (Ana Maria Aimey, Sarina Bland) have assignments, so count = 0 and the banner hides.
 
-### Fix
+### Changes
 
-**File: `src/hooks/useFamilyMatches.ts`**
+#### 1. Create `ProfessionalFamilyMatchNotification` component
+**New file: `src/components/professional/ProfessionalFamilyMatchNotification.tsx`**
 
-Replace the direct `profiles` table query with the existing `get_public_family_profiles` RPC (security definer, already returns only safe columns for available families). This is the same RPC used by `/urgent-families`.
+Mirror `FamilyMatchNotification` style (emerald gradient, left border, dismiss button):
+- Query `caregiver_assignments` where `caregiver_id = user.id` and `is_active = true`
+- Show: "You have X family matches!" with family names
+- "View your matches" link goes to the family matches section or `/urgent-families`
+- Dismissible with X button
 
-Changes:
-- Replace `supabase.from('profiles').select('*').eq('role', 'family').eq('available_for_matching', true)` with `supabase.rpc('get_public_family_profiles')`
-- Map the RPC response fields (`full_name`, `location`, `care_types`, `care_urgency`, `care_schedule`, `diagnosed_conditions`, `chronic_illness_type`) to the `Family` interface
-- Keep the admin manual matches query as-is (it uses a join that should work for the assigned professional)
-- Keep all shift compatibility scoring logic intact
-- The RPC already filters by `available_for_matching = true`, so no extra filter needed
+#### 2. Update awareness banner RPC to count available families (not just unmatched)
+**Database migration**: Update `get_unmatched_family_count()` to show families that are `available_for_matching = true` regardless of whether they already have some assignments. Rename concept from "unmatched" to "available":
 
-This ensures professionals see the same 2 available families that appear on `/urgent-families`.
+```sql
+CREATE OR REPLACE FUNCTION public.get_unmatched_family_count()
+RETURNS integer
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT count(*)::integer
+  FROM profiles p
+  WHERE p.role = 'family'
+    AND p.available_for_matching = true;
+$$;
+```
+
+This way the awareness banner shows "2 families are actively looking" even if they have some assignments.
+
+#### 3. Add the match notification to the professional dashboard
+**Modify: `src/pages/dashboards/ProfessionalDashboard.tsx`**
+
+Add `ProfessionalFamilyMatchNotification` above the existing awareness banners (same position as `FamilyMatchNotification` on the family dashboard).
 
 ### Files Changed
 
 | Action | Target | Description |
 |--------|--------|-------------|
-| Modify | `src/hooks/useFamilyMatches.ts` | Switch from direct `profiles` table query to `get_public_family_profiles` RPC to bypass RLS |
+| Create | `src/components/professional/ProfessionalFamilyMatchNotification.tsx` | Match notification banner mirroring family dashboard style |
+| Migrate | Database | Update `get_unmatched_family_count()` to count all available families, not just unassigned ones |
+| Modify | `src/pages/dashboards/ProfessionalDashboard.tsx` | Add `ProfessionalFamilyMatchNotification` to banner section |
 
