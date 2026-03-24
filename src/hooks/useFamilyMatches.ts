@@ -223,34 +223,13 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
       }
 
       if (!familyUsers || familyUsers.length === 0) {
-        console.log("No family users found, using enhanced mock data");
-        const enhancedMockFamilies = MOCK_FAMILIES.map(family => {
-          const familySchedule = parseCareSchedule(family.care_schedule);
-          const shiftCompatibility = calculateShiftCompatibility(professionalCareSchedule, familySchedule);
-          const matchExplanation = generateMatchExplanation(shiftCompatibility, professionalCareSchedule, familySchedule);
-          const scheduleOverlapDetails = generateScheduleOverlapDetails(professionalCareSchedule, familySchedule);
-          
-          return {
-            ...family,
-            shift_compatibility_score: shiftCompatibility,
-            match_explanation: matchExplanation,
-            schedule_overlap_details: scheduleOverlapDetails,
-            match_score: Math.round((family.match_score + shiftCompatibility) / 2)
-          };
-        });
-
-        enhancedMockFamilies.sort((a, b) => b.match_score - a.match_score);
-        
-        const fallbackFamilies = showOnlyBestMatch 
-          ? enhancedMockFamilies.slice(0, 1) 
-          : enhancedMockFamilies;
-        processedFamiliesRef.current = enhancedMockFamilies;
-        setFamilies(fallbackFamilies);
+        console.log("No available family users found");
+        processedFamiliesRef.current = [];
+        setFamilies([]);
         await trackEngagement('family_matches_view', { 
-          data_source: 'mock_data',
-          family_count: fallbackFamilies.length,
-          view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
-          shift_compatibility_enabled: true
+          data_source: 'no_available_families',
+          family_count: 0,
+          view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page'
         });
         return;
       }
