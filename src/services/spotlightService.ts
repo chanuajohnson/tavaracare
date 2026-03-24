@@ -56,7 +56,8 @@ export const spotlightService = {
           location,
           phone_number,
           care_services,
-          years_of_experience
+          years_of_experience,
+          available_for_matching
         )
       `)
       .eq("is_active", true)
