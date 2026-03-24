@@ -32,7 +32,7 @@ const JoinAsCaregiver = () => {
   }, [searchParams]);
 
   const handleSignUp = () => {
-    navigate('/auth?role=professional&from=join-as-caregiver');
+    navigate('/auth?tab=signup&role=professional&from=join-as-caregiver');
   };
 
   const benefits = [
