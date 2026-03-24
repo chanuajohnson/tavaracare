@@ -1,75 +1,54 @@
 
 
-## Fix: Professional Dashboard Mock Data, Location on Urgent Families, and Confusing Matches
+## Fix: Street Addresses Still Leaking on Family Cards
 
-### Three Issues
+### Problem
+"14-18 Lynch Drive, Maraval" has only 2 comma-separated parts, so both the RPC and client-side `getGeneralArea` return it unchanged. The logic only strips when there are 3+ parts.
 
-1. **Professional dashboard shows mock "Wilson"/"Garcia" families** — `useFamilyMatches` queries ALL family profiles without `available_for_matching` filter, and falls back to hardcoded MOCK_FAMILIES when RLS blocks the query. The "View All Family Matches" modal (`ProfessionalFamilyMatchModal`) also uses this same hook with mock data.
+### Root Cause
+The RPC extracts the last 2 parts of `care_location`. For addresses with only 2 parts, both parts are returned — including the street number and name.
 
-2. **`/urgent-families` cards show "Family in Trinidad & Tobago" instead of a general area** — `profiles.location` is null for these families. The actual address is in `care_needs_family.care_location` (e.g., "199 Monica Drive, Block 4, Palmiste, San Fernando"). The RPC needs to pull the general area from `care_location` as a fallback, stripping the street address for privacy.
+### Fix
 
-3. **Journey step "Match with Tavara Families" → "View Family Matches" button** scrolls to DashboardFamilyMatches which shows mock Wilson data, and "View All Family Matches" opens ProfessionalFamilyMatchModal which shows mock Garcia data — confusing and inaccurate.
+**1. Client-side: `src/pages/UrgentFamiliesPage.tsx`** (line 34-38)
 
-### Changes
-
-#### 1. Update `get_public_family_profiles` RPC to return general area from care_location
-**Database migration** — Join `care_needs_family.care_location`, extract last 2 comma-separated parts (general area only, no street address):
-
-```sql
-CREATE OR REPLACE FUNCTION public.get_public_family_profiles()
-RETURNS TABLE(
-  id uuid, full_name text, location text, care_types text[],
-  care_urgency care_urgency, care_schedule text,
-  diagnosed_conditions text, chronic_illness_type text
-) AS $$
-  SELECT p.id, p.full_name, 
-    COALESCE(p.location, 
-      -- Extract general area from care_location (last 2 parts)
-      (SELECT string_agg(part, ', ') FROM (
-        SELECT unnest(
-          (string_to_array(cn.care_location, ','))[
-            array_length(string_to_array(cn.care_location, ','), 1) - 1 :
-          ]
-        ) AS part
-      ) sub)
-    ) as location,
-    p.care_types, p.care_urgency, p.care_schedule,
-    cn.diagnosed_conditions, cn.chronic_illness_type
-  FROM profiles p
-  LEFT JOIN care_needs_family cn ON cn.profile_id = p.id
-  WHERE p.role = 'family' AND p.available_for_matching = true
-  ORDER BY p.updated_at DESC;
-$$;
+Update `getGeneralArea` to always strip street-level detail:
+```typescript
+const getGeneralArea = (location: string | null): string => {
+  if (!location) return "Trinidad & Tobago";
+  const parts = location.split(',').map(p => p.trim());
+  // Always take only the last part (city/area) to avoid street addresses
+  // If last part looks like a country or is too generic, take last 2
+  if (parts.length >= 3) return parts.slice(-2).join(', ');
+  if (parts.length === 2) {
+    // Check if first part contains street indicators (numbers, "Drive", "Street", "Road", "Avenue", "Block")
+    const streetPattern = /\d|drive|street|road|avenue|block|lane|crescent|close|terrace/i;
+    if (streetPattern.test(parts[0])) return parts[1]; // Return only area/city
+    return location; // Both parts are area-level, keep both
+  }
+  return location;
+};
 ```
 
-This ensures cards show "Palmiste, San Fernando" instead of "Trinidad & Tobago" or the full street address.
+**2. Database RPC: `get_public_family_profiles()`**
 
-#### 2. Fix `useFamilyMatches` to filter by `available_for_matching` and remove mock data
-**File: `src/hooks/useFamilyMatches.ts`**
+Update the SQL to return only the LAST part (not last 2) when the address has 2 or fewer comma-separated parts, and apply a regex strip of street numbers/names:
+```sql
+-- Extract only the last comma-separated part (general area) from care_location
+COALESCE(p.location,
+  (SELECT trim(parts[array_length(parts, 1)])
+   FROM (SELECT string_to_array(cn.care_location, ',') AS parts) sub),
+  'Trinidad & Tobago'
+) as location
+```
 
-- Remove `MOCK_FAMILIES` array entirely (Garcia, Wilson, Thomas)
-- Add `.eq('available_for_matching', true)` to the family profiles query (line 222)
-- When no families found or query errors, show empty state instead of mock data
-- When falling back, set empty array instead of mock families
-- Also add `full_name` privacy: show only initials-based display name on the Family interface
-
-#### 3. Update `DashboardFamilyMatches` empty state
-**File: `src/components/professional/DashboardFamilyMatches.tsx`**
-
-- Update the empty state to say "No families available right now" with a link to `/urgent-families` instead of showing filter adjustment button
-- This is more helpful since the real data comes from admin availability toggles
-
-#### 4. Update `ProfessionalFamilyMatchModal` empty state
-**File: `src/components/professional/ProfessionalFamilyMatchModal.tsx`**
-
-- Same empty state update — link to `/urgent-families` when no matches
+This ensures "14-18 Lynch Drive, Maraval" returns just "Maraval", and "199 Monica Drive, Block 4, Palmiste, San Fernando" returns "San Fernando" or "Palmiste, San Fernando".
 
 ### Files Changed
 
 | Action | Target | Description |
 |--------|--------|-------------|
-| Migrate | Database | Update `get_public_family_profiles()` to extract general area from `care_location` as fallback |
-| Modify | `src/hooks/useFamilyMatches.ts` | Remove mock families, add `available_for_matching` filter, empty state on no data |
-| Modify | `src/components/professional/DashboardFamilyMatches.tsx` | Update empty state messaging |
-| Modify | `src/components/professional/ProfessionalFamilyMatchModal.tsx` | Update empty state messaging |
+| Migrate | Database | Update `get_public_family_profiles()` to return only last part of address |
+| Modify | `src/pages/UrgentFamiliesPage.tsx` | Update `getGeneralArea` to strip street-level data from 2-part addresses |
+| Modify | `src/components/family/FamilyDetailModal.tsx` | Same `getGeneralArea` fix if duplicated there |
 
