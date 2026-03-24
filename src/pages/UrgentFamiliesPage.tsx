@@ -358,6 +358,14 @@ const UrgentFamiliesPage = () => {
         </div>
       </section>
     </div>
+
+      <FamilyDetailModal
+        open={showDetailModal}
+        onOpenChange={setShowDetailModal}
+        family={selectedFamily}
+        onWhatsAppInquiry={handleWhatsAppInquiry}
+      />
+    </div>
   );
 };
 

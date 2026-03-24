@@ -114,7 +114,7 @@ export const AppRoutes = () => {
       <Route path="/registration/community" element={<CommunityRegistration />} />
       
       {/* Dashboard Routes */}
-      <Route path="/dashboard/family" element={<FamilyDashboard />} />
+      <Route path="/dashboard/family" element={<FamilyDashboardPage />} />
       <Route path="/dashboard/professional" element={<ProfessionalDashboard />} />
       <Route path="/dashboard/community" element={<CommunityDashboard />} />
       <Route path="/dashboard/admin" element={<AdminDashboard />} />
