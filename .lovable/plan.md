@@ -1,54 +1,65 @@
 
+Fix the family details modal so mobile users never get trapped and the close control stays reachable.
 
-## Fix: Street Addresses Still Leaking on Family Cards
+1. Update the shared dialog container for safer mobile behavior
+- In `src/components/ui/dialog.tsx`, make the default `DialogContent` mobile-safe by:
+  - anchoring it with viewport-aware sizing (`w-[calc(100%-1rem)]`, `max-h-[calc(100dvh-1rem)]`, `overflow-hidden`)
+  - using `top-[50%]` only when content fits, while allowing full-height modal variants to remain stable
+  - moving the built-in close button above scrollable content with a stronger z-index and an opaque background so it never disappears over long content
+  - adding safer padding on small screens so the close button is not clipped by mobile browser chrome
 
-### Problem
-"14-18 Lynch Drive, Maraval" has only 2 comma-separated parts, so both the RPC and client-side `getGeneralArea` return it unchanged. The logic only strips when there are 3+ parts.
+2. Refactor `FamilyDetailModal` to use an internal scroll region
+- In `src/components/family/FamilyDetailModal.tsx`, stop making the whole dialog content scroll.
+- Switch to a structure like:
+  - outer `DialogContent` = fixed shell, `p-0`, `overflow-hidden`, responsive width/height
+  - sticky/fixed top header inside the modal with title + explicit close button area always visible
+  - inner scrollable content area for the long details only
+- This prevents the close button from scrolling out of view and avoids the “stuck” state shown in the screenshot.
 
-### Root Cause
-The RPC extracts the last 2 parts of `care_location`. For addresses with only 2 parts, both parts are returned — including the street number and name.
+3. Make the modal responsive across phone/tablet/desktop
+- Use mobile-first sizing:
+  - mobile: nearly full-screen sheet/modal (`h-[calc(100dvh-1rem)]`)
+  - tablet/desktop: centered modal with bounded max height
+- Reduce header/avatar overlap spacing on small screens so important content starts higher.
+- Ensure CTA/button stack wraps cleanly and doesn’t get hidden behind mobile browser UI.
 
-### Fix
+4. Add explicit close affordances
+- Keep overlay click and Escape close behavior.
+- Add a visible close button inside `FamilyDetailModal`’s own header instead of relying only on the shared absolute close icon.
+- Optionally add a footer-safe close/back action on small screens if needed after implementation review.
 
-**1. Client-side: `src/pages/UrgentFamiliesPage.tsx`** (line 34-38)
+5. Keep background locking but remove the trapped UX
+- The page behind should remain non-scrollable while the modal is open; that is correct modal behavior.
+- The real fix is to ensure the modal itself scrolls correctly and always exposes a reachable close control.
+- Preserve focus/accessibility behavior from Radix while improving layout only.
 
-Update `getGeneralArea` to always strip street-level detail:
-```typescript
-const getGeneralArea = (location: string | null): string => {
-  if (!location) return "Trinidad & Tobago";
-  const parts = location.split(',').map(p => p.trim());
-  // Always take only the last part (city/area) to avoid street addresses
-  // If last part looks like a country or is too generic, take last 2
-  if (parts.length >= 3) return parts.slice(-2).join(', ');
-  if (parts.length === 2) {
-    // Check if first part contains street indicators (numbers, "Drive", "Street", "Road", "Avenue", "Block")
-    const streetPattern = /\d|drive|street|road|avenue|block|lane|crescent|close|terrace/i;
-    if (streetPattern.test(parts[0])) return parts[1]; // Return only area/city
-    return location; // Both parts are area-level, keep both
-  }
-  return location;
-};
+6. Align this modal with existing successful modal patterns
+- Reuse the same “shell + internal scroll area” pattern already used in `SpotlightCaregiverDetailModal.tsx` and `MatchDetailModal.tsx`, but improve it for smaller mobile heights by making the header sticky and the close action persistent.
+- If needed, create a small reusable modal-header pattern so other long dialogs can adopt the same mobile-safe behavior later.
+
+Technical details
+- Current problem in `FamilyDetailModal.tsx`: `DialogContent` uses `max-h-[90vh] overflow-y-auto`, so the entire modal scrolls and the shared absolute close button in `dialog.tsx` can drift out of reach or be visually obscured on mobile.
+- Current shared dialog button in `dialog.tsx` is absolutely positioned inside scrollable content, which is fragile for long mobile dialogs.
+- Recommended target layout:
+```text
+DialogContent (fixed shell, overflow-hidden, p-0)
+├─ Sticky modal header (title/status/close always visible)
+└─ Scrollable body (family details)
+   ├─ gradient hero
+   ├─ avatar/title/location
+   ├─ schedule/care needs/medical info
+   └─ sticky or normal CTA footer
 ```
+- Files to modify:
+  - `src/components/ui/dialog.tsx`
+  - `src/components/family/FamilyDetailModal.tsx`
 
-**2. Database RPC: `get_public_family_profiles()`**
-
-Update the SQL to return only the LAST part (not last 2) when the address has 2 or fewer comma-separated parts, and apply a regex strip of street numbers/names:
-```sql
--- Extract only the last comma-separated part (general area) from care_location
-COALESCE(p.location,
-  (SELECT trim(parts[array_length(parts, 1)])
-   FROM (SELECT string_to_array(cn.care_location, ',') AS parts) sub),
-  'Trinidad & Tobago'
-) as location
-```
-
-This ensures "14-18 Lynch Drive, Maraval" returns just "Maraval", and "199 Monica Drive, Block 4, Palmiste, San Fernando" returns "San Fernando" or "Palmiste, San Fernando".
-
-### Files Changed
-
-| Action | Target | Description |
-|--------|--------|-------------|
-| Migrate | Database | Update `get_public_family_profiles()` to return only last part of address |
-| Modify | `src/pages/UrgentFamiliesPage.tsx` | Update `getGeneralArea` to strip street-level data from 2-part addresses |
-| Modify | `src/components/family/FamilyDetailModal.tsx` | Same `getGeneralArea` fix if duplicated there |
+Validation after implementation
+- Test on narrow mobile width like 390px with long medical/care content.
+- Confirm:
+  - modal opens fully within viewport
+  - content scrolls inside modal
+  - close button remains visible at all times
+  - WhatsApp CTA remains reachable
+  - no clipped top/bottom content on tablet/desktop
 
