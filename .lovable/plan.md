@@ -1,59 +1,72 @@
 
 
-## Two Fixes: Add Medical Fields to Nudge System + Show Chronic Illness on Family Cards
+## Fix Three Issues: Family Detail Modal, Family Count, and Dashboard Routing
 
-### Problem
-1. The smart nudge system (`UserNudgeTab.tsx`) only checks 2 care assessment fields (`cultural_preferences`, `additional_notes`). It ignores critical medical fields like `chronic_illness_type`, `diagnosed_conditions`, and `known_allergies` — which is why Ana Maria's missing chronic illness info was never flagged.
-2. The `/urgent-families` cards show no medical context. Caregivers need to know if there's a chronic illness or if none was specified.
+### Issue 1: "View Details" on family cards opens WhatsApp instead of a modal
 
-### Changes
+Both "View Details" and "WhatsApp" buttons call `handleWhatsAppInquiry`. "View Details" should open a detail modal (like `SpotlightCaregiverDetailModal`) showing care assessment info without PII.
 
-#### 1. Add medical care assessment fields to nudge detection
-**File: `src/components/admin/UserNudgeTab.tsx`** (lines 170-180)
+**Fix:** Create `FamilyDetailModal` component and wire "View Details" to open it.
 
-Add checks for these care assessment fields in `getIncompleteFields()`:
-- `chronic_illness_type` — "Chronic illness details"
-- `diagnosed_conditions` — "Diagnosed conditions"
-- `known_allergies` — "Known allergies"
-- `emergency_plan` — "Emergency plan"
-- `triggers_soothing_techniques` — "Triggers & soothing techniques"
+**New file: `src/components/family/FamilyDetailModal.tsx`**
+- Modal matching `SpotlightCaregiverDetailModal` layout
+- Shows: initials avatar, general area, care schedule, care types, diagnosed conditions, chronic illness, urgency badge
+- No names, no addresses, no phone numbers
+- Single WhatsApp CTA at bottom
+- Data comes from what's already fetched via `get_public_family_profiles` RPC
 
-These are all fields on the care assessment form that caregivers need to make informed decisions.
+**Modify: `src/pages/UrgentFamiliesPage.tsx`**
+- Add state for `selectedFamily` and `showDetailModal`
+- "View Details" button opens modal with selected family
+- "WhatsApp" button stays as-is
+- Import and render `FamilyDetailModal`
 
-#### 2. Add chronic illness info to family cards
-**File: `src/pages/UrgentFamiliesPage.tsx`**
+---
 
-- Update `get_public_family_profiles` RPC to also return a `chronic_illness_summary` field (or add a separate query to `care_needs_family` for non-PII medical fields)
-- On each card, below the care type badges, show:
-  - If chronic illness exists: a badge like "🏥 Diabetes" or "🏥 High blood pressure"
-  - If null/empty: "🏥 No chronic illness specified"
-- Same treatment for `diagnosed_conditions` — show it or show "No conditions specified"
+### Issue 2: Professional dashboard shows "11 families" instead of 2
 
-**Database migration**: Update `get_public_family_profiles()` to join `care_needs_family` and return `diagnosed_conditions` and `chronic_illness_type` (these are medical, not PII).
+The `get_unmatched_family_count()` RPC counts ALL family profiles without active assignments — it does NOT filter by `available_for_matching = true`. Only 2 families are marked available in admin.
 
-Updated RPC:
+**Fix — Database migration:** Update `get_unmatched_family_count()` to add `AND p.available_for_matching = true`:
+
 ```sql
-CREATE OR REPLACE FUNCTION public.get_public_family_profiles()
-RETURNS TABLE(
-  id uuid, full_name text, location text, care_types text[],
-  care_urgency care_urgency, care_schedule text,
-  diagnosed_conditions text, chronic_illness_type text
-)
+CREATE OR REPLACE FUNCTION public.get_unmatched_family_count()
+RETURNS integer
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
 AS $$
-  SELECT p.id, p.full_name, p.location, p.care_types, p.care_urgency, p.care_schedule,
-    cn.diagnosed_conditions, cn.chronic_illness_type
+  SELECT count(*)::integer
   FROM profiles p
-  LEFT JOIN care_needs_family cn ON cn.profile_id = p.id
-  WHERE p.role = 'family' AND p.available_for_matching = true
-  ORDER BY p.updated_at DESC;
+  WHERE p.role = 'family'
+    AND p.available_for_matching = true
+    AND NOT EXISTS (
+      SELECT 1 FROM caregiver_assignments ca
+      WHERE ca.family_user_id = p.id AND ca.is_active = true
+    );
 $$;
 ```
+
+---
+
+### Issue 3: Professional user sees Family Dashboard at `/dashboard/family`
+
+The `/dashboard/family` route has no role guard — any logged-in user can navigate to it. In development, the preview URL bar shows `/dashboard/family` which the user navigated to directly.
+
+**Fix: `src/components/routing/AppRoutes.tsx`**
+- The route at line 117 imports `FamilyDashboard` from `@/components/family/FamilyDashboard` instead of from `@/pages/dashboard/family` (the page wrapper). This means there's no auth redirect happening. Update the import to use the page wrapper which already has the auth check. But actually — the page wrapper redirects non-users to `/auth`, not non-family users. A proper fix:
+- Add a role check: if user's role !== 'family', redirect to their correct dashboard. This can be a simple wrapper or inline check in the page component.
+
+**Simpler approach:** Update `src/pages/dashboard/family.tsx` to also check role and redirect professional users to `/dashboard/professional`. Then update `AppRoutes.tsx` line 117 to use the page wrapper instead of the raw component.
+
+---
 
 ### Files Changed
 
 | Action | Target | Description |
 |--------|--------|-------------|
-| Migrate | Database | Update `get_public_family_profiles()` to include `diagnosed_conditions` and `chronic_illness_type` |
-| Modify | `src/components/admin/UserNudgeTab.tsx` | Add `chronic_illness_type`, `diagnosed_conditions`, `known_allergies`, `emergency_plan`, `triggers_soothing_techniques` to incomplete field checks |
-| Modify | `src/pages/UrgentFamiliesPage.tsx` | Update interface and cards to show chronic illness / diagnosed conditions info |
+| Create | `src/components/family/FamilyDetailModal.tsx` | Detail modal for family cards — shows care info without PII |
+| Modify | `src/pages/UrgentFamiliesPage.tsx` | Wire "View Details" to open `FamilyDetailModal` instead of WhatsApp |
+| Migrate | Database | Update `get_unmatched_family_count()` to filter by `available_for_matching = true` |
+| Modify | `src/components/routing/AppRoutes.tsx` | Use `FamilyDashboardPage` wrapper for `/dashboard/family` route |
+| Modify | `src/pages/dashboard/family.tsx` | Add role check — redirect non-family users to their correct dashboard |
 
