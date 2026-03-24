@@ -66,11 +66,11 @@ const UrgentFamiliesPage = () => {
 
   const handleWhatsAppInquiry = (family: UrgentFamily) => {
     const BUSINESS_WHATSAPP = "8687865357";
-    const location = family.location || family.address || "unknown area";
+    const area = getGeneralArea(family.location);
     const careTypes = family.care_types?.map(t => CARE_TYPE_LABELS[t] || t).join(", ") || "general care";
     
     const message = encodeURIComponent(
-      `Hi Tavara! I'm a caregiver interested in helping the family in ${location} who needs: ${careTypes}. Please let me know the next steps.`
+      `Hi Tavara! I'm a caregiver interested in helping the family in ${area} who needs: ${careTypes}. Please let me know the next steps.`
     );
     
     const url = `https://api.whatsapp.com/send/?phone=${BUSINESS_WHATSAPP}&text=${message}&type=phone_number&app_absent=0`;
