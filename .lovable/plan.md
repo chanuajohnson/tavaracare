@@ -1,65 +1,31 @@
 
-Fix the family details modal so mobile users never get trapped and the close control stays reachable.
 
-1. Update the shared dialog container for safer mobile behavior
-- In `src/components/ui/dialog.tsx`, make the default `DialogContent` mobile-safe by:
-  - anchoring it with viewport-aware sizing (`w-[calc(100%-1rem)]`, `max-h-[calc(100dvh-1rem)]`, `overflow-hidden`)
-  - using `top-[50%]` only when content fits, while allowing full-height modal variants to remain stable
-  - moving the built-in close button above scrollable content with a stronger z-index and an opaque background so it never disappears over long content
-  - adding safer padding on small screens so the close button is not clipped by mobile browser chrome
+## Fix: Professional Dashboard Not Showing Available Families
 
-2. Refactor `FamilyDetailModal` to use an internal scroll region
-- In `src/components/family/FamilyDetailModal.tsx`, stop making the whole dialog content scroll.
-- Switch to a structure like:
-  - outer `DialogContent` = fixed shell, `p-0`, `overflow-hidden`, responsive width/height
-  - sticky/fixed top header inside the modal with title + explicit close button area always visible
-  - inner scrollable content area for the long details only
-- This prevents the close button from scrolling out of view and avoids the “stuck” state shown in the screenshot.
+### Root Cause
 
-3. Make the modal responsive across phone/tablet/desktop
-- Use mobile-first sizing:
-  - mobile: nearly full-screen sheet/modal (`h-[calc(100dvh-1rem)]`)
-  - tablet/desktop: centered modal with bounded max height
-- Reduce header/avatar overlap spacing on small screens so important content starts higher.
-- Ensure CTA/button stack wraps cleanly and doesn’t get hidden behind mobile browser UI.
+The `useFamilyMatches` hook (used by `DashboardFamilyMatches` and `ProfessionalFamilyMatchModal`) queries the `profiles` table directly with `supabase.from('profiles').select('*').eq('role', 'family').eq('available_for_matching', true)`. RLS blocks professional users from reading family profile rows, so the query returns 0 results and the empty state ("No families available right now") is shown -- even though 2 families are marked available in admin.
 
-4. Add explicit close affordances
-- Keep overlay click and Escape close behavior.
-- Add a visible close button inside `FamilyDetailModal`’s own header instead of relying only on the shared absolute close icon.
-- Optionally add a footer-safe close/back action on small screens if needed after implementation review.
+Meanwhile, the `ProfessionalFamilyAwarenessBanner` uses the `get_unmatched_family_count()` RPC (security definer, bypasses RLS) and should be working. If it returns 0, it's because the updated RPC now also checks `available_for_matching = true` AND checks for no active assignments -- which is correct behavior. Need to verify this is showing.
 
-5. Keep background locking but remove the trapped UX
-- The page behind should remain non-scrollable while the modal is open; that is correct modal behavior.
-- The real fix is to ensure the modal itself scrolls correctly and always exposes a reachable close control.
-- Preserve focus/accessibility behavior from Radix while improving layout only.
+### Fix
 
-6. Align this modal with existing successful modal patterns
-- Reuse the same “shell + internal scroll area” pattern already used in `SpotlightCaregiverDetailModal.tsx` and `MatchDetailModal.tsx`, but improve it for smaller mobile heights by making the header sticky and the close action persistent.
-- If needed, create a small reusable modal-header pattern so other long dialogs can adopt the same mobile-safe behavior later.
+**File: `src/hooks/useFamilyMatches.ts`**
 
-Technical details
-- Current problem in `FamilyDetailModal.tsx`: `DialogContent` uses `max-h-[90vh] overflow-y-auto`, so the entire modal scrolls and the shared absolute close button in `dialog.tsx` can drift out of reach or be visually obscured on mobile.
-- Current shared dialog button in `dialog.tsx` is absolutely positioned inside scrollable content, which is fragile for long mobile dialogs.
-- Recommended target layout:
-```text
-DialogContent (fixed shell, overflow-hidden, p-0)
-├─ Sticky modal header (title/status/close always visible)
-└─ Scrollable body (family details)
-   ├─ gradient hero
-   ├─ avatar/title/location
-   ├─ schedule/care needs/medical info
-   └─ sticky or normal CTA footer
-```
-- Files to modify:
-  - `src/components/ui/dialog.tsx`
-  - `src/components/family/FamilyDetailModal.tsx`
+Replace the direct `profiles` table query with the existing `get_public_family_profiles` RPC (security definer, already returns only safe columns for available families). This is the same RPC used by `/urgent-families`.
 
-Validation after implementation
-- Test on narrow mobile width like 390px with long medical/care content.
-- Confirm:
-  - modal opens fully within viewport
-  - content scrolls inside modal
-  - close button remains visible at all times
-  - WhatsApp CTA remains reachable
-  - no clipped top/bottom content on tablet/desktop
+Changes:
+- Replace `supabase.from('profiles').select('*').eq('role', 'family').eq('available_for_matching', true)` with `supabase.rpc('get_public_family_profiles')`
+- Map the RPC response fields (`full_name`, `location`, `care_types`, `care_urgency`, `care_schedule`, `diagnosed_conditions`, `chronic_illness_type`) to the `Family` interface
+- Keep the admin manual matches query as-is (it uses a join that should work for the assigned professional)
+- Keep all shift compatibility scoring logic intact
+- The RPC already filters by `available_for_matching = true`, so no extra filter needed
+
+This ensures professionals see the same 2 available families that appear on `/urgent-families`.
+
+### Files Changed
+
+| Action | Target | Description |
+|--------|--------|-------------|
+| Modify | `src/hooks/useFamilyMatches.ts` | Switch from direct `profiles` table query to `get_public_family_profiles` RPC to bypass RLS |
 
