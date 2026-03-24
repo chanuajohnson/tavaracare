@@ -488,11 +488,12 @@ const Index = () => {
             </Button>
           </motion.div>
 
-          {/* Urgent Caregivers CTA Bubble */}
+          {/* Urgent CTAs */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.8 }}
+            className="flex flex-col sm:flex-row gap-3"
           >
             <Button
               onClick={() => navigate("/urgent-caregivers")}
@@ -501,8 +502,28 @@ const Index = () => {
               className="bg-primary/20 border-primary/40 text-white hover:bg-primary/30 hover:text-white font-medium px-6 py-3 rounded-full flex items-center gap-2 animate-pulse"
               aria-label="View caregivers available to be matched now"
             >
-              <Heart className="h-5 w-5 text-primary" />
+              <UserCog className="h-5 w-5" />
               Caregivers Available Now
+            </Button>
+            <Button
+              onClick={() => navigate("/urgent-families")}
+              size="lg"
+              variant="outline"
+              className="bg-destructive/20 border-destructive/40 text-white hover:bg-destructive/30 hover:text-white font-medium px-6 py-3 rounded-full flex items-center gap-2 animate-pulse"
+              aria-label="View families needing care now"
+            >
+              <Heart className="h-5 w-5" />
+              Families Available Now
+            </Button>
+            <Button
+              onClick={() => navigate("/join-as-caregiver")}
+              size="lg"
+              variant="outline"
+              className="bg-white/15 border-white/30 text-white hover:bg-white/25 hover:text-white font-medium px-6 py-3 rounded-full flex items-center gap-2"
+              aria-label="Join as a caregiver"
+            >
+              <Users className="h-5 w-5" />
+              Join as Caregiver
             </Button>
           </motion.div>
 

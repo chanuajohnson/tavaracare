@@ -83,6 +83,7 @@ import MarketingKit from "@/pages/marketing/MarketingKit";
 import GenerateMarketingAssets from "@/pages/admin/GenerateMarketingAssets";
 import FlyerLocations from "@/pages/admin/FlyerLocations";
 import UrgentCaregiversPage from "@/pages/UrgentCaregiversPage";
+import UrgentFamiliesPage from "@/pages/UrgentFamiliesPage";
 import TestimonialManagementPage from "@/pages/admin/TestimonialManagementPage";
 import CampaignLinksPage from "@/pages/admin/CampaignLinksPage";
 import JoinAsCaregiver from "@/pages/JoinAsCaregiver";
@@ -104,6 +105,7 @@ export const AppRoutes = () => {
       <Route path="/faq" element={<FAQPage />} />
       <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
       <Route path="/urgent-caregivers" element={<UrgentCaregiversPage />} />
+      <Route path="/urgent-families" element={<UrgentFamiliesPage />} />
       <Route path="/join-as-caregiver" element={<JoinAsCaregiver />} />
       
       {/* Registration Routes */}
