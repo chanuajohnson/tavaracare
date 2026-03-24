@@ -3,6 +3,7 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { EnhancedProfessionalNextStepsPanel } from "@/components/professional/EnhancedProfessionalNextStepsPanel";
 import { ProfessionalFamilyAwarenessBanner } from "@/components/professional/ProfessionalFamilyAwarenessBanner";
+import { ProfessionalFamilyMatchNotification } from "@/components/professional/ProfessionalFamilyMatchNotification";
 import { ProfessionalMatchingReadinessBanner } from "@/components/professional/ProfessionalMatchingReadinessBanner";
 import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
 import { TrainingProgressTracker } from "@/components/professional/TrainingProgressTracker";
@@ -142,7 +143,8 @@ const ProfessionalDashboard = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
-            {/* Family Awareness & Matching Readiness Banners */}
+            {/* Family Match Notification + Awareness & Readiness Banners */}
+            <ProfessionalFamilyMatchNotification />
             <ProfessionalFamilyAwarenessBanner />
             <ProfessionalMatchingReadinessBanner />
 
