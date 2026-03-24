@@ -211,36 +211,13 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
       
       if (familyError) {
         console.warn("Error fetching family users:", familyError);
-        // Fall back to mock data with enhanced compatibility scoring
-        const enhancedMockFamilies = MOCK_FAMILIES.map(family => {
-          const familySchedule = parseCareSchedule(family.care_schedule);
-          const shiftCompatibility = calculateShiftCompatibility(professionalCareSchedule, familySchedule);
-          const matchExplanation = generateMatchExplanation(shiftCompatibility, professionalCareSchedule, familySchedule);
-          const scheduleOverlapDetails = generateScheduleOverlapDetails(professionalCareSchedule, familySchedule);
-          
-          return {
-            ...family,
-            shift_compatibility_score: shiftCompatibility,
-            match_explanation: matchExplanation,
-            schedule_overlap_details: scheduleOverlapDetails,
-            match_score: Math.round((family.match_score + shiftCompatibility) / 2)
-          };
-        });
-
-        // Sort by combined match score
-        enhancedMockFamilies.sort((a, b) => b.match_score - a.match_score);
-        
-        const fallbackFamilies = showOnlyBestMatch 
-          ? enhancedMockFamilies.slice(0, 1) 
-          : enhancedMockFamilies;
-        processedFamiliesRef.current = enhancedMockFamilies;
-        setFamilies(fallbackFamilies);
+        processedFamiliesRef.current = [];
+        setFamilies([]);
         await trackEngagement('family_matches_view', { 
-          data_source: 'mock_data_fallback',
-          family_count: fallbackFamilies.length,
+          data_source: 'error_empty',
+          family_count: 0,
           view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
-          error: familyError.message,
-          shift_compatibility_enabled: true
+          error: familyError.message
         });
         return;
       }
