@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Heart, Users, MapPin, Clock, ArrowLeft, AlertCircle, MessageCircle, Award } from "lucide-react";
+import { Heart, Users, MapPin, Clock, ArrowLeft, AlertCircle, MessageCircle, Award, Stethoscope } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
