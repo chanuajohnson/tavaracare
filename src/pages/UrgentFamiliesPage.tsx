@@ -357,7 +357,6 @@ const UrgentFamiliesPage = () => {
           </div>
         </div>
       </section>
-    </div>
 
       <FamilyDetailModal
         open={showDetailModal}
@@ -370,5 +369,3 @@ const UrgentFamiliesPage = () => {
 };
 
 export default UrgentFamiliesPage;
-
-// FamilyDetailModal is rendered at bottom of component

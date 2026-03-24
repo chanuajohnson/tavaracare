@@ -6,7 +6,7 @@ import Index from "@/pages/Index";
 import AuthPage from "@/pages/auth/AuthPage";
 import ResetPassword from "@/pages/auth/ResetPassword";
 import ResetPasswordConfirm from "@/pages/auth/reset-password/ResetPasswordConfirm";
-import FamilyDashboard from "@/components/family/FamilyDashboard";
+import FamilyDashboardPage from "@/pages/dashboard/family";
 import ProfessionalDashboard from "@/pages/dashboards/ProfessionalDashboard";
 import CommunityDashboard from "@/pages/dashboards/CommunityDashboard";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
