@@ -37,7 +37,7 @@ const useUrgentFamilies = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, location, address, care_types, care_urgency, care_recipient_name, care_schedule")
+        .select("id, full_name, location, care_types, care_urgency, care_recipient_name, care_schedule")
         .eq("role", "family")
         .eq("available_for_matching", true)
         .order("updated_at", { ascending: false });
