@@ -10,6 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UrgentBadge } from "@/components/spotlight/UrgentBadge";
+import { FamilyDetailModal } from "@/components/family/FamilyDetailModal";
+import { useState } from "react";
 
 interface UrgentFamily {
   id: string;
