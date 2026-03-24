@@ -362,3 +362,5 @@ const UrgentFamiliesPage = () => {
 };
 
 export default UrgentFamiliesPage;
+
+// FamilyDetailModal is rendered at bottom of component
