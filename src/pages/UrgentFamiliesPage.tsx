@@ -28,7 +28,7 @@ const useUrgentFamilies = () => {
         .from("profiles")
         .select("id, full_name, location, address, care_types, care_urgency, care_recipient_name, care_schedule")
         .eq("role", "family")
-        .in("care_urgency", ["immediate", "within_week"])
+        .eq("available_for_matching", true)
         .order("updated_at", { ascending: false });
 
       if (error) throw error;
