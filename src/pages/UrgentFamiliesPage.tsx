@@ -13,12 +13,23 @@ interface UrgentFamily {
   id: string;
   full_name: string;
   location: string | null;
-  address: string | null;
   care_types: string[] | null;
   care_urgency: string | null;
   care_recipient_name: string | null;
   care_schedule: string | null;
 }
+
+const getFirstNameLastInitial = (name: string): string => {
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+};
+
+const getGeneralArea = (location: string | null): string => {
+  if (!location) return "Trinidad & Tobago";
+  const parts = location.split(',').map(p => p.trim());
+  return parts.length > 2 ? parts.slice(-2).join(', ') : location;
+};
 
 const useUrgentFamilies = () => {
   return useQuery<UrgentFamily[]>({
@@ -26,7 +37,7 @@ const useUrgentFamilies = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, location, address, care_types, care_urgency, care_recipient_name, care_schedule")
+        .select("id, full_name, location, care_types, care_urgency, care_recipient_name, care_schedule")
         .eq("role", "family")
         .eq("available_for_matching", true)
         .order("updated_at", { ascending: false });
@@ -55,11 +66,11 @@ const UrgentFamiliesPage = () => {
 
   const handleWhatsAppInquiry = (family: UrgentFamily) => {
     const BUSINESS_WHATSAPP = "8687865357";
-    const location = family.location || family.address || "unknown area";
+    const area = getGeneralArea(family.location);
     const careTypes = family.care_types?.map(t => CARE_TYPE_LABELS[t] || t).join(", ") || "general care";
     
     const message = encodeURIComponent(
-      `Hi Tavara! I'm a caregiver interested in helping the family in ${location} who needs: ${careTypes}. Please let me know the next steps.`
+      `Hi Tavara! I'm a caregiver interested in helping the family in ${area} who needs: ${careTypes}. Please let me know the next steps.`
     );
     
     const url = `https://api.whatsapp.com/send/?phone=${BUSINESS_WHATSAPP}&text=${message}&type=phone_number&app_absent=0`;
@@ -156,20 +167,20 @@ const UrgentFamiliesPage = () => {
                       {/* Family Info - Privacy-safe */}
                       <div>
                         <h3 className="text-lg font-semibold text-foreground">
-                          Family in {family.location || family.address || "Trinidad & Tobago"}
+                          Family in {getGeneralArea(family.location)}
                         </h3>
                         {family.care_recipient_name && (
                           <p className="text-sm text-muted-foreground mt-1">
-                            Care for: {family.care_recipient_name}
+                            Care for: {getFirstNameLastInitial(family.care_recipient_name)}
                           </p>
                         )}
                       </div>
 
                       {/* Location */}
-                      {(family.location || family.address) && (
+                      {family.location && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <MapPin className="h-4 w-4 flex-shrink-0" />
-                          <span>{family.location || family.address}</span>
+                          <span>{getGeneralArea(family.location)}</span>
                         </div>
                       )}
 
