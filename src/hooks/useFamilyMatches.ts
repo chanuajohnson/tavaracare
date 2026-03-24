@@ -26,43 +26,7 @@ interface ProfessionalScheduleData {
   care_types?: string[] | null;
 }
 
-const MOCK_FAMILIES: Family[] = [{
-  id: "1",
-  full_name: "Garcia Family",
-  avatar_url: null,
-  location: "Port of Spain",
-  care_types: ["Elderly Care", "Companionship"],
-  special_needs: ["Alzheimer's", "Mobility Assistance"],
-  care_schedule: "mon_fri_8am_4pm,weekday_evening_6pm_8am",
-  match_score: 95,
-  is_premium: false,
-  distance: 3.2,
-  budget_preferences: "$15-25/hr"
-}, {
-  id: "2",
-  full_name: "Wilson Family",
-  avatar_url: null,
-  location: "San Fernando",
-  care_types: ["Special Needs", "Medical Support"],
-  special_needs: ["Autism Care", "Medication Management"],
-  care_schedule: "24_7_care,live_in_care",
-  match_score: 89,
-  is_premium: true,
-  distance: 15.7,
-  budget_preferences: "$25-35/hr"
-}, {
-  id: "3",
-  full_name: "Thomas Family",
-  avatar_url: null,
-  location: "Arima",
-  care_types: ["Child Care", "Housekeeping"],
-  special_needs: ["Early Childhood Development", "Meal Preparation"],
-  care_schedule: "sat_sun_6am_6pm,flexible",
-  match_score: 82,
-  is_premium: false,
-  distance: 8.5,
-  budget_preferences: "$20-30/hr"
-}];
+// No mock families — only real data from the database
 
 // Shift compatibility scoring algorithm (mirrored from useCaregiverMatches)
 const calculateShiftCompatibility = (professionalSchedule: string[], familySchedule: string[]): number => {
