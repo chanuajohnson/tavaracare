@@ -1,17 +1,32 @@
 
 
-## Fix: Join as Caregiver buttons should open signup tab
+## Redesign Family Cards to Match Caregiver Card Standard
 
-### Changes
+### What Changes
 
-**1. `src/pages/JoinAsCaregiver.tsx`**
-- Update `handleSignUp` to navigate to `/auth?tab=signup&role=professional&from=join-as-caregiver`
+**File: `src/pages/UrgentFamiliesPage.tsx`** -- full card redesign
 
-**2. `src/pages/auth/AuthPage.tsx`**
-- In the `useEffect`, add fallback: if `role` URL param exists and no explicit `tab` param, default `activeTab` to `"signup"`
+1. **Privacy**: Remove `care_recipient_name` from interface and query. Remove `getFirstNameLastInitial`. Add `getInitials` helper (e.g., "Carol Glenn" -> "CG").
 
-| File | Change |
-|------|--------|
-| `src/pages/JoinAsCaregiver.tsx` | Add `tab=signup` to navigate URL |
-| `src/pages/auth/AuthPage.tsx` | Default to signup tab when `role` param present |
+2. **New imports**: `Avatar`, `AvatarFallback` from ui/avatar, `UrgentBadge` from spotlight, `Award`, `MessageCircle`, `Briefcase` from lucide-react.
+
+3. **Schedule labels map**:
+   - `mornings` -> "Morning Care", `afternoons` -> "Afternoon Care", `evenings` -> "Evening Care", `overnight` -> "Overnight Care", `full_time` -> "Full-time Care", `flexible` -> "Flexible Schedule"
+
+4. **Card structure** (mirroring `SpotlightCaregiverCard`):
+   - Gradient header (`bg-gradient-to-br from-primary/10 to-primary/5`) with `UrgentBadge` (urgency mapped: `immediate` -> high, else medium)
+   - Avatar with initials overlapping header (-mt-8), primary bg, white text
+   - Title: "Family in [General Area]" + subtitle "Seeking compassionate care"
+   - Location with MapPin, schedule with Clock icon
+   - Care type badges (max 4 + overflow)
+   - Pulsing "Seeking care now" status dot + "Verified Family" with Award icon
+   - Dual buttons: "View Details" (outline) + "WhatsApp" (green)
+
+5. **Query**: Remove `care_recipient_name` from select statement
+
+### Files Changed
+
+| Action | Target | Description |
+|--------|--------|-------------|
+| Modify | `src/pages/UrgentFamiliesPage.tsx` | Redesign cards to match caregiver standard -- initials avatar, gradient header, status badges, dual CTAs, no names |
 
