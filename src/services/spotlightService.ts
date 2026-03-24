@@ -68,7 +68,10 @@ export const spotlightService = {
       throw error;
     }
 
-    return (data || []).map((item: any) => ({
+    // Filter to only include caregivers marked as available for matching in admin
+    const filtered = (data || []).filter((item: any) => item.profiles?.available_for_matching === true);
+
+    return filtered.map((item: any) => ({
       id: item.id,
       caregiverId: item.caregiver_id,
       headline: item.headline,

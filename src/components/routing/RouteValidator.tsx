@@ -11,6 +11,7 @@ const VALID_ROUTE_PATTERNS = [
   '/faq',
   
   // Registration routes
+  '/urgent-families',
   '/registration/family',
   '/registration/professional', 
   '/registration/community',

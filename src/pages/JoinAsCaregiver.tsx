@@ -195,23 +195,33 @@ const JoinAsCaregiver = () => {
       </section>
 
       {/* CTA Footer */}
-      <section className="py-16 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+      <section className="py-16 bg-gradient-to-br from-primary/10 via-primary/5 to-background">
         <div className="container max-w-4xl mx-auto px-4 text-center space-y-6">
-          <h2 className="text-3xl md:text-4xl font-bold">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
             Ready to Join Our Care Community?
           </h2>
-          <p className="text-lg text-blue-100 max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Families are waiting. Your skills, compassion, and experience can change lives. 
             Sign up today and let us connect you with families who need you.
           </p>
-          <Button 
-            size="lg" 
-            onClick={handleSignUp}
-            className="bg-white text-blue-700 hover:bg-blue-50 text-lg px-8 py-6 font-semibold"
-          >
-            Join Tavara Today
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              size="lg" 
+              onClick={handleSignUp}
+              className="text-lg px-8 py-6 font-semibold"
+            >
+              Join Tavara Today
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline"
+              onClick={() => navigate("/urgent-families")}
+              className="text-lg px-8 py-6 font-semibold"
+            >
+              View Families Needing Care
+            </Button>
+          </div>
         </div>
       </section>
     </div>
