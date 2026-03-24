@@ -248,6 +248,27 @@ const UrgentFamiliesPage = () => {
                             </div>
                           )}
 
+                          {/* Medical Info */}
+                          <div className="space-y-1">
+                            <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                              <Stethoscope className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                              <span>
+                                {family.diagnosed_conditions 
+                                  ? family.diagnosed_conditions 
+                                  : "No diagnosed conditions specified"}
+                              </span>
+                            </div>
+                            {family.chronic_illness_type ? (
+                              <Badge variant="outline" className="text-xs font-normal">
+                                🏥 {family.chronic_illness_type}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
+                                🏥 No chronic illness specified
+                              </Badge>
+                            )}
+                          </div>
+
                           {/* Status badges */}
                           <div className="space-y-1.5">
                             <div className="flex items-center gap-1.5 text-xs font-medium text-primary">
