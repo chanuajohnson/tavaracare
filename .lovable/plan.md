@@ -1,34 +1,50 @@
 
 
-## Fix: Urgent Families Page Not Showing Families
+## Fix: Privacy Violations on /urgent-families Page
 
 ### Problem
-The `/urgent-families` page queries families by `care_urgency` ("immediate" or "within_week") but does NOT check `available_for_matching`. Meanwhile, the admin dashboard already has the toggle for families (it shows for both professional and family roles), but no families have been toggled on yet.
+The `/urgent-families` page is publicly displaying:
+- **Full street addresses** (e.g., "199 Monica Drive, Palmiste, San Fernando")
+- **Care recipient full names** (e.g., "Care for: Carol Glenn-Aimey")
+- Full address repeated in the location pin section
 
-The caregiver page works because it filters by `available_for_matching = true`. The families page needs the same filter.
+This is a serious privacy breach for a privacy-first company. The page should follow the same pattern as caregiver cards: first name + last initial only, general area only.
 
 ### Fix
 
 **File: `src/pages/UrgentFamiliesPage.tsx`**
-- Add `.eq("available_for_matching", true)` to the query
-- Remove the `care_urgency` filter requirement — a family should appear if the admin marks them as available, regardless of urgency level (the urgency badge can still display if the data exists)
-- This aligns with how `/urgent-caregivers` works: admin toggles control visibility
 
-Updated query:
-```ts
-const { data, error } = await supabase
-  .from("profiles")
-  .select("id, full_name, location, address, care_types, care_urgency, care_recipient_name, care_schedule")
-  .eq("role", "family")
-  .eq("available_for_matching", true)
-  .order("updated_at", { ascending: false });
+1. **Replace full address with general area only** — Parse `location` or `address` to extract just the area/city (e.g., "Palmiste, San Fernando" instead of "199 Monica Drive, Palmiste, San Fernando"). Use a helper that strips street numbers and specific addresses.
+
+2. **Replace care recipient full name with first name + last initial** — e.g., "Carol G." instead of "Carol Glenn-Aimey"
+
+3. **Update card heading** — Show "Family in Palmiste" not "Family in 199 Monica Drive, Palmiste, San Fernando"
+
+4. **Remove `address` from the Supabase query** — Only fetch `location` (general area). Don't fetch raw `address` at all to prevent accidental exposure.
+
+5. **Update WhatsApp message** — Use general area only, not full address
+
+### Helper Functions
+
+```typescript
+const getFirstNameLastInitial = (name: string) => {
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+};
+
+const getGeneralArea = (location: string | null) => {
+  if (!location) return "Trinidad & Tobago";
+  // Remove street numbers and specific addresses, keep area/city
+  const parts = location.split(',').map(p => p.trim());
+  // Take last 1-2 parts (area/city) rather than full address
+  return parts.length > 2 ? parts.slice(-2).join(', ') : location;
+};
 ```
-
-This way, you control which families appear on the page by toggling the same "Available for Matching" switch in the admin dashboard that you already use for caregivers.
 
 ### Files Changed
 
 | Action | Target | Description |
 |--------|--------|-------------|
-| Modify | `src/pages/UrgentFamiliesPage.tsx` | Filter by `available_for_matching = true` instead of (or in addition to) `care_urgency` |
+| Modify | `src/pages/UrgentFamiliesPage.tsx` | Remove `address` from query, add privacy helpers, show first name + last initial for care recipient, show general area only for location |
 
