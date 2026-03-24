@@ -6,7 +6,7 @@ import Index from "@/pages/Index";
 import AuthPage from "@/pages/auth/AuthPage";
 import ResetPassword from "@/pages/auth/ResetPassword";
 import ResetPasswordConfirm from "@/pages/auth/reset-password/ResetPasswordConfirm";
-import FamilyDashboard from "@/components/family/FamilyDashboard";
+import FamilyDashboardPage from "@/pages/dashboard/family";
 import ProfessionalDashboard from "@/pages/dashboards/ProfessionalDashboard";
 import CommunityDashboard from "@/pages/dashboards/CommunityDashboard";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -114,7 +114,7 @@ export const AppRoutes = () => {
       <Route path="/registration/community" element={<CommunityRegistration />} />
       
       {/* Dashboard Routes */}
-      <Route path="/dashboard/family" element={<FamilyDashboard />} />
+      <Route path="/dashboard/family" element={<FamilyDashboardPage />} />
       <Route path="/dashboard/professional" element={<ProfessionalDashboard />} />
       <Route path="/dashboard/community" element={<CommunityDashboard />} />
       <Route path="/dashboard/admin" element={<AdminDashboard />} />

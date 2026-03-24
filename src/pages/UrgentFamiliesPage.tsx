@@ -10,6 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UrgentBadge } from "@/components/spotlight/UrgentBadge";
+import { FamilyDetailModal } from "@/components/family/FamilyDetailModal";
+import { useState } from "react";
 
 interface UrgentFamily {
   id: string;
@@ -89,6 +91,8 @@ const getScheduleLabel = (schedule: string | null): string | null => {
 const UrgentFamiliesPage = () => {
   const navigate = useNavigate();
   const { data: families, isLoading } = useUrgentFamilies();
+  const [selectedFamily, setSelectedFamily] = useState<UrgentFamily | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const handleWhatsAppInquiry = (family: UrgentFamily) => {
     const BUSINESS_WHATSAPP = "8687865357";
@@ -290,7 +294,10 @@ const UrgentFamiliesPage = () => {
                               variant="outline"
                               size="sm"
                               className="flex-1"
-                              onClick={() => handleWhatsAppInquiry(family)}
+                              onClick={() => {
+                                setSelectedFamily(family);
+                                setShowDetailModal(true);
+                              }}
                             >
                               View Details
                             </Button>
@@ -350,6 +357,13 @@ const UrgentFamiliesPage = () => {
           </div>
         </div>
       </section>
+
+      <FamilyDetailModal
+        open={showDetailModal}
+        onOpenChange={setShowDetailModal}
+        family={selectedFamily}
+        onWhatsAppInquiry={handleWhatsAppInquiry}
+      />
     </div>
   );
 };
