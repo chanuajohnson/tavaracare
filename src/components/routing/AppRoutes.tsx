@@ -83,6 +83,7 @@ import MarketingKit from "@/pages/marketing/MarketingKit";
 import GenerateMarketingAssets from "@/pages/admin/GenerateMarketingAssets";
 import FlyerLocations from "@/pages/admin/FlyerLocations";
 import UrgentCaregiversPage from "@/pages/UrgentCaregiversPage";
+import UrgentFamiliesPage from "@/pages/UrgentFamiliesPage";
 import TestimonialManagementPage from "@/pages/admin/TestimonialManagementPage";
 import CampaignLinksPage from "@/pages/admin/CampaignLinksPage";
 import JoinAsCaregiver from "@/pages/JoinAsCaregiver";
