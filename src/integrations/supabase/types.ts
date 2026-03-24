@@ -5364,6 +5364,17 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
         }[]
       }
+      get_public_family_profiles: {
+        Args: never
+        Returns: {
+          care_schedule: string
+          care_types: string[]
+          care_urgency: Database["public"]["Enums"]["care_urgency"]
+          full_name: string
+          id: string
+          location: string
+        }[]
+      }
       get_public_professional_profiles: {
         Args: { ids: string[] }
         Returns: {

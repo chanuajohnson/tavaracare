@@ -38,14 +38,10 @@ const useUrgentFamilies = () => {
     queryKey: ["urgent-families"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, location, care_types, care_urgency, care_schedule")
-        .eq("role", "family")
-        .eq("available_for_matching", true)
-        .order("updated_at", { ascending: false });
+        .rpc("get_public_family_profiles");
 
       if (error) throw error;
-      return data || [];
+      return (data as UrgentFamily[]) || [];
     },
     staleTime: 5 * 60 * 1000,
   });
