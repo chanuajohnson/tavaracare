@@ -69,7 +69,13 @@ const getInitials = (name: string): string => {
 const getGeneralArea = (location: string | null): string => {
   if (!location) return "Trinidad & Tobago";
   const parts = location.split(',').map(p => p.trim());
-  return parts.length > 2 ? parts.slice(-2).join(', ') : location;
+  if (parts.length >= 3) return parts.slice(-2).join(', ');
+  if (parts.length === 2) {
+    const streetPattern = /\d|drive|street|road|avenue|block|lane|crescent|close|terrace/i;
+    if (streetPattern.test(parts[0])) return parts[1];
+    return location;
+  }
+  return location;
 };
 
 export const FamilyDetailModal = ({ open, onOpenChange, family, onWhatsAppInquiry }: FamilyDetailModalProps) => {
