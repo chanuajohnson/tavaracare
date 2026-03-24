@@ -322,16 +322,16 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
         
         return {
           id: family.id,
-          full_name: family.full_name || `${family.care_recipient_name || ''} Family`,
-          avatar_url: family.avatar_url,
+          full_name: family.full_name || 'Family',
+          avatar_url: null,
           location: family.location || 'Trinidad and Tobago',
           care_types: careTypes,
-          special_needs: family.special_needs || [],
+          special_needs: [],
           care_schedule: family.care_schedule || 'Weekdays',
           match_score: finalMatchScore,
           is_premium: isPremium,
           distance: parseFloat((Math.random() * 19 + 1).toFixed(1)),
-          budget_preferences: family.budget_preferences || '$15-30/hr',
+          budget_preferences: '$15-30/hr',
           shift_compatibility_score: shiftCompatibility,
           match_explanation: matchExplanation,
           schedule_overlap_details: scheduleOverlapDetails
