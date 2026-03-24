@@ -13,12 +13,23 @@ interface UrgentFamily {
   id: string;
   full_name: string;
   location: string | null;
-  address: string | null;
   care_types: string[] | null;
   care_urgency: string | null;
   care_recipient_name: string | null;
   care_schedule: string | null;
 }
+
+const getFirstNameLastInitial = (name: string): string => {
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+};
+
+const getGeneralArea = (location: string | null): string => {
+  if (!location) return "Trinidad & Tobago";
+  const parts = location.split(',').map(p => p.trim());
+  return parts.length > 2 ? parts.slice(-2).join(', ') : location;
+};
 
 const useUrgentFamilies = () => {
   return useQuery<UrgentFamily[]>({
