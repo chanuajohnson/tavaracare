@@ -1,72 +1,75 @@
 
 
-## Fix Three Issues: Family Detail Modal, Family Count, and Dashboard Routing
+## Fix: Professional Dashboard Mock Data, Location on Urgent Families, and Confusing Matches
 
-### Issue 1: "View Details" on family cards opens WhatsApp instead of a modal
+### Three Issues
 
-Both "View Details" and "WhatsApp" buttons call `handleWhatsAppInquiry`. "View Details" should open a detail modal (like `SpotlightCaregiverDetailModal`) showing care assessment info without PII.
+1. **Professional dashboard shows mock "Wilson"/"Garcia" families** — `useFamilyMatches` queries ALL family profiles without `available_for_matching` filter, and falls back to hardcoded MOCK_FAMILIES when RLS blocks the query. The "View All Family Matches" modal (`ProfessionalFamilyMatchModal`) also uses this same hook with mock data.
 
-**Fix:** Create `FamilyDetailModal` component and wire "View Details" to open it.
+2. **`/urgent-families` cards show "Family in Trinidad & Tobago" instead of a general area** — `profiles.location` is null for these families. The actual address is in `care_needs_family.care_location` (e.g., "199 Monica Drive, Block 4, Palmiste, San Fernando"). The RPC needs to pull the general area from `care_location` as a fallback, stripping the street address for privacy.
 
-**New file: `src/components/family/FamilyDetailModal.tsx`**
-- Modal matching `SpotlightCaregiverDetailModal` layout
-- Shows: initials avatar, general area, care schedule, care types, diagnosed conditions, chronic illness, urgency badge
-- No names, no addresses, no phone numbers
-- Single WhatsApp CTA at bottom
-- Data comes from what's already fetched via `get_public_family_profiles` RPC
+3. **Journey step "Match with Tavara Families" → "View Family Matches" button** scrolls to DashboardFamilyMatches which shows mock Wilson data, and "View All Family Matches" opens ProfessionalFamilyMatchModal which shows mock Garcia data — confusing and inaccurate.
 
-**Modify: `src/pages/UrgentFamiliesPage.tsx`**
-- Add state for `selectedFamily` and `showDetailModal`
-- "View Details" button opens modal with selected family
-- "WhatsApp" button stays as-is
-- Import and render `FamilyDetailModal`
+### Changes
 
----
-
-### Issue 2: Professional dashboard shows "11 families" instead of 2
-
-The `get_unmatched_family_count()` RPC counts ALL family profiles without active assignments — it does NOT filter by `available_for_matching = true`. Only 2 families are marked available in admin.
-
-**Fix — Database migration:** Update `get_unmatched_family_count()` to add `AND p.available_for_matching = true`:
+#### 1. Update `get_public_family_profiles` RPC to return general area from care_location
+**Database migration** — Join `care_needs_family.care_location`, extract last 2 comma-separated parts (general area only, no street address):
 
 ```sql
-CREATE OR REPLACE FUNCTION public.get_unmatched_family_count()
-RETURNS integer
-LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT count(*)::integer
+CREATE OR REPLACE FUNCTION public.get_public_family_profiles()
+RETURNS TABLE(
+  id uuid, full_name text, location text, care_types text[],
+  care_urgency care_urgency, care_schedule text,
+  diagnosed_conditions text, chronic_illness_type text
+) AS $$
+  SELECT p.id, p.full_name, 
+    COALESCE(p.location, 
+      -- Extract general area from care_location (last 2 parts)
+      (SELECT string_agg(part, ', ') FROM (
+        SELECT unnest(
+          (string_to_array(cn.care_location, ','))[
+            array_length(string_to_array(cn.care_location, ','), 1) - 1 :
+          ]
+        ) AS part
+      ) sub)
+    ) as location,
+    p.care_types, p.care_urgency, p.care_schedule,
+    cn.diagnosed_conditions, cn.chronic_illness_type
   FROM profiles p
-  WHERE p.role = 'family'
-    AND p.available_for_matching = true
-    AND NOT EXISTS (
-      SELECT 1 FROM caregiver_assignments ca
-      WHERE ca.family_user_id = p.id AND ca.is_active = true
-    );
+  LEFT JOIN care_needs_family cn ON cn.profile_id = p.id
+  WHERE p.role = 'family' AND p.available_for_matching = true
+  ORDER BY p.updated_at DESC;
 $$;
 ```
 
----
+This ensures cards show "Palmiste, San Fernando" instead of "Trinidad & Tobago" or the full street address.
 
-### Issue 3: Professional user sees Family Dashboard at `/dashboard/family`
+#### 2. Fix `useFamilyMatches` to filter by `available_for_matching` and remove mock data
+**File: `src/hooks/useFamilyMatches.ts`**
 
-The `/dashboard/family` route has no role guard — any logged-in user can navigate to it. In development, the preview URL bar shows `/dashboard/family` which the user navigated to directly.
+- Remove `MOCK_FAMILIES` array entirely (Garcia, Wilson, Thomas)
+- Add `.eq('available_for_matching', true)` to the family profiles query (line 222)
+- When no families found or query errors, show empty state instead of mock data
+- When falling back, set empty array instead of mock families
+- Also add `full_name` privacy: show only initials-based display name on the Family interface
 
-**Fix: `src/components/routing/AppRoutes.tsx`**
-- The route at line 117 imports `FamilyDashboard` from `@/components/family/FamilyDashboard` instead of from `@/pages/dashboard/family` (the page wrapper). This means there's no auth redirect happening. Update the import to use the page wrapper which already has the auth check. But actually — the page wrapper redirects non-users to `/auth`, not non-family users. A proper fix:
-- Add a role check: if user's role !== 'family', redirect to their correct dashboard. This can be a simple wrapper or inline check in the page component.
+#### 3. Update `DashboardFamilyMatches` empty state
+**File: `src/components/professional/DashboardFamilyMatches.tsx`**
 
-**Simpler approach:** Update `src/pages/dashboard/family.tsx` to also check role and redirect professional users to `/dashboard/professional`. Then update `AppRoutes.tsx` line 117 to use the page wrapper instead of the raw component.
+- Update the empty state to say "No families available right now" with a link to `/urgent-families` instead of showing filter adjustment button
+- This is more helpful since the real data comes from admin availability toggles
 
----
+#### 4. Update `ProfessionalFamilyMatchModal` empty state
+**File: `src/components/professional/ProfessionalFamilyMatchModal.tsx`**
+
+- Same empty state update — link to `/urgent-families` when no matches
 
 ### Files Changed
 
 | Action | Target | Description |
 |--------|--------|-------------|
-| Create | `src/components/family/FamilyDetailModal.tsx` | Detail modal for family cards — shows care info without PII |
-| Modify | `src/pages/UrgentFamiliesPage.tsx` | Wire "View Details" to open `FamilyDetailModal` instead of WhatsApp |
-| Migrate | Database | Update `get_unmatched_family_count()` to filter by `available_for_matching = true` |
-| Modify | `src/components/routing/AppRoutes.tsx` | Use `FamilyDashboardPage` wrapper for `/dashboard/family` route |
-| Modify | `src/pages/dashboard/family.tsx` | Add role check — redirect non-family users to their correct dashboard |
+| Migrate | Database | Update `get_public_family_profiles()` to extract general area from `care_location` as fallback |
+| Modify | `src/hooks/useFamilyMatches.ts` | Remove mock families, add `available_for_matching` filter, empty state on no data |
+| Modify | `src/components/professional/DashboardFamilyMatches.tsx` | Update empty state messaging |
+| Modify | `src/components/professional/ProfessionalFamilyMatchModal.tsx` | Update empty state messaging |
 
