@@ -179,15 +179,10 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
       const professionalCareSchedule = parseCareSchedule(professionalScheduleData.care_schedule);
       console.log('Professional care schedule:', professionalCareSchedule);
 
-      // Fetch both family users and admin manual matches for this professional
+      // Fetch both family users (via RPC to bypass RLS) and admin manual matches
       const [familyUsersResult, adminMatchesResult] = await Promise.all([
-        // General family users
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('role', 'family')
-          .eq('available_for_matching', true)
-          .limit(showOnlyBestMatch ? 3 : 10),
+        // Use security definer RPC to get available family profiles (bypasses RLS)
+        supabase.rpc('get_public_family_profiles'),
         
         // Admin manual matches where this professional is assigned
         supabase
