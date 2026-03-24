@@ -186,6 +186,7 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
           .from('profiles')
           .select('*')
           .eq('role', 'family')
+          .eq('available_for_matching', true)
           .limit(showOnlyBestMatch ? 3 : 10),
         
         // Admin manual matches where this professional is assigned
