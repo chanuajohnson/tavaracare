@@ -294,7 +294,10 @@ const UrgentFamiliesPage = () => {
                               variant="outline"
                               size="sm"
                               className="flex-1"
-                              onClick={() => handleWhatsAppInquiry(family)}
+                              onClick={() => {
+                                setSelectedFamily(family);
+                                setShowDetailModal(true);
+                              }}
                             >
                               View Details
                             </Button>
