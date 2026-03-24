@@ -397,9 +397,14 @@ export const DashboardFamilyMatches = () => {
             </div>
           ) : (
             <div className="text-center py-6">
-              <p className="text-gray-500 mb-4">No family matches found</p>
-              <Button onClick={() => setShowFilters(true)} variant="outline">
-                Adjust Filters
+              <Sparkles className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground mb-2 font-medium">No families available right now</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Check back soon or browse urgent family requests.
+              </p>
+              <Button onClick={() => navigate('/urgent-families')} variant="outline">
+                Browse Urgent Families
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           )}

@@ -220,11 +220,21 @@ export const ProfessionalFamilyMatchModal = ({
             </div>
           ) : (
             <div className="text-center py-8">
-              <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-medium text-gray-600">No Family Matches Found</h3>
-              <p className="text-gray-500 mt-2">
-                Complete your professional profile to get matched with families.
+              <Sparkles className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-medium text-foreground">No Family Matches Right Now</h3>
+              <p className="text-muted-foreground mt-2">
+                There are no families currently available for matching. Browse urgent family requests to find opportunities.
               </p>
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => {
+                  onOpenChange(false);
+                  window.location.href = '/urgent-families';
+                }}
+              >
+                Browse Urgent Families
+              </Button>
             </div>
           )}
         </div>

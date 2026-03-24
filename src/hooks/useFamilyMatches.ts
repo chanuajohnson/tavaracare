@@ -426,33 +426,15 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
       console.error("Error loading families:", error);
       setError(error instanceof Error ? error.message : "Unknown error");
       
-      // Use fallback data on error with compatibility scoring
-      const enhancedMockFamilies = MOCK_FAMILIES.map(family => {
-        const familySchedule = parseCareSchedule(family.care_schedule);
-        const shiftCompatibility = calculateShiftCompatibility([], familySchedule);
-        const matchExplanation = generateMatchExplanation(shiftCompatibility, [], familySchedule);
-        const scheduleOverlapDetails = generateScheduleOverlapDetails([], familySchedule);
-        
-        return {
-          ...family,
-          shift_compatibility_score: shiftCompatibility,
-          match_explanation: matchExplanation,
-          schedule_overlap_details: scheduleOverlapDetails
-        };
-      });
-      
-      const fallbackFamilies = showOnlyBestMatch 
-        ? enhancedMockFamilies.slice(0, 1) 
-        : enhancedMockFamilies;
-      processedFamiliesRef.current = enhancedMockFamilies;
-      setFamilies(fallbackFamilies);
+      // No mock fallback — show empty state
+      processedFamiliesRef.current = [];
+      setFamilies([]);
       
       await trackEngagement('family_matches_view', {
-        data_source: 'mock_data_error_fallback',
-        family_count: fallbackFamilies.length,
+        data_source: 'error_empty',
+        family_count: 0,
         view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
-        error: error instanceof Error ? error.message : "Unknown error",
-        shift_compatibility_enabled: true
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     } finally {
       setIsLoading(false);
