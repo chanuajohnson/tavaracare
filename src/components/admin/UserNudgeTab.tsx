@@ -168,6 +168,21 @@ const getIncompleteFields = (
 
   // Care assessment fields (only fields that actually exist on the care assessment form)
   if (careNeeds) {
+    if (!careNeeds.chronic_illness_type) {
+      fields.push({ field: 'chronic_illness_type', label: 'Chronic illness details', reason: 'critical for caregiver preparedness', source: 'assessment' });
+    }
+    if (!careNeeds.diagnosed_conditions) {
+      fields.push({ field: 'diagnosed_conditions', label: 'Diagnosed conditions', reason: 'essential for safe and informed care', source: 'assessment' });
+    }
+    if (!careNeeds.known_allergies) {
+      fields.push({ field: 'known_allergies', label: 'Known allergies', reason: 'critical for medication and meal safety', source: 'assessment' });
+    }
+    if (!careNeeds.emergency_plan) {
+      fields.push({ field: 'emergency_plan', label: 'Emergency plan', reason: 'ensures caregiver knows what to do in an emergency', source: 'assessment' });
+    }
+    if (!careNeeds.triggers_soothing_techniques) {
+      fields.push({ field: 'triggers_soothing_techniques', label: 'Triggers & soothing techniques', reason: 'helps caregiver manage difficult moments', source: 'assessment' });
+    }
     if (!careNeeds.cultural_preferences) {
       fields.push({ field: 'cultural_preferences', label: 'Cultural preferences', reason: 'ensures a comfortable care environment', source: 'assessment' });
     }

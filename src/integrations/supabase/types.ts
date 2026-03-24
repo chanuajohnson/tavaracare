@@ -5370,6 +5370,8 @@ export type Database = {
           care_schedule: string
           care_types: string[]
           care_urgency: Database["public"]["Enums"]["care_urgency"]
+          chronic_illness_type: string
+          diagnosed_conditions: string
           full_name: string
           id: string
           location: string

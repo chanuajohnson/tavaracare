@@ -18,6 +18,8 @@ interface UrgentFamily {
   care_types: string[] | null;
   care_urgency: string | null;
   care_schedule: string | null;
+  diagnosed_conditions: string | null;
+  chronic_illness_type: string | null;
 }
 
 const getInitials = (name: string): string => {
