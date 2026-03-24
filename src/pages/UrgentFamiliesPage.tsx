@@ -91,6 +91,8 @@ const getScheduleLabel = (schedule: string | null): string | null => {
 const UrgentFamiliesPage = () => {
   const navigate = useNavigate();
   const { data: families, isLoading } = useUrgentFamilies();
+  const [selectedFamily, setSelectedFamily] = useState<UrgentFamily | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const handleWhatsAppInquiry = (family: UrgentFamily) => {
     const BUSINESS_WHATSAPP = "8687865357";
