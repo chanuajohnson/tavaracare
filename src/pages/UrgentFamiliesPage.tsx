@@ -167,20 +167,20 @@ const UrgentFamiliesPage = () => {
                       {/* Family Info - Privacy-safe */}
                       <div>
                         <h3 className="text-lg font-semibold text-foreground">
-                          Family in {family.location || family.address || "Trinidad & Tobago"}
+                          Family in {getGeneralArea(family.location)}
                         </h3>
                         {family.care_recipient_name && (
                           <p className="text-sm text-muted-foreground mt-1">
-                            Care for: {family.care_recipient_name}
+                            Care for: {getFirstNameLastInitial(family.care_recipient_name)}
                           </p>
                         )}
                       </div>
 
                       {/* Location */}
-                      {(family.location || family.address) && (
+                      {family.location && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <MapPin className="h-4 w-4 flex-shrink-0" />
-                          <span>{family.location || family.address}</span>
+                          <span>{getGeneralArea(family.location)}</span>
                         </div>
                       )}
 
