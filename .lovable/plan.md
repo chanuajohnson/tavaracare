@@ -1,52 +1,34 @@
 
 
-## Build Caregiver Recruitment Page + Fix Urgent Caregivers + Add Urgent Families Page
+## Fix: Urgent Families Page Not Showing Families
 
 ### Problem
-1. `/urgent-caregivers` shows ALL spotlight caregivers regardless of `available_for_matching` status — should only show those marked available in admin
-2. No "Urgent Families" page exists to show families needing immediate matches
-3. `/join-as-caregiver` exists but needs alignment with the urgent pages' visual style
-4. Main homepage only has "Caregivers Available Now" button — needs "Families Available Now" and "Join as Caregiver" buttons too
+The `/urgent-families` page queries families by `care_urgency` ("immediate" or "within_week") but does NOT check `available_for_matching`. Meanwhile, the admin dashboard already has the toggle for families (it shows for both professional and family roles), but no families have been toggled on yet.
 
-### Changes
+The caregiver page works because it filters by `available_for_matching = true`. The families page needs the same filter.
 
-#### 1. Fix spotlight service to filter by `available_for_matching`
-**File:** `src/services/spotlightService.ts`
-- In `getActiveSpotlightCaregivers()`, join with profiles and add filter: only return caregivers where `profiles.available_for_matching = true`
-- This ensures `/urgent-caregivers` only shows caregivers the admin has marked as available
+### Fix
 
-#### 2. Create Urgent Families page
-**File:** `src/pages/UrgentFamiliesPage.tsx` (new)
-- Similar layout/style to `UrgentCaregiversPage.tsx` for visual consistency
-- Query `profiles` where `role = 'family'` AND `care_urgency = 'immediate'` (or `within_week`)
-- Show family cards with: name, location, care types needed, urgency badge
-- WhatsApp CTA routes to business number with family details
-- "Families Available Now" branding with heart icon
+**File: `src/pages/UrgentFamiliesPage.tsx`**
+- Add `.eq("available_for_matching", true)` to the query
+- Remove the `care_urgency` filter requirement — a family should appear if the admin marks them as available, regardless of urgency level (the urgency badge can still display if the data exists)
+- This aligns with how `/urgent-caregivers` works: admin toggles control visibility
 
-#### 3. Enhance `/join-as-caregiver` page
-**File:** `src/pages/JoinAsCaregiver.tsx`
-- Align visual style with the urgent pages (gradient hero, motion animations, trust badges)
-- Keep existing UTM tracking and sign-up flow
-- Add San Fernando/Palmiste area mention in copy as a current high-demand area
+Updated query:
+```ts
+const { data, error } = await supabase
+  .from("profiles")
+  .select("id, full_name, location, address, care_types, care_urgency, care_recipient_name, care_schedule")
+  .eq("role", "family")
+  .eq("available_for_matching", true)
+  .order("updated_at", { ascending: false });
+```
 
-#### 4. Update homepage with all three CTAs
-**File:** `src/pages/Index.tsx`
-- Add "Families Available Now" button below "Caregivers Available Now"
-- Add "Join as Caregiver" recruitment button
-- All three buttons in a vertical stack or row in the hero section
-
-#### 5. Add routes and navigation
-**File:** `src/components/routing/AppRoutes.tsx` — Add `/urgent-families` route
-**File:** `src/components/routing/RouteValidator.tsx` — Add `/urgent-families` to valid patterns
+This way, you control which families appear on the page by toggling the same "Available for Matching" switch in the admin dashboard that you already use for caregivers.
 
 ### Files Changed
 
 | Action | Target | Description |
 |--------|--------|-------------|
-| Modify | `src/services/spotlightService.ts` | Add `available_for_matching` filter to spotlight query |
-| Create | `src/pages/UrgentFamiliesPage.tsx` | New page showing families needing urgent matches |
-| Modify | `src/pages/JoinAsCaregiver.tsx` | Align visual style with urgent pages |
-| Modify | `src/pages/Index.tsx` | Add "Families Available Now" and "Join as Caregiver" CTA buttons |
-| Modify | `src/components/routing/AppRoutes.tsx` | Add `/urgent-families` route |
-| Modify | `src/components/routing/RouteValidator.tsx` | Add `/urgent-families` to valid patterns |
+| Modify | `src/pages/UrgentFamiliesPage.tsx` | Filter by `available_for_matching = true` instead of (or in addition to) `care_urgency` |
 
