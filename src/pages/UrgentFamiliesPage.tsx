@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Heart, Users, MapPin, Clock, ArrowLeft, AlertCircle, MessageCircle, Award } from "lucide-react";
+import { Heart, Users, MapPin, Clock, ArrowLeft, AlertCircle, MessageCircle, Award, Stethoscope } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,8 @@ interface UrgentFamily {
   care_types: string[] | null;
   care_urgency: string | null;
   care_schedule: string | null;
+  diagnosed_conditions: string | null;
+  chronic_illness_type: string | null;
 }
 
 const getInitials = (name: string): string => {
@@ -245,6 +247,27 @@ const UrgentFamiliesPage = () => {
                               )}
                             </div>
                           )}
+
+                          {/* Medical Info */}
+                          <div className="space-y-1">
+                            <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                              <Stethoscope className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                              <span>
+                                {family.diagnosed_conditions 
+                                  ? family.diagnosed_conditions 
+                                  : "No diagnosed conditions specified"}
+                              </span>
+                            </div>
+                            {family.chronic_illness_type ? (
+                              <Badge variant="outline" className="text-xs font-normal">
+                                🏥 {family.chronic_illness_type}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
+                                🏥 No chronic illness specified
+                              </Badge>
+                            )}
+                          </div>
 
                           {/* Status badges */}
                           <div className="space-y-1.5">
