@@ -179,15 +179,10 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
       const professionalCareSchedule = parseCareSchedule(professionalScheduleData.care_schedule);
       console.log('Professional care schedule:', professionalCareSchedule);
 
-      // Fetch both family users and admin manual matches for this professional
+      // Fetch both family users (via RPC to bypass RLS) and admin manual matches
       const [familyUsersResult, adminMatchesResult] = await Promise.all([
-        // General family users
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('role', 'family')
-          .eq('available_for_matching', true)
-          .limit(showOnlyBestMatch ? 3 : 10),
+        // Use security definer RPC to get available family profiles (bypasses RLS)
+        supabase.rpc('get_public_family_profiles'),
         
         // Admin manual matches where this professional is assigned
         supabase
@@ -327,16 +322,16 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
         
         return {
           id: family.id,
-          full_name: family.full_name || `${family.care_recipient_name || ''} Family`,
-          avatar_url: family.avatar_url,
+          full_name: family.full_name || 'Family',
+          avatar_url: null,
           location: family.location || 'Trinidad and Tobago',
           care_types: careTypes,
-          special_needs: family.special_needs || [],
+          special_needs: [],
           care_schedule: family.care_schedule || 'Weekdays',
           match_score: finalMatchScore,
           is_premium: isPremium,
           distance: parseFloat((Math.random() * 19 + 1).toFixed(1)),
-          budget_preferences: family.budget_preferences || '$15-30/hr',
+          budget_preferences: '$15-30/hr',
           shift_compatibility_score: shiftCompatibility,
           match_explanation: matchExplanation,
           schedule_overlap_details: scheduleOverlapDetails
