@@ -156,6 +156,9 @@ const getIncompleteFields = (
   if (!profile?.budget_preferences) {
     fields.push({ field: 'budget_preferences', label: 'Budget range', reason: 'ensures we recommend the right fit', source: 'profile' });
   }
+  if (!profile?.care_schedule || (typeof profile.care_schedule === 'string' && profile.care_schedule.trim() === '')) {
+    fields.push({ field: 'care_schedule', label: 'Preferred care schedule', reason: 'helps us match caregiver availability', source: 'profile' });
+  }
   if (!profile?.care_urgency) {
     fields.push({ field: 'care_urgency', label: 'How soon you need care', reason: 'helps us prioritize your match', source: 'profile' });
   }
@@ -163,22 +166,8 @@ const getIncompleteFields = (
     fields.push({ field: 'matching_requirements', label: 'Deal breakers / requirements', reason: 'prevents mismatches', source: 'profile' });
   }
 
-  // Care assessment fields
+  // Care assessment fields (only fields that actually exist on the care assessment form)
   if (careNeeds) {
-    if (!careNeeds.preferred_days || (Array.isArray(careNeeds.preferred_days) && careNeeds.preferred_days.length === 0)) {
-      fields.push({ field: 'preferred_days', label: 'Preferred days for care', reason: 'critical for scheduling', source: 'assessment' });
-    }
-    if (!careNeeds.preferred_time_start || !careNeeds.preferred_time_end) {
-      fields.push({ field: 'preferred_times', label: 'Preferred care times', reason: 'critical for scheduling', source: 'assessment' });
-    }
-    // Only flag weekday/weekend coverage if truly null/undefined (never answered)
-    // 'none' and 'no' are valid explicit selections meaning no coverage needed
-    if (careNeeds.weekday_coverage === null || careNeeds.weekday_coverage === undefined) {
-      fields.push({ field: 'weekday_coverage', label: 'Weekday coverage needs', reason: 'determines caregiver shift planning', source: 'assessment' });
-    }
-    if (careNeeds.weekend_coverage === null || careNeeds.weekend_coverage === undefined) {
-      fields.push({ field: 'weekend_coverage', label: 'Weekend coverage needs', reason: 'determines weekend care planning', source: 'assessment' });
-    }
     if (!careNeeds.cultural_preferences) {
       fields.push({ field: 'cultural_preferences', label: 'Cultural preferences', reason: 'ensures a comfortable care environment', source: 'assessment' });
     }
