@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Circle, ArrowRight, Clock, Target, TrendingUp, BookOpen, FileCheck, Calendar, Briefcase } from 'lucide-react';
+import { CheckCircle2, Circle, ArrowRight, Clock, Target, TrendingUp, BookOpen, FileCheck, Calendar, Briefcase, Users, Shield } from 'lucide-react';
 import { useEnhancedProfessionalProgress } from '@/hooks/useEnhancedProfessionalProgress';
 import { ProfessionalJourneyStageCard } from './ProfessionalJourneyStageCard';
 import { useAuth } from '@/components/providers/AuthProvider';
