@@ -151,6 +151,23 @@ export const ProfessionalProfileHub = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="references" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ClipboardList className="h-5 w-5" />
+                  Professional References
+                </CardTitle>
+                <CardDescription>
+                  Submit at least 2 professional references to proceed with matching
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ProfessionalReferencesForm />
+              </CardContent>
+            </Card>
+          </TabsContent>
           
           <TabsContent value="admin-assistant" className="mt-6">
             <div className="space-y-6">

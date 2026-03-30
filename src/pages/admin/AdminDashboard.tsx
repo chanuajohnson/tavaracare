@@ -222,6 +222,15 @@ export default function AdminDashboard() {
           <Link2 className="h-6 w-6" />
           <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Campaign Links</span>
         </Button>
+
+        <Button
+          onClick={handleScreeningClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <Shield className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Caregiver Screening</span>
+        </Button>
       </div>
 
       {/* Pending Scheduling Requests Alert */}
