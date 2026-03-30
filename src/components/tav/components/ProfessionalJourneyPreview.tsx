@@ -19,6 +19,7 @@ export const ProfessionalJourneyPreview: React.FC<ProfessionalJourneyPreviewProp
     switch (stage) {
       case 'foundation': return <Target className="h-4 w-4" />;
       case 'qualification': return <FileCheck className="h-4 w-4" />;
+      case 'vetting': return <FileCheck className="h-4 w-4" />;
       case 'matching': return <Calendar className="h-4 w-4" />;
       case 'active': return <Briefcase className="h-4 w-4" />;
       default: return <Target className="h-4 w-4" />;
