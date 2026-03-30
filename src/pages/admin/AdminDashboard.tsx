@@ -109,6 +109,10 @@ export default function AdminDashboard() {
     navigate('/admin/campaign-links');
   };
 
+  const handleScreeningClick = () => {
+    navigate('/admin/caregiver-screening');
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
