@@ -40,6 +40,24 @@ export const baseSteps = [
   },
   { 
     id: 5, 
+    title: "Submit 2 professional references", 
+    description: "Provide references from previous employers or colleagues", 
+    link: "/professional/profile?tab=references",
+    category: "references",
+    stage: "vetting",
+    isInteractive: true
+  },
+  { 
+    id: 6, 
+    title: "Head nurse screening interview", 
+    description: "Complete a brief interview with our Head Nurse for final clearance", 
+    link: "/professional/profile?tab=references",
+    category: "screening",
+    stage: "vetting",
+    isInteractive: false
+  },
+  { 
+    id: 7, 
     title: "Match with Tavara Families", 
     description: "Get matched with families and begin your caregiving journey", 
     link: "/dashboard/professional#family-matches",
@@ -48,7 +66,7 @@ export const baseSteps = [
     isInteractive: false
   },
   { 
-    id: 6, 
+    id: 8, 
     title: "Complete training modules", 
     description: "Enhance your skills with our professional development courses", 
     link: "/professional/training",
@@ -89,15 +107,16 @@ export const getButtonText = (step: typeof baseSteps[0], completed: boolean, acc
         if (hasDocuments) {
           return "Manage Documents";
         } else {
-          // Show specific missing document types
           const missingTypes = documents ? getMissingDocumentTypes(documents) : [];
           if (missingTypes.length > 0) {
             return `Upload Missing: ${missingTypes.join(', ')}`;
           }
           return "View Documents";
         }
-      case 5: return "View Family Matches";
-      case 6: return "Continue Training";
+      case 5: return "✓ References Submitted";
+      case 6: return "✓ Screening Passed";
+      case 7: return "View Family Matches";
+      case 8: return "Continue Training";
       default: return "✓ Complete";
     }
   }
@@ -107,14 +126,15 @@ export const getButtonText = (step: typeof baseSteps[0], completed: boolean, acc
     case 2: return "Complete Profile";
     case 3: return "Set Availability";
     case 4: 
-      // Show specific missing document types for incomplete state
       const missingTypes = documents ? getMissingDocumentTypes(documents) : [];
       if (missingTypes.length > 0) {
         return `Upload Required: ${missingTypes.join(', ')}`;
       }
       return "Upload Documents";
-    case 5: return "View Family Matches";
-    case 6: return "Start Training";
+    case 5: return "Add References";
+    case 6: return "Awaiting Interview";
+    case 7: return "View Family Matches";
+    case 8: return "Start Training";
     default: return "Complete";
   }
 };

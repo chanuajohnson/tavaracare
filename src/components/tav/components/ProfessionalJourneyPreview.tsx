@@ -19,6 +19,7 @@ export const ProfessionalJourneyPreview: React.FC<ProfessionalJourneyPreviewProp
     switch (stage) {
       case 'foundation': return <Target className="h-4 w-4" />;
       case 'qualification': return <FileCheck className="h-4 w-4" />;
+      case 'vetting': return <FileCheck className="h-4 w-4" />;
       case 'matching': return <Calendar className="h-4 w-4" />;
       case 'active': return <Briefcase className="h-4 w-4" />;
       default: return <Target className="h-4 w-4" />;
@@ -29,6 +30,7 @@ export const ProfessionalJourneyPreview: React.FC<ProfessionalJourneyPreviewProp
     switch (stage) {
       case 'foundation': return 'from-blue-500 to-indigo-500';
       case 'qualification': return 'from-indigo-500 to-purple-500';
+      case 'vetting': return 'from-purple-500 to-violet-500';
       case 'matching': return 'from-purple-500 to-pink-500';
       case 'active': return 'from-green-500 to-emerald-500';
       default: return 'from-blue-500 to-indigo-500';

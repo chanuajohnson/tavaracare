@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { fetchProfileData, fetchDocuments, fetchAssignments } from './professional/dataFetchers';
+import { fetchProfileData, fetchDocuments, fetchAssignments, fetchReferences, fetchScreenings } from './professional/dataFetchers';
 import {
   isAccountCreated,
   isProfileComplete,
@@ -8,6 +8,8 @@ import {
   hasDocuments,
   hasAssignments,
   hasCertifications,
+  hasRequiredReferences,
+  hasPassedScreening,
   checkStepAccessibility,
   getDocumentCount,
   getMissingDocumentTypes
@@ -30,11 +32,12 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       setLoading(true);
       console.log('🔍 useSpecificUserProfessionalProgress: Starting check for userId:', userId);
       
-      // Fetch all data in parallel with proper typing
-      const [profile, documents, assignments] = await Promise.all([
+      const [profile, documents, assignments, references, screenings] = await Promise.all([
         fetchProfileData(userId),
         fetchDocuments(userId),
-        fetchAssignments(userId)
+        fetchAssignments(userId),
+        fetchReferences(userId),
+        fetchScreenings(userId)
       ]);
 
       const processedSteps: ProfessionalStep[] = baseSteps.map(baseStep => {
@@ -45,25 +48,30 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         console.log(`🔍 Checking step ${baseStep.id}: ${baseStep.title}`);
 
         switch (baseStep.id) {
-          case 1: // Account creation
+          case 1:
             completed = isAccountCreated(userId);
             break;
-          case 2: // Professional profile
+          case 2:
             completed = isProfileComplete(profile);
             break;
-          case 3: // Availability
+          case 3:
             completed = isAvailabilitySet(profile);
             break;
-          case 4: // Documents upload
+          case 4:
             completed = hasDocuments(documents);
-            // Use dynamic navigation link for documents
             link = getDocumentNavigationLink(completed);
             break;
-          case 5: // Assignments
-            completed = hasAssignments(assignments);
-            accessible = checkStepAccessibility(baseStep.id, userId, profile, documents);
+          case 5:
+            completed = hasRequiredReferences(references);
             break;
-          case 6: // Training modules - check certifications
+          case 6:
+            completed = hasPassedScreening(screenings);
+            break;
+          case 7:
+            completed = hasAssignments(assignments);
+            accessible = checkStepAccessibility(baseStep.id, userId, profile, documents, references, screenings);
+            break;
+          case 8:
             completed = hasCertifications(profile);
             break;
         }
@@ -124,6 +132,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
     stagesBreakdown: {
       foundation: steps.filter(s => s.stage === 'foundation').map(s => ({ title: s.title, completed: s.completed, accessible: s.accessible })),
       qualification: steps.filter(s => s.stage === 'qualification').map(s => ({ title: s.title, completed: s.completed, accessible: s.accessible })),
+      vetting: steps.filter(s => s.stage === 'vetting').map(s => ({ title: s.title, completed: s.completed, accessible: s.accessible })),
       training: steps.filter(s => s.stage === 'training').map(s => ({ title: s.title, completed: s.completed, accessible: s.accessible })),
       active: steps.filter(s => s.stage === 'active').map(s => ({ title: s.title, completed: s.completed, accessible: s.accessible }))
     }

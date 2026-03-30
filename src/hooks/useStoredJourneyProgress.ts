@@ -110,7 +110,7 @@ export const useStoredJourneyProgress = (userId: string, userRole: string): Stor
   if (storedProgress) {
     const completionPercentage = Math.round(storedProgress.completion_percentage || 0);
     const currentStep = storedProgress.current_step || 1;
-    const totalSteps = storedProgress.total_steps || 6;
+    const totalSteps = storedProgress.total_steps || 8;
     
     console.log('📊 Using stored progress data:', {
       userId,
@@ -160,7 +160,7 @@ export const useStoredJourneyProgress = (userId: string, userRole: string): Stor
   console.log('⚠️ No stored progress found, using fallback data for:', { userId, userRole });
   
   // Return minimal functional data that won't break the UI
-  const fallbackSteps = Array.from({ length: 6 }, (_, index) => ({
+  const fallbackSteps = Array.from({ length: 8 }, (_, index) => ({
     id: index + 1,
     step_number: index + 1,
     title: `Step ${index + 1}`,
@@ -176,7 +176,7 @@ export const useStoredJourneyProgress = (userId: string, userRole: string): Stor
     nextStep: fallbackSteps[0],
     currentStage: 'foundation',
     loading,
-    totalSteps: 6,
+    totalSteps: 8,
     completedSteps: 0
   };
 };

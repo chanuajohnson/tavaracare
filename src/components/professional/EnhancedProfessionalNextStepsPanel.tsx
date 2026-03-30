@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Circle, ArrowRight, Clock, Target, TrendingUp, BookOpen, FileCheck, Calendar, Briefcase } from 'lucide-react';
+import { CheckCircle2, Circle, ArrowRight, Clock, Target, TrendingUp, BookOpen, FileCheck, Calendar, Briefcase, Users, Shield } from 'lucide-react';
 import { useEnhancedProfessionalProgress } from '@/hooks/useEnhancedProfessionalProgress';
 import { ProfessionalJourneyStageCard } from './ProfessionalJourneyStageCard';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -53,6 +53,7 @@ export const EnhancedProfessionalNextStepsPanel = () => {
     switch (stageId) {
       case 'foundation': return <Target className="h-4 w-4" />;
       case 'qualification': return <FileCheck className="h-4 w-4" />;
+      case 'vetting': return <Shield className="h-4 w-4" />;
       case 'matching': return <Calendar className="h-4 w-4" />;
       case 'active': return <Briefcase className="h-4 w-4" />;
       default: return <Circle className="h-4 w-4" />;
@@ -63,6 +64,8 @@ export const EnhancedProfessionalNextStepsPanel = () => {
     switch (step.category) {
       case 'profile': return <Target className="h-4 w-4" />;
       case 'documents': return <FileCheck className="h-4 w-4" />;
+      case 'references': return <Users className="h-4 w-4" />;
+      case 'screening': return <Shield className="h-4 w-4" />;
       case 'training': return <BookOpen className="h-4 w-4" />;
       case 'availability': return <Calendar className="h-4 w-4" />;
       case 'assignments': return <Briefcase className="h-4 w-4" />;
