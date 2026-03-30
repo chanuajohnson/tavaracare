@@ -87,6 +87,10 @@ export const ProfessionalProfileHub = () => {
               <Settings className="h-4 w-4" />
               Settings
             </TabsTrigger>
+            <TabsTrigger value="references" className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" />
+              References
+            </TabsTrigger>
             <TabsTrigger value="admin-assistant" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Admin Assistant
