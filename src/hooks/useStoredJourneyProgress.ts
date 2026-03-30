@@ -160,7 +160,7 @@ export const useStoredJourneyProgress = (userId: string, userRole: string): Stor
   console.log('⚠️ No stored progress found, using fallback data for:', { userId, userRole });
   
   // Return minimal functional data that won't break the UI
-  const fallbackSteps = Array.from({ length: 6 }, (_, index) => ({
+  const fallbackSteps = Array.from({ length: 8 }, (_, index) => ({
     id: index + 1,
     step_number: index + 1,
     title: `Step ${index + 1}`,
