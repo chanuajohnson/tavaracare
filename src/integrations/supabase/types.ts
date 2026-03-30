@@ -3187,6 +3187,102 @@ export type Database = {
         }
         Relationships: []
       }
+      professional_references: {
+        Row: {
+          created_at: string
+          id: string
+          professional_id: string
+          reference_email: string | null
+          reference_name: string
+          reference_notes: string | null
+          reference_phone: string | null
+          reference_relationship: string
+          status: string
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+          years_known: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          professional_id: string
+          reference_email?: string | null
+          reference_name: string
+          reference_notes?: string | null
+          reference_phone?: string | null
+          reference_relationship: string
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          years_known?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          professional_id?: string
+          reference_email?: string | null
+          reference_name?: string
+          reference_notes?: string | null
+          reference_phone?: string | null
+          reference_relationship?: string
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          years_known?: string | null
+        }
+        Relationships: []
+      }
+      professional_screening: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          interviewer_name: string | null
+          notes: string | null
+          professional_id: string
+          rating: number | null
+          recommendation: string | null
+          scheduled_at: string | null
+          screening_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          interviewer_name?: string | null
+          notes?: string | null
+          professional_id: string
+          rating?: number | null
+          recommendation?: string | null
+          scheduled_at?: string | null
+          screening_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          interviewer_name?: string | null
+          notes?: string | null
+          professional_id?: string
+          rating?: number | null
+          recommendation?: string | null
+          scheduled_at?: string | null
+          screening_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           additional_notes: string | null
@@ -3251,6 +3347,7 @@ export type Database = {
           matching_requirements: string | null
           medical_conditions_experience: string[] | null
           onboarding_progress: Json | null
+          onboarding_stage: string | null
           other_certification: string | null
           other_medical_condition: string | null
           other_special_needs: string | null
@@ -3267,6 +3364,7 @@ export type Database = {
           registration_skipped: boolean | null
           relationship: string | null
           role: Database["public"]["Enums"]["user_role"]
+          screening_cleared: boolean | null
           special_needs: string[] | null
           specialized_care: string[] | null
           tech_interests: string[] | null
@@ -3349,6 +3447,7 @@ export type Database = {
           matching_requirements?: string | null
           medical_conditions_experience?: string[] | null
           onboarding_progress?: Json | null
+          onboarding_stage?: string | null
           other_certification?: string | null
           other_medical_condition?: string | null
           other_special_needs?: string | null
@@ -3365,6 +3464,7 @@ export type Database = {
           registration_skipped?: boolean | null
           relationship?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          screening_cleared?: boolean | null
           special_needs?: string[] | null
           specialized_care?: string[] | null
           tech_interests?: string[] | null
@@ -3447,6 +3547,7 @@ export type Database = {
           matching_requirements?: string | null
           medical_conditions_experience?: string[] | null
           onboarding_progress?: Json | null
+          onboarding_stage?: string | null
           other_certification?: string | null
           other_medical_condition?: string | null
           other_special_needs?: string | null
@@ -3463,6 +3564,7 @@ export type Database = {
           registration_skipped?: boolean | null
           relationship?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          screening_cleared?: boolean | null
           special_needs?: string[] | null
           specialized_care?: string[] | null
           tech_interests?: string[] | null

@@ -49,7 +49,6 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const [profileData, setProfileData] = useState<any>(null);
   const [documentsData, setDocumentsData] = useState<any[]>([]);
 
-  // Use stored progress as primary source
   const storedProgress = useStoredJourneyProgress(user?.id || '', 'professional');
 
   console.log('🔍 Enhanced Professional Progress Data:', {
@@ -58,7 +57,6 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     usingStored: storedProgress.completionPercentage > 0
   });
 
-  // Define journey stages
   const stages: ProfessionalJourneyStage[] = [
     {
       id: 'foundation',
@@ -74,6 +72,15 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       name: 'Qualification',
       description: 'Upload credentials and complete background verification',
       color: 'bg-indigo-500',
+      completionPercentage: 0,
+      isActive: false,
+      isCompleted: false
+    },
+    {
+      id: 'vetting',
+      name: 'Vetting',
+      description: 'Submit references and complete screening interview',
+      color: 'bg-purple-500',
       completionPercentage: 0,
       isActive: false,
       isCompleted: false
@@ -101,9 +108,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const [currentStages, setCurrentStages] = useState<ProfessionalJourneyStage[]>(stages);
 
   const handleStepAction = (step: ProfessionalStep) => {
-    if (!step.accessible) {
-      return; // Don't allow navigation for locked steps
-    }
+    if (!step.accessible) return;
     
     if (step.modalAction) {
       switch (step.modalAction) {
@@ -122,8 +127,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
           navigate(step.link);
       }
     } else {
-      if (step.id === 5) {
-        // For family matches, scroll to the family matches section
+      if (step.id === 7) {
         navigate('/dashboard/professional');
         setTimeout(() => {
           const element = document.getElementById('family-matches');
@@ -142,9 +146,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   };
 
   const getButtonText = (step: ProfessionalStep) => {
-    if (!step.accessible) {
-      return "🔒 Locked";
-    }
+    if (!step.accessible) return "🔒 Locked";
     
     if (step.completed) {
       switch (step.id) {
@@ -152,8 +154,10 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
         case 2: return "✓ Edit Profile";
         case 3: return "Edit Availability";
         case 4: return "View Documents";
-        case 5: return "View Family Matches";
-        case 6: return "Continue Training";
+        case 5: return "✓ References Submitted";
+        case 6: return "✓ Screening Passed";
+        case 7: return "View Family Matches";
+        case 8: return "Continue Training";
         default: return "✓ Complete";
       }
     }
@@ -163,98 +167,67 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       case 2: return "Complete Profile";
       case 3: return "Set Availability";
       case 4: return "Upload Documents";
-      case 5: return "View Family Matches";
-      case 6: return "Start Training";
+      case 5: return "Add References";
+      case 6: return "Awaiting Interview";
+      case 7: return "View Family Matches";
+      case 8: return "Start Training";
       default: return "Complete";
     }
   };
 
-  // Base steps definition with dynamic links
   const baseSteps: Omit<ProfessionalStep, 'completed' | 'action' | 'buttonText' | 'accessible'>[] = [
     { 
-      id: 1, 
-      title: "Create your account", 
+      id: 1, title: "Create your account", 
       description: "Set up your Tavara professional account", 
-      link: "/auth",
-      category: "account",
-      stage: "foundation",
-      isInteractive: false
+      link: "/auth", category: "account", stage: "foundation", isInteractive: false
     },
     { 
-      id: 2, 
-      title: "Edit your professional registration", 
+      id: 2, title: "Edit your professional registration", 
       description: "Add your experience, certifications, and specialties", 
-      link: "/registration/professional",
-      category: "profile",
-      stage: "foundation",
-      isInteractive: true
+      link: "/registration/professional", category: "profile", stage: "foundation", isInteractive: true
     },
     { 
-      id: 3, 
-      title: "Set your availability preferences", 
+      id: 3, title: "Set your availability preferences", 
       description: "Configure your work schedule and location preferences", 
-      link: "/registration/professional?scroll=availability&edit=true",
-      category: "availability",
-      stage: "foundation",
-      isInteractive: true,
-      modalAction: "availability_setup"
+      link: "/registration/professional?scroll=availability&edit=true", category: "availability", stage: "foundation", isInteractive: true, modalAction: "availability_setup"
     },
     { 
-      id: 4, 
-      title: "Upload certifications & documents", 
+      id: 4, title: "Upload certifications & documents", 
       description: "Verify your credentials and background", 
-      link: "/professional/profile?tab=documents",
-      category: "documents",
-      stage: "qualification",
-      isInteractive: true,
-      modalAction: "document_upload"
+      link: "/professional/profile?tab=documents", category: "documents", stage: "qualification", isInteractive: true, modalAction: "document_upload"
     },
     { 
-      id: 5, 
-      title: "Match with Tavara Families", 
+      id: 5, title: "Submit 2 professional references", 
+      description: "Provide references from previous employers or colleagues", 
+      link: "/professional/profile?tab=references", category: "references", stage: "vetting", isInteractive: true
+    },
+    { 
+      id: 6, title: "Head nurse screening interview", 
+      description: "Complete a brief interview with our Head Nurse for final clearance", 
+      link: "/professional/profile?tab=references", category: "screening", stage: "vetting", isInteractive: false
+    },
+    { 
+      id: 7, title: "Match with Tavara Families", 
       description: "Get matched with families and begin your caregiving journey", 
-      link: "/dashboard/professional#family-matches",
-      category: "assignments",
-      stage: "active",
-      isInteractive: false
+      link: "/dashboard/professional#family-matches", category: "assignments", stage: "active", isInteractive: false
     },
     { 
-      id: 6, 
-      title: "Complete training modules", 
+      id: 8, title: "Complete training modules", 
       description: "Enhance your skills with our professional development courses", 
-      link: "/professional/training",
-      category: "training",
-      stage: "training",
-      isInteractive: true,
-      modalAction: "training_modules"
+      link: "/professional/training", category: "training", stage: "training", isInteractive: true, modalAction: "training_modules"
     }
   ];
 
-  // Generate demo data for non-logged-in users
   const generateDemoData = () => {
     const demoSteps: ProfessionalStep[] = baseSteps.map(baseStep => {
       let completed = false;
       let accessible = true;
 
       switch (baseStep.id) {
-        case 1:
-          completed = true;
-          break;
-        case 2:
-          completed = true;
-          break;
-        case 3:
-        case 4:
-          completed = false;
-          break;
-        case 5:
-          completed = false;
-          accessible = false; // Demo shows locked state
-          break;
-        case 6:
-        default:
-          completed = false;
-          break;
+        case 1: case 2: completed = true; break;
+        case 3: case 4: case 5: case 6: completed = false; break;
+        case 7: completed = false; accessible = false; break;
+        case 8: default: completed = false; break;
       }
 
       return {
@@ -266,7 +239,6 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       };
     });
 
-    // Calculate demo stage completion
     const demoStages = currentStages.map(stage => {
       const stageSteps = demoSteps.filter(step => step.stage === stage.id);
       const completedStageSteps = stageSteps.filter(step => step.completed);
@@ -306,8 +278,23 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
         .select('*')
         .eq('caregiver_id', user.id);
 
+      const { data: references } = await supabase
+        .from('professional_references')
+        .select('*')
+        .eq('professional_id', user.id);
+
+      const { data: screenings } = await supabase
+        .from('professional_screening')
+        .select('*')
+        .eq('professional_id', user.id);
+
       setProfileData(profile);
       setDocumentsData(documents || []);
+
+      const refsCount = references?.length || 0;
+      const screeningPassed = screenings?.some(
+        (s: any) => s.screening_type === 'head_nurse_interview' && s.status === 'passed'
+      ) || false;
 
       const steps: ProfessionalStep[] = baseSteps.map(baseStep => {
         let completed = false;
@@ -324,19 +311,25 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
           completed = (documents?.length || 0) > 0;
           stepLink = getDocumentNavigationLink(completed);
         } else if (baseStep.id === 5) {
-          completed = (assignments?.length || 0) > 0;
+          completed = refsCount >= 2;
         } else if (baseStep.id === 6) {
+          completed = screeningPassed;
+        } else if (baseStep.id === 7) {
+          completed = (assignments?.length || 0) > 0;
+        } else if (baseStep.id === 8) {
           completed = !!(profile?.professional_type && profile?.certifications && profile.certifications.length > 0);
         }
 
         let accessible = true;
-        if (baseStep.id === 5) {
+        if (baseStep.id === 7) {
           const step1Complete = !!user;
           const step2Complete = !!(profile?.full_name);
           const step3Complete = !!(profile?.care_schedule && profile.care_schedule.length > 0);
           const step4Complete = (documents?.length || 0) > 0;
+          const step5Complete = refsCount >= 2;
+          const step6Complete = screeningPassed;
           
-          accessible = step1Complete && step2Complete && step3Complete && step4Complete;
+          accessible = step1Complete && step2Complete && step3Complete && step4Complete && step5Complete && step6Complete;
         }
 
         return {
@@ -400,7 +393,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   }, [user]);
 
   const calculatedCompletedSteps = steps.filter(step => step.completed).length;
-  const calculatedOverallProgress = Math.round((calculatedCompletedSteps / steps.length) * 100);
+  const calculatedOverallProgress = Math.round((calculatedCompletedSteps / (steps.length || 1)) * 100);
   
   const overallProgress = storedProgress.completionPercentage > 0 
     ? storedProgress.completionPercentage 

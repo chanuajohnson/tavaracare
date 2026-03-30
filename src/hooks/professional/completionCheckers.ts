@@ -1,12 +1,11 @@
 
-import { ProfileData, ProfessionalDocument, CareTeamAssignment } from './types';
+import { ProfileData, ProfessionalDocument, CareTeamAssignment, ProfessionalReference, ProfessionalScreening } from './types';
 
 // Define required document types that professionals must upload
-// Updated to match actual database values
 export const REQUIRED_DOCUMENT_TYPES = [
-  'identification', // ID document
-  'certificate', // Professional certification (was 'certification')
-  'background_check' // Background check (was 'police_clearance')
+  'identification',
+  'certificate',
+  'background_check'
 ] as const;
 
 export const isAccountCreated = (userId: string): boolean => {
@@ -91,9 +90,26 @@ export const getMissingDocumentTypes = (documents: ProfessionalDocument[]): stri
   return missing;
 };
 
+export const hasRequiredReferences = (references: ProfessionalReference[]): boolean => {
+  const completed = references.length >= 2;
+  console.log(`📋 Step 5 (References): ${completed} (count: ${references.length}, need 2+)`);
+  return completed;
+};
+
+export const hasPassedScreening = (screenings: ProfessionalScreening[]): boolean => {
+  const passed = screenings.some(
+    s => s.screening_type === 'head_nurse_interview' && s.status === 'passed'
+  );
+  console.log(`🩺 Step 6 (Screening): ${passed}`, {
+    screeningCount: screenings.length,
+    statuses: screenings.map(s => ({ type: s.screening_type, status: s.status }))
+  });
+  return passed;
+};
+
 export const hasAssignments = (assignments: CareTeamAssignment[]): boolean => {
   const completed = assignments.length > 0;
-  console.log(`💼 Step 5 (Assignments): ${completed} (count: ${assignments.length})`);
+  console.log(`💼 Step 7 (Assignments): ${completed} (count: ${assignments.length})`);
   return completed;
 };
 
@@ -103,7 +119,7 @@ export const hasCertifications = (profile: ProfileData | null): boolean => {
   const hasProfileTypeForTraining = !!profile?.professional_type;
   const completed = hasProfileTypeForTraining && certificationsCount > 0;
   
-  console.log(`🎓 Step 6 (Training/Certifications): ${completed}`, {
+  console.log(`🎓 Step 8 (Training/Certifications): ${completed}`, {
     certificationsArray,
     certificationsCount,
     hasProfileTypeForTraining,
@@ -117,22 +133,28 @@ export const checkStepAccessibility = (
   stepId: number,
   userId: string,
   profile: ProfileData | null,
-  documents: ProfessionalDocument[]
+  documents: ProfessionalDocument[],
+  references: ProfessionalReference[] = [],
+  screenings: ProfessionalScreening[] = []
 ): boolean => {
-  // Step 5 is only accessible if steps 1-4 are completed
-  if (stepId === 5) {
+  // Step 7 (matching) is only accessible if steps 1-6 are completed
+  if (stepId === 7) {
     const step1Complete = isAccountCreated(userId);
     const step2Complete = isProfileComplete(profile);
     const step3Complete = isAvailabilitySet(profile);
     const step4Complete = hasDocuments(documents);
+    const step5Complete = hasRequiredReferences(references);
+    const step6Complete = hasPassedScreening(screenings);
     
-    const accessible = step1Complete && step2Complete && step3Complete && step4Complete;
+    const accessible = step1Complete && step2Complete && step3Complete && step4Complete && step5Complete && step6Complete;
     
-    console.log(`🔒 Step 5 accessibility check:`, {
+    console.log(`🔒 Step 7 accessibility check:`, {
       step1Complete,
       step2Complete,
       step3Complete,
       step4Complete,
+      step5Complete,
+      step6Complete,
       accessible,
       missingDocumentTypes: getMissingDocumentTypes(documents)
     });

@@ -21,6 +21,38 @@ export interface ProfileData {
   [key: string]: any;
 }
 
+export interface ProfessionalReference {
+  id: string;
+  professional_id: string;
+  reference_name: string;
+  reference_phone?: string;
+  reference_email?: string;
+  reference_relationship: string;
+  years_known?: string;
+  reference_notes?: string;
+  verified_by?: string;
+  verified_at?: string;
+  status: 'pending' | 'verified' | 'flagged';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProfessionalScreening {
+  id: string;
+  professional_id: string;
+  screening_type: 'head_nurse_interview' | 'skills_assessment';
+  scheduled_at?: string;
+  completed_at?: string;
+  interviewer_name?: string;
+  status: 'pending' | 'scheduled' | 'passed' | 'failed' | 'needs_followup';
+  notes?: string;
+  rating?: number;
+  recommendation?: 'approve' | 'reject' | 'conditional';
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ProfessionalStep {
   id: number;
   title: string;

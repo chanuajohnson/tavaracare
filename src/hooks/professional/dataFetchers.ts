@@ -1,12 +1,11 @@
 
 import { supabase } from '@/lib/supabase';
-import { ProfessionalDocument, CareTeamAssignment, ProfileData } from './types';
+import { ProfessionalDocument, CareTeamAssignment, ProfileData, ProfessionalReference, ProfessionalScreening } from './types';
 
 export const fetchProfileData = async (userId: string): Promise<ProfileData | null> => {
   console.log('🔍 Fetching profile data for userId (using secure function):', userId);
   
   try {
-    // Use the secure function to bypass RLS recursion
     const { data: profilesData, error: profileError } = await supabase
       .rpc('get_user_profile_secure', { target_user_id: userId });
 
@@ -15,7 +14,6 @@ export const fetchProfileData = async (userId: string): Promise<ProfileData | nu
       throw profileError;
     }
 
-    // The RPC returns an array, get the first item
     const profile = profilesData && profilesData.length > 0 ? profilesData[0] : null;
 
     console.log('👤 Profile data fetched via secure function:', {
@@ -32,7 +30,6 @@ export const fetchProfileData = async (userId: string): Promise<ProfileData | nu
   } catch (error) {
     console.error('❌ Secure profile fetch failed, trying fallback:', error);
     
-    // Fallback to direct table access (in case function fails)
     const { data: profile, error: fallbackError } = await supabase
       .from('profiles')
       .select('*')
@@ -96,4 +93,48 @@ export const fetchAssignments = async (userId: string): Promise<CareTeamAssignme
   });
 
   return assignments;
+};
+
+export const fetchReferences = async (userId: string): Promise<ProfessionalReference[]> => {
+  console.log('📋 Fetching references for userId:', userId);
+  
+  const { data, error } = await supabase
+    .from('professional_references')
+    .select('*')
+    .eq('professional_id', userId);
+
+  if (error) {
+    console.error('❌ References fetch error:', error);
+    return [];
+  }
+
+  const references = (data || []) as unknown as ProfessionalReference[];
+  console.log('📋 References data fetched:', {
+    count: references.length,
+    statuses: references.map(r => r.status)
+  });
+
+  return references;
+};
+
+export const fetchScreenings = async (userId: string): Promise<ProfessionalScreening[]> => {
+  console.log('🩺 Fetching screenings for userId:', userId);
+  
+  const { data, error } = await supabase
+    .from('professional_screening')
+    .select('*')
+    .eq('professional_id', userId);
+
+  if (error) {
+    console.error('❌ Screenings fetch error:', error);
+    return [];
+  }
+
+  const screenings = (data || []) as unknown as ProfessionalScreening[];
+  console.log('🩺 Screenings data fetched:', {
+    count: screenings.length,
+    statuses: screenings.map(s => ({ type: s.screening_type, status: s.status }))
+  });
+
+  return screenings;
 };
