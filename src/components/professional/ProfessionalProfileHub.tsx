@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { TrainingProgramSection } from "./TrainingProgramSection";
 import { TrainingModulesSection } from "./TrainingModulesSection";
 import { TrainingProgressTracker } from "./TrainingProgressTracker";
+import { ProfessionalReferencesForm } from "./ProfessionalReferencesForm";
 
 export const ProfessionalProfileHub = () => {
   const { user } = useAuth();
