@@ -53,6 +53,7 @@ export const EnhancedProfessionalNextStepsPanel = () => {
     switch (stageId) {
       case 'foundation': return <Target className="h-4 w-4" />;
       case 'qualification': return <FileCheck className="h-4 w-4" />;
+      case 'vetting': return <Shield className="h-4 w-4" />;
       case 'matching': return <Calendar className="h-4 w-4" />;
       case 'active': return <Briefcase className="h-4 w-4" />;
       default: return <Circle className="h-4 w-4" />;
