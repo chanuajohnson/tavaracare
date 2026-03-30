@@ -110,7 +110,7 @@ export const useStoredJourneyProgress = (userId: string, userRole: string): Stor
   if (storedProgress) {
     const completionPercentage = Math.round(storedProgress.completion_percentage || 0);
     const currentStep = storedProgress.current_step || 1;
-    const totalSteps = storedProgress.total_steps || 6;
+    const totalSteps = storedProgress.total_steps || 8;
     
     console.log('📊 Using stored progress data:', {
       userId,
