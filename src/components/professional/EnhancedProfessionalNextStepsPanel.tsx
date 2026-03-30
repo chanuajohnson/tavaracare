@@ -64,6 +64,8 @@ export const EnhancedProfessionalNextStepsPanel = () => {
     switch (step.category) {
       case 'profile': return <Target className="h-4 w-4" />;
       case 'documents': return <FileCheck className="h-4 w-4" />;
+      case 'references': return <Users className="h-4 w-4" />;
+      case 'screening': return <Shield className="h-4 w-4" />;
       case 'training': return <BookOpen className="h-4 w-4" />;
       case 'availability': return <Calendar className="h-4 w-4" />;
       case 'assignments': return <Briefcase className="h-4 w-4" />;

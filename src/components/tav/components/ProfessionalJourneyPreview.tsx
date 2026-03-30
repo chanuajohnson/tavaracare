@@ -30,6 +30,7 @@ export const ProfessionalJourneyPreview: React.FC<ProfessionalJourneyPreviewProp
     switch (stage) {
       case 'foundation': return 'from-blue-500 to-indigo-500';
       case 'qualification': return 'from-indigo-500 to-purple-500';
+      case 'vetting': return 'from-purple-500 to-violet-500';
       case 'matching': return 'from-purple-500 to-pink-500';
       case 'active': return 'from-green-500 to-emerald-500';
       default: return 'from-blue-500 to-indigo-500';

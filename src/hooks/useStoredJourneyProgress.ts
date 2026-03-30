@@ -176,7 +176,7 @@ export const useStoredJourneyProgress = (userId: string, userRole: string): Stor
     nextStep: fallbackSteps[0],
     currentStage: 'foundation',
     loading,
-    totalSteps: 6,
+    totalSteps: 8,
     completedSteps: 0
   };
 };
