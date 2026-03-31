@@ -17,6 +17,7 @@ import FeedbackManagementPage from "@/pages/admin/FeedbackManagementPage";
 import WhatsAppNudgePage from "@/pages/admin/WhatsAppNudgePage";
 import PlatformAnalyticsPage from "@/pages/admin/PlatformAnalyticsPage";
 import ShiftManagementPage from "@/pages/admin/ShiftManagementPage";
+import ProfessionalScreeningPage from "@/pages/admin/ProfessionalScreeningPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
 import FAQPage from "@/pages/support/FAQPage";
@@ -165,6 +166,7 @@ export const AppRoutes = () => {
       <Route path="/admin/platform-analytics" element={<PlatformAnalyticsPage />} />
       <Route path="/admin/shift-management" element={<ShiftManagementPage />} />
       <Route path="/admin/testimonials" element={<TestimonialManagementPage />} />
+      <Route path="/admin/caregiver-screening" element={<ProfessionalScreeningPage />} />
       <Route path="/admin/campaign-links" element={<CampaignLinksPage />} />
       
       {/* Legacy Routes */}
