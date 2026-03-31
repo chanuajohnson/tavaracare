@@ -166,6 +166,7 @@ export const AppRoutes = () => {
       <Route path="/admin/platform-analytics" element={<PlatformAnalyticsPage />} />
       <Route path="/admin/shift-management" element={<ShiftManagementPage />} />
       <Route path="/admin/testimonials" element={<TestimonialManagementPage />} />
+      <Route path="/admin/caregiver-screening" element={<ProfessionalScreeningPage />} />
       <Route path="/admin/campaign-links" element={<CampaignLinksPage />} />
       
       {/* Legacy Routes */}
