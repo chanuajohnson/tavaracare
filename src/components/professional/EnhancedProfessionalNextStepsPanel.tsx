@@ -38,7 +38,9 @@ export const EnhancedProfessionalNextStepsPanel = () => {
         'Start Training': 'professional_step_training',
         'Complete Profile': 'professional_step_profile',
         'Add Qualifications': 'professional_step_qualifications',
-        'Begin Matching': 'professional_step_matching'
+        'Begin Matching': 'professional_step_matching',
+        'Add References': 'professional_step_references',
+        'Awaiting Interview': 'professional_step_screening'
       };
       
       const source = sourceMap[stepTitle] || `professional_step_${stepCategory}`;
