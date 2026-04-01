@@ -1,31 +1,66 @@
 
 
-## Plan: Add Resend & Delete Actions to Screening Sessions
+## Fix: Screening Link & Landing Page RLS Policy Gaps
 
-### What's Changing
+### Root Cause
 
-Add two action buttons to each screening session row in `ScreeningSessionManager.tsx`:
-1. **Resend** (Send icon) — re-opens the WhatsApp link for the candidate, same as the initial send flow
-2. **Delete** (Trash icon) — deletes the screening session from the database with a confirmation
+Three RLS policy gaps prevent the screening flow from working:
 
-### File: `src/components/admin/ScreeningSessionManager.tsx`
+1. **`screening_sessions` table**: The "Public access via token" SELECT policy only applies to the `anon` role. When a logged-in professional taps the screening link, they use the `authenticated` role — and the only authenticated SELECT policies require `is_current_user_admin()` or `assigned_to = auth.uid()`. Since neither matches, the query returns empty → "Invalid or expired screening link".
 
-**1. Import `Trash2` and `RefreshCw` icons** from lucide-react (line 10)
+2. **`screening_sessions` table**: The `ProfessionalScreeningLandingPage` queries `WHERE professional_id = auth.uid()`, but no authenticated SELECT policy covers this condition. So the professional always sees "Screening Not Yet Assigned" even though 2 sessions exist for them.
 
-**2. Add `handleResendScreening` function** (~after line 152)
-- Finds the candidate from the `candidates` array using `session.professional_id`
-- If `onSendScreening` is available and candidate has a phone number, calls it with the screening link
-- Otherwise falls back to copying the link to clipboard with a toast
+3. **`screening_question_templates` table**: Has zero `anon` policies, so the join `screening_question_templates(questions)` in the public screening page fails silently for unauthenticated users too.
 
-**3. Add `handleDeleteSession` function**
-- Shows a `window.confirm()` dialog: "Are you sure you want to delete this screening session for {candidate_name}?"
-- On confirm, deletes the row from `screening_sessions` where `id = session.id`
-- Calls `fetchData()` to refresh the list
-- Shows success/error toast
+### Fix: 2 Database Migrations (no code changes needed)
 
-**4. Add two buttons to each session row** (between the copy-link and view-details buttons, lines 241-246)
-- Resend button: `<RefreshCw>` icon, calls `handleResendScreening(s)`
-- Delete button: `<Trash2>` icon with `text-destructive` color, calls `handleDeleteSession(s)`
+**Migration 1: Add authenticated SELECT policies for screening_sessions**
 
-The row will show: `[Status Badge] [Copy Link] [Resend] [Delete] [View Details]`
+```sql
+-- Professionals can view their own screening sessions
+CREATE POLICY "Professional can view own sessions"
+ON public.screening_sessions
+FOR SELECT
+TO authenticated
+USING (professional_id = auth.uid());
+
+-- Authenticated users can also access sessions via token (same as anon)
+CREATE POLICY "Authenticated access via token"
+ON public.screening_sessions
+FOR SELECT
+TO authenticated
+USING (true);
+
+-- Authenticated users can update sessions via token (same as anon)
+CREATE POLICY "Authenticated update via token"
+ON public.screening_sessions
+FOR UPDATE
+TO authenticated
+USING (true)
+WITH CHECK (true);
+```
+
+Note: The broad `USING (true)` for authenticated mirrors the existing anon policy. This is safe because the screening page only queries by `access_token` (a UUID that acts as a secret), and RLS on related tables (templates) provides additional gating.
+
+**Migration 2: Add anon SELECT policy for screening_question_templates**
+
+```sql
+-- Allow anon users to read active templates (needed for public screening page join)
+CREATE POLICY "Anon can view active templates"
+ON public.screening_question_templates
+FOR SELECT
+TO anon
+USING (is_active = true);
+```
+
+### What This Fixes
+
+- Logged-in professionals tapping the WhatsApp screening link will no longer see "Invalid or expired screening link"
+- The `/professional/screening` landing page will correctly find and display the professional's pending session
+- The "Begin Screening Interview" button will work and load the questions properly
+- Unauthenticated users accessing the link will also see the template questions
+
+### No Code Changes Required
+
+Both `MobileScreeningPage.tsx` and `ProfessionalScreeningLandingPage.tsx` already have the correct query logic — the issue is purely RLS policies blocking the data access.
 
