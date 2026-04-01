@@ -109,6 +109,18 @@ export const ScreeningSessionManager = ({ onSendScreening }: Props) => {
     if (!candidate) return;
 
     try {
+      // Check for existing session with same professional + template
+      const { data: existing } = await supabase
+        .from('screening_sessions')
+        .select('id')
+        .eq('professional_id', createForm.candidateId)
+        .eq('template_id', createForm.templateId);
+
+      if (existing && existing.length > 0) {
+        toast.error('A screening session already exists for this candidate with this template. Use the resend button instead.');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('screening_sessions')
         .insert({
@@ -368,7 +380,11 @@ export const ScreeningSessionManager = ({ onSendScreening }: Props) => {
                         <audio controls src={r.voice_url} className="w-full h-8" />
                       )}
                       {r.rating && (
-                        <Badge variant="outline" className="text-xs">{r.rating}</Badge>
+                        <Badge className={`text-xs ${
+                          r.rating === 'pass' ? 'bg-green-100 text-green-700' :
+                          r.rating === 'concern' ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>{r.rating}</Badge>
                       )}
                     </div>
                   ))}
