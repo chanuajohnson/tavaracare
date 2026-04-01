@@ -290,6 +290,8 @@ const FamilyStoryPage = ({ isDemo: isExternalDemo = false }: FamilyStoryPageProp
           joyful_things: data.joyfulThings,
           unique_facts: data.uniqueFacts,
           last_updated: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id'
         })
         .select();
 
