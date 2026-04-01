@@ -109,6 +109,18 @@ export const ScreeningSessionManager = ({ onSendScreening }: Props) => {
     if (!candidate) return;
 
     try {
+      // Check for existing session with same professional + template
+      const { data: existing } = await supabase
+        .from('screening_sessions')
+        .select('id')
+        .eq('professional_id', createForm.candidateId)
+        .eq('template_id', createForm.templateId);
+
+      if (existing && existing.length > 0) {
+        toast.error('A screening session already exists for this candidate with this template. Use the resend button instead.');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('screening_sessions')
         .insert({
