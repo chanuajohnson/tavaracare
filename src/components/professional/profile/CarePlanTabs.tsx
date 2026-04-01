@@ -67,7 +67,7 @@ export const CarePlanTabs = ({
   ];
 
   const tabsToShow = showCarePlanTabs ? [...carePlanTabs, ...adminTabs] : adminTabs;
-  const gridCols = showCarePlanTabs ? "grid-cols-5" : "grid-cols-2";
+  const gridCols = showCarePlanTabs ? "grid-cols-6" : "grid-cols-3";
 
   return (
     <HorizontalTabs value={activeTab} onValueChange={onTabChange} className="w-full">
