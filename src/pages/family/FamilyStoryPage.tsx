@@ -155,10 +155,10 @@ const FamilyStoryPage = ({ isDemo: isExternalDemo = false }: FamilyStoryPageProp
     },
   });
 
-  // Fetch existing data for edit mode
+  // Fetch existing data — always load if user has a story, not just in edit mode
   useEffect(() => {
     const fetchExistingData = async () => {
-      if (!user || !isEditMode) {
+      if (!user) {
         setIsLoading(false);
         return;
       }
