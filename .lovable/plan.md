@@ -1,50 +1,59 @@
 
 
-## Fix: Legacy Story "Failed to save" 409 Error on Edit
+## Plan: Update Screening Copy + Seed Default Templates
 
-### Root Cause
+### Changes Overview
 
-The `FamilyStoryPage.tsx` upsert at line 272-294 does **not** specify `onConflict: 'user_id'`. When editing an existing story:
+Three things to do:
+1. Update two description strings to say "professional caregivers" instead of "head nurse"
+2. Seed 4 pre-built screening question templates in the database via the insert tool
 
-1. The upsert sends data **without the `id` field** (the primary key)
-2. Supabase generates a new UUID for `id`
-3. The INSERT succeeds on the PK check but hits the **unique constraint on `user_id`** → **409 Conflict**
-4. The user sees "Failed to save story"
-5. On page reload the original data is still there (nothing was lost)
+---
 
-The success toast the user sees afterward is likely from a retry or a second render cycle — the data was never actually updated.
+### 1. Text Updates (2 files, 2 lines each)
 
-### User's Data Status
+**`src/components/admin/ScreeningSessionManager.tsx`** (line 215):
+- Change: `"Send voice questionnaires to the head nurse for candidate evaluation"` → `"Send voice questionnaires to select professional caregivers for candidate evaluation"`
 
-User `9874b53e-ea23-4ccb-abed-ddbb0367edf5` **does have a legacy story** (record ID `aba5d2ae-291e-4d28-a3d9-8da2c7934a01`). It contains full data for Carol Glenn-Aimey including personality traits, life story, career info, etc. **Nothing has been lost.**
+**`src/components/admin/ScreeningTemplateBuilder.tsx`** (line ~143):
+- Change: `"Reusable question sets for head nurse screening calls"` → `"Reusable question sets for professional caregiver screening calls"`
 
-### Fix (1 file, 1 line change)
+### 2. Seed 4 Screening Templates (database insert)
 
-**File: `src/pages/family/FamilyStoryPage.tsx`** (line ~274)
+Insert these 4 templates into `screening_question_templates`:
 
-Change the upsert call to specify the conflict column:
+**Template 1: "Opening / Rapport"** (General category, 2 questions)
+1. "Tell me a little about yourself and what drew you to caregiving."
+2. "What types of clients have you worked with most — elderly, post-surgical, dementia, pediatric?"
 
-```typescript
-// Before
-.upsert({
-  user_id: user.id,
-  ...fields
-})
+**Template 2: "Clinical Competency"** (Clinical Competency category, 3 questions)
+3. "Walk me through how you'd handle a client who refuses their medication."
+4. "Have you managed wound care, catheter care, or feeding tubes? Which are you most comfortable with?"
+5. "How do you handle a medical emergency — say a client falls or shows signs of a stroke?"
 
-// After
-.upsert({
-  user_id: user.id,
-  ...fields
-}, {
-  onConflict: 'user_id'
-})
-```
+**Template 3: "Team / Rotation Fit"** (Team & Rotation Fit category, 3 questions)
+6. "At Tavara, we rotate caregivers in a household so clients aren't dependent on one person. How do you feel about sharing a client with other nurses?"
+7. "How do you handle handoff — what information do you pass to the next caregiver coming on shift?"
+8. "Have you ever worked in a team-based care setting before? What worked well and what didn't?"
 
-This tells Supabase: "If a row with this `user_id` already exists, update it instead of trying to insert a new one." The 409 error will be eliminated and edits will save correctly.
+**Template 4: "Reliability, Culture & Red-Flag Checks"** (mixed categories, 8 questions)
+9. "What does your ideal schedule look like — days, evenings, weekends, overnights?" (Reliability & Professionalism)
+10. "How do you handle last-minute shift requests or schedule changes?" (Reliability & Professionalism)
+11. "Have you ever had a conflict with a client's family member? How did you resolve it?" (Reliability & Professionalism)
+12. "Some of our families have specific cultural or dietary preferences. How do you adapt to different household routines?" (General)
+13. "Are you comfortable working in different areas — San Fernando, Chaguanas, Port of Spain — or do you have a preferred zone?" (General)
+14. "Why did you leave your last caregiving position?" (Red-Flag Checks)
+15. "Can you provide two professional references we can contact?" (Red-Flag Checks)
+16. "Is there anything about how we operate — team rotations, documentation requirements, family communication — that concerns you?" (Red-Flag Checks)
 
-### Why This Is Safe
+All templates will be inserted as `is_active: true` so they're immediately usable without the admin needing to create them one by one.
 
-- The `care_recipient_profiles` table has a `UNIQUE (user_id)` constraint, so `onConflict: 'user_id'` is valid
-- RLS policies already allow users to update their own rows (`auth.uid() = user_id`)
-- No other files need changes — this is the only place that writes to `care_recipient_profiles`
+---
+
+### Technical Detail
+
+- The 2 UI text changes are simple string replacements in existing components
+- The 4 templates are inserted via the Supabase insert tool (data operation, not a migration)
+- The `questions` column is JSONB, so each template gets an array of `{question, category}` objects
+- No schema changes needed — the `screening_question_templates` table already exists
 
