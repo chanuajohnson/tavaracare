@@ -160,7 +160,7 @@ export const ScreeningTemplateBuilder = () => {
               <FileText className="h-5 w-5" />
               Screening Templates
             </CardTitle>
-            <CardDescription>Reusable question sets for head nurse screening calls</CardDescription>
+            <CardDescription>Reusable question sets for professional caregiver screening calls</CardDescription>
           </div>
           <Button onClick={handleCreate} size="sm">
             <Plus className="h-4 w-4 mr-1" />

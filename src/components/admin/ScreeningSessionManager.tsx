@@ -212,7 +212,7 @@ export const ScreeningSessionManager = ({ onSendScreening }: Props) => {
                 Voice Screening Sessions
               </CardTitle>
               <CardDescription>
-                Send voice questionnaires to the head nurse for candidate evaluation
+                Send voice questionnaires to select professional caregivers for candidate evaluation
               </CardDescription>
             </div>
             <Button onClick={() => setShowCreateDialog(true)} size="sm">
