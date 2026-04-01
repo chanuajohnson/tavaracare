@@ -3,12 +3,13 @@ import { HorizontalTabs, HorizontalTabsList, HorizontalTabsTrigger, HorizontalTa
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Pill, ChefHat, Shield, FileText, Upload, Settings } from "lucide-react";
+import { Calendar, Pill, ChefHat, Shield, FileText, Upload, Settings, ClipboardList } from "lucide-react";
 import { ProfessionalScheduleView } from "@/components/professional/ProfessionalScheduleView";
 import { MedicationDashboard } from "@/components/professional/MedicationDashboard";
 import { CarePlanMealPlanner } from "@/components/meal-planning/CarePlanMealPlanner";
 import { CertificateUpload } from "@/components/professional/CertificateUpload";
 import { DocumentManager } from "@/components/professional/DocumentManager";
+import { ProfessionalReferencesForm } from "@/components/professional/ProfessionalReferencesForm";
 
 interface CarePlanTabsProps {
   activeTab: string;
@@ -57,11 +58,16 @@ export const CarePlanTabs = ({
       value: "documents",
       icon: FileText,
       label: "Documents"
+    },
+    {
+      value: "references",
+      icon: ClipboardList,
+      label: "References"
     }
   ];
 
   const tabsToShow = showCarePlanTabs ? [...carePlanTabs, ...adminTabs] : adminTabs;
-  const gridCols = showCarePlanTabs ? "grid-cols-5" : "grid-cols-2";
+  const gridCols = showCarePlanTabs ? "grid-cols-6" : "grid-cols-3";
 
   return (
     <HorizontalTabs value={activeTab} onValueChange={onTabChange} className="w-full">
@@ -211,6 +217,23 @@ export const CarePlanTabs = ({
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
+          </CardContent>
+        </Card>
+      </HorizontalTabsContent>
+
+      <HorizontalTabsContent value="references" className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-primary" />
+              Professional References
+            </CardTitle>
+            <CardDescription>
+              Submit at least 2 professional references to proceed with matching
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProfessionalReferencesForm />
           </CardContent>
         </Card>
       </HorizontalTabsContent>
