@@ -79,7 +79,7 @@ Deno.serve(async (req: Request) => {
                 role: "system",
                 content: `You are a caregiving screening evaluator for Tavara.care, a shared-care platform in Trinidad & Tobago. 
                 
-Analyze the head nurse's screening responses about a caregiver candidate and provide:
+Analyze the professional caregiver screening responses about a candidate and provide:
 1. A structured summary (3-5 sentences) highlighting strengths, concerns, and overall impression
 2. A recommendation: exactly one of "approve", "conditional", or "reject"
 
