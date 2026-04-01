@@ -220,6 +220,23 @@ export const CarePlanTabs = ({
           </CardContent>
         </Card>
       </HorizontalTabsContent>
+
+      <HorizontalTabsContent value="references" className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-primary" />
+              Professional References
+            </CardTitle>
+            <CardDescription>
+              Submit at least 2 professional references to proceed with matching
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProfessionalReferencesForm />
+          </CardContent>
+        </Card>
+      </HorizontalTabsContent>
     </HorizontalTabs>
   );
 };
