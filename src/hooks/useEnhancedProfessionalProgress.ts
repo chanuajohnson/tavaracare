@@ -168,7 +168,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       case 3: return "Set Availability";
       case 4: return "Upload Documents";
       case 5: return "Add References";
-      case 6: return "Awaiting Interview";
+      case 6: return "Awaiting Screening";
       case 7: return "View Family Matches";
       case 8: return "Start Training";
       default: return "Complete";
@@ -202,9 +202,9 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       link: "/professional/profile?tab=references", category: "references", stage: "vetting", isInteractive: true
     },
     { 
-      id: 6, title: "Head nurse screening interview", 
-      description: "Complete a brief interview with our Head Nurse for final clearance", 
-      link: "/professional/profile?tab=references", category: "screening", stage: "vetting", isInteractive: false
+      id: 6, title: "Professional caregiver screening", 
+      description: "Complete a brief screening interview for final clearance", 
+      link: "/professional/screening", category: "screening", stage: "vetting", isInteractive: false
     },
     { 
       id: 7, title: "Match with Tavara Families", 

@@ -19,12 +19,19 @@ export const ProfessionalProfileHub = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [isTrainingExpanded, setIsTrainingExpanded] = useState(false);
 
-  // Check URL params for tab
+  // Check URL params for tab and scroll into view
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const tab = urlParams.get('tab');
     if (tab) {
       setActiveTab(tab);
+      // Scroll the tab content into view after a short delay for render
+      setTimeout(() => {
+        const tabsElement = document.querySelector('[role="tablist"]');
+        if (tabsElement) {
+          tabsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
     }
   }, []);
 
