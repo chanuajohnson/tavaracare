@@ -151,6 +151,29 @@ export const ScreeningSessionManager = ({ onSendScreening }: Props) => {
     toast.success('Link copied!');
   };
 
+  const handleResendScreening = (session: ScreeningSession) => {
+    const candidate = candidates.find(c => c.id === session.professional_id);
+    const link = getScreeningLink(session);
+    if (onSendScreening && candidate?.phone_number) {
+      onSendScreening(candidate.id, candidate.full_name || session.candidate_name, link, candidate.phone_number);
+    } else {
+      navigator.clipboard.writeText(link);
+      toast.success('Screening link copied to clipboard!');
+    }
+  };
+
+  const handleDeleteSession = async (session: ScreeningSession) => {
+    if (!window.confirm(`Are you sure you want to delete this screening session for ${session.candidate_name}?`)) return;
+    try {
+      const { error } = await supabase.from('screening_sessions').delete().eq('id', session.id);
+      if (error) throw error;
+      toast.success('Screening session deleted');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete session');
+    }
+  };
+
   const handleViewDetails = (session: ScreeningSession) => {
     setSelectedSession(session);
     setShowDetailDialog(true);
