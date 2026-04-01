@@ -70,11 +70,22 @@ export default function MobileScreeningPage() {
       setSession(data);
 
       const tmplQuestions = data.screening_question_templates?.questions;
-      const qs: ScreeningQuestion[] = Array.isArray(tmplQuestions) ? tmplQuestions : [];
+      const qs: ScreeningQuestion[] = Array.isArray(tmplQuestions)
+        ? (tmplQuestions as any[]).map((q: any) => ({ question: String(q.question || ''), category: String(q.category || 'General') }))
+        : [];
       setQuestions(qs);
 
       // Initialize responses
-      const existingResponses = Array.isArray(data.responses) ? data.responses : [];
+      const existingResponses: QuestionResponse[] = Array.isArray(data.responses)
+        ? (data.responses as any[]).map((r: any) => ({
+            question_index: r.question_index ?? 0,
+            question: r.question ?? '',
+            voice_url: r.voice_url ?? null,
+            transcript: r.transcript ?? null,
+            text_response: r.text_response ?? '',
+            rating: r.rating ?? null,
+          }))
+        : [];
       const initResponses: QuestionResponse[] = qs.map((q, i) => {
         const existing = existingResponses.find((r: any) => r.question_index === i);
         return existing || {
