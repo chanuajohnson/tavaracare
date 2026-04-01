@@ -121,8 +121,9 @@ const FamilyStoryPage = ({ isDemo: isExternalDemo = false }: FamilyStoryPageProp
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [prefillApplied, setPrefillApplied] = useState(false);
+  const [hasExistingData, setHasExistingData] = useState(false);
   
-  const isEditMode = searchParams.get('edit') === 'true';
+  const isEditMode = searchParams.get('edit') === 'true' || hasExistingData;
   const isDemo = isExternalDemo || searchParams.get('demo') === 'true';
   
   const breadcrumbItems = [
