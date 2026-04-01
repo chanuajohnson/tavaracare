@@ -58,6 +58,11 @@ export const CarePlanTabs = ({
       value: "documents",
       icon: FileText,
       label: "Documents"
+    },
+    {
+      value: "references",
+      icon: ClipboardList,
+      label: "References"
     }
   ];
 
