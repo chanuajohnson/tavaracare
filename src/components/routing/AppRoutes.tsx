@@ -170,7 +170,7 @@ export const AppRoutes = () => {
       <Route path="/admin/campaign-links" element={<CampaignLinksPage />} />
       
       {/* Legacy Routes */}
-      <Route path="/legacy/stories" element={<LegacyStoriesPage />} />
+      <Route path="/legacy-stories" element={<LegacyStoriesPage />} />
       
       {/* TAV Core Routes */}
       <Route path="/tav-demo" element={<TavDemo />} />
