@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Clipboard, ExternalLink, Eye, Send, Mic } from 'lucide-react';
+import { Clipboard, ExternalLink, Eye, Send, Mic, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ScreeningSession {
