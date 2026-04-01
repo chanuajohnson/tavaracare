@@ -133,6 +133,7 @@ export const AppRoutes = () => {
       <Route path="/professional/training" element={<TrainingResourcesPage />} />
       <Route path="/professional/training/module/:moduleId" element={<ModuleViewerPage />} />
       <Route path="/professional/message-board" element={<MessageBoardPage />} />
+      <Route path="/professional/screening" element={<ProfessionalScreeningLandingPage />} />
       
       {/* Family Routes */}
       <Route path="/family" element={<FamilyFeaturesOverview />} />
