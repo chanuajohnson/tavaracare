@@ -1,66 +1,47 @@
 
 
-## Fix: Screening Link & Landing Page RLS Policy Gaps
+## Plan: Fix Duplicate Sessions, CORS Error, and Quick Assessment Clarity
 
-### Root Cause
+### Three Issues to Fix
 
-Three RLS policy gaps prevent the screening flow from working:
+1. **Duplicate sessions**: The admin can currently create multiple sessions for the same professional + template combination. Need to add a uniqueness check before inserting.
 
-1. **`screening_sessions` table**: The "Public access via token" SELECT policy only applies to the `anon` role. When a logged-in professional taps the screening link, they use the `authenticated` role — and the only authenticated SELECT policies require `is_current_user_admin()` or `assigned_to = auth.uid()`. Since neither matches, the query returns empty → "Invalid or expired screening link".
+2. **AI Summary CORS failure**: The edge function imports `corsHeaders` from an invalid path (`https://esm.sh/@supabase/supabase-js@2/cors` doesn't exist). Need to define CORS headers manually. Also the system prompt still says "head nurse" — should say "professional caregiver".
 
-2. **`screening_sessions` table**: The `ProfessionalScreeningLandingPage` queries `WHERE professional_id = auth.uid()`, but no authenticated SELECT policy covers this condition. So the professional always sees "Screening Not Yet Assigned" even though 2 sessions exist for them.
+3. **Quick Assessment clarification**: The Pass/Neutral/Concern buttons are tapped by the **person filling out the screening** (the evaluator/admin who opens the link). They are NOT automatic. The admin sees these ratings in the detail dialog. Currently the rating badge has no color coding — needs color-coded badges for scannability.
 
-3. **`screening_question_templates` table**: Has zero `anon` policies, so the join `screening_question_templates(questions)` in the public screening page fails silently for unauthenticated users too.
+---
 
-### Fix: 2 Database Migrations (no code changes needed)
+### Changes
 
-**Migration 1: Add authenticated SELECT policies for screening_sessions**
+#### 1. Prevent duplicate sessions (`ScreeningSessionManager.tsx`)
 
-```sql
--- Professionals can view their own screening sessions
-CREATE POLICY "Professional can view own sessions"
-ON public.screening_sessions
-FOR SELECT
-TO authenticated
-USING (professional_id = auth.uid());
+In `handleCreateSession`, before the insert, query for existing sessions with the same `professional_id` and `template_id`. If one exists, show a toast error: "A screening session already exists for this candidate with this template. Use the resend button instead." and return early.
 
--- Authenticated users can also access sessions via token (same as anon)
-CREATE POLICY "Authenticated access via token"
-ON public.screening_sessions
-FOR SELECT
-TO authenticated
-USING (true);
+#### 2. Fix CORS headers in edge function (`supabase/functions/transcribe-screening/index.ts`)
 
--- Authenticated users can update sessions via token (same as anon)
-CREATE POLICY "Authenticated update via token"
-ON public.screening_sessions
-FOR UPDATE
-TO authenticated
-USING (true)
-WITH CHECK (true);
-```
+- Replace the broken `import { corsHeaders }` with a local `corsHeaders` constant:
+  ```ts
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+  ```
+- Update the system prompt: change "head nurse's screening responses" to "professional caregiver screening responses"
 
-Note: The broad `USING (true)` for authenticated mirrors the existing anon policy. This is safe because the screening page only queries by `access_token` (a UUID that acts as a secret), and RLS on related tables (templates) provides additional gating.
+#### 3. Color-code rating badges in admin detail dialog (`ScreeningSessionManager.tsx`)
 
-**Migration 2: Add anon SELECT policy for screening_question_templates**
+In the detail dialog where `r.rating` is displayed, replace the generic `<Badge variant="outline">` with color-mapped styling:
+- `pass` → green badge
+- `neutral` → gray badge
+- `concern` → amber/red badge
 
-```sql
--- Allow anon users to read active templates (needed for public screening page join)
-CREATE POLICY "Anon can view active templates"
-ON public.screening_question_templates
-FOR SELECT
-TO anon
-USING (is_active = true);
-```
+---
 
-### What This Fixes
+### Technical Detail
 
-- Logged-in professionals tapping the WhatsApp screening link will no longer see "Invalid or expired screening link"
-- The `/professional/screening` landing page will correctly find and display the professional's pending session
-- The "Begin Screening Interview" button will work and load the questions properly
-- Unauthenticated users accessing the link will also see the template questions
-
-### No Code Changes Required
-
-Both `MobileScreeningPage.tsx` and `ProfessionalScreeningLandingPage.tsx` already have the correct query logic — the issue is purely RLS policies blocking the data access.
+- Duplicate prevention: client-side check via `supabase.from('screening_sessions').select('id').eq('professional_id', candidateId).eq('template_id', templateId)` before insert
+- CORS fix: the `corsHeaders` import path `https://esm.sh/@supabase/supabase-js@2/cors` is not a valid export — Supabase edge function examples define CORS headers locally or import from a shared `_shared/cors.ts` file
+- The edge function will be auto-deployed after the code change
+- No database schema changes needed
 
