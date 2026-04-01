@@ -18,6 +18,7 @@ import WhatsAppNudgePage from "@/pages/admin/WhatsAppNudgePage";
 import PlatformAnalyticsPage from "@/pages/admin/PlatformAnalyticsPage";
 import ShiftManagementPage from "@/pages/admin/ShiftManagementPage";
 import ProfessionalScreeningPage from "@/pages/admin/ProfessionalScreeningPage";
+import MobileScreeningPage from "@/pages/screening/MobileScreeningPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
 import FAQPage from "@/pages/support/FAQPage";
@@ -171,6 +172,9 @@ export const AppRoutes = () => {
       
       {/* Legacy Routes */}
       <Route path="/legacy-stories" element={<LegacyStoriesPage />} />
+      
+      {/* Public Screening Route (token-based, no auth required) */}
+      <Route path="/screening/:token" element={<MobileScreeningPage />} />
       
       {/* TAV Core Routes */}
       <Route path="/tav-demo" element={<TavDemo />} />

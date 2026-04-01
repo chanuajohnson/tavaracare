@@ -3685,6 +3685,103 @@ export type Database = {
         }
         Relationships: []
       }
+      screening_question_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          questions: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          questions?: Json
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          questions?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      screening_sessions: {
+        Row: {
+          access_token: string
+          ai_recommendation: string | null
+          ai_summary: string | null
+          assigned_to: string | null
+          candidate_name: string
+          created_at: string
+          id: string
+          professional_id: string
+          responses: Json
+          status: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string
+          ai_recommendation?: string | null
+          ai_summary?: string | null
+          assigned_to?: string | null
+          candidate_name: string
+          created_at?: string
+          id?: string
+          professional_id: string
+          responses?: Json
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          ai_recommendation?: string | null
+          ai_summary?: string | null
+          assigned_to?: string | null
+          candidate_name?: string
+          created_at?: string
+          id?: string
+          professional_id?: string
+          responses?: Json
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "screening_sessions_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "screening_sessions_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "screening_sessions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "screening_question_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       session_analytics: {
         Row: {
           bounce_rate: number | null
