@@ -40,6 +40,7 @@ import ProfessionalAssignmentPage from "@/pages/professional/ProfessionalAssignm
 import TrainingResourcesPage from "@/pages/professional/TrainingResourcesPage";
 import ModuleViewerPage from "@/pages/professional/ModuleViewerPage";
 import MessageBoardPage from "@/pages/professional/MessageBoardPage";
+import ProfessionalScreeningLandingPage from "@/pages/professional/ProfessionalScreeningLandingPage";
 
 // Family Pages
 import FamilyFeaturesOverview from "@/pages/family/FamilyFeaturesOverview";
