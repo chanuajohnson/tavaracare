@@ -1,19 +1,31 @@
 
 
-## Fix: Add References Tab to Professional Profile Hub
+## Plan: Add Resend & Delete Actions to Screening Sessions
 
-### Problem
+### What's Changing
 
-The `ProfessionalProfileHub` page at `/professional/profile` was refactored to use the `CarePlanTabs` component, which does not include a "References" tab. The old component in `src/components/professional/ProfessionalProfileHub.tsx` had it, but the current page version at `src/pages/professional/ProfessionalProfileHub.tsx` lost it during refactoring. When navigating to `/professional/profile?tab=references`, the tab param is ignored and no references UI appears.
+Add two action buttons to each screening session row in `ScreeningSessionManager.tsx`:
+1. **Resend** (Send icon) — re-opens the WhatsApp link for the candidate, same as the initial send flow
+2. **Delete** (Trash icon) — deletes the screening session from the database with a confirmation
 
-### Fix
+### File: `src/components/admin/ScreeningSessionManager.tsx`
 
-**File: `src/components/professional/profile/CarePlanTabs.tsx`**
+**1. Import `Trash2` and `RefreshCw` icons** from lucide-react (line 10)
 
-1. Import `ProfessionalReferencesForm` from `@/components/professional/ProfessionalReferencesForm`
-2. Import the `ClipboardList` icon from lucide-react
-3. Add a "References" entry to the `adminTabs` array (alongside Documents, etc.) with value `"references"`, icon `ClipboardList`, label `"References"`
-4. Add a `TabsContent` block for `value="references"` that renders `<ProfessionalReferencesForm />` inside a Card with title "Professional References" and description "Submit at least 2 professional references to proceed with matching"
+**2. Add `handleResendScreening` function** (~after line 152)
+- Finds the candidate from the `candidates` array using `session.professional_id`
+- If `onSendScreening` is available and candidate has a phone number, calls it with the screening link
+- Otherwise falls back to copying the link to clipboard with a toast
 
-This is a single-file change that restores the references tab within the existing tab system. The URL param `?tab=references` will work automatically since `ProfessionalProfileHub` already reads the `tab` search param and passes it to `CarePlanTabs` via `activeTab`.
+**3. Add `handleDeleteSession` function**
+- Shows a `window.confirm()` dialog: "Are you sure you want to delete this screening session for {candidate_name}?"
+- On confirm, deletes the row from `screening_sessions` where `id = session.id`
+- Calls `fetchData()` to refresh the list
+- Shows success/error toast
+
+**4. Add two buttons to each session row** (between the copy-link and view-details buttons, lines 241-246)
+- Resend button: `<RefreshCw>` icon, calls `handleResendScreening(s)`
+- Delete button: `<Trash2>` icon with `text-destructive` color, calls `handleDeleteSession(s)`
+
+The row will show: `[Status Badge] [Copy Link] [Resend] [Delete] [View Details]`
 
