@@ -179,6 +179,7 @@ const FamilyStoryPage = ({ isDemo: isExternalDemo = false }: FamilyStoryPageProp
         }
 
         if (existingData) {
+          setHasExistingData(true);
           // Prefill form with existing data
           form.setValue('fullName', existingData.full_name || '');
           form.setValue('birthYear', existingData.birth_year || '1950');
@@ -197,7 +198,7 @@ const FamilyStoryPage = ({ isDemo: isExternalDemo = false }: FamilyStoryPageProp
           form.setValue('joyfulThings', existingData.joyful_things || '');
           form.setValue('uniqueFacts', existingData.unique_facts || '');
 
-          toast.success('Story data loaded for editing');
+          toast.success('Your story has been loaded — you can edit and update it.');
         }
       } catch (error) {
         console.error('Error in fetchExistingData:', error);
