@@ -261,10 +261,16 @@ export const ScreeningSessionManager = ({ onSendScreening }: Props) => {
                   </div>
                   <div className="flex items-center gap-2">
                     {getStatusBadge(s.status)}
-                    <Button variant="ghost" size="sm" onClick={() => handleCopyLink(s)}>
+                    <Button variant="ghost" size="sm" onClick={() => handleCopyLink(s)} title="Copy link">
                       <Clipboard className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleViewDetails(s)}>
+                    <Button variant="ghost" size="sm" onClick={() => handleResendScreening(s)} title="Resend via WhatsApp">
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDeleteSession(s)} title="Delete session" className="text-destructive hover:text-destructive">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleViewDetails(s)} title="View details">
                       <Eye className="h-4 w-4" />
                     </Button>
                   </div>
