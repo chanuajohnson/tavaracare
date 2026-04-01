@@ -121,8 +121,9 @@ const FamilyStoryPage = ({ isDemo: isExternalDemo = false }: FamilyStoryPageProp
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [prefillApplied, setPrefillApplied] = useState(false);
+  const [hasExistingData, setHasExistingData] = useState(false);
   
-  const isEditMode = searchParams.get('edit') === 'true';
+  const isEditMode = searchParams.get('edit') === 'true' || hasExistingData;
   const isDemo = isExternalDemo || searchParams.get('demo') === 'true';
   
   const breadcrumbItems = [
@@ -155,10 +156,10 @@ const FamilyStoryPage = ({ isDemo: isExternalDemo = false }: FamilyStoryPageProp
     },
   });
 
-  // Fetch existing data for edit mode
+  // Fetch existing data — always load if user has a story, not just in edit mode
   useEffect(() => {
     const fetchExistingData = async () => {
-      if (!user || !isEditMode) {
+      if (!user) {
         setIsLoading(false);
         return;
       }
@@ -178,6 +179,7 @@ const FamilyStoryPage = ({ isDemo: isExternalDemo = false }: FamilyStoryPageProp
         }
 
         if (existingData) {
+          setHasExistingData(true);
           // Prefill form with existing data
           form.setValue('fullName', existingData.full_name || '');
           form.setValue('birthYear', existingData.birth_year || '1950');
@@ -196,7 +198,7 @@ const FamilyStoryPage = ({ isDemo: isExternalDemo = false }: FamilyStoryPageProp
           form.setValue('joyfulThings', existingData.joyful_things || '');
           form.setValue('uniqueFacts', existingData.unique_facts || '');
 
-          toast.success('Story data loaded for editing');
+          toast.success('Your story has been loaded — you can edit and update it.');
         }
       } catch (error) {
         console.error('Error in fetchExistingData:', error);
@@ -207,7 +209,7 @@ const FamilyStoryPage = ({ isDemo: isExternalDemo = false }: FamilyStoryPageProp
     };
 
     fetchExistingData();
-  }, [user, isEditMode, form]);
+  }, [user, form]);
 
   // Apply prefill data from chat sessions
   useEffect(() => {
