@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Clipboard, ExternalLink, Eye, Send, Mic } from 'lucide-react';
+import { Clipboard, ExternalLink, Eye, Send, Mic, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ScreeningSession {
@@ -151,6 +151,29 @@ export const ScreeningSessionManager = ({ onSendScreening }: Props) => {
     toast.success('Link copied!');
   };
 
+  const handleResendScreening = (session: ScreeningSession) => {
+    const candidate = candidates.find(c => c.id === session.professional_id);
+    const link = getScreeningLink(session);
+    if (onSendScreening && candidate?.phone_number) {
+      onSendScreening(candidate.id, candidate.full_name || session.candidate_name, link, candidate.phone_number);
+    } else {
+      navigator.clipboard.writeText(link);
+      toast.success('Screening link copied to clipboard!');
+    }
+  };
+
+  const handleDeleteSession = async (session: ScreeningSession) => {
+    if (!window.confirm(`Are you sure you want to delete this screening session for ${session.candidate_name}?`)) return;
+    try {
+      const { error } = await supabase.from('screening_sessions').delete().eq('id', session.id);
+      if (error) throw error;
+      toast.success('Screening session deleted');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete session');
+    }
+  };
+
   const handleViewDetails = (session: ScreeningSession) => {
     setSelectedSession(session);
     setShowDetailDialog(true);
@@ -238,10 +261,16 @@ export const ScreeningSessionManager = ({ onSendScreening }: Props) => {
                   </div>
                   <div className="flex items-center gap-2">
                     {getStatusBadge(s.status)}
-                    <Button variant="ghost" size="sm" onClick={() => handleCopyLink(s)}>
+                    <Button variant="ghost" size="sm" onClick={() => handleCopyLink(s)} title="Copy link">
                       <Clipboard className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleViewDetails(s)}>
+                    <Button variant="ghost" size="sm" onClick={() => handleResendScreening(s)} title="Resend via WhatsApp">
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDeleteSession(s)} title="Delete session" className="text-destructive hover:text-destructive">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleViewDetails(s)} title="View details">
                       <Eye className="h-4 w-4" />
                     </Button>
                   </div>
