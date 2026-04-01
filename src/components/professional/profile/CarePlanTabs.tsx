@@ -9,6 +9,7 @@ import { MedicationDashboard } from "@/components/professional/MedicationDashboa
 import { CarePlanMealPlanner } from "@/components/meal-planning/CarePlanMealPlanner";
 import { CertificateUpload } from "@/components/professional/CertificateUpload";
 import { DocumentManager } from "@/components/professional/DocumentManager";
+import { ProfessionalReferencesForm } from "@/components/professional/ProfessionalReferencesForm";
 
 interface CarePlanTabsProps {
   activeTab: string;
