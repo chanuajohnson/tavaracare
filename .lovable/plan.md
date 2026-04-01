@@ -1,59 +1,53 @@
 
 
-## Plan: Update Screening Copy + Seed Default Templates
+## Plan: Expand Screening Templates with New Questions
 
-### Changes Overview
+### What's Changing
 
-Three things to do:
-1. Update two description strings to say "professional caregivers" instead of "head nurse"
-2. Seed 4 pre-built screening question templates in the database via the insert tool
+Update 3 existing templates with additional questions and create 2 new templates, based on your specific operational needs at Tavara.
 
 ---
 
-### 1. Text Updates (2 files, 2 lines each)
+### 1. Update "Clinical Competency" template (add 1 question)
 
-**`src/components/admin/ScreeningSessionManager.tsx`** (line 215):
-- Change: `"Send voice questionnaires to the head nurse for candidate evaluation"` → `"Send voice questionnaires to select professional caregivers for candidate evaluation"`
+- "How would you respond if a client falls — walk us through your steps from the moment it happens."
 
-**`src/components/admin/ScreeningTemplateBuilder.tsx`** (line ~143):
-- Change: `"Reusable question sets for head nurse screening calls"` → `"Reusable question sets for professional caregiver screening calls"`
+### 2. Update "Team / Rotation Fit" template (add 3 questions)
 
-### 2. Seed 4 Screening Templates (database insert)
+- "Although you may be the primary assigned caregiver, we rotate caregivers so we always have a healthy pool to fill a home. How do you feel about being placed in different homes on rotation?"
+- "How do you support other caregivers on the team when life events, emergencies, or time-off needs come up?"
+- "We require daily written reports in a digital log that serves as handover notes for the next caregiver — even if you're working the next shift yourself. How comfortable are you with writing daily e-reports?"
 
-Insert these 4 templates into `screening_question_templates`:
+### 3. Update "Reliability, Culture & Red-Flag Checks" template (add 4 questions)
 
-**Template 1: "Opening / Rapport"** (General category, 2 questions)
-1. "Tell me a little about yourself and what drew you to caregiving."
-2. "What types of clients have you worked with most — elderly, post-surgical, dementia, pediatric?"
+- "How do you handle being late or tardy for a shift? What's your plan to make sure it doesn't happen?"
+- "How do you manage requesting time off — how much notice do you give, and how do you handle emergencies?"
+- "How do you keep the main family contact updated about medication needs, stock shortages, or supply issues?"
+- "How do you see yourself as an asset in the home — what value do you bring to the family beyond basic care tasks?"
 
-**Template 2: "Clinical Competency"** (Clinical Competency category, 3 questions)
-3. "Walk me through how you'd handle a client who refuses their medication."
-4. "Have you managed wound care, catheter care, or feeding tubes? Which are you most comfortable with?"
-5. "How do you handle a medical emergency — say a client falls or shows signs of a stroke?"
+### 4. Create NEW template: "Cultural Sensitivity & Local Context" (3 questions)
 
-**Template 3: "Team / Rotation Fit"** (Team & Rotation Fit category, 3 questions)
-6. "At Tavara, we rotate caregivers in a household so clients aren't dependent on one person. How do you feel about sharing a client with other nurses?"
-7. "How do you handle handoff — what information do you pass to the next caregiver coming on shift?"
-8. "Have you ever worked in a team-based care setting before? What worked well and what didn't?"
+- "Trinidad and Tobago is multi-ethnic and multi-religious. How do you handle caring for someone whose cultural background, dietary practices, or religious observances differ from your own?"
+- "Have you ever had a situation where a family's cultural or religious practices conflicted with your personal beliefs? How did you navigate that?"
+- "How do you adapt your communication style when working with families from different cultural backgrounds?"
 
-**Template 4: "Reliability, Culture & Red-Flag Checks"** (mixed categories, 8 questions)
-9. "What does your ideal schedule look like — days, evenings, weekends, overnights?" (Reliability & Professionalism)
-10. "How do you handle last-minute shift requests or schedule changes?" (Reliability & Professionalism)
-11. "Have you ever had a conflict with a client's family member? How did you resolve it?" (Reliability & Professionalism)
-12. "Some of our families have specific cultural or dietary preferences. How do you adapt to different household routines?" (General)
-13. "Are you comfortable working in different areas — San Fernando, Chaguanas, Port of Spain — or do you have a preferred zone?" (General)
-14. "Why did you leave your last caregiving position?" (Red-Flag Checks)
-15. "Can you provide two professional references we can contact?" (Red-Flag Checks)
-16. "Is there anything about how we operate — team rotations, documentation requirements, family communication — that concerns you?" (Red-Flag Checks)
+Category: General
 
-All templates will be inserted as `is_active: true` so they're immediately usable without the admin needing to create them one by one.
+### 5. Create NEW template: "Logistics, Transport & Professionalism" (4 questions)
+
+- "How do you get to work — do you drive, use public transport, or rely on family and friends? What's your backup plan if your usual method falls through?"
+- "Our policy is no personal phone use during shifts. How do you feel about working a full 8-hour shift without access to your phone?"
+- "If there's a personal emergency during your shift, how would you handle it given the no-phone policy?"
+- "What does punctuality and reliability mean to you in a caregiving role?"
+
+Category: Reliability & Professionalism
 
 ---
 
 ### Technical Detail
 
-- The 2 UI text changes are simple string replacements in existing components
-- The 4 templates are inserted via the Supabase insert tool (data operation, not a migration)
-- The `questions` column is JSONB, so each template gets an array of `{question, category}` objects
-- No schema changes needed — the `screening_question_templates` table already exists
+- Existing templates are updated via database migration using `UPDATE ... SET questions = questions || new_questions`
+- 2 new templates are inserted via `INSERT INTO screening_question_templates`
+- All changes are JSONB operations on the `questions` column
+- No schema changes needed
 
