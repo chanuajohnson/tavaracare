@@ -3,7 +3,7 @@ import { HorizontalTabs, HorizontalTabsList, HorizontalTabsTrigger, HorizontalTa
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Pill, ChefHat, Shield, FileText, Upload, Settings } from "lucide-react";
+import { Calendar, Pill, ChefHat, Shield, FileText, Upload, Settings, ClipboardList } from "lucide-react";
 import { ProfessionalScheduleView } from "@/components/professional/ProfessionalScheduleView";
 import { MedicationDashboard } from "@/components/professional/MedicationDashboard";
 import { CarePlanMealPlanner } from "@/components/meal-planning/CarePlanMealPlanner";
