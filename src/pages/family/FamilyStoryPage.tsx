@@ -207,7 +207,7 @@ const FamilyStoryPage = ({ isDemo: isExternalDemo = false }: FamilyStoryPageProp
     };
 
     fetchExistingData();
-  }, [user, isEditMode, form]);
+  }, [user, form]);
 
   // Apply prefill data from chat sessions
   useEffect(() => {
