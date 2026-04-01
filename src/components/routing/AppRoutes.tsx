@@ -173,6 +173,9 @@ export const AppRoutes = () => {
       {/* Legacy Routes */}
       <Route path="/legacy-stories" element={<LegacyStoriesPage />} />
       
+      {/* Public Screening Route (token-based, no auth required) */}
+      <Route path="/screening/:token" element={<MobileScreeningPage />} />
+      
       {/* TAV Core Routes */}
       <Route path="/tav-demo" element={<TavDemo />} />
       <Route path="/tav-dashboard" element={<TavDashboard />} />

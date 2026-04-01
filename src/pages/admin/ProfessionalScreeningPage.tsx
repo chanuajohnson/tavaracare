@@ -2,8 +2,21 @@
 import React from 'react';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { ProfessionalScreeningPanel } from '@/components/admin/ProfessionalScreeningPanel';
+import { ScreeningTemplateBuilder } from '@/components/admin/ScreeningTemplateBuilder';
+import { ScreeningSessionManager } from '@/components/admin/ScreeningSessionManager';
+import { toast } from 'sonner';
 
 export default function ProfessionalScreeningPage() {
+  const handleSendScreening = (candidateId: string, candidateName: string, link: string, phone: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const message = encodeURIComponent(
+      `Hi! It's the Tavara Team 💙\n\nWe have a screening questionnaire ready for you to complete about ${candidateName}.\n\nPlease tap the link below to answer a few quick questions (voice or text):\n${link}\n\nThank you! 🙏`
+    );
+    const whatsappUrl = `https://api.whatsapp.com/send/?phone=${cleanPhone}&text=${message}`;
+    window.open(whatsappUrl, '_blank');
+    toast.success(`WhatsApp opened for ${candidateName} screening`);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <DashboardHeader
@@ -12,11 +25,21 @@ export default function ProfessionalScreeningPage() {
           { label: "Caregiver Screening", path: "/admin/caregiver-screening" }
         ]}
       />
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-2">Caregiver Screening</h1>
-        <p className="text-muted-foreground mb-8">
-          Manage professional references, schedule head nurse interviews, and record screening outcomes.
-        </p>
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Caregiver Screening</h1>
+          <p className="text-muted-foreground mb-8">
+            Manage professional references, schedule head nurse interviews, send voice screening questionnaires, and record outcomes.
+          </p>
+        </div>
+
+        {/* Voice Screening Sessions */}
+        <ScreeningSessionManager onSendScreening={handleSendScreening} />
+
+        {/* Screening Templates */}
+        <ScreeningTemplateBuilder />
+
+        {/* Traditional Screening Panel */}
         <ProfessionalScreeningPanel />
       </div>
     </div>
