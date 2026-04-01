@@ -168,7 +168,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       case 3: return "Set Availability";
       case 4: return "Upload Documents";
       case 5: return "Add References";
-      case 6: return "Awaiting Interview";
+      case 6: return "Awaiting Screening";
       case 7: return "View Family Matches";
       case 8: return "Start Training";
       default: return "Complete";
