@@ -98,7 +98,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
           link,
           completed,
           accessible,
-          buttonText: getButtonText(baseStep, completed, accessible, hasDocsForButtonText, documents)
+          buttonText: getButtonText(baseStep, completed, accessible, hasDocsForButtonText, documents, baseStep.id === 6 ? hasPendingSessions : undefined)
         };
       });
 
