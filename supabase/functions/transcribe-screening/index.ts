@@ -102,6 +102,9 @@ Format your response as JSON: {"summary": "...", "recommendation": "approve|cond
             aiSummary = parsed.summary || aiSummary;
             aiRecommendation = parsed.recommendation || aiRecommendation;
           }
+        } else {
+          const errorText = await aiResponse.text();
+          console.error("AI gateway error:", aiResponse.status, errorText);
         }
       } catch (aiErr) {
         console.error("AI processing error:", aiErr);
