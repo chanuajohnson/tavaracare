@@ -161,7 +161,7 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
   };
 
   const getScreeningLink = (session: ScreeningSession) => {
-    return `${window.location.origin}/screening/${session.access_token}`;
+    return `${SCREENING_BASE_URL}/screening/${session.access_token}`;
   };
 
   const handleCopyLink = async (session: ScreeningSession) => {
