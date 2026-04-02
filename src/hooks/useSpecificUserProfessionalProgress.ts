@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { fetchProfileData, fetchDocuments, fetchAssignments, fetchReferences, fetchScreenings } from './professional/dataFetchers';
+import { fetchProfileData, fetchDocuments, fetchAssignments, fetchReferences, fetchScreenings, fetchScreeningSessions } from './professional/dataFetchers';
 import {
   isAccountCreated,
   isProfileComplete,
