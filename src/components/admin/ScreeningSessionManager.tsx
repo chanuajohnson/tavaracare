@@ -484,6 +484,12 @@ export const ScreeningSessionManager = ({ onSendScreening }: Props) => {
                     ✅ Mark Reviewed
                   </Button>
                 )}
+                {(selectedSession.status === 'completed' || selectedSession.status === 'reviewed' ||
+                  selectedSession.ai_recommendation === 'reject' || selectedSession.ai_recommendation === 'review') && (
+                  <Button size="sm" variant="outline" onClick={() => handleNudgeResubmit(selectedSession)}>
+                    🔄 Send Resubmission Nudge
+                  </Button>
+                )}
               </div>
             </div>
           )}
