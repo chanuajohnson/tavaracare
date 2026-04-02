@@ -209,11 +209,13 @@ export default function MobileScreeningPage() {
       setCurrentIndex(nextIdx);
       setTextInput(updated[nextIdx]?.text_response || '');
       resetRecording();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (direction === 'prev' && currentIndex > 0) {
       const prevIdx = currentIndex - 1;
       setCurrentIndex(prevIdx);
       setTextInput(updated[prevIdx]?.text_response || '');
       resetRecording();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
