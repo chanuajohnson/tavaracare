@@ -42,6 +42,8 @@ interface Props {
   onResendScreening?: (candidateId: string, candidateName: string, link: string, phone: string) => void;
 }
 
+const SCREENING_BASE_URL = 'https://tavara.care';
+
 export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: Props) => {
   const [sessions, setSessions] = useState<ScreeningSession[]>([]);
   const [templates, setTemplates] = useState<ScreeningTemplate[]>([]);
