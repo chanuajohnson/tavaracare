@@ -68,12 +68,15 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
           .select('*')
           .eq('is_active', true),
         supabase
-          .from('profiles')
-          .select('id, full_name, phone_number')
-          .eq('role', 'professional'),
+          .rpc('admin_get_all_profiles_secure'),
       ]);
 
       if (sessionsRes.error) throw sessionsRes.error;
+
+      const allProfiles = candidatesRes.data || [];
+      const professionalCandidates = allProfiles
+        .filter((p: any) => p.role === 'professional')
+        .map((p: any) => ({ id: p.id, full_name: p.full_name, phone_number: p.phone_number }));
 
       const templatesData = (templatesRes.data || []).map((t: any) => ({
         ...t,
