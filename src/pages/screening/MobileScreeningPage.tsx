@@ -304,6 +304,14 @@ export default function MobileScreeningPage() {
             Your screening responses for <strong>{session.candidate_name}</strong> have been submitted.
             The Tavara team will review them shortly.
           </p>
+          <div className="flex flex-col gap-2 pt-4">
+            <Button onClick={() => navigate('/professional/screening')}>
+              View Screening Progress
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/dashboard/professional')}>
+              ← Return to Dashboard
+            </Button>
+          </div>
         </div>
       </div>
     );
