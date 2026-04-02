@@ -354,13 +354,15 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
           accessible = step1Complete && step2Complete && step3Complete && step4Complete && step5Complete && step6Complete;
         }
 
+        const stepWithMeta = { ...baseStep, completed, accessible, action: () => {}, buttonText: '', _hasPendingSessions: baseStep.id === 6 && hasPendingSessions } as any;
+        
         return {
           ...baseStep,
           link: stepLink,
           completed,
           accessible,
           action: () => handleStepAction({ ...baseStep, link: stepLink, completed, accessible, action: () => {}, buttonText: '' }),
-          buttonText: getButtonText({ ...baseStep, completed, accessible, action: () => {}, buttonText: '' })
+          buttonText: getButtonText(stepWithMeta)
         };
       });
 

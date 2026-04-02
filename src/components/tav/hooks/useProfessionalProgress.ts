@@ -152,7 +152,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
           const step3Complete = !!(profile && profile.care_schedule && profile.care_schedule.length > 0);
           const step4Complete = !!(documents && documents.length > 0);
           const step5Complete = refsCount >= 2;
-          const step6Complete = screeningPassed;
+          const step6Complete = screeningComplete;
           
           accessible = step1Complete && step2Complete && step3Complete && step4Complete && step5Complete && step6Complete;
         }
