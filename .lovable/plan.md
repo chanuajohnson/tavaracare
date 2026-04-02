@@ -1,49 +1,32 @@
 
 
-## Fix: Completed Screening Links Should Redirect to Progress Page
+## Fix: Scroll to Top When Navigating Between Screening Questions
 
 ### Problem
 
-When a caregiver clicks a WhatsApp screening link for a session they've already completed (e.g., `/screening/9226799b-...`), they see the static "Thank You" page instead of the multi-session progress page at `/professional/screening`. This is confusing because they can't see their remaining sessions or continue.
+When the caregiver clicks "Next" or "Previous" on the screening page, the question changes but the page doesn't scroll to the top. On desktop this is annoying; on mobile it would be worse since the question text could be off-screen entirely.
 
 ### Solution
 
 **File: `src/pages/screening/MobileScreeningPage.tsx`**
 
-In the `fetchSession` function (around line 126), when the session status is `completed` or `reviewed`:
+In the navigation handler (around line 207), add `window.scrollTo({ top: 0, behavior: 'smooth' })` after updating `currentIndex` for both "next" and "prev" directions:
 
-1. Check if the user is authenticated (has a logged-in professional account)
-2. If yes, redirect them to `/professional/screening` -- the progress page showing all their sessions with "Begin" / "Continue" buttons for incomplete ones
-3. If not authenticated, keep the current "Thank You" message as a fallback (they can't access the progress page without being logged in)
-
-**Specific change:**
-
-Replace the block at lines 126-128:
 ```tsx
-if (data.status === 'completed' || data.status === 'reviewed') {
-  setSubmitted(true);
+if (direction === 'next' && currentIndex < questions.length - 1) {
+  const nextIdx = currentIndex + 1;
+  setCurrentIndex(nextIdx);
+  setTextInput(updated[nextIdx]?.text_response || '');
+  resetRecording();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+} else if (direction === 'prev' && currentIndex > 0) {
+  const prevIdx = currentIndex - 1;
+  setCurrentIndex(prevIdx);
+  setTextInput(updated[prevIdx]?.text_response || '');
+  resetRecording();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 ```
 
-With:
-```tsx
-if (data.status === 'completed' || data.status === 'reviewed') {
-  // Redirect authenticated users to the progress page
-  // so they can see remaining sessions and continue
-  const { data: authData } = await supabase.auth.getSession();
-  if (authData?.session) {
-    navigate('/professional/screening');
-    return;
-  }
-  setSubmitted(true);
-}
-```
-
-This requires adding `useNavigate` from react-router-dom (import already exists via `useParams`, just add `useNavigate`).
-
-### What This Fixes
-
-- Authenticated caregivers clicking a completed session's link get taken to their progress dashboard showing 5/6 completed with a "Begin" button on the remaining one
-- Non-authenticated users still see the Thank You page (graceful fallback)
-- New/in-progress session links continue to work exactly as before
+This is a two-line addition. Both Next and Previous will smoothly scroll the page to the top so the question text is always visible.
 
