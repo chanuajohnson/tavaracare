@@ -140,7 +140,7 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
 
       if (error) throw error;
 
-      const link = `${window.location.origin}/screening/${data.access_token}`;
+      const link = `${SCREENING_BASE_URL}/screening/${data.access_token}`;
 
       toast.success('Screening session created!');
       setShowCreateDialog(false);
