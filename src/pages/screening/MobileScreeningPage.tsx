@@ -200,7 +200,7 @@ export default function MobileScreeningPage() {
         question: questions[currentIndex].question,
         text_response: textInput,
         voice_url: voiceUrl,
-        rating: selectedRating,
+        rating: responses[currentIndex]?.rating || null,
       };
 
       const { error } = await supabase
