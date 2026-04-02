@@ -1,39 +1,29 @@
 
 
-## Fix: Remove Self-Rating from Caregiver Screening Page
+## Fix: Screening Link Redirects to Dashboard Instead of Questionnaire
 
-### Problem
+### Root Cause
 
-The "Quick Assessment" (Pass / Neutral / Concern) buttons appear on the **caregiver-facing** screening page (`MobileScreeningPage.tsx`). Caregivers should not be rating their own answers -- that's for admin reviewers only.
-
-The admin review panel in `ScreeningSessionManager.tsx` already has its own rating badge display, so this is purely a removal from the caregiver view.
-
-### What the templates look like
-
-The 6 templates in the database match what's on the `/admin/caregiver-screening` page exactly:
-- Opening / Rapport (2 questions)
-- Clinical Competency (4 questions)
-- Team / Rotation Fit (6 questions)
-- Reliability, Culture & Red-Flag Checks (12 questions)
-- Cultural Sensitivity & Local Context (3 questions)
-- Logistics, Transport & Professionalism (4 questions)
-
-No discrepancy there -- the earlier list I provided was accurate.
+When a logged-in professional clicks a WhatsApp screening link like `https://tavara.care/screening/abc123`, the `AuthProvider` post-login redirection logic kicks in. It checks if the current path is exempt from redirect (e.g., `/professional/`, `/family/`, `/admin/`), but `/screening/` is **not** in the exempt list. So the auth system redirects the professional to `/dashboard/professional` before the screening page can load.
 
 ### Solution
 
-**File: `src/pages/screening/MobileScreeningPage.tsx`**
+**File: `src/hooks/auth/useAuthRedirection.ts`**
 
-1. **Remove the "Quick Assessment" UI block** (lines 374-395) -- the entire Pass/Neutral/Concern button section
-2. **Remove `selectedRating` state** (line 36) and all references to it
-3. **Remove rating from response saving** -- stop writing `rating` to the response object (lines 164, 179, etc.)
-4. **Remove unused imports**: `ThumbsUp`, `Minus`, `AlertTriangle` from lucide-react
-5. **Keep the `rating` field in the response interface** so existing admin-side rating display still works (admin can still see any previously saved ratings)
+Add a skip condition for `/screening/` paths, right after the existing `/admin/` skip block (around line 39):
 
-### What stays the same
+```tsx
+// Skip redirect on public screening pages (token-based)
+if (location.pathname.startsWith('/screening/')) {
+  console.log('[AuthProvider] On screening page, skipping redirection');
+  return;
+}
+```
 
-- Voice recording and text input remain as the two response methods
-- Admin review panel continues to show color-coded rating badges for any ratings that exist
-- Navigation (Previous/Next/Submit) unchanged
-- Progress bar and question category badge unchanged
+This is a one-line fix. The `/screening/:token` route is intentionally public and token-based -- it should never be intercepted by auth redirection, whether the user is logged in or not.
+
+### What This Fixes
+
+- Professionals who are already logged in can now click WhatsApp screening links and land on the questionnaire page instead of being bounced to their dashboard
+- The screening page itself handles session validation via the access token, so no auth protection is needed
 
