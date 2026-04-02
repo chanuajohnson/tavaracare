@@ -95,7 +95,7 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
 
       setSessions(enrichedSessions);
       setTemplates(templatesData);
-      setCandidates(candidatesRes.data || []);
+      setCandidates(professionalCandidates);
     } catch (err) {
       console.error('Error fetching screening data:', err);
     } finally {
