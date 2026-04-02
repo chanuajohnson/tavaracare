@@ -10,7 +10,7 @@ export default function ProfessionalScreeningPage() {
   const handleSendScreening = (candidateId: string, candidateName: string, link: string, phone: string) => {
     const cleanPhone = phone.replace(/\D/g, '');
     const message = encodeURIComponent(
-      `Hi! It's the Tavara Team 💙\n\nWe have a screening questionnaire ready for you to complete about ${candidateName}.\n\nPlease tap the link below to answer a few quick questions (voice or text):\n${link}\n\nThank you! 🙏`
+      `Hi! It's the Tavara Team 💙\n\nWe'd like you to complete a brief screening questionnaire to help us finalize the evaluation for ${candidateName}.\n\nPlease tap the link below to answer a few quick questions (voice or text):\n${link}\n\nThank you! 🙏`
     );
     const whatsappUrl = `https://api.whatsapp.com/send/?phone=${cleanPhone}&text=${message}`;
     window.open(whatsappUrl, '_blank');
