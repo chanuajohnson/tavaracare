@@ -32,13 +32,25 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       setLoading(true);
       console.log('🔍 useSpecificUserProfessionalProgress: Starting check for userId:', userId);
       
-      const [profile, documents, assignments, references, screenings] = await Promise.all([
+      const [profile, documents, assignments, references, screenings, screeningSessions] = await Promise.all([
         fetchProfileData(userId),
         fetchDocuments(userId),
         fetchAssignments(userId),
         fetchReferences(userId),
-        fetchScreenings(userId)
+        fetchScreenings(userId),
+        fetchScreeningSessions(userId)
       ]);
+
+      // Determine screening session status
+      const totalSessions = screeningSessions?.length || 0;
+      const completedSessions = screeningSessions?.filter(
+        (s: any) => s.status === 'completed' || s.status === 'reviewed'
+      ).length || 0;
+      const hasPendingSessions = screeningSessions?.some(
+        (s: any) => s.status === 'pending' || s.status === 'in_progress'
+      ) || false;
+      const allSessionsComplete = totalSessions > 0 && completedSessions === totalSessions;
+      const screeningComplete = hasPassedScreening(screenings) || allSessionsComplete;
 
       const processedSteps: ProfessionalStep[] = baseSteps.map(baseStep => {
         let completed = false;
