@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-app-version, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req: Request) => {
@@ -66,7 +66,7 @@ Deno.serve(async (req: Request) => {
 
     if (lovableApiKey) {
       try {
-        const aiResponse = await fetch("https://api.lovable.dev/v1/chat/completions", {
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -102,6 +102,9 @@ Format your response as JSON: {"summary": "...", "recommendation": "approve|cond
             aiSummary = parsed.summary || aiSummary;
             aiRecommendation = parsed.recommendation || aiRecommendation;
           }
+        } else {
+          const errorText = await aiResponse.text();
+          console.error("AI gateway error:", aiResponse.status, errorText);
         }
       } catch (aiErr) {
         console.error("AI processing error:", aiErr);
