@@ -1,60 +1,44 @@
 
 
-## Plan: Nudge/Resubmit Action + Fix RLS INSERT Policy
+## Fix: Missing Professionals + Resubmission Message Clarity
 
-### Two Changes
+### Issue 1: Missing Professionals (e.g., Denise)
 
-#### 1. Add "Nudge to Resubmit" action in detail dialog
+The "All Professionals" panel in `ProfessionalScreeningPanel.tsx` queries `profiles` table filtered by `role = 'professional'`. It shows only 5 results. Missing professionals either:
+- Have a different role value in their profile
+- Are blocked by RLS policies on the `profiles` table
 
-When a screening is completed/reviewed and has an AI recommendation of `reject` or `review`, show a **"Nudge to Resubmit"** button in the detail dialog actions section. This will:
+The `ScreeningSessionManager` candidate dropdown has the same query (`profiles.role = 'professional'`), so both lists share this limitation.
 
-- Reset the session status back to `pending` and clear responses/AI fields in the database
-- Generate a new access token (by deleting the old session and creating a fresh one with the same template + professional)
-- Send the new link via WhatsApp (using `onSendScreening`) or copy to clipboard
-- Include a diplomatic message that does NOT expose the AI recommendation directly — something like: "We'd like you to complete the screening again to help us finalize the evaluation"
+**Fix**: The panel already uses the admin's authenticated context. The `admin_get_all_profiles_secure` RPC function (used in `useAdminProfiles`) bypasses RLS and returns all profiles. We should reuse this pattern — either use the hook directly or call the same RPC — so the admin sees ALL professionals regardless of RLS restrictions.
 
-**File: `src/components/admin/ScreeningSessionManager.tsx`**
+**Changes to `ProfessionalScreeningPanel.tsx`**:
+- Replace direct `profiles` table query with `supabase.rpc('admin_get_all_profiles_secure')` filtered client-side for `role = 'professional'`
+- This ensures all professionals are visible to the admin
 
-- Add `handleNudgeResubmit(session)` function that:
-  1. Resets the session: `UPDATE screening_sessions SET status = 'pending', responses = '[]', ai_summary = null, ai_recommendation = null, access_token = gen_random_uuid()` where id = session.id
-  2. Fetches the updated session to get the new access_token
-  3. Sends the link via `onSendScreening` or copies to clipboard
-  4. Shows toast: "Resubmission nudge sent!"
-  5. Refreshes data and updates selectedSession
+**Changes to `ScreeningSessionManager.tsx`**:
+- Same fix for the candidates dropdown — use the RPC instead of direct table query
 
-- Add button in the actions section (lines ~414-425): Show "Send Resubmission Nudge" button when session has `ai_recommendation` of `reject` or `review`, OR when status is `completed`/`reviewed`
+### Issue 2: Resubmission WhatsApp Message is Generic
 
-- The WhatsApp message context passed via `onSendScreening` will use the same flow — the admin can customize the message before sending
+Currently `handleNudgeResubmit` calls the same `onSendScreening` callback, which uses a generic "finalize the evaluation" message. The recipient has no idea this is a redo.
 
-#### 2. Fix RLS INSERT policy via migration
+**Fix**: Add a separate `onResendScreening` prop or modify the existing callback to accept a `isResubmission` flag. Update `ProfessionalScreeningPage.tsx` to compose a different WhatsApp message for resubmissions.
 
-**New migration SQL:**
+**Changes to `ProfessionalScreeningPage.tsx`**:
+- Add a `handleResendScreening` function with a resubmission-specific message:
+  > "Hi! It's the Tavara Team. We'd like to kindly ask you to redo the screening questionnaire for [Name]. We noticed a few areas we'd love more detail on before we proceed. Please tap the link below to complete a fresh set of questions: [link]. Thank you for your patience!"
 
-```sql
-DROP POLICY IF EXISTS "Admins can manage screening sessions" ON public.screening_sessions;
+**Changes to `ScreeningSessionManager.tsx`**:
+- Add `onResendScreening` prop (optional)
+- In `handleNudgeResubmit`, call `onResendScreening` instead of `onSendScreening`
+- In `handleResendScreening` (the existing resend-link button), also use the appropriate callback
 
-CREATE POLICY "Admins can manage screening sessions"
-  ON public.screening_sessions
-  FOR ALL
-  TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'))
-  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+### Technical Summary
 
--- Also fix the templates table policy for consistency
-DROP POLICY IF EXISTS "Admins can manage screening templates" ON public.screening_question_templates;
-
-CREATE POLICY "Admins can manage screening templates"
-  ON public.screening_question_templates
-  FOR ALL
-  TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'))
-  WITH CHECK (public.has_role(auth.uid(), 'admin'));
-```
-
-This switches from `is_current_user_admin()` (JWT metadata) to `has_role(auth.uid(), 'admin')` (user_roles table), which is reliable since the admin user has a row in `user_roles`.
-
-### Summary
-
-- Admin can now send a resubmission nudge after reviewing a screening — resets the session and sends a fresh link without exposing rejection details
-- RLS policy fix allows admin to create sessions for any template without the INSERT error
+| File | Change |
+|------|--------|
+| `ProfessionalScreeningPanel.tsx` | Replace `profiles` query with `admin_get_all_profiles_secure` RPC |
+| `ScreeningSessionManager.tsx` | Replace `profiles` query with RPC; add `onResendScreening` prop for nudge flow |
+| `ProfessionalScreeningPage.tsx` | Add `handleResendScreening` with resubmission-specific WhatsApp message; pass as prop |
 
