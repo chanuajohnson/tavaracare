@@ -6,7 +6,31 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
-import { Mic, MicOff, ChevronRight, ChevronLeft, CheckCircle2, Play, Pause, RotateCcw, Send } from 'lucide-react';
+import { Mic, MicOff, ChevronRight, ChevronLeft, CheckCircle2, Play, Pause, RotateCcw, Send, Info } from 'lucide-react';
+
+const QUESTION_HINTS: { pattern: RegExp; hint: string }[] = [
+  {
+    pattern: /medication|stock|supply|administer/i,
+    hint: "ℹ️ Tavara provides a built-in medication log where you record each administration in real time. This is a required part of the care workflow.",
+  },
+  {
+    pattern: /report|e-report|digital|update.*family|keep.*contact.*updated/i,
+    hint: "ℹ️ Tavara has a digital care reporting system that all caregivers are required to use for logging activities, notes, and handovers.",
+  },
+  {
+    pattern: /handwritten|documentation|log.*book|paper/i,
+    hint: "ℹ️ All documentation at Tavara is done through our digital platform — no handwritten logs required.",
+  },
+];
+
+const getQuestionHint = (questionText: string): string | null => {
+  for (const rule of QUESTION_HINTS) {
+    if (rule.pattern.test(questionText)) {
+      return rule.hint;
+    }
+  }
+  return null;
+};
 import { toast } from 'sonner';
 
 interface ScreeningQuestion {
@@ -294,6 +318,13 @@ export default function MobileScreeningPage() {
         <div className="bg-muted/50 p-4 rounded-xl">
           <p className="text-base font-medium leading-relaxed">{currentQuestion.question}</p>
         </div>
+
+        {getQuestionHint(currentQuestion.question) && (
+          <div className="flex gap-2 items-start bg-accent/50 border border-border rounded-lg p-3">
+            <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <p className="text-sm text-foreground/80">{getQuestionHint(currentQuestion.question)}</p>
+          </div>
+        )}
 
         {/* Voice Recorder */}
         <div className="space-y-3">
