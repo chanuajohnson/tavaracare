@@ -482,9 +482,9 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
 
               {/* Actions */}
               <div className="flex gap-2 flex-wrap">
-                {selectedSession.status === 'completed' && !selectedSession.ai_summary && (
+                {(selectedSession.status === 'completed' || selectedSession.status === 'reviewed') && (
                   <Button size="sm" onClick={() => handleTriggerAI(selectedSession)}>
-                    🤖 Generate AI Summary
+                    🤖 {selectedSession.ai_summary ? 'Regenerate AI Summary' : 'Generate AI Summary'}
                   </Button>
                 )}
                 {(selectedSession.status === 'completed' || selectedSession.status === 'in_progress') && (
