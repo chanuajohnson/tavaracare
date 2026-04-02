@@ -319,6 +319,13 @@ export default function MobileScreeningPage() {
           <p className="text-base font-medium leading-relaxed">{currentQuestion.question}</p>
         </div>
 
+        {getQuestionHint(currentQuestion.question) && (
+          <div className="flex gap-2 items-start bg-accent/50 border border-border rounded-lg p-3">
+            <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <p className="text-sm text-foreground/80">{getQuestionHint(currentQuestion.question)}</p>
+          </div>
+        )}
+
         {/* Voice Recorder */}
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground font-medium">🎙️ Voice Response</p>
