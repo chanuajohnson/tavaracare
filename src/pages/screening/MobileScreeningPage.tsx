@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
-import { Mic, MicOff, ChevronRight, ChevronLeft, CheckCircle2, Play, Pause, RotateCcw, ThumbsUp, Minus, AlertTriangle, Send } from 'lucide-react';
+import { Mic, MicOff, ChevronRight, ChevronLeft, CheckCircle2, Play, Pause, RotateCcw, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ScreeningQuestion {
@@ -33,7 +33,7 @@ export default function MobileScreeningPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [textInput, setTextInput] = useState('');
-  const [selectedRating, setSelectedRating] = useState<string | null>(null);
+  
   const [uploadingVoice, setUploadingVoice] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -161,7 +161,7 @@ export default function MobileScreeningPage() {
       question: questions[currentIndex].question,
       text_response: textInput,
       voice_url: voiceUrl,
-      rating: selectedRating,
+      rating: responses[currentIndex]?.rating || null,
     };
     setResponses(updated);
 
@@ -176,13 +176,11 @@ export default function MobileScreeningPage() {
       const nextIdx = currentIndex + 1;
       setCurrentIndex(nextIdx);
       setTextInput(updated[nextIdx]?.text_response || '');
-      setSelectedRating(updated[nextIdx]?.rating || null);
       resetRecording();
     } else if (direction === 'prev' && currentIndex > 0) {
       const prevIdx = currentIndex - 1;
       setCurrentIndex(prevIdx);
       setTextInput(updated[prevIdx]?.text_response || '');
-      setSelectedRating(updated[prevIdx]?.rating || null);
       resetRecording();
     }
   };
@@ -202,7 +200,7 @@ export default function MobileScreeningPage() {
         question: questions[currentIndex].question,
         text_response: textInput,
         voice_url: voiceUrl,
-        rating: selectedRating,
+        rating: responses[currentIndex]?.rating || null,
       };
 
       const { error } = await supabase
@@ -229,7 +227,6 @@ export default function MobileScreeningPage() {
   useEffect(() => {
     if (responses[currentIndex]) {
       setTextInput(responses[currentIndex].text_response || '');
-      setSelectedRating(responses[currentIndex].rating || null);
     }
   }, [currentIndex]);
 
@@ -371,28 +368,6 @@ export default function MobileScreeningPage() {
           />
         </div>
 
-        {/* Quick Rating */}
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground font-medium">Quick Assessment</p>
-          <div className="flex gap-2">
-            {[
-              { value: 'pass', icon: ThumbsUp, label: 'Pass', color: 'bg-green-100 text-green-700 border-green-300' },
-              { value: 'neutral', icon: Minus, label: 'Neutral', color: 'bg-gray-100 text-gray-700 border-gray-300' },
-              { value: 'concern', icon: AlertTriangle, label: 'Concern', color: 'bg-amber-100 text-amber-700 border-amber-300' },
-            ].map(r => (
-              <Button
-                key={r.value}
-                variant="outline"
-                size="sm"
-                className={`flex-1 ${selectedRating === r.value ? r.color + ' border-2' : ''}`}
-                onClick={() => setSelectedRating(selectedRating === r.value ? null : r.value)}
-              >
-                <r.icon className="h-4 w-4 mr-1" />
-                {r.label}
-              </Button>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Navigation */}
