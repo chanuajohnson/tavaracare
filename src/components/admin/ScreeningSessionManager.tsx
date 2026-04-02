@@ -42,7 +42,7 @@ interface Props {
   onResendScreening?: (candidateId: string, candidateName: string, link: string, phone: string) => void;
 }
 
-export const ScreeningSessionManager = ({ onSendScreening }: Props) => {
+export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: Props) => {
   const [sessions, setSessions] = useState<ScreeningSession[]>([]);
   const [templates, setTemplates] = useState<ScreeningTemplate[]>([]);
   const [candidates, setCandidates] = useState<CandidateOption[]>([]);
