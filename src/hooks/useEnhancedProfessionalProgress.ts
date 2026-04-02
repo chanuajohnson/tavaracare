@@ -288,6 +288,12 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
         .select('*')
         .eq('professional_id', user.id);
 
+      // Also fetch screening_sessions (the actual interview sessions)
+      const { data: screeningSessions } = await supabase
+        .from('screening_sessions')
+        .select('id, status, template_id')
+        .eq('professional_id', user.id);
+
       setProfileData(profile);
       setDocumentsData(documents || []);
 
@@ -295,6 +301,17 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       const screeningPassed = screenings?.some(
         (s: any) => s.screening_type === 'head_nurse_interview' && s.status === 'passed'
       ) || false;
+
+      // Determine screening session status
+      const totalSessions = screeningSessions?.length || 0;
+      const completedSessions = screeningSessions?.filter(
+        (s: any) => s.status === 'completed' || s.status === 'reviewed'
+      ).length || 0;
+      const hasPendingSessions = screeningSessions?.some(
+        (s: any) => s.status === 'pending' || s.status === 'in_progress'
+      ) || false;
+      const allSessionsComplete = totalSessions > 0 && completedSessions === totalSessions;
+      const screeningComplete = screeningPassed || allSessionsComplete;
 
       const steps: ProfessionalStep[] = baseSteps.map(baseStep => {
         let completed = false;
