@@ -42,6 +42,12 @@ export const useAuthRedirection = (
       return;
     }
 
+    // Skip redirect on public screening pages (token-based)
+    if (location.pathname.startsWith('/screening/')) {
+      console.log('[AuthProvider] On screening page, skipping redirection');
+      return;
+    }
+
     // CRITICAL FIX: Check for email verification flag specifically
     const skipEmailVerification = hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
     if (skipEmailVerification) {
