@@ -44,7 +44,7 @@ export default function ProfessionalScreeningPage() {
         </div>
 
         {/* Voice Screening Sessions */}
-        <ScreeningSessionManager onSendScreening={handleSendScreening} />
+        <ScreeningSessionManager onSendScreening={handleSendScreening} onResendScreening={handleResendScreening} />
 
         {/* Screening Templates */}
         <ScreeningTemplateBuilder />
