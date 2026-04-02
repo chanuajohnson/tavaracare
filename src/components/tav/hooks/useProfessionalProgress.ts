@@ -173,7 +173,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
           completed,
           accessible,
           action: () => handleStepAction({ ...step, link: stepLink, completed, accessible }),
-          buttonText: getButtonText(baseStep, completed, accessible, step.id === 4 ? completed : undefined)
+          buttonText: getButtonText(baseStep, completed, accessible, step.id === 4 ? completed : undefined, undefined, step.id === 6 ? hasPendingSessions : undefined)
         };
       });
       
