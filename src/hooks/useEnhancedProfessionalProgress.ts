@@ -155,11 +155,16 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
         case 3: return "Edit Availability";
         case 4: return "View Documents";
         case 5: return "✓ References Submitted";
-        case 6: return "✓ Screening Passed";
+        case 6: return "✓ Screening Complete";
         case 7: return "View Family Matches";
         case 8: return "Continue Training";
         default: return "✓ Complete";
       }
+    }
+    
+    // For step 6, check screening session state via a closure variable
+    if (step.id === 6 && (step as any)._hasPendingSessions) {
+      return "Continue Screening →";
     }
     
     switch (step.id) {
