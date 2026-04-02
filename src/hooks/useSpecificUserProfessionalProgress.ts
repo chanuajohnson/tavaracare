@@ -77,7 +77,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
             completed = hasRequiredReferences(references);
             break;
           case 6:
-            completed = hasPassedScreening(screenings);
+            completed = screeningComplete;
             break;
           case 7:
             completed = hasAssignments(assignments);
