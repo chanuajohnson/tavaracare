@@ -212,10 +212,72 @@ export const ScreeningSessionManager = ({ onSendScreening }: Props) => {
         body: { session_id: session.id },
       });
       if (error) throw error;
-      toast.success('AI processing started. Refresh in a moment to see results.');
-      setTimeout(fetchData, 5000);
+      toast.success('AI processing started. Refreshing shortly…');
+      setTimeout(async () => {
+        await fetchData();
+        // Update selectedSession with refreshed data
+        const { data } = await supabase
+          .from('screening_sessions')
+          .select('*')
+          .eq('id', session.id)
+          .single();
+        if (data) {
+          const tmpl = templates.find(t => t.id === data.template_id);
+          setSelectedSession({
+            ...data,
+            responses: Array.isArray(data.responses) ? data.responses : [],
+            template_title: tmpl?.title || 'Unknown',
+          });
+        }
+      }, 5000);
     } catch (err: any) {
       toast.error(err.message || 'Failed to trigger AI processing');
+    }
+  };
+
+  const handleNudgeResubmit = async (session: ScreeningSession) => {
+    if (!window.confirm(
+      `This will reset ${session.candidate_name}'s screening and send a fresh link. Continue?`
+    )) return;
+
+    try {
+      // Reset the session: clear responses/AI fields, generate new token, set pending
+      const { data, error } = await supabase
+        .from('screening_sessions')
+        .update({
+          status: 'pending',
+          responses: [],
+          ai_summary: null,
+          ai_recommendation: null,
+          access_token: crypto.randomUUID(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', session.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const link = `${window.location.origin}/screening/${data.access_token}`;
+      const candidate = candidates.find(c => c.id === session.professional_id);
+
+      if (onSendScreening && candidate?.phone_number) {
+        onSendScreening(
+          candidate.id,
+          candidate.full_name || session.candidate_name,
+          link,
+          candidate.phone_number
+        );
+      } else {
+        await navigator.clipboard.writeText(link);
+        toast.info('New screening link copied to clipboard!');
+      }
+
+      toast.success('Resubmission nudge sent!');
+      setShowDetailDialog(false);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to reset screening session');
     }
   };
 
