@@ -4,35 +4,74 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, Clock, CheckCircle2, Mic } from "lucide-react";
+import { Shield, Clock, CheckCircle2, Mic, PlayCircle, ArrowRight } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
+
+interface ScreeningSession {
+  id: string;
+  status: string;
+  access_token: string;
+  template_id: string;
+  template_name?: string;
+  question_count?: number;
+}
 
 const ProfessionalScreeningLandingPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState<any>(null);
+  const [sessions, setSessions] = useState<ScreeningSession[]>([]);
+  const [tipsShown, setTipsShown] = useState(true);
 
   useEffect(() => {
     if (user) {
-      fetchScreeningSession();
+      fetchScreeningSessions();
     }
   }, [user]);
 
-  const fetchScreeningSession = async () => {
+  const fetchScreeningSessions = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch all sessions for this professional
+      const { data: sessionsData, error: sessionsError } = await supabase
         .from("screening_sessions")
-        .select("*")
+        .select("id, status, access_token, template_id")
         .eq("professional_id", user?.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order("created_at", { ascending: true });
 
-      if (error) {
-        console.error("Error fetching screening session:", error);
+      if (sessionsError) {
+        console.error("Error fetching screening sessions:", sessionsError);
+        setLoading(false);
+        return;
       }
-      setSession(data);
+
+      if (!sessionsData || sessionsData.length === 0) {
+        setSessions([]);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch template details for each session
+      const templateIds = [...new Set(sessionsData.map(s => s.template_id))];
+      const { data: templates } = await supabase
+        .from("screening_question_templates")
+        .select("id, category, questions")
+        .in("id", templateIds);
+
+      const templateMap = new Map(
+        templates?.map(t => [t.id, { 
+          name: t.category || "Screening Questionnaire",
+          questionCount: Array.isArray(t.questions) ? t.questions.length : 0
+        }]) || []
+      );
+
+      const enrichedSessions: ScreeningSession[] = sessionsData.map(s => ({
+        ...s,
+        template_name: templateMap.get(s.template_id)?.name || "Screening Questionnaire",
+        question_count: templateMap.get(s.template_id)?.questionCount || 0
+      }));
+
+      setSessions(enrichedSessions);
     } catch (err) {
       console.error("Error:", err);
     } finally {
@@ -48,92 +87,49 @@ const ProfessionalScreeningLandingPage = () => {
     );
   }
 
-  // Session exists and is pending or in_progress — redirect to screening page
-  if (session && (session.status === "pending" || session.status === "in_progress")) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container max-w-2xl px-4 py-12">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Card>
-              <CardHeader className="text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <Mic className="h-8 w-8 text-primary" />
-                </div>
-                <CardTitle className="text-2xl">Your Screening Is Ready</CardTitle>
-                <CardDescription className="text-base mt-2">
-                  Your screening interview has been prepared by the Tavara team. 
-                  You'll answer a series of questions — you can record voice answers or type your responses.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
-                  <h4 className="font-medium text-sm">Before you begin:</h4>
-                  <ul className="text-sm text-muted-foreground space-y-2">
-                    <li className="flex items-start gap-2">
-                      <Shield className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                      <span>Find a quiet space where you can speak freely and honestly</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Shield className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                      <span>There are no right or wrong answers — we want to hear your genuine perspective</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Shield className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                      <span>You can leave multiple recordings per question, but you cannot redo a submitted recording</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Shield className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                      <span>Take your time — this is your opportunity to show who you are as a caregiver</span>
-                    </li>
-                  </ul>
-                </div>
-                <Button 
-                  className="w-full" 
-                  size="lg"
-                  onClick={() => navigate(`/screening/${session.access_token}`)}
-                >
-                  <Mic className="h-4 w-4 mr-2" />
-                  Begin Screening Interview
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      </div>
-    );
-  }
+  const totalSessions = sessions.length;
+  const completedSessions = sessions.filter(s => s.status === "completed" || s.status === "reviewed").length;
+  const allComplete = totalSessions > 0 && completedSessions === totalSessions;
+  const progressPercent = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
 
-  // Session completed
-  if (session && session.status === "completed") {
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "completed":
+      case "reviewed":
+        return <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700"><CheckCircle2 className="h-3 w-3" /> Completed</span>;
+      case "in_progress":
+        return <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700"><PlayCircle className="h-3 w-3" /> In Progress</span>;
+      default:
+        return <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700"><Clock className="h-3 w-3" /> Pending</span>;
+    }
+  };
+
+  const formatTemplateName = (name: string) => {
+    return name
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  // No sessions exist — waiting state
+  if (totalSessions === 0) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container max-w-2xl px-4 py-12">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <Card>
               <CardHeader className="text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                  <CheckCircle2 className="h-8 w-8 text-green-600" />
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+                  <Clock className="h-8 w-8 text-amber-600" />
                 </div>
-                <CardTitle className="text-2xl">Screening Complete</CardTitle>
+                <CardTitle className="text-2xl">Screening Not Yet Assigned</CardTitle>
                 <CardDescription className="text-base mt-2">
-                  Thank you for completing your screening interview! The Tavara team is reviewing your responses 
-                  and will update your profile status shortly.
+                  Your screening interview has not been assigned yet. The Tavara team will prepare your 
+                  screening questions and notify you when it's time. In the meantime, make sure you've 
+                  completed all previous steps in your onboarding journey.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => navigate("/dashboard/professional")}
-                >
+                <Button variant="outline" className="w-full" onClick={() => navigate("/dashboard/professional")}>
                   Return to Dashboard
                 </Button>
               </CardContent>
@@ -144,37 +140,156 @@ const ProfessionalScreeningLandingPage = () => {
     );
   }
 
-  // No session exists — waiting state
+  // All sessions completed — celebration state
+  if (allComplete) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container max-w-2xl px-4 py-12">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            <Card>
+              <CardHeader className="text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+                  <CheckCircle2 className="h-8 w-8 text-green-600" />
+                </div>
+                <CardTitle className="text-2xl">🎉 All Screenings Complete!</CardTitle>
+                <CardDescription className="text-base mt-2">
+                  You've completed all {totalSessions} screening questionnaire{totalSessions > 1 ? "s" : ""}. 
+                  The Tavara team is reviewing your responses and will notify you when your profile is cleared.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Progress</span>
+                    <span className="font-medium text-green-600">{completedSessions} of {totalSessions} completed</span>
+                  </div>
+                  <Progress value={100} className="h-2" />
+                </div>
+                <Button variant="outline" className="w-full" onClick={() => navigate("/dashboard/professional")}>
+                  Return to Dashboard
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // Multi-session progress view
   return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-2xl px-4 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-6">
+          
+          {/* Progress Summary */}
           <Card>
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
-                <Clock className="h-8 w-8 text-amber-600" />
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                  <Mic className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Your Screening Progress</CardTitle>
+                  <CardDescription>
+                    Complete all questionnaires to move forward in your onboarding
+                  </CardDescription>
+                </div>
               </div>
-              <CardTitle className="text-2xl">Screening Not Yet Assigned</CardTitle>
-              <CardDescription className="text-base mt-2">
-                Your screening interview has not been assigned yet. The Tavara team will prepare your 
-                screening questions and notify you when it's time. In the meantime, make sure you've 
-                completed all previous steps in your onboarding journey.
-              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => navigate("/dashboard/professional")}
-              >
-                Return to Dashboard
-              </Button>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Completed</span>
+                  <span className="font-medium">{completedSessions} of {totalSessions} questionnaires</span>
+                </div>
+                <Progress value={progressPercent} className="h-2" />
+              </div>
             </CardContent>
           </Card>
+
+          {/* Tips - collapsible */}
+          {tipsShown && (
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">💡 Before you begin:</h4>
+                    <ul className="text-sm text-muted-foreground space-y-1.5">
+                      <li className="flex items-start gap-2">
+                        <Shield className="h-3.5 w-3.5 mt-0.5 text-primary shrink-0" />
+                        <span>Find a quiet space where you can speak freely</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Shield className="h-3.5 w-3.5 mt-0.5 text-primary shrink-0" />
+                        <span>No right or wrong answers — be genuine</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Shield className="h-3.5 w-3.5 mt-0.5 text-primary shrink-0" />
+                        <span>You can record voice or type your responses</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <Button variant="ghost" size="sm" className="text-xs" onClick={() => setTipsShown(false)}>
+                    Dismiss
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Session Cards */}
+          <div className="space-y-3">
+            {sessions.map((session, index) => {
+              const isCompleted = session.status === "completed" || session.status === "reviewed";
+              const isInProgress = session.status === "in_progress";
+              const isPending = session.status === "pending";
+              const canStart = isPending || isInProgress;
+
+              return (
+                <motion.div
+                  key={session.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                >
+                  <Card className={`transition-all ${isCompleted ? "border-green-200 bg-green-50/50" : canStart ? "border-primary/30 hover:border-primary/50" : ""}`}>
+                    <CardContent className="flex items-center justify-between py-4 px-5">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-medium ${isCompleted ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
+                          {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{formatTemplateName(session.template_name || "")}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {session.question_count ? (
+                              <span className="text-xs text-muted-foreground">{session.question_count} questions</span>
+                            ) : null}
+                            {getStatusBadge(session.status)}
+                          </div>
+                        </div>
+                      </div>
+                      {canStart && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => navigate(`/screening/${session.access_token}`)}
+                          className="shrink-0 ml-3"
+                        >
+                          {isInProgress ? "Continue" : "Begin"}
+                          <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* Back to Dashboard */}
+          <Button variant="outline" className="w-full" onClick={() => navigate("/dashboard/professional")}>
+            Return to Dashboard
+          </Button>
         </motion.div>
       </div>
     </div>
