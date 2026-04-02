@@ -99,10 +99,27 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
         .select('id, screening_type, status')
         .eq('professional_id', user.id);
 
+      // Also fetch screening_sessions
+      const { data: screeningSessions } = await supabase
+        .from('screening_sessions')
+        .select('id, status, template_id')
+        .eq('professional_id', user.id);
+
       const refsCount = references?.length || 0;
       const screeningPassed = screenings?.some(
         (s: any) => s.screening_type === 'head_nurse_interview' && s.status === 'passed'
       ) || false;
+
+      // Determine screening session status
+      const totalSessions = screeningSessions?.length || 0;
+      const completedSessions = screeningSessions?.filter(
+        (s: any) => s.status === 'completed' || s.status === 'reviewed'
+      ).length || 0;
+      const hasPendingSessions = screeningSessions?.some(
+        (s: any) => s.status === 'pending' || s.status === 'in_progress'
+      ) || false;
+      const allSessionsComplete = totalSessions > 0 && completedSessions === totalSessions;
+      const screeningComplete = screeningPassed || allSessionsComplete;
 
       const updatedSteps = steps.map(step => {
         let completed = step.completed;
