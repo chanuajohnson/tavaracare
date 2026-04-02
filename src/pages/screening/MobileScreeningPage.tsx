@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +49,7 @@ interface QuestionResponse {
 
 export default function MobileScreeningPage() {
   const { token } = useParams<{ token: string }>();
+  const navigate = useNavigate();
   const [session, setSession] = useState<any>(null);
   const [questions, setQuestions] = useState<ScreeningQuestion[]>([]);
   const [responses, setResponses] = useState<QuestionResponse[]>([]);
@@ -124,6 +125,13 @@ export default function MobileScreeningPage() {
       setResponses(initResponses);
 
       if (data.status === 'completed' || data.status === 'reviewed') {
+        // Redirect authenticated users to the progress page
+        // so they can see remaining sessions and continue
+        const { data: authData } = await supabase.auth.getSession();
+        if (authData?.session) {
+          navigate('/professional/screening');
+          return;
+        }
         setSubmitted(true);
       }
 
