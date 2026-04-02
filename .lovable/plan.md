@@ -1,51 +1,49 @@
 
 
-## Add Contextual Hints to Screening Questions
+## Fix: Completed Screening Links Should Redirect to Progress Page
 
 ### Problem
 
-Some screening questions (like "How do you keep the main family contact updated about medication needs...") imply the caregiver can use any method they want. But Tavara has a **built-in digital system** for medication logging and care reporting that caregivers are **required** to use. The screening page doesn't communicate this, so caregivers answer without knowing about the platform's tools.
-
-### Also: Quick Assessment Buttons Still Showing
-
-The screenshot confirms the Pass/Neutral/Concern buttons are still visible on the live site. The earlier removal was applied to the codebase but may not have been deployed yet. This plan keeps that removal in place.
+When a caregiver clicks a WhatsApp screening link for a session they've already completed (e.g., `/screening/9226799b-...`), they see the static "Thank You" page instead of the multi-session progress page at `/professional/screening`. This is confusing because they can't see their remaining sessions or continue.
 
 ### Solution
 
 **File: `src/pages/screening/MobileScreeningPage.tsx`**
 
-Add a **contextual hint system** that displays a brief informational note below certain questions. The hints are matched by keyword patterns in the question text.
+In the `fetchSession` function (around line 126), when the session status is `completed` or `reviewed`:
 
-**How it works:**
+1. Check if the user is authenticated (has a logged-in professional account)
+2. If yes, redirect them to `/professional/screening` -- the progress page showing all their sessions with "Begin" / "Continue" buttons for incomplete ones
+3. If not authenticated, keep the current "Thank You" message as a fallback (they can't access the progress page without being logged in)
 
-1. Define a small array of hint rules, each with a keyword pattern and a short message:
-   - Questions mentioning "medication", "stock", or "supply" show: *"Tavara provides a built-in medication log where you record each administration in real time. This is a required part of the care workflow."*
-   - Questions mentioning "report", "e-report", or "digital" show: *"Tavara has a digital care reporting system that all caregivers are required to use for logging activities, notes, and handovers."*
-   - Questions mentioning "handwritten" or "documentation" show: *"All documentation at Tavara is done through our digital platform -- no handwritten logs required."*
+**Specific change:**
 
-2. Render the matching hint as a small info card (light blue/muted background, with an info icon) directly below the question text, before the voice/text input area.
-
-**UI example (below the question box):**
-```text
-┌─────────────────────────────────────────────────┐
-│ ℹ️ Tavara provides a built-in medication log    │
-│ where you record each administration in real    │
-│ time. This is a required part of the care       │
-│ workflow.                                       │
-└─────────────────────────────────────────────────┘
+Replace the block at lines 126-128:
+```tsx
+if (data.status === 'completed' || data.status === 'reviewed') {
+  setSubmitted(true);
+}
 ```
 
-### Technical Details
+With:
+```tsx
+if (data.status === 'completed' || data.status === 'reviewed') {
+  // Redirect authenticated users to the progress page
+  // so they can see remaining sessions and continue
+  const { data: authData } = await supabase.auth.getSession();
+  if (authData?.session) {
+    navigate('/professional/screening');
+    return;
+  }
+  setSubmitted(true);
+}
+```
 
-- Add a `getQuestionHint(questionText: string): string | null` helper function inside the component
-- It checks the question text against keyword patterns (case-insensitive) and returns the first matching hint
-- In the JSX, after the question `<div>`, conditionally render the hint if one exists
-- Styled as a subtle `bg-blue-50 border-blue-200 text-blue-800` card with an `Info` icon from lucide-react
-- No database changes needed -- hints are purely UI-side based on question text matching
+This requires adding `useNavigate` from react-router-dom (import already exists via `useParams`, just add `useNavigate`).
 
-### Files Changed
+### What This Fixes
 
-| File | Change |
-|------|--------|
-| `src/pages/screening/MobileScreeningPage.tsx` | Add `getQuestionHint()` function + render hint card below question |
+- Authenticated caregivers clicking a completed session's link get taken to their progress dashboard showing 5/6 completed with a "Begin" button on the remaining one
+- Non-authenticated users still see the Thank You page (graceful fallback)
+- New/in-progress session links continue to work exactly as before
 
