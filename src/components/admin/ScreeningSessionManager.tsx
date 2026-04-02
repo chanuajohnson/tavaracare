@@ -42,6 +42,8 @@ interface Props {
   onResendScreening?: (candidateId: string, candidateName: string, link: string, phone: string) => void;
 }
 
+const SCREENING_BASE_URL = 'https://tavara.care';
+
 export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: Props) => {
   const [sessions, setSessions] = useState<ScreeningSession[]>([]);
   const [templates, setTemplates] = useState<ScreeningTemplate[]>([]);
@@ -138,7 +140,7 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
 
       if (error) throw error;
 
-      const link = `${window.location.origin}/screening/${data.access_token}`;
+      const link = `${SCREENING_BASE_URL}/screening/${data.access_token}`;
 
       toast.success('Screening session created!');
       setShowCreateDialog(false);
@@ -159,7 +161,7 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
   };
 
   const getScreeningLink = (session: ScreeningSession) => {
-    return `${window.location.origin}/screening/${session.access_token}`;
+    return `${SCREENING_BASE_URL}/screening/${session.access_token}`;
   };
 
   const handleCopyLink = async (session: ScreeningSession) => {
@@ -262,7 +264,7 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
 
       if (error) throw error;
 
-      const link = `${window.location.origin}/screening/${data.access_token}`;
+      const link = `${SCREENING_BASE_URL}/screening/${data.access_token}`;
       const candidate = candidates.find(c => c.id === session.professional_id);
 
       // Use resubmission-specific callback if available, otherwise fall back to generic
