@@ -17,6 +17,16 @@ export default function ProfessionalScreeningPage() {
     toast.success(`WhatsApp opened for ${candidateName} screening`);
   };
 
+  const handleResendScreening = (candidateId: string, candidateName: string, link: string, phone: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const message = encodeURIComponent(
+      `Hi ${candidateName}! It's the Tavara Team 💙\n\nWe'd like to kindly ask you to redo the screening questionnaire. We noticed a few areas we'd love more detail on before we proceed with the next steps.\n\nPlease tap the link below to complete a fresh set of questions (voice or text):\n${link}\n\nThank you for your patience and understanding! 🙏`
+    );
+    const whatsappUrl = `https://api.whatsapp.com/send/?phone=${cleanPhone}&text=${message}`;
+    window.open(whatsappUrl, '_blank');
+    toast.success(`Resubmission nudge sent to ${candidateName}`);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <DashboardHeader
@@ -34,7 +44,7 @@ export default function ProfessionalScreeningPage() {
         </div>
 
         {/* Voice Screening Sessions */}
-        <ScreeningSessionManager onSendScreening={handleSendScreening} />
+        <ScreeningSessionManager onSendScreening={handleSendScreening} onResendScreening={handleResendScreening} />
 
         {/* Screening Templates */}
         <ScreeningTemplateBuilder />

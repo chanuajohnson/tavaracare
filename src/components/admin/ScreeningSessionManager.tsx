@@ -39,9 +39,10 @@ interface CandidateOption {
 
 interface Props {
   onSendScreening?: (candidateId: string, candidateName: string, link: string, phone: string) => void;
+  onResendScreening?: (candidateId: string, candidateName: string, link: string, phone: string) => void;
 }
 
-export const ScreeningSessionManager = ({ onSendScreening }: Props) => {
+export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: Props) => {
   const [sessions, setSessions] = useState<ScreeningSession[]>([]);
   const [templates, setTemplates] = useState<ScreeningTemplate[]>([]);
   const [candidates, setCandidates] = useState<CandidateOption[]>([]);
@@ -67,12 +68,15 @@ export const ScreeningSessionManager = ({ onSendScreening }: Props) => {
           .select('*')
           .eq('is_active', true),
         supabase
-          .from('profiles')
-          .select('id, full_name, phone_number')
-          .eq('role', 'professional'),
+          .rpc('admin_get_all_profiles_secure'),
       ]);
 
       if (sessionsRes.error) throw sessionsRes.error;
+
+      const allProfiles = candidatesRes.data || [];
+      const professionalCandidates = allProfiles
+        .filter((p: any) => p.role === 'professional')
+        .map((p: any) => ({ id: p.id, full_name: p.full_name, phone_number: p.phone_number }));
 
       const templatesData = (templatesRes.data || []).map((t: any) => ({
         ...t,
@@ -91,7 +95,7 @@ export const ScreeningSessionManager = ({ onSendScreening }: Props) => {
 
       setSessions(enrichedSessions);
       setTemplates(templatesData);
-      setCandidates(candidatesRes.data || []);
+      setCandidates(professionalCandidates);
     } catch (err) {
       console.error('Error fetching screening data:', err);
     } finally {
@@ -261,8 +265,10 @@ export const ScreeningSessionManager = ({ onSendScreening }: Props) => {
       const link = `${window.location.origin}/screening/${data.access_token}`;
       const candidate = candidates.find(c => c.id === session.professional_id);
 
-      if (onSendScreening && candidate?.phone_number) {
-        onSendScreening(
+      // Use resubmission-specific callback if available, otherwise fall back to generic
+      const sendFn = onResendScreening || onSendScreening;
+      if (sendFn && candidate?.phone_number) {
+        sendFn(
           candidate.id,
           candidate.full_name || session.candidate_name,
           link,

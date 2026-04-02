@@ -44,14 +44,15 @@ export const ProfessionalScreeningPanel = () => {
     try {
       setLoading(true);
       
-      // Get all professional profiles
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, full_name, professional_type, phone_number')
-        .eq('role', 'professional')
-        .order('created_at', { ascending: false });
+      // Use admin RPC to bypass RLS and get ALL professionals
+      const { data: allProfiles, error: profileError } = await supabase
+        .rpc('admin_get_all_profiles_secure');
 
       if (profileError) throw profileError;
+
+      // Filter to professionals client-side
+      const profiles = (allProfiles || [])
+        .filter((p: any) => p.role === 'professional');
 
       // Get references counts and screening statuses
       const enrichedProfessionals: ProfessionalForScreening[] = await Promise.all(
