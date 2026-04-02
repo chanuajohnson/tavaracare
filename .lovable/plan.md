@@ -1,43 +1,53 @@
 
+## Fix: User Deletion Fails — Missing `public.sql` RPC Function
 
-## Fix: Three Issues — Thank You Page Navigation, References Form, and Missing Delete Policy
+### Problem
 
-### Issue 1: Thank You Page Has No Navigation After Screening Submission
+The `admin-users` edge function tries to delete users by calling `admin.rpc('sql', { query: deletionSQL })`, but there is no `public.sql()` database function. The error from logs:
 
-**Problem:** After a professional submits a screening questionnaire, the Thank You page shows only a static message with no way to navigate forward. No breadcrumb, no buttons -- the user is stuck.
+```
+Could not find the function public.sql(query) in the schema cache
+```
 
-**Fix in `src/pages/screening/MobileScreeningPage.tsx`:**
+### Solution
 
-After submission (line 251), instead of just setting `submitted = true`, check if the user is authenticated. If yes, redirect to `/professional/screening` (the progress page) after a brief 3-second delay so they see the success toast. Also update the `submitted` fallback UI (lines 288-301) to include:
-- A "View Screening Progress" button linking to `/professional/screening`
-- A "Return to Dashboard" button linking to `/dashboard/professional`
+Rewrite the `delete-user` action in the edge function to use the Supabase admin client's `.from().delete()` methods for each table, and `admin.auth.admin.deleteUser()` for removing the auth user. This avoids needing a raw SQL execution function entirely.
 
-This way both authenticated users (auto-redirect) and unauthenticated users (manual buttons) have clear next actions.
+**File: `supabase/functions/admin-users/index.ts`**
 
-### Issue 2: "Add References" Button Causes Page Reload, Cannot Add References
+Replace the monolithic SQL block (lines 67-173) with sequential delete calls using the service-role admin client:
 
-**Problem:** Clicking "Add References →" from the dashboard navigates to `/professional/profile?tab=references`. The `ProfessionalProfileHub` component reads the `tab` query param on mount and sets the active tab. However, the component is already mounted if the user is on the profile hub, so navigating with a new query param causes a full page re-mount. The real blocker is likely a missing RLS **DELETE** policy, but the insert works fine based on the policy check.
+```typescript
+// Delete in FK-safe order using admin client
+// 1. Chat messages (via session IDs)
+const { data: sessions } = await admin.from('caregiver_chat_sessions')
+  .select('id')
+  .or(`family_user_id.eq.${user_id},caregiver_id.eq.${user_id}`);
+const sessionIds = (sessions || []).map(s => s.id);
+if (sessionIds.length > 0) {
+  await admin.from('caregiver_chat_messages').delete().in('session_id', sessionIds);
+}
 
-**Root cause identified:** The `ProfessionalProfileHub` only reads the `tab` query param in the initial `useEffect` (line 23-36) -- it uses `window.location.search` instead of reacting to URL changes. If the professional navigates there from another page, it should work. But if already on the page, it won't update.
+// 2. Chat sessions
+await admin.from('caregiver_chat_sessions').delete()
+  .or(`family_user_id.eq.${user_id},caregiver_id.eq.${user_id}`);
 
-**Fix in `src/components/professional/ProfessionalProfileHub.tsx`:**
-- Use `useSearchParams` from react-router-dom instead of `window.location.search` so it reacts to navigation changes properly.
+// 3-N. Each related table...
+// ... (all tables from the existing SQL block)
 
-**Fix for delete — new migration:**
-- Add an RLS policy allowing professionals to delete their own pending references: `DELETE WHERE professional_id = auth.uid() AND status = 'pending'`
+// Finally: delete profile, then auth user
+await admin.from('profiles').delete().eq('id', user_id);
+await admin.auth.admin.deleteUser(user_id);
+```
 
-### Issue 3: No Breadcrumb on Screening Page
-
-**Problem:** The `MobileScreeningPage` has no breadcrumb or header navigation.
-
-**Fix in `src/pages/screening/MobileScreeningPage.tsx`:**
-- The screening page uses a full-width header with progress bar. Adding a breadcrumb would conflict with the mobile-first design. Instead, add a small "← Back to Dashboard" link in the Thank You state and at the top of the screening header.
+Key changes:
+- No more `admin.rpc('sql', ...)` — uses standard Supabase client methods
+- Auth user deleted via `admin.auth.admin.deleteUser()` instead of `DELETE FROM auth.users` (which shouldn't be done from public schema anyway)
+- Each delete is wrapped with error logging but non-blocking (a missing table row shouldn't stop the whole deletion)
+- Removes the RAISE NOTICE logging (not useful via client SDK)
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/pages/screening/MobileScreeningPage.tsx` | Add auto-redirect after submission for authenticated users; add navigation buttons to Thank You state; add back link |
-| `src/components/professional/ProfessionalProfileHub.tsx` | Use `useSearchParams` for reactive tab switching |
-| New migration | Add DELETE RLS policy for professionals on `professional_references` table |
-
+| `supabase/functions/admin-users/index.ts` | Replace `rpc('sql')` with sequential `.from().delete()` calls and `auth.admin.deleteUser()` |
