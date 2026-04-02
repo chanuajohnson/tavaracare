@@ -161,7 +161,7 @@ export default function MobileScreeningPage() {
       question: questions[currentIndex].question,
       text_response: textInput,
       voice_url: voiceUrl,
-      rating: selectedRating,
+      rating: responses[currentIndex]?.rating || null,
     };
     setResponses(updated);
 
@@ -176,13 +176,11 @@ export default function MobileScreeningPage() {
       const nextIdx = currentIndex + 1;
       setCurrentIndex(nextIdx);
       setTextInput(updated[nextIdx]?.text_response || '');
-      setSelectedRating(updated[nextIdx]?.rating || null);
       resetRecording();
     } else if (direction === 'prev' && currentIndex > 0) {
       const prevIdx = currentIndex - 1;
       setCurrentIndex(prevIdx);
       setTextInput(updated[prevIdx]?.text_response || '');
-      setSelectedRating(updated[prevIdx]?.rating || null);
       resetRecording();
     }
   };
