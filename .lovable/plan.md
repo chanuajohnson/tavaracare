@@ -1,65 +1,39 @@
 
 
-## Fix: Screening Step Status + Landing Page Progress
+## Fix: Remove Self-Rating from Caregiver Screening Page
 
-### Problem Summary
+### Problem
 
-**Issue 1: Dashboard always shows "Awaiting Screening"**
-Step 6 checks `professional_screening` table for `screening_type = 'head_nurse_interview' AND status = 'passed'`. But actual screening happens in the `screening_sessions` table. These are different tables -- so even when Tricia has active/completed sessions, step 6 never reflects that.
+The "Quick Assessment" (Pass / Neutral / Concern) buttons appear on the **caregiver-facing** screening page (`MobileScreeningPage.tsx`). Caregivers should not be rating their own answers -- that's for admin reviewers only.
 
-**Issue 2: Landing page shows generic "Your Screening Is Ready"**
-The `/professional/screening` page fetches only 1 session (`limit(1)`) and shows a static card. It doesn't show:
-- Which templates have been completed vs pending
-- Overall screening progress (e.g., "2 of 6 completed")
-- A way to continue the next pending session
+The admin review panel in `ScreeningSessionManager.tsx` already has its own rating badge display, so this is purely a removal from the caregiver view.
 
-**Issue 3: No defined flow for "all screening complete"**
-When all assigned screening templates are done, there's no celebration state or next-step guidance.
+### What the templates look like
+
+The 6 templates in the database match what's on the `/admin/caregiver-screening` page exactly:
+- Opening / Rapport (2 questions)
+- Clinical Competency (4 questions)
+- Team / Rotation Fit (6 questions)
+- Reliability, Culture & Red-Flag Checks (12 questions)
+- Cultural Sensitivity & Local Context (3 questions)
+- Logistics, Transport & Professionalism (4 questions)
+
+No discrepancy there -- the earlier list I provided was accurate.
 
 ### Solution
 
-#### 1. Fix Step 6 completion logic in `useEnhancedProfessionalProgress.ts`
+**File: `src/pages/screening/MobileScreeningPage.tsx`**
 
-Query `screening_sessions` instead of (or in addition to) `professional_screening`:
+1. **Remove the "Quick Assessment" UI block** (lines 374-395) -- the entire Pass/Neutral/Concern button section
+2. **Remove `selectedRating` state** (line 36) and all references to it
+3. **Remove rating from response saving** -- stop writing `rating` to the response object (lines 164, 179, etc.)
+4. **Remove unused imports**: `ThumbsUp`, `Minus`, `AlertTriangle` from lucide-react
+5. **Keep the `rating` field in the response interface** so existing admin-side rating display still works (admin can still see any previously saved ratings)
 
-```
-- Check if ANY screening_sessions exist for the user
-- If all sessions have status 'completed' or 'reviewed' → step completed
-- If some are in_progress/pending → step in-progress (show "Continue Screening")
-- If none exist → "Awaiting Screening"
-```
+### What stays the same
 
-Update button text logic for step 6:
-- No sessions: "Awaiting Screening" (current)
-- Has pending/in_progress: "Continue Screening →"
-- All completed: "✓ Screening Complete"
-
-Also apply the same fix in `useProfessionalProgress.ts` (the TAV demo hook).
-
-#### 2. Redesign `ProfessionalScreeningLandingPage.tsx`
-
-Replace the single-session view with a **multi-session progress view**:
-
-- Fetch ALL `screening_sessions` for the user (not `limit(1)`)
-- Show a progress summary: "Completed 2 of 4 screening questionnaires"
-- List each session as a card showing:
-  - Template name (from `screening_question_templates`)
-  - Status badge (Pending / In Progress / Completed)
-  - Question count
-  - "Begin" or "Continue" button for pending/in_progress sessions
-- Keep the "Before you begin" tips section at the top (shown once)
-- When ALL sessions are completed, show a celebration card: "All Screenings Complete! The Tavara team is reviewing your responses and will notify you when your profile is cleared."
-
-#### 3. Update step 6 link
-
-Currently links to `/professional/screening`. This is correct -- the landing page itself will now handle showing progress and routing to the right session.
-
-### Files to Change
-
-| File | Change |
-|------|--------|
-| `src/hooks/useEnhancedProfessionalProgress.ts` | Query `screening_sessions` table; update step 6 completion + button text logic |
-| `src/components/tav/hooks/useProfessionalProgress.ts` | Same screening_sessions query fix |
-| `src/pages/professional/ProfessionalScreeningLandingPage.tsx` | Full rewrite: multi-session progress view with per-template cards |
-| `src/hooks/professional/stepDefinitions.ts` | Update step 6 button text cases for "Continue Screening" |
+- Voice recording and text input remain as the two response methods
+- Admin review panel continues to show color-coded rating badges for any ratings that exist
+- Navigation (Previous/Next/Submit) unchanged
+- Progress bar and question category badge unchanged
 
