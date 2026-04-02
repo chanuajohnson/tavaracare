@@ -39,6 +39,7 @@ interface CandidateOption {
 
 interface Props {
   onSendScreening?: (candidateId: string, candidateName: string, link: string, phone: string) => void;
+  onResendScreening?: (candidateId: string, candidateName: string, link: string, phone: string) => void;
 }
 
 export const ScreeningSessionManager = ({ onSendScreening }: Props) => {
