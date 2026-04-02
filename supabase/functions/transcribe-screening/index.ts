@@ -46,7 +46,109 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Build summary prompt from all responses (text + any existing transcripts)
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+
+    // Step 1: Transcribe any voice recordings that don't have transcripts yet
+    let transcriptsUpdated = false;
+    for (let i = 0; i < responses.length; i++) {
+      const r = responses[i];
+      // Skip if already has text or transcript
+      if (r.text_response || r.transcript) continue;
+      // Skip if no voice recording
+      if (!r.voice_url) continue;
+
+      console.log(`Transcribing voice response for Q${i + 1}: ${r.voice_url}`);
+
+      try {
+        // Download the audio file
+        const audioResponse = await fetch(r.voice_url);
+        if (!audioResponse.ok) {
+          console.error(`Failed to download audio for Q${i + 1}: ${audioResponse.status}`);
+          continue;
+        }
+
+        const audioBuffer = await audioResponse.arrayBuffer();
+        const audioBytes = new Uint8Array(audioBuffer);
+
+        // Convert to base64
+        let binary = "";
+        for (let j = 0; j < audioBytes.length; j++) {
+          binary += String.fromCharCode(audioBytes[j]);
+        }
+        const audioBase64 = btoa(binary);
+
+        if (!lovableApiKey) {
+          console.error("No LOVABLE_API_KEY for transcription");
+          continue;
+        }
+
+        // Send to Gemini for transcription via multimodal content
+        const transcribeResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${lovableApiKey}`,
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: "Transcribe this audio recording verbatim. Return only the transcription text, nothing else. If the audio is unclear, do your best to capture what was said."
+                  },
+                  {
+                    type: "input_audio",
+                    input_audio: {
+                      data: audioBase64,
+                      format: "webm"
+                    }
+                  }
+                ]
+              }
+            ],
+          }),
+        });
+
+        if (transcribeResponse.ok) {
+          const transcribeData = await transcribeResponse.json();
+          const transcript = transcribeData.choices?.[0]?.message?.content;
+          if (transcript && transcript.trim().length > 0) {
+            responses[i].transcript = transcript.trim();
+            transcriptsUpdated = true;
+            console.log(`Transcribed Q${i + 1}: ${transcript.trim().substring(0, 100)}...`);
+          } else {
+            console.error(`Empty transcript for Q${i + 1}`);
+          }
+        } else {
+          const errorText = await transcribeResponse.text();
+          console.error(`Transcription API error for Q${i + 1}:`, transcribeResponse.status, errorText);
+        }
+      } catch (transcribeErr) {
+        console.error(`Transcription error for Q${i + 1}:`, transcribeErr);
+      }
+    }
+
+    // Step 2: Save updated transcripts back to DB so they persist
+    if (transcriptsUpdated) {
+      const { error: updateResponsesError } = await supabase
+        .from("screening_sessions")
+        .update({
+          responses: responses,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", session_id);
+
+      if (updateResponsesError) {
+        console.error("Failed to save transcripts:", updateResponsesError);
+      } else {
+        console.log("Transcripts saved to database");
+      }
+    }
+
+    // Step 3: Build summary prompt from all responses (text + transcripts)
     const summaryParts: string[] = [];
     for (let i = 0; i < responses.length; i++) {
       const r = responses[i];
@@ -58,9 +160,7 @@ Deno.serve(async (req: Request) => {
 
     const fullTranscript = summaryParts.join("\n\n");
 
-    // Use Lovable AI for summary generation
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    
+    // Step 4: Generate AI summary
     let aiSummary = "AI summary unavailable — review responses manually.";
     let aiRecommendation = "manual_review";
 
