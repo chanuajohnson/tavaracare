@@ -248,8 +248,17 @@ export default function MobileScreeningPage() {
 
       if (error) throw error;
 
-      setSubmitted(true);
       toast.success('Screening submitted successfully! 💙');
+
+      // Auto-redirect authenticated users to progress page after brief delay
+      const { data: authData } = await supabase.auth.getSession();
+      if (authData?.session) {
+        setTimeout(() => {
+          navigate('/professional/screening');
+        }, 3000);
+      }
+
+      setSubmitted(true);
     } catch (err: any) {
       toast.error(err.message || 'Failed to submit');
     } finally {
@@ -295,6 +304,14 @@ export default function MobileScreeningPage() {
             Your screening responses for <strong>{session.candidate_name}</strong> have been submitted.
             The Tavara team will review them shortly.
           </p>
+          <div className="flex flex-col gap-2 pt-4">
+            <Button onClick={() => navigate('/professional/screening')}>
+              View Screening Progress
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/dashboard/professional')}>
+              ← Return to Dashboard
+            </Button>
+          </div>
         </div>
       </div>
     );

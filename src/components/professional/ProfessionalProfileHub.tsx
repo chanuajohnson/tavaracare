@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,16 +17,15 @@ export const ProfessionalProfileHub = () => {
   const { user } = useAuth();
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("overview");
   const [isTrainingExpanded, setIsTrainingExpanded] = useState(false);
 
-  // Check URL params for tab and scroll into view
+  // React to URL tab param changes
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tab = urlParams.get('tab');
+    const tab = searchParams.get('tab');
     if (tab) {
       setActiveTab(tab);
-      // Scroll the tab content into view after a short delay for render
       setTimeout(() => {
         const tabsElement = document.querySelector('[role="tablist"]');
         if (tabsElement) {
@@ -33,7 +33,7 @@ export const ProfessionalProfileHub = () => {
         }
       }, 300);
     }
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (user) {
