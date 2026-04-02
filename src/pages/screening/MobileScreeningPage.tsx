@@ -227,7 +227,6 @@ export default function MobileScreeningPage() {
   useEffect(() => {
     if (responses[currentIndex]) {
       setTextInput(responses[currentIndex].text_response || '');
-      setSelectedRating(responses[currentIndex].rating || null);
     }
   }, [currentIndex]);
 
