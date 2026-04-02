@@ -264,7 +264,7 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
 
       if (error) throw error;
 
-      const link = `${window.location.origin}/screening/${data.access_token}`;
+      const link = `${SCREENING_BASE_URL}/screening/${data.access_token}`;
       const candidate = candidates.find(c => c.id === session.professional_id);
 
       // Use resubmission-specific callback if available, otherwise fall back to generic
