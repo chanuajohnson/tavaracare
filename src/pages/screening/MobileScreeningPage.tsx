@@ -248,8 +248,17 @@ export default function MobileScreeningPage() {
 
       if (error) throw error;
 
-      setSubmitted(true);
       toast.success('Screening submitted successfully! 💙');
+
+      // Auto-redirect authenticated users to progress page after brief delay
+      const { data: authData } = await supabase.auth.getSession();
+      if (authData?.session) {
+        setTimeout(() => {
+          navigate('/professional/screening');
+        }, 3000);
+      }
+
+      setSubmitted(true);
     } catch (err: any) {
       toast.error(err.message || 'Failed to submit');
     } finally {
