@@ -368,28 +368,6 @@ export default function MobileScreeningPage() {
           />
         </div>
 
-        {/* Quick Rating */}
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground font-medium">Quick Assessment</p>
-          <div className="flex gap-2">
-            {[
-              { value: 'pass', icon: ThumbsUp, label: 'Pass', color: 'bg-green-100 text-green-700 border-green-300' },
-              { value: 'neutral', icon: Minus, label: 'Neutral', color: 'bg-gray-100 text-gray-700 border-gray-300' },
-              { value: 'concern', icon: AlertTriangle, label: 'Concern', color: 'bg-amber-100 text-amber-700 border-amber-300' },
-            ].map(r => (
-              <Button
-                key={r.value}
-                variant="outline"
-                size="sm"
-                className={`flex-1 ${selectedRating === r.value ? r.color + ' border-2' : ''}`}
-                onClick={() => setSelectedRating(selectedRating === r.value ? null : r.value)}
-              >
-                <r.icon className="h-4 w-4 mr-1" />
-                {r.label}
-              </Button>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Navigation */}
