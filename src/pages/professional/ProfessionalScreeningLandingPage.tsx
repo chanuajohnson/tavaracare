@@ -55,12 +55,12 @@ const ProfessionalScreeningLandingPage = () => {
       const templateIds = [...new Set(sessionsData.map(s => s.template_id))];
       const { data: templates } = await supabase
         .from("screening_question_templates")
-        .select("id, category, questions")
+        .select("id, title, questions")
         .in("id", templateIds);
 
       const templateMap = new Map(
         templates?.map(t => [t.id, { 
-          name: t.category || "Screening Questionnaire",
+          name: t.title || "Screening Questionnaire",
           questionCount: Array.isArray(t.questions) ? t.questions.length : 0
         }]) || []
       );

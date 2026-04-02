@@ -51,7 +51,7 @@ export const baseSteps = [
     id: 6, 
     title: "Head nurse screening interview", 
     description: "Complete a brief interview with our Head Nurse for final clearance", 
-    link: "/professional/profile?tab=references",
+    link: "/professional/screening",
     category: "screening",
     stage: "vetting",
     isInteractive: false
@@ -93,7 +93,7 @@ export const getProfessionalRegistrationLink = (isCompleted: boolean): string =>
   }
 };
 
-export const getButtonText = (step: typeof baseSteps[0], completed: boolean, accessible: boolean, hasDocuments?: boolean, documents?: any[]): string => {
+export const getButtonText = (step: typeof baseSteps[0], completed: boolean, accessible: boolean, hasDocuments?: boolean, documents?: any[], hasPendingSessions?: boolean): string => {
   if (!accessible) {
     return "🔒 Locked";
   }
@@ -114,11 +114,16 @@ export const getButtonText = (step: typeof baseSteps[0], completed: boolean, acc
           return "View Documents";
         }
       case 5: return "✓ References Submitted";
-      case 6: return "✓ Screening Passed";
+      case 6: return "✓ Screening Complete";
       case 7: return "View Family Matches";
       case 8: return "Continue Training";
       default: return "✓ Complete";
     }
+  }
+  
+  // Step 6: show "Continue Screening" if there are pending/in-progress sessions
+  if (step.id === 6 && hasPendingSessions) {
+    return "Continue Screening →";
   }
   
   switch (step.id) {
@@ -132,7 +137,7 @@ export const getButtonText = (step: typeof baseSteps[0], completed: boolean, acc
       }
       return "Upload Documents";
     case 5: return "Add References";
-    case 6: return "Awaiting Interview";
+    case 6: return "Awaiting Screening";
     case 7: return "View Family Matches";
     case 8: return "Start Training";
     default: return "Complete";
