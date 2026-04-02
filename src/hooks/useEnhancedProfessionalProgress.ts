@@ -330,7 +330,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
         } else if (baseStep.id === 5) {
           completed = refsCount >= 2;
         } else if (baseStep.id === 6) {
-          completed = screeningPassed;
+          completed = screeningComplete;
         } else if (baseStep.id === 7) {
           completed = (assignments?.length || 0) > 0;
         } else if (baseStep.id === 8) {
