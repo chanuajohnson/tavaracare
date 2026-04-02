@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
-import { Mic, MicOff, ChevronRight, ChevronLeft, CheckCircle2, Play, Pause, RotateCcw, ThumbsUp, Minus, AlertTriangle, Send } from 'lucide-react';
+import { Mic, MicOff, ChevronRight, ChevronLeft, CheckCircle2, Play, Pause, RotateCcw, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ScreeningQuestion {
