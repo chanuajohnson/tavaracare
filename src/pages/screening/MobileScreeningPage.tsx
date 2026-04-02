@@ -33,7 +33,7 @@ export default function MobileScreeningPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [textInput, setTextInput] = useState('');
-  const [selectedRating, setSelectedRating] = useState<string | null>(null);
+  
   const [uploadingVoice, setUploadingVoice] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
