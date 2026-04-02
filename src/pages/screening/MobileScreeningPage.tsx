@@ -49,6 +49,7 @@ interface QuestionResponse {
 
 export default function MobileScreeningPage() {
   const { token } = useParams<{ token: string }>();
+  const navigate = useNavigate();
   const [session, setSession] = useState<any>(null);
   const [questions, setQuestions] = useState<ScreeningQuestion[]>([]);
   const [responses, setResponses] = useState<QuestionResponse[]>([]);
