@@ -265,8 +265,10 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
       const link = `${window.location.origin}/screening/${data.access_token}`;
       const candidate = candidates.find(c => c.id === session.professional_id);
 
-      if (onSendScreening && candidate?.phone_number) {
-        onSendScreening(
+      // Use resubmission-specific callback if available, otherwise fall back to generic
+      const sendFn = onResendScreening || onSendScreening;
+      if (sendFn && candidate?.phone_number) {
+        sendFn(
           candidate.id,
           candidate.full_name || session.candidate_name,
           link,
