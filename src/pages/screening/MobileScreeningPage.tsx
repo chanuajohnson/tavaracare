@@ -124,6 +124,13 @@ export default function MobileScreeningPage() {
       setResponses(initResponses);
 
       if (data.status === 'completed' || data.status === 'reviewed') {
+        // Redirect authenticated users to the progress page
+        // so they can see remaining sessions and continue
+        const { data: authData } = await supabase.auth.getSession();
+        if (authData?.session) {
+          navigate('/professional/screening');
+          return;
+        }
         setSubmitted(true);
       }
 
