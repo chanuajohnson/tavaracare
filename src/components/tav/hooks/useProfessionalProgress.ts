@@ -99,10 +99,27 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
         .select('id, screening_type, status')
         .eq('professional_id', user.id);
 
+      // Also fetch screening_sessions
+      const { data: screeningSessions } = await supabase
+        .from('screening_sessions')
+        .select('id, status, template_id')
+        .eq('professional_id', user.id);
+
       const refsCount = references?.length || 0;
       const screeningPassed = screenings?.some(
         (s: any) => s.screening_type === 'head_nurse_interview' && s.status === 'passed'
       ) || false;
+
+      // Determine screening session status
+      const totalSessions = screeningSessions?.length || 0;
+      const completedSessions = screeningSessions?.filter(
+        (s: any) => s.status === 'completed' || s.status === 'reviewed'
+      ).length || 0;
+      const hasPendingSessions = screeningSessions?.some(
+        (s: any) => s.status === 'pending' || s.status === 'in_progress'
+      ) || false;
+      const allSessionsComplete = totalSessions > 0 && completedSessions === totalSessions;
+      const screeningComplete = screeningPassed || allSessionsComplete;
 
       const updatedSteps = steps.map(step => {
         let completed = step.completed;
@@ -121,7 +138,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
         } else if (step.id === 5) {
           completed = refsCount >= 2;
         } else if (step.id === 6) {
-          completed = screeningPassed;
+          completed = screeningComplete;
         } else if (step.id === 7) {
           completed = !!(assignments && assignments.length > 0);
         } else if (step.id === 8) {
@@ -135,7 +152,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
           const step3Complete = !!(profile && profile.care_schedule && profile.care_schedule.length > 0);
           const step4Complete = !!(documents && documents.length > 0);
           const step5Complete = refsCount >= 2;
-          const step6Complete = screeningPassed;
+          const step6Complete = screeningComplete;
           
           accessible = step1Complete && step2Complete && step3Complete && step4Complete && step5Complete && step6Complete;
         }
@@ -156,7 +173,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
           completed,
           accessible,
           action: () => handleStepAction({ ...step, link: stepLink, completed, accessible }),
-          buttonText: getButtonText(baseStep, completed, accessible, step.id === 4 ? completed : undefined)
+          buttonText: getButtonText(baseStep, completed, accessible, step.id === 4 ? completed : undefined, undefined, step.id === 6 ? hasPendingSessions : undefined)
         };
       });
       

@@ -155,11 +155,16 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
         case 3: return "Edit Availability";
         case 4: return "View Documents";
         case 5: return "✓ References Submitted";
-        case 6: return "✓ Screening Passed";
+        case 6: return "✓ Screening Complete";
         case 7: return "View Family Matches";
         case 8: return "Continue Training";
         default: return "✓ Complete";
       }
+    }
+    
+    // For step 6, check screening session state via a closure variable
+    if (step.id === 6 && (step as any)._hasPendingSessions) {
+      return "Continue Screening →";
     }
     
     switch (step.id) {
@@ -288,6 +293,12 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
         .select('*')
         .eq('professional_id', user.id);
 
+      // Also fetch screening_sessions (the actual interview sessions)
+      const { data: screeningSessions } = await supabase
+        .from('screening_sessions')
+        .select('id, status, template_id')
+        .eq('professional_id', user.id);
+
       setProfileData(profile);
       setDocumentsData(documents || []);
 
@@ -295,6 +306,17 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       const screeningPassed = screenings?.some(
         (s: any) => s.screening_type === 'head_nurse_interview' && s.status === 'passed'
       ) || false;
+
+      // Determine screening session status
+      const totalSessions = screeningSessions?.length || 0;
+      const completedSessions = screeningSessions?.filter(
+        (s: any) => s.status === 'completed' || s.status === 'reviewed'
+      ).length || 0;
+      const hasPendingSessions = screeningSessions?.some(
+        (s: any) => s.status === 'pending' || s.status === 'in_progress'
+      ) || false;
+      const allSessionsComplete = totalSessions > 0 && completedSessions === totalSessions;
+      const screeningComplete = screeningPassed || allSessionsComplete;
 
       const steps: ProfessionalStep[] = baseSteps.map(baseStep => {
         let completed = false;
@@ -313,7 +335,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
         } else if (baseStep.id === 5) {
           completed = refsCount >= 2;
         } else if (baseStep.id === 6) {
-          completed = screeningPassed;
+          completed = screeningComplete;
         } else if (baseStep.id === 7) {
           completed = (assignments?.length || 0) > 0;
         } else if (baseStep.id === 8) {
@@ -327,18 +349,20 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
           const step3Complete = !!(profile?.care_schedule && profile.care_schedule.length > 0);
           const step4Complete = (documents?.length || 0) > 0;
           const step5Complete = refsCount >= 2;
-          const step6Complete = screeningPassed;
+          const step6Complete = screeningComplete;
           
           accessible = step1Complete && step2Complete && step3Complete && step4Complete && step5Complete && step6Complete;
         }
 
+        const stepWithMeta = { ...baseStep, completed, accessible, action: () => {}, buttonText: '', _hasPendingSessions: baseStep.id === 6 && hasPendingSessions } as any;
+        
         return {
           ...baseStep,
           link: stepLink,
           completed,
           accessible,
           action: () => handleStepAction({ ...baseStep, link: stepLink, completed, accessible, action: () => {}, buttonText: '' }),
-          buttonText: getButtonText({ ...baseStep, completed, accessible, action: () => {}, buttonText: '' })
+          buttonText: getButtonText(stepWithMeta)
         };
       });
 

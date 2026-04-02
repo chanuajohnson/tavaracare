@@ -138,3 +138,17 @@ export const fetchScreenings = async (userId: string): Promise<ProfessionalScree
 
   return screenings;
 };
+
+export const fetchScreeningSessions = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('screening_sessions')
+    .select('id, status, template_id')
+    .eq('professional_id', userId);
+
+  if (error) {
+    console.error('❌ Screening sessions fetch error:', error);
+    return [];
+  }
+
+  return data || [];
+};
