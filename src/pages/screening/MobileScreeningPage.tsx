@@ -58,6 +58,7 @@ export default function MobileScreeningPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [textInput, setTextInput] = useState('');
+  const [templateProgress, setTemplateProgress] = useState<{ position: number; total: number; completedCount: number; templateName: string } | null>(null);
   
   const [uploadingVoice, setUploadingVoice] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -123,6 +124,27 @@ export default function MobileScreeningPage() {
         };
       });
       setResponses(initResponses);
+
+      // Fetch sibling sessions for template progress context
+      if (data.professional_id) {
+        const { data: siblingData } = await supabase
+          .from('screening_sessions')
+          .select('id, status, template_id, created_at, screening_question_templates(title)')
+          .eq('professional_id', data.professional_id)
+          .order('created_at', { ascending: true });
+
+        if (siblingData && siblingData.length > 1) {
+          const position = siblingData.findIndex((s: any) => s.id === data.id) + 1;
+          const completedCount = siblingData.filter((s: any) => s.status === 'completed' || s.status === 'reviewed').length;
+          const currentTemplateName = (data.screening_question_templates as any)?.title || 'Screening';
+          setTemplateProgress({
+            position,
+            total: siblingData.length,
+            completedCount,
+            templateName: currentTemplateName,
+          });
+        }
+      }
 
       if (data.status === 'completed' || data.status === 'reviewed') {
         // Redirect authenticated users to the progress page
@@ -326,6 +348,14 @@ export default function MobileScreeningPage() {
       {/* Header */}
       <div className="bg-primary text-primary-foreground p-4 space-y-2">
         <h1 className="text-lg font-bold">Screening: {session.candidate_name}</h1>
+        {templateProgress && (
+          <div className="text-sm opacity-90 space-y-0.5">
+            <p>📋 Template {templateProgress.position} of {templateProgress.total} — "{templateProgress.templateName}"</p>
+            <p className="text-xs opacity-80">
+              ✅ {templateProgress.completedCount} completed · {templateProgress.total - templateProgress.completedCount - 1} remaining after this one
+            </p>
+          </div>
+        )}
         <div className="flex items-center justify-between text-sm opacity-90">
           <span>Question {currentIndex + 1} of {questions.length}</span>
           <Badge variant="secondary" className="text-xs">

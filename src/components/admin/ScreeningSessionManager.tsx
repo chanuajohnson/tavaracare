@@ -38,8 +38,8 @@ interface CandidateOption {
 }
 
 interface Props {
-  onSendScreening?: (candidateId: string, candidateName: string, link: string, phone: string) => void;
-  onResendScreening?: (candidateId: string, candidateName: string, link: string, phone: string) => void;
+  onSendScreening?: (candidateId: string, candidateName: string, link: string, phone: string, sessionPosition?: number, totalSessions?: number) => void;
+  onResendScreening?: (candidateId: string, candidateName: string, link: string, phone: string, sessionPosition?: number, totalSessions?: number) => void;
 }
 
 const SCREENING_BASE_URL = 'https://tavara.care';
@@ -147,9 +147,15 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
       setCreateForm({ templateId: '', candidateId: '' });
       fetchData();
 
+      // Compute session position for this candidate
+      const candidateSessions = [...sessions.filter(s => s.professional_id === candidate.id), data]
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const totalSessions = candidateSessions.length;
+      const sessionPosition = candidateSessions.findIndex(s => s.id === data.id) + 1;
+
       // Offer to send via WhatsApp
       if (onSendScreening && candidate.phone_number) {
-        onSendScreening(candidate.id, candidate.full_name || 'Candidate', link, candidate.phone_number);
+        onSendScreening(candidate.id, candidate.full_name || 'Candidate', link, candidate.phone_number, sessionPosition, totalSessions);
       } else {
         // Copy link to clipboard
         await navigator.clipboard.writeText(link);
@@ -172,8 +178,16 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
   const handleResendScreening = (session: ScreeningSession) => {
     const candidate = candidates.find(c => c.id === session.professional_id);
     const link = getScreeningLink(session);
+
+    // Compute session position for this candidate
+    const candidateSessions = sessions
+      .filter(s => s.professional_id === session.professional_id)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const totalSessions = candidateSessions.length;
+    const sessionPosition = candidateSessions.findIndex(s => s.id === session.id) + 1;
+
     if (onSendScreening && candidate?.phone_number) {
-      onSendScreening(candidate.id, candidate.full_name || session.candidate_name, link, candidate.phone_number);
+      onSendScreening(candidate.id, candidate.full_name || session.candidate_name, link, candidate.phone_number, sessionPosition, totalSessions);
     } else {
       navigator.clipboard.writeText(link);
       toast.success('Screening link copied to clipboard!');
@@ -267,6 +281,13 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
       const link = `${SCREENING_BASE_URL}/screening/${data.access_token}`;
       const candidate = candidates.find(c => c.id === session.professional_id);
 
+      // Compute session position
+      const candidateSessions = sessions
+        .filter(s => s.professional_id === session.professional_id)
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const totalSessions = candidateSessions.length;
+      const sessionPosition = candidateSessions.findIndex(s => s.id === session.id) + 1;
+
       // Use resubmission-specific callback if available, otherwise fall back to generic
       const sendFn = onResendScreening || onSendScreening;
       if (sendFn && candidate?.phone_number) {
@@ -274,7 +295,9 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
           candidate.id,
           candidate.full_name || session.candidate_name,
           link,
-          candidate.phone_number
+          candidate.phone_number,
+          sessionPosition,
+          totalSessions
         );
       } else {
         await navigator.clipboard.writeText(link);
