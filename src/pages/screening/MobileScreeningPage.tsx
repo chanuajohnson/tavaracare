@@ -125,6 +125,27 @@ export default function MobileScreeningPage() {
       });
       setResponses(initResponses);
 
+      // Fetch sibling sessions for template progress context
+      if (data.professional_id) {
+        const { data: siblingData } = await supabase
+          .from('screening_sessions')
+          .select('id, status, template_id, created_at, screening_question_templates(title)')
+          .eq('professional_id', data.professional_id)
+          .order('created_at', { ascending: true });
+
+        if (siblingData && siblingData.length > 1) {
+          const position = siblingData.findIndex((s: any) => s.id === data.id) + 1;
+          const completedCount = siblingData.filter((s: any) => s.status === 'completed' || s.status === 'reviewed').length;
+          const currentTemplateName = (data.screening_question_templates as any)?.title || 'Screening';
+          setTemplateProgress({
+            position,
+            total: siblingData.length,
+            completedCount,
+            templateName: currentTemplateName,
+          });
+        }
+      }
+
       if (data.status === 'completed' || data.status === 'reviewed') {
         // Redirect authenticated users to the progress page
         // so they can see remaining sessions and continue
