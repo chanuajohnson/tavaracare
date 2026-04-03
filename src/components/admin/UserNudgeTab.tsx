@@ -20,6 +20,14 @@ interface NudgeTemplate {
   message_type: string;
 }
 
+interface ProfessionalStepInfo {
+  id: number;
+  title: string;
+  completed: boolean;
+  link: string;
+  stage: string;
+}
+
 interface UserNudgeTabProps {
   user: {
     id: string;
@@ -30,7 +38,7 @@ interface UserNudgeTabProps {
   journeyProgress: {
     completionPercentage: number;
     currentStep?: number;
-    steps?: Array<{ completed: boolean }>;
+    steps?: Array<{ completed: boolean; id?: number | string; title?: string; link?: string; stage?: string }>;
     lastActivityAt?: string;
   };
   comprehensiveData?: ComprehensiveUserData | null;
@@ -226,6 +234,57 @@ const buildSmartNudgeMessage = (
   return message;
 };
 
+// --- Professional Progress Nudge Logic ---
+
+const STAGE_LABELS: Record<string, string> = {
+  foundation: '🏗️ Foundation',
+  qualification: '📜 Qualification',
+  vetting: '🔍 Vetting',
+  active: '🤝 Active',
+  training: '📚 Training',
+};
+
+const getProfessionalProgressSummary = (
+  steps: Array<{ completed: boolean; title?: string; link?: string; stage?: string }>
+) => {
+  const completedSteps = steps.filter(s => s.completed);
+  const pendingSteps = steps.filter(s => !s.completed);
+  const nextStep = pendingSteps[0] || null;
+  return { completedSteps, pendingSteps, nextStep };
+};
+
+const buildProfessionalNudgeMessage = (
+  userName: string,
+  steps: Array<{ completed: boolean; title?: string; link?: string; stage?: string }>
+): string => {
+  const firstName = userName?.split(' ')[0] || 'there';
+  const { completedSteps, pendingSteps, nextStep } = getProfessionalProgressSummary(steps);
+
+  let message = `Hi ${firstName}! 💙 Chan from Tavara Care.\n\n`;
+  message += `Great progress on your caregiver journey! Here's where you stand:\n\n`;
+
+  for (const step of completedSteps) {
+    message += `✅ ${step.title || 'Step complete'}\n`;
+  }
+
+  if (pendingSteps.length > 0) {
+    message += `\n📋 What's next:\n`;
+    for (const step of pendingSteps) {
+      message += `❌ ${step.title || 'Pending step'}\n`;
+    }
+  }
+
+  if (nextStep) {
+    message += `\n👉 Your next step: ${nextStep.title}`;
+    if (nextStep.link) {
+      message += `\n🔗 https://tavara.care${nextStep.link}`;
+    }
+  }
+
+  message += `\n\nQuestions? Just reply here!\n— Chan, Tavara Care 💙`;
+  return message;
+};
+
 // --- Component ---
 
 export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgress, comprehensiveData }) => {
@@ -312,7 +371,7 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
       const { error } = await supabase.from('admin_communications').insert({
         admin_id: adminId,
         target_user_id: user.id,
-        message_type: templateId ? 'whatsapp_nudge' : 'whatsapp_smart_nudge',
+        message_type: 'whatsapp',
         template_id: templateId || null,
         sent_at: new Date().toISOString(),
         delivery_status: 'sent',
@@ -380,6 +439,20 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
     toast.success('Smart nudge sent & logged');
   };
 
+  // Professional progress nudge logic
+  const professionalSteps = user.role === 'professional' ? (journeyProgress.steps || []) : [];
+  const professionalSummary = user.role === 'professional' ? getProfessionalProgressSummary(professionalSteps) : null;
+
+  const handleSendProfessionalProgressNudge = () => {
+    const message = buildProfessionalNudgeMessage(user.full_name, professionalSteps);
+    const url = user.phone_number
+      ? getWhatsAppUrl(user.phone_number, message)
+      : getTavaraWhatsAppUrl(message);
+    window.open(url, '_blank');
+    logNudgeSent();
+    toast.success('Professional progress nudge sent & logged');
+  };
+
   const renderTemplateCard = (template: NudgeTemplate, isRecommended: boolean) => {
     const populated = populateTemplate(
       template.message_template,
@@ -435,7 +508,7 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
     );
   }
 
-  if (templates.length === 0 && incompleteFields.length === 0) {
+  if (templates.length === 0 && incompleteFields.length === 0 && professionalSteps.length === 0) {
     return (
       <div className="text-center py-8 space-y-3">
         <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground" />
@@ -558,7 +631,95 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
         </>
       )}
 
-      {/* Recommended templates */}
+      {/* Smart Progress Nudge — professional users */}
+      {user.role === 'professional' && professionalSummary && (
+        <>
+          {professionalSteps.length === 0 ? (
+            <Card className="border-muted">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-muted-foreground animate-pulse" />
+                  <span className="font-medium text-sm text-muted-foreground">
+                    Loading professional progress...
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </CardContent>
+            </Card>
+          ) : professionalSummary.pendingSteps.length > 0 ? (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-primary" />
+                    <span className="font-medium text-sm">
+                      Professional Progress Nudge
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {professionalSummary.completedSteps.length}/{professionalSteps.length} steps
+                  </Badge>
+                </div>
+
+                {/* Group by stage */}
+                {Object.entries(STAGE_LABELS).map(([stageKey, stageLabel]) => {
+                  const stageSteps = professionalSteps.filter(s => s.stage === stageKey);
+                  if (stageSteps.length === 0) return null;
+                  return (
+                    <div key={stageKey}>
+                      <div className="text-xs font-medium text-muted-foreground mt-1 mb-0.5">{stageLabel}</div>
+                      {stageSteps.map((step, i) => (
+                        <div key={i} className="flex items-start gap-1.5 text-xs pl-2">
+                          <span>{step.completed ? '✅' : '❌'}</span>
+                          <span className={step.completed ? 'text-muted-foreground' : ''}>
+                            {step.title || `Step ${i + 1}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+
+                {professionalSummary.nextStep && (
+                  <div className="text-xs bg-muted/50 rounded p-2 mt-1">
+                    👉 <strong>Next step:</strong> {professionalSummary.nextStep.title}
+                    {professionalSummary.nextStep.link && (
+                      <span className="text-muted-foreground ml-1">
+                        → tavara.care{professionalSummary.nextStep.link}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <Button
+                  size="sm"
+                  className="w-full gap-2"
+                  onClick={handleSendProfessionalProgressNudge}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Send Progress Nudge via WhatsApp
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-green-500/50 bg-green-50 dark:bg-green-950/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="font-medium text-sm text-green-800 dark:text-green-300">
+                    All 8 professional steps complete ✓
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
+
       {recommended.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-sm font-medium flex items-center gap-1.5">
