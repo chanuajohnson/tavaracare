@@ -1,14 +1,31 @@
 
 
-## Telegram Notification When Professional Completes a Screening Session
+## Implement Telegram Notification for Screening Completion
 
-### What This Does
-When a professional submits a screening questionnaire, you'll receive a Telegram message like:
+### Prerequisites -- One Secret Needed
+
+`TELEGRAM_API_KEY` and `LOVABLE_API_KEY` are already available. We need to add one more:
+
+- **`TELEGRAM_CHAT_ID`** -- Your personal Telegram chat ID where you want to receive alerts. To find it: message @userinfobot on Telegram, it replies with your chat ID (e.g., `8356234924`).
+
+I will use the `add_secret` tool to request this from you before deploying.
+
+### Changes
+
+**1. New Edge Function: `supabase/functions/notify-screening-complete/index.ts`**
+
+- Receives `{ session_id }` in the request body
+- Uses `SUPABASE_SERVICE_ROLE_KEY` to fetch:
+  - The completed session (with template name via join on `screening_question_templates`)
+  - The professional's name from `profiles`
+  - Sibling session count for "Template X of Y" context
+- Counts voice vs text responses from the session's `responses` array
+- Sends an HTML-formatted Telegram message via the connector gateway:
 
 ```
 ✅ SCREENING COMPLETED
 
-👤 Tricia Cumm
+👤 Denise Narcis
 📋 "Clinical Competency" (Template 2 of 6)
 🧑‍⚕️ Candidate: Denise Narcis
 ⏰ 4/3/2026, 2:45 PM
@@ -16,48 +33,27 @@ When a professional submits a screening questionnaire, you'll receive a Telegram
 5 questions answered (3 voice, 2 text)
 ```
 
-### Prerequisites (Before Code Changes)
+- Uses the same CORS headers and pattern as the existing `transcribe-screening` function
 
-1. **Connect Telegram**: Link the Telegram connector to this project via `standard_connectors--connect`. This provides `TELEGRAM_API_KEY` automatically.
-2. **Add `TELEGRAM_CHAT_ID` secret**: Your admin chat ID (e.g. `8356234924`) needs to be stored as a project secret.
+**2. Update: `src/pages/screening/MobileScreeningPage.tsx`**
 
-### Implementation
-
-**1. Create Edge Function: `supabase/functions/notify-screening-complete/index.ts`**
-
-A new edge function that:
-- Receives `{ session_id }` in the request body
-- Fetches the completed session from `screening_sessions` (joins template name)
-- Fetches the professional's name from `profiles`
-- Counts sibling sessions for the same professional to show "Template X of Y" context
-- Sends an HTML-formatted Telegram message via the connector gateway
-- Returns success/failure
-
-**2. Update `src/pages/screening/MobileScreeningPage.tsx`**
-
-After the successful submission (line 271, after `if (error) throw error`), add a fire-and-forget call:
+After line 271 (after `if (error) throw error;`), add a fire-and-forget call:
 
 ```typescript
-// Fire-and-forget Telegram notification
 supabase.functions.invoke('notify-screening-complete', {
   body: { session_id: session.id }
-}).catch(console.error);
+}).catch(err => console.error('Telegram notification failed:', err));
 ```
 
-This is non-blocking -- if Telegram fails, the user's submission still succeeds.
+Non-blocking -- if Telegram fails, the user's submission still succeeds.
 
-### Files Changed
+### Technical Details
 
-| File | Change |
+| Item | Detail |
 |------|--------|
-| `supabase/functions/notify-screening-complete/index.ts` | New edge function: fetches session data, sends Telegram alert via gateway |
-| `src/pages/screening/MobileScreeningPage.tsx` | Add fire-and-forget call to the new edge function after successful submission |
-
-### Secrets Required
-
-| Secret | Purpose |
-|--------|---------|
-| `TELEGRAM_API_KEY` | Provided automatically by Telegram connector |
-| `TELEGRAM_CHAT_ID` | Your personal/admin chat ID for receiving alerts |
-| `LOVABLE_API_KEY` | Already exists |
+| Files created | `supabase/functions/notify-screening-complete/index.ts` |
+| Files modified | `src/pages/screening/MobileScreeningPage.tsx` (1 line added) |
+| Secrets needed | `TELEGRAM_CHAT_ID` (will prompt you) |
+| Secrets already available | `LOVABLE_API_KEY`, `TELEGRAM_API_KEY` |
+| Gateway URL | `https://connector-gateway.lovable.dev/telegram/sendMessage` |
 
