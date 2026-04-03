@@ -616,7 +616,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 ) : comprehensiveData ? (
                   <>
                     {/* Report Summary */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className={`grid grid-cols-1 ${comprehensiveData.profile.role === 'family' ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4`}>
                       <Card className="p-4">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className={`h-4 w-4 ${comprehensiveData.registrationComplete ? 'text-green-600' : 'text-gray-400'}`} />
@@ -636,6 +636,18 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                           {comprehensiveData.assessmentComplete ? 'Complete' : 'Incomplete'}
                         </p>
                       </Card>
+
+                      {comprehensiveData.profile.role === 'family' && (
+                        <Card className="p-4">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className={`h-4 w-4 ${comprehensiveData.legacyStoryComplete ? 'text-green-600' : 'text-gray-400'}`} />
+                            <span className="text-sm font-medium">Legacy Story</span>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {comprehensiveData.legacyStoryComplete ? 'Complete' : 'Not Started'}
+                          </p>
+                        </Card>
+                      )}
                       
                       <Card className="p-4">
                         <div className="flex items-center gap-2">
