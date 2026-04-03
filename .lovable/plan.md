@@ -1,55 +1,36 @@
 
 
-## Add Screening Progress Context to Nudge Messages and Screening Page
+## Add Legacy Story Report to User Report Generator
 
-### Problem
+### What Changes
 
-When a professional receives a WhatsApp screening link, they have no idea how many total templates they need to complete or which one this is. Similarly, while on the screening page itself, they only see question progress within the current template -- not their overall multi-session progress.
+The `care_recipient_profiles` table data (which IS the legacy story) is already fetched in `useComprehensiveUserData.ts` as `careRecipient`. We just need to surface it properly in the Reports tab.
 
-### Solution
+### Changes
 
-Two changes:
+**1. `src/hooks/admin/useComprehensiveUserData.ts`**
+- Add `legacyStoryComplete: boolean` to the `ComprehensiveUserData` interface
+- Set it to `true` when `careRecipientData` exists AND has a `life_story` or `story` field populated
+- Include it in the returned data object
 
-**1. WhatsApp Nudge Message (ProfessionalScreeningPage.tsx)**
+**2. `src/components/admin/UserDetailModal.tsx`**
+- **Summary grid**: Change from 3-column to 4-column grid (for family users). Add a 4th card for "Legacy Story" with a green checkmark when `comprehensiveData.legacyStoryComplete` is true, showing "Complete" or "Not Started"
+- **Data section**: Expand the existing "Care Recipient Profile" card (lines 757-770) to also display the legacy story content fields:
+  - `life_story` / `story` (the main narrative)
+  - `daily_routine`
+  - `dietary_preferences`
+  - `communication_style`
+  - `comfort_piorities`
+  - `caregiver_personality` preferences
+  - Any other rich fields from the `care_recipient_profiles` table
+- Rename the card heading from "Care Recipient Profile" to "Legacy Story / Care Recipient Profile" for clarity
 
-Update `handleSendScreening` to accept session context (template position, total templates) and include it in the WhatsApp message. Before sending, query how many total sessions exist for this professional and which number this one is.
-
-New message format:
-```
-Hi! It's the Tavara Team 💙
-
-We'd like you to complete a brief screening questionnaire to help us finalize the evaluation for [Name].
-
-📋 This is Template 2 of 6 — each template covers a different area and will be sent separately.
-
-Please tap the link below to answer a few quick questions (voice or text):
-[link]
-
-Thank you! 🙏
-```
-
-This requires the `ScreeningSessionManager` to pass session metadata (session count, position) up to the send handler. The manager already has all sessions loaded -- it will compute the candidate's total session count and position, and pass them alongside the existing parameters.
-
-**2. Screening Page Header (MobileScreeningPage.tsx)**
-
-On page load, after fetching the current session, also query all sessions for the same `professional_id` to get:
-- Total number of assigned templates
-- How many are completed
-- Which template number this one is
-
-Add a subtitle line in the header:
-```
-📋 Template 2 of 6 — "Clinical Competency"
-✅ 1 completed · 4 remaining after this one
-```
-
-This gives the professional full visibility into their screening journey from within each template.
-
-### Files Changed
+### Technical Details
 
 | File | Change |
 |------|--------|
-| `src/pages/admin/ProfessionalScreeningPage.tsx` | Update `handleSendScreening` signature to include session position/total and embed in WhatsApp message |
-| `src/components/admin/ScreeningSessionManager.tsx` | Compute per-candidate session position and total; pass to `onSendScreening` callback |
-| `src/pages/screening/MobileScreeningPage.tsx` | On load, fetch sibling sessions for the same professional; display template position and overall progress in header |
+| `src/hooks/admin/useComprehensiveUserData.ts` | Add `legacyStoryComplete` boolean to interface and computation |
+| `src/components/admin/UserDetailModal.tsx` | Add Legacy Story summary card to grid; expand care recipient data display with story fields |
+
+No new database queries needed -- the data is already fetched via the existing `care_recipient_profiles` select.
 
