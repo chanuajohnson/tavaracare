@@ -178,8 +178,16 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
   const handleResendScreening = (session: ScreeningSession) => {
     const candidate = candidates.find(c => c.id === session.professional_id);
     const link = getScreeningLink(session);
+
+    // Compute session position for this candidate
+    const candidateSessions = sessions
+      .filter(s => s.professional_id === session.professional_id)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const totalSessions = candidateSessions.length;
+    const sessionPosition = candidateSessions.findIndex(s => s.id === session.id) + 1;
+
     if (onSendScreening && candidate?.phone_number) {
-      onSendScreening(candidate.id, candidate.full_name || session.candidate_name, link, candidate.phone_number);
+      onSendScreening(candidate.id, candidate.full_name || session.candidate_name, link, candidate.phone_number, sessionPosition, totalSessions);
     } else {
       navigator.clipboard.writeText(link);
       toast.success('Screening link copied to clipboard!');
