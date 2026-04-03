@@ -1,63 +1,63 @@
 
 
-## Add Professional Progress-Aware Smart Nudge to Admin Nudge Tab
+## Telegram Notification When Professional Completes a Screening Session
 
-### Problem
-The Nudge tab's "Smart Completion Nudge" feature only works for family users. For professionals, there's no auto-generated progress summary showing completed steps vs. next actions with a one-click WhatsApp send.
+### What This Does
+When a professional submits a screening questionnaire, you'll receive a Telegram message like:
 
-### Solution
-Extend `UserNudgeTab.tsx` to support professional users by leveraging the `journeyProgress.steps` data (which already contains the 8-step professional pipeline with `completed`, `title`, `link`, and `stage` fields from `useSpecificUserProfessionalProgress`).
+```
+✅ SCREENING COMPLETED
 
-### Changes
+👤 Tricia Cumm
+📋 "Clinical Competency" (Template 2 of 6)
+🧑‍⚕️ Candidate: Denise Narcis
+⏰ 4/3/2026, 2:45 PM
 
-**File: `src/components/admin/UserNudgeTab.tsx`**
+5 questions answered (3 voice, 2 text)
+```
 
-1. **Add professional progress analysis function** (`getProfessionalProgressSummary`):
-   - Takes `journeyProgress.steps` array
-   - Returns `{ completedSteps, pendingSteps, nextStep }` where each includes title, stage, and link
-   - Maps step titles to human-friendly action items (e.g., "Submit 2 professional references" becomes the pending action)
+### Prerequisites (Before Code Changes)
 
-2. **Add professional nudge message builder** (`buildProfessionalNudgeMessage`):
-   - Generates a WhatsApp message like:
-     ```
-     Hi [Name]! 💙 Chan from Tavara Care.
+1. **Connect Telegram**: Link the Telegram connector to this project via `standard_connectors--connect`. This provides `TELEGRAM_API_KEY` automatically.
+2. **Add `TELEGRAM_CHAT_ID` secret**: Your admin chat ID (e.g. `8356234924`) needs to be stored as a project secret.
 
-     Great progress on your caregiver journey! Here's where you stand:
+### Implementation
 
-     ✅ Account created
-     ✅ Profile completed
-     ✅ Availability set
-     ✅ Documents uploaded
+**1. Create Edge Function: `supabase/functions/notify-screening-complete/index.ts`**
 
-     📋 What's next:
-     ❌ Submit 2 professional references
-     ❌ Head nurse screening interview
-     ❌ Match with families
-     ❌ Complete training modules
+A new edge function that:
+- Receives `{ session_id }` in the request body
+- Fetches the completed session from `screening_sessions` (joins template name)
+- Fetches the professional's name from `profiles`
+- Counts sibling sessions for the same professional to show "Template X of Y" context
+- Sends an HTML-formatted Telegram message via the connector gateway
+- Returns success/failure
 
-     👉 Your next step: Submit 2 professional references
-     🔗 https://tavara.care/professional/profile?tab=references
+**2. Update `src/pages/screening/MobileScreeningPage.tsx`**
 
-     Questions? Just reply here!
-     — Chan, Tavara Care 💙
-     ```
+After the successful submission (line 271, after `if (error) throw error`), add a fire-and-forget call:
 
-3. **Add professional Smart Nudge UI card** (similar to the family one):
-   - Shows completed steps with checkmarks and pending steps with crosses
-   - Groups by stage (Foundation, Qualification, Vetting, Active, Training)
-   - One-click "Send Progress Nudge via WhatsApp" button
-   - If all 8 steps complete, show green "All steps complete" card instead
+```typescript
+// Fire-and-forget Telegram notification
+supabase.functions.invoke('notify-screening-complete', {
+  body: { session_id: session.id }
+}).catch(console.error);
+```
 
-4. **Update the rendering logic**:
-   - Change the `{user.role === 'family' && (...)}` block (line 478) to also render the professional variant when `user.role === 'professional'`
-   - The professional card uses the same `handleSendSmartNudge` pattern with logging
+This is non-blocking -- if Telegram fails, the user's submission still succeeds.
 
-### Technical Details
+### Files Changed
 
-| Area | Detail |
+| File | Change |
 |------|--------|
-| File modified | `src/components/admin/UserNudgeTab.tsx` only |
-| Data source | `journeyProgress.steps` already passed from `UserDetailModal.tsx` via `useSpecificUserProfessionalProgress` |
-| No new queries | Steps data (completed/pending, titles, links) is already available in the props |
-| Links use | Production domain `tavara.care` per existing standard |
+| `supabase/functions/notify-screening-complete/index.ts` | New edge function: fetches session data, sends Telegram alert via gateway |
+| `src/pages/screening/MobileScreeningPage.tsx` | Add fire-and-forget call to the new edge function after successful submission |
+
+### Secrets Required
+
+| Secret | Purpose |
+|--------|---------|
+| `TELEGRAM_API_KEY` | Provided automatically by Telegram connector |
+| `TELEGRAM_CHAT_ID` | Your personal/admin chat ID for receiving alerts |
+| `LOVABLE_API_KEY` | Already exists |
 
