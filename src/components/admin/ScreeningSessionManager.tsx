@@ -281,6 +281,13 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
       const link = `${SCREENING_BASE_URL}/screening/${data.access_token}`;
       const candidate = candidates.find(c => c.id === session.professional_id);
 
+      // Compute session position
+      const candidateSessions = sessions
+        .filter(s => s.professional_id === session.professional_id)
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const totalSessions = candidateSessions.length;
+      const sessionPosition = candidateSessions.findIndex(s => s.id === session.id) + 1;
+
       // Use resubmission-specific callback if available, otherwise fall back to generic
       const sendFn = onResendScreening || onSendScreening;
       if (sendFn && candidate?.phone_number) {
@@ -288,7 +295,9 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
           candidate.id,
           candidate.full_name || session.candidate_name,
           link,
-          candidate.phone_number
+          candidate.phone_number,
+          sessionPosition,
+          totalSessions
         );
       } else {
         await navigator.clipboard.writeText(link);
