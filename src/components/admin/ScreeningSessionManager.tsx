@@ -38,8 +38,8 @@ interface CandidateOption {
 }
 
 interface Props {
-  onSendScreening?: (candidateId: string, candidateName: string, link: string, phone: string) => void;
-  onResendScreening?: (candidateId: string, candidateName: string, link: string, phone: string) => void;
+  onSendScreening?: (candidateId: string, candidateName: string, link: string, phone: string, sessionPosition?: number, totalSessions?: number) => void;
+  onResendScreening?: (candidateId: string, candidateName: string, link: string, phone: string, sessionPosition?: number, totalSessions?: number) => void;
 }
 
 const SCREENING_BASE_URL = 'https://tavara.care';
