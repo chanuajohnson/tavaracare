@@ -9,6 +9,7 @@ export interface ComprehensiveUserData {
   chatbotResponses: any[];
   registrationComplete: boolean;
   assessmentComplete: boolean;
+  legacyStoryComplete: boolean;
   lastUpdated: string;
 }
 
