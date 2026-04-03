@@ -20,6 +20,14 @@ interface NudgeTemplate {
   message_type: string;
 }
 
+interface ProfessionalStepInfo {
+  id: number;
+  title: string;
+  completed: boolean;
+  link: string;
+  stage: string;
+}
+
 interface UserNudgeTabProps {
   user: {
     id: string;
@@ -30,7 +38,7 @@ interface UserNudgeTabProps {
   journeyProgress: {
     completionPercentage: number;
     currentStep?: number;
-    steps?: Array<{ completed: boolean }>;
+    steps?: Array<{ completed: boolean; id?: number; title?: string; link?: string; stage?: string }>;
     lastActivityAt?: string;
   };
   comprehensiveData?: ComprehensiveUserData | null;
