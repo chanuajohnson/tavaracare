@@ -270,6 +270,11 @@ export default function MobileScreeningPage() {
 
       if (error) throw error;
 
+      // Fire-and-forget Telegram notification to admin
+      supabase.functions.invoke('notify-screening-complete', {
+        body: { session_id: session.id }
+      }).catch(err => console.error('Telegram notification failed:', err));
+
       toast.success('Screening submitted successfully! 💙');
 
       // Auto-redirect authenticated users to progress page after brief delay
