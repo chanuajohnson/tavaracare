@@ -616,7 +616,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 ) : comprehensiveData ? (
                   <>
                     {/* Report Summary */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className={`grid grid-cols-1 ${comprehensiveData.profile.role === 'family' ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4`}>
                       <Card className="p-4">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className={`h-4 w-4 ${comprehensiveData.registrationComplete ? 'text-green-600' : 'text-gray-400'}`} />
@@ -636,6 +636,18 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                           {comprehensiveData.assessmentComplete ? 'Complete' : 'Incomplete'}
                         </p>
                       </Card>
+
+                      {comprehensiveData.profile.role === 'family' && (
+                        <Card className="p-4">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className={`h-4 w-4 ${comprehensiveData.legacyStoryComplete ? 'text-green-600' : 'text-gray-400'}`} />
+                            <span className="text-sm font-medium">Legacy Story</span>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {comprehensiveData.legacyStoryComplete ? 'Complete' : 'Not Started'}
+                          </p>
+                        </Card>
+                      )}
                       
                       <Card className="p-4">
                         <div className="flex items-center gap-2">
@@ -754,17 +766,50 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                         </div>
                       </Card>
 
-                      {/* Care Recipient Profile (Family only) */}
+                      {/* Legacy Story / Care Recipient Profile (Family only) */}
                       {comprehensiveData.profile.role === 'family' && comprehensiveData.careRecipient && (
                         <Card className="p-4">
-                          <h5 className="font-medium mb-2">Care Recipient Profile</h5>
-                          <div className="text-sm space-y-1">
+                          <h5 className="font-medium mb-2">📖 Legacy Story / Care Recipient Profile</h5>
+                          <div className="text-sm space-y-2">
+                            <div><strong>Full Name:</strong> {comprehensiveData.careRecipient.full_name || 'Not provided'}</div>
                             <div><strong>Birth Year:</strong> {comprehensiveData.careRecipient.birth_year || 'Not provided'}</div>
                             <div><strong>Personality:</strong> {formatArray(comprehensiveData.careRecipient.personality_traits)}</div>
-                            <div><strong>Interests:</strong> {formatArray(comprehensiveData.careRecipient.hobbies_interests)}</div>
-                            <div><strong>Career:</strong> {formatArray(comprehensiveData.careRecipient.career_fields)}</div>
+                            <div><strong>Hobbies & Interests:</strong> {formatArray(comprehensiveData.careRecipient.hobbies_interests)}</div>
+                            <div><strong>Career Fields:</strong> {formatArray(comprehensiveData.careRecipient.career_fields)}</div>
                             <div><strong>Challenges:</strong> {formatArray(comprehensiveData.careRecipient.challenges)}</div>
                             <div><strong>Cultural Preferences:</strong> {comprehensiveData.careRecipient.cultural_preferences || 'Not specified'}</div>
+
+                            {/* Legacy Story Narrative Fields */}
+                            {comprehensiveData.careRecipient.life_story && (
+                              <div className="mt-3 p-3 bg-muted/50 rounded-md border">
+                                <strong>📝 Life Story:</strong>
+                                <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{comprehensiveData.careRecipient.life_story}</p>
+                              </div>
+                            )}
+                            {comprehensiveData.careRecipient.joyful_things && (
+                              <div><strong>😊 Things That Bring Joy:</strong> {comprehensiveData.careRecipient.joyful_things}</div>
+                            )}
+                            {comprehensiveData.careRecipient.unique_facts && (
+                              <div><strong>⭐ Unique Facts:</strong> {comprehensiveData.careRecipient.unique_facts}</div>
+                            )}
+                            {comprehensiveData.careRecipient.daily_routines && (
+                              <div><strong>🕐 Daily Routines:</strong> {comprehensiveData.careRecipient.daily_routines}</div>
+                            )}
+                            {comprehensiveData.careRecipient.family_social_info && (
+                              <div><strong>👨‍👩‍👧 Family & Social Life:</strong> {comprehensiveData.careRecipient.family_social_info}</div>
+                            )}
+                            {comprehensiveData.careRecipient.notable_events && (
+                              <div><strong>📌 Notable Events:</strong> {comprehensiveData.careRecipient.notable_events}</div>
+                            )}
+                            {comprehensiveData.careRecipient.sensitivities && (
+                              <div><strong>⚠️ Sensitivities:</strong> {comprehensiveData.careRecipient.sensitivities}</div>
+                            )}
+                            {comprehensiveData.careRecipient.specific_requests && (
+                              <div><strong>📋 Specific Requests:</strong> {comprehensiveData.careRecipient.specific_requests}</div>
+                            )}
+                            {comprehensiveData.careRecipient.caregiver_personality && (
+                              <div><strong>🤝 Preferred Caregiver Personality:</strong> {formatArray(comprehensiveData.careRecipient.caregiver_personality)}</div>
+                            )}
                           </div>
                         </Card>
                       )}
