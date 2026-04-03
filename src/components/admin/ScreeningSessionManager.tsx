@@ -147,9 +147,15 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
       setCreateForm({ templateId: '', candidateId: '' });
       fetchData();
 
+      // Compute session position for this candidate
+      const candidateSessions = [...sessions.filter(s => s.professional_id === candidate.id), data]
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const totalSessions = candidateSessions.length;
+      const sessionPosition = candidateSessions.findIndex(s => s.id === data.id) + 1;
+
       // Offer to send via WhatsApp
       if (onSendScreening && candidate.phone_number) {
-        onSendScreening(candidate.id, candidate.full_name || 'Candidate', link, candidate.phone_number);
+        onSendScreening(candidate.id, candidate.full_name || 'Candidate', link, candidate.phone_number, sessionPosition, totalSessions);
       } else {
         // Copy link to clipboard
         await navigator.clipboard.writeText(link);
