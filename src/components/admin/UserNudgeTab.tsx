@@ -38,7 +38,7 @@ interface UserNudgeTabProps {
   journeyProgress: {
     completionPercentage: number;
     currentStep?: number;
-    steps?: Array<{ completed: boolean; id?: number; title?: string; link?: string; stage?: string }>;
+    steps?: Array<{ completed: boolean; id?: number | string; title?: string; link?: string; stage?: string }>;
     lastActivityAt?: string;
   };
   comprehensiveData?: ComprehensiveUserData | null;
