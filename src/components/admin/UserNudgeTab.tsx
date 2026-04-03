@@ -631,7 +631,95 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
         </>
       )}
 
-      {/* Recommended templates */}
+      {/* Smart Progress Nudge — professional users */}
+      {user.role === 'professional' && professionalSummary && (
+        <>
+          {professionalSteps.length === 0 ? (
+            <Card className="border-muted">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-muted-foreground animate-pulse" />
+                  <span className="font-medium text-sm text-muted-foreground">
+                    Loading professional progress...
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </CardContent>
+            </Card>
+          ) : professionalSummary.pendingSteps.length > 0 ? (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-primary" />
+                    <span className="font-medium text-sm">
+                      Professional Progress Nudge
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {professionalSummary.completedSteps.length}/{professionalSteps.length} steps
+                  </Badge>
+                </div>
+
+                {/* Group by stage */}
+                {Object.entries(STAGE_LABELS).map(([stageKey, stageLabel]) => {
+                  const stageSteps = professionalSteps.filter(s => s.stage === stageKey);
+                  if (stageSteps.length === 0) return null;
+                  return (
+                    <div key={stageKey}>
+                      <div className="text-xs font-medium text-muted-foreground mt-1 mb-0.5">{stageLabel}</div>
+                      {stageSteps.map((step, i) => (
+                        <div key={i} className="flex items-start gap-1.5 text-xs pl-2">
+                          <span>{step.completed ? '✅' : '❌'}</span>
+                          <span className={step.completed ? 'text-muted-foreground' : ''}>
+                            {step.title || `Step ${i + 1}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+
+                {professionalSummary.nextStep && (
+                  <div className="text-xs bg-muted/50 rounded p-2 mt-1">
+                    👉 <strong>Next step:</strong> {professionalSummary.nextStep.title}
+                    {professionalSummary.nextStep.link && (
+                      <span className="text-muted-foreground ml-1">
+                        → tavara.care{professionalSummary.nextStep.link}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <Button
+                  size="sm"
+                  className="w-full gap-2"
+                  onClick={handleSendProfessionalProgressNudge}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Send Progress Nudge via WhatsApp
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-green-500/50 bg-green-50 dark:bg-green-950/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="font-medium text-sm text-green-800 dark:text-green-300">
+                    All 8 professional steps complete ✓
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
+
       {recommended.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-sm font-medium flex items-center gap-1.5">
