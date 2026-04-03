@@ -59,7 +59,6 @@ export default function MobileScreeningPage() {
   const [submitted, setSubmitted] = useState(false);
   const [textInput, setTextInput] = useState('');
   const [templateProgress, setTemplateProgress] = useState<{ position: number; total: number; completedCount: number; templateName: string } | null>(null);
-  const [textInput, setTextInput] = useState('');
   
   const [uploadingVoice, setUploadingVoice] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
