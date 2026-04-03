@@ -508,7 +508,7 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
     );
   }
 
-  if (templates.length === 0 && incompleteFields.length === 0) {
+  if (templates.length === 0 && incompleteFields.length === 0 && professionalSteps.length === 0) {
     return (
       <div className="text-center py-8 space-y-3">
         <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground" />
