@@ -439,6 +439,20 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
     toast.success('Smart nudge sent & logged');
   };
 
+  // Professional progress nudge logic
+  const professionalSteps = user.role === 'professional' ? (journeyProgress.steps || []) : [];
+  const professionalSummary = user.role === 'professional' ? getProfessionalProgressSummary(professionalSteps) : null;
+
+  const handleSendProfessionalProgressNudge = () => {
+    const message = buildProfessionalNudgeMessage(user.full_name, professionalSteps);
+    const url = user.phone_number
+      ? getWhatsAppUrl(user.phone_number, message)
+      : getTavaraWhatsAppUrl(message);
+    window.open(url, '_blank');
+    logNudgeSent();
+    toast.success('Professional progress nudge sent & logged');
+  };
+
   const renderTemplateCard = (template: NudgeTemplate, isRecommended: boolean) => {
     const populated = populateTemplate(
       template.message_template,
