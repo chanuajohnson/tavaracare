@@ -1,36 +1,63 @@
 
 
-## Add Legacy Story Report to User Report Generator
+## Add Professional Progress-Aware Smart Nudge to Admin Nudge Tab
 
-### What Changes
+### Problem
+The Nudge tab's "Smart Completion Nudge" feature only works for family users. For professionals, there's no auto-generated progress summary showing completed steps vs. next actions with a one-click WhatsApp send.
 
-The `care_recipient_profiles` table data (which IS the legacy story) is already fetched in `useComprehensiveUserData.ts` as `careRecipient`. We just need to surface it properly in the Reports tab.
+### Solution
+Extend `UserNudgeTab.tsx` to support professional users by leveraging the `journeyProgress.steps` data (which already contains the 8-step professional pipeline with `completed`, `title`, `link`, and `stage` fields from `useSpecificUserProfessionalProgress`).
 
 ### Changes
 
-**1. `src/hooks/admin/useComprehensiveUserData.ts`**
-- Add `legacyStoryComplete: boolean` to the `ComprehensiveUserData` interface
-- Set it to `true` when `careRecipientData` exists AND has a `life_story` or `story` field populated
-- Include it in the returned data object
+**File: `src/components/admin/UserNudgeTab.tsx`**
 
-**2. `src/components/admin/UserDetailModal.tsx`**
-- **Summary grid**: Change from 3-column to 4-column grid (for family users). Add a 4th card for "Legacy Story" with a green checkmark when `comprehensiveData.legacyStoryComplete` is true, showing "Complete" or "Not Started"
-- **Data section**: Expand the existing "Care Recipient Profile" card (lines 757-770) to also display the legacy story content fields:
-  - `life_story` / `story` (the main narrative)
-  - `daily_routine`
-  - `dietary_preferences`
-  - `communication_style`
-  - `comfort_piorities`
-  - `caregiver_personality` preferences
-  - Any other rich fields from the `care_recipient_profiles` table
-- Rename the card heading from "Care Recipient Profile" to "Legacy Story / Care Recipient Profile" for clarity
+1. **Add professional progress analysis function** (`getProfessionalProgressSummary`):
+   - Takes `journeyProgress.steps` array
+   - Returns `{ completedSteps, pendingSteps, nextStep }` where each includes title, stage, and link
+   - Maps step titles to human-friendly action items (e.g., "Submit 2 professional references" becomes the pending action)
+
+2. **Add professional nudge message builder** (`buildProfessionalNudgeMessage`):
+   - Generates a WhatsApp message like:
+     ```
+     Hi [Name]! 💙 Chan from Tavara Care.
+
+     Great progress on your caregiver journey! Here's where you stand:
+
+     ✅ Account created
+     ✅ Profile completed
+     ✅ Availability set
+     ✅ Documents uploaded
+
+     📋 What's next:
+     ❌ Submit 2 professional references
+     ❌ Head nurse screening interview
+     ❌ Match with families
+     ❌ Complete training modules
+
+     👉 Your next step: Submit 2 professional references
+     🔗 https://tavara.care/professional/profile?tab=references
+
+     Questions? Just reply here!
+     — Chan, Tavara Care 💙
+     ```
+
+3. **Add professional Smart Nudge UI card** (similar to the family one):
+   - Shows completed steps with checkmarks and pending steps with crosses
+   - Groups by stage (Foundation, Qualification, Vetting, Active, Training)
+   - One-click "Send Progress Nudge via WhatsApp" button
+   - If all 8 steps complete, show green "All steps complete" card instead
+
+4. **Update the rendering logic**:
+   - Change the `{user.role === 'family' && (...)}` block (line 478) to also render the professional variant when `user.role === 'professional'`
+   - The professional card uses the same `handleSendSmartNudge` pattern with logging
 
 ### Technical Details
 
-| File | Change |
+| Area | Detail |
 |------|--------|
-| `src/hooks/admin/useComprehensiveUserData.ts` | Add `legacyStoryComplete` boolean to interface and computation |
-| `src/components/admin/UserDetailModal.tsx` | Add Legacy Story summary card to grid; expand care recipient data display with story fields |
-
-No new database queries needed -- the data is already fetched via the existing `care_recipient_profiles` select.
+| File modified | `src/components/admin/UserNudgeTab.tsx` only |
+| Data source | `journeyProgress.steps` already passed from `UserDetailModal.tsx` via `useSpecificUserProfessionalProgress` |
+| No new queries | Steps data (completed/pending, titles, links) is already available in the props |
+| Links use | Production domain `tavara.care` per existing standard |
 
