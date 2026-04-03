@@ -348,6 +348,14 @@ export default function MobileScreeningPage() {
       {/* Header */}
       <div className="bg-primary text-primary-foreground p-4 space-y-2">
         <h1 className="text-lg font-bold">Screening: {session.candidate_name}</h1>
+        {templateProgress && (
+          <div className="text-sm opacity-90 space-y-0.5">
+            <p>📋 Template {templateProgress.position} of {templateProgress.total} — "{templateProgress.templateName}"</p>
+            <p className="text-xs opacity-80">
+              ✅ {templateProgress.completedCount} completed · {templateProgress.total - templateProgress.completedCount - 1} remaining after this one
+            </p>
+          </div>
+        )}
         <div className="flex items-center justify-between text-sm opacity-90">
           <span>Question {currentIndex + 1} of {questions.length}</span>
           <Badge variant="secondary" className="text-xs">
