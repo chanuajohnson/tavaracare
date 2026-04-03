@@ -234,6 +234,57 @@ const buildSmartNudgeMessage = (
   return message;
 };
 
+// --- Professional Progress Nudge Logic ---
+
+const STAGE_LABELS: Record<string, string> = {
+  foundation: '🏗️ Foundation',
+  qualification: '📜 Qualification',
+  vetting: '🔍 Vetting',
+  active: '🤝 Active',
+  training: '📚 Training',
+};
+
+const getProfessionalProgressSummary = (
+  steps: Array<{ completed: boolean; title?: string; link?: string; stage?: string }>
+) => {
+  const completedSteps = steps.filter(s => s.completed);
+  const pendingSteps = steps.filter(s => !s.completed);
+  const nextStep = pendingSteps[0] || null;
+  return { completedSteps, pendingSteps, nextStep };
+};
+
+const buildProfessionalNudgeMessage = (
+  userName: string,
+  steps: Array<{ completed: boolean; title?: string; link?: string; stage?: string }>
+): string => {
+  const firstName = userName?.split(' ')[0] || 'there';
+  const { completedSteps, pendingSteps, nextStep } = getProfessionalProgressSummary(steps);
+
+  let message = `Hi ${firstName}! 💙 Chan from Tavara Care.\n\n`;
+  message += `Great progress on your caregiver journey! Here's where you stand:\n\n`;
+
+  for (const step of completedSteps) {
+    message += `✅ ${step.title || 'Step complete'}\n`;
+  }
+
+  if (pendingSteps.length > 0) {
+    message += `\n📋 What's next:\n`;
+    for (const step of pendingSteps) {
+      message += `❌ ${step.title || 'Pending step'}\n`;
+    }
+  }
+
+  if (nextStep) {
+    message += `\n👉 Your next step: ${nextStep.title}`;
+    if (nextStep.link) {
+      message += `\n🔗 https://tavara.care${nextStep.link}`;
+    }
+  }
+
+  message += `\n\nQuestions? Just reply here!\n— Chan, Tavara Care 💙`;
+  return message;
+};
+
 // --- Component ---
 
 export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgress, comprehensiveData }) => {
