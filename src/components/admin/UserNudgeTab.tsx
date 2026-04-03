@@ -371,7 +371,7 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
       const { error } = await supabase.from('admin_communications').insert({
         admin_id: adminId,
         target_user_id: user.id,
-        message_type: templateId ? 'whatsapp_nudge' : 'whatsapp_smart_nudge',
+        message_type: 'whatsapp',
         template_id: templateId || null,
         sent_at: new Date().toISOString(),
         delivery_status: 'sent',
