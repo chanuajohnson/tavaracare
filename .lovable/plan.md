@@ -1,53 +1,55 @@
 
-## Fix: User Deletion Fails — Missing `public.sql` RPC Function
+
+## Add Screening Progress Context to Nudge Messages and Screening Page
 
 ### Problem
 
-The `admin-users` edge function tries to delete users by calling `admin.rpc('sql', { query: deletionSQL })`, but there is no `public.sql()` database function. The error from logs:
-
-```
-Could not find the function public.sql(query) in the schema cache
-```
+When a professional receives a WhatsApp screening link, they have no idea how many total templates they need to complete or which one this is. Similarly, while on the screening page itself, they only see question progress within the current template -- not their overall multi-session progress.
 
 ### Solution
 
-Rewrite the `delete-user` action in the edge function to use the Supabase admin client's `.from().delete()` methods for each table, and `admin.auth.admin.deleteUser()` for removing the auth user. This avoids needing a raw SQL execution function entirely.
+Two changes:
 
-**File: `supabase/functions/admin-users/index.ts`**
+**1. WhatsApp Nudge Message (ProfessionalScreeningPage.tsx)**
 
-Replace the monolithic SQL block (lines 67-173) with sequential delete calls using the service-role admin client:
+Update `handleSendScreening` to accept session context (template position, total templates) and include it in the WhatsApp message. Before sending, query how many total sessions exist for this professional and which number this one is.
 
-```typescript
-// Delete in FK-safe order using admin client
-// 1. Chat messages (via session IDs)
-const { data: sessions } = await admin.from('caregiver_chat_sessions')
-  .select('id')
-  .or(`family_user_id.eq.${user_id},caregiver_id.eq.${user_id}`);
-const sessionIds = (sessions || []).map(s => s.id);
-if (sessionIds.length > 0) {
-  await admin.from('caregiver_chat_messages').delete().in('session_id', sessionIds);
-}
+New message format:
+```
+Hi! It's the Tavara Team 💙
 
-// 2. Chat sessions
-await admin.from('caregiver_chat_sessions').delete()
-  .or(`family_user_id.eq.${user_id},caregiver_id.eq.${user_id}`);
+We'd like you to complete a brief screening questionnaire to help us finalize the evaluation for [Name].
 
-// 3-N. Each related table...
-// ... (all tables from the existing SQL block)
+📋 This is Template 2 of 6 — each template covers a different area and will be sent separately.
 
-// Finally: delete profile, then auth user
-await admin.from('profiles').delete().eq('id', user_id);
-await admin.auth.admin.deleteUser(user_id);
+Please tap the link below to answer a few quick questions (voice or text):
+[link]
+
+Thank you! 🙏
 ```
 
-Key changes:
-- No more `admin.rpc('sql', ...)` — uses standard Supabase client methods
-- Auth user deleted via `admin.auth.admin.deleteUser()` instead of `DELETE FROM auth.users` (which shouldn't be done from public schema anyway)
-- Each delete is wrapped with error logging but non-blocking (a missing table row shouldn't stop the whole deletion)
-- Removes the RAISE NOTICE logging (not useful via client SDK)
+This requires the `ScreeningSessionManager` to pass session metadata (session count, position) up to the send handler. The manager already has all sessions loaded -- it will compute the candidate's total session count and position, and pass them alongside the existing parameters.
+
+**2. Screening Page Header (MobileScreeningPage.tsx)**
+
+On page load, after fetching the current session, also query all sessions for the same `professional_id` to get:
+- Total number of assigned templates
+- How many are completed
+- Which template number this one is
+
+Add a subtitle line in the header:
+```
+📋 Template 2 of 6 — "Clinical Competency"
+✅ 1 completed · 4 remaining after this one
+```
+
+This gives the professional full visibility into their screening journey from within each template.
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `supabase/functions/admin-users/index.ts` | Replace `rpc('sql')` with sequential `.from().delete()` calls and `auth.admin.deleteUser()` |
+| `src/pages/admin/ProfessionalScreeningPage.tsx` | Update `handleSendScreening` signature to include session position/total and embed in WhatsApp message |
+| `src/components/admin/ScreeningSessionManager.tsx` | Compute per-candidate session position and total; pass to `onSendScreening` callback |
+| `src/pages/screening/MobileScreeningPage.tsx` | On load, fetch sibling sessions for the same professional; display template position and overall progress in header |
+
