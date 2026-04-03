@@ -112,6 +112,15 @@ export const useComprehensiveUserData = (userId: string, userRole?: string) => {
         );
       }
 
+      // Legacy story is complete if care recipient profile has life_story content
+      const legacyStoryComplete = !!(
+        careRecipient && (
+          careRecipient.life_story ||
+          careRecipient.joyful_things ||
+          careRecipient.unique_facts
+        )
+      );
+
       const comprehensiveData: ComprehensiveUserData = {
         profile,
         careNeeds,
@@ -119,6 +128,7 @@ export const useComprehensiveUserData = (userId: string, userRole?: string) => {
         chatbotResponses: chatbotResponses || [],
         registrationComplete,
         assessmentComplete,
+        legacyStoryComplete,
         lastUpdated: new Date().toISOString()
       };
 
