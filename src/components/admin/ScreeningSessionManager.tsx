@@ -424,7 +424,8 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
             </div>
             <div className="flex gap-2">
               <Button onClick={handleCreateSession} className="flex-1">
-                Create & Copy Link
+                <Send className="h-4 w-4 mr-2" />
+                Create & Send via WhatsApp
               </Button>
               <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
             </div>
