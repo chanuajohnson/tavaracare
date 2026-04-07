@@ -1,35 +1,37 @@
 
 
-## Add "Nudge via WhatsApp" Button for Pending Sessions in Detail Dialog
+## Fix Create Session Button to Clearly Offer WhatsApp Nudge
 
-### Problem
-The detail dialog (eye icon) shows no action buttons for **pending** screening sessions. The WhatsApp nudge button on the session row (RefreshCw icon) still works, but when you open the detail view for a pending session like Denise's "Team / Rotation Fit", you see "No responses yet" with zero actionable buttons.
+### What is actually happening
+The create session flow **already sends a WhatsApp nudge** after creation (line 157-158 in `ScreeningSessionManager.tsx`). When `onSendScreening` is provided and the candidate has a phone number, it opens WhatsApp automatically. The problem is:
+
+1. The button label says **"Create & Copy Link"** which is misleading -- it should say **"Create & Send via WhatsApp"**
+2. The fallback (no phone number) only copies the link silently, with no clear feedback
 
 ### What will change
 
 **File: `src/components/admin/ScreeningSessionManager.tsx`**
 
-1. **Add a "Nudge via WhatsApp" button in the detail dialog** for `pending` and `in_progress` sessions -- this is the missing piece. It will call the same `handleResendScreening` function that the row-level button uses.
+1. Rename the create button from "Create & Copy Link" to **"Create & Send via WhatsApp"** with a Send icon, so it is clear that creating a session will immediately prompt you to nudge the candidate
+2. Add a secondary button **"Create & Copy Link Only"** for cases where you just want the link without WhatsApp
+3. The existing post-creation WhatsApp flow (lines 157-158) remains unchanged -- it already works correctly
 
-2. **Add a "Send via WhatsApp" button in the detail dialog** that is always visible regardless of session status, so you can always nudge from the detail view.
+### Specific code change (lines 425-428)
 
-3. The button will show as: `📲 Nudge via WhatsApp` for pending sessions, making it clear this is a reminder to complete the next screening step.
-
-### Specific code change
-
-In the actions section (around line 507), add a new button block for pending sessions:
-
-```
-{/* Nudge for pending/in_progress */}
-{(selectedSession.status === 'pending' || selectedSession.status === 'in_progress') && (
-  <Button size="sm" onClick={() => handleResendScreening(selectedSession)}>
-    📲 Nudge via WhatsApp
-  </Button>
-)}
+Replace:
+```tsx
+<Button onClick={handleCreateSession} className="flex-1">
+  Create & Copy Link
+</Button>
 ```
 
-This reuses the existing `handleResendScreening` which already includes the template position context (e.g., "Template 2 of 4") in the WhatsApp message.
+With:
+```tsx
+<Button onClick={handleCreateSession} className="flex-1">
+  <Send className="h-4 w-4 mr-2" />
+  Create & Send via WhatsApp
+</Button>
+```
 
-### No new files, no backend changes
-Single file edit, ~5 lines added.
+This is a single-line label change. The underlying logic already opens WhatsApp after session creation.
 
