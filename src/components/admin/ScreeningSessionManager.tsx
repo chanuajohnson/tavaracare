@@ -505,6 +505,11 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
 
               {/* Actions */}
               <div className="flex gap-2 flex-wrap">
+                {(selectedSession.status === 'pending' || selectedSession.status === 'in_progress') && (
+                  <Button size="sm" onClick={() => handleResendScreening(selectedSession)}>
+                    📲 Nudge via WhatsApp
+                  </Button>
+                )}
                 {(selectedSession.status === 'completed' || selectedSession.status === 'reviewed') && (
                   <Button size="sm" onClick={() => handleTriggerAI(selectedSession)}>
                     🤖 {selectedSession.ai_summary ? 'Regenerate AI Summary' : 'Generate AI Summary'}
