@@ -38,8 +38,8 @@ interface CandidateOption {
 }
 
 interface Props {
-  onSendScreening?: (candidateId: string, candidateName: string, link: string, phone: string, sessionPosition?: number, totalSessions?: number) => void;
-  onResendScreening?: (candidateId: string, candidateName: string, link: string, phone: string, sessionPosition?: number, totalSessions?: number) => void;
+  onSendScreening?: (candidateId: string, candidateName: string, link: string, phone: string, sessionPosition?: number, totalSessions?: number, templateName?: string) => void;
+  onResendScreening?: (candidateId: string, candidateName: string, link: string, phone: string, sessionPosition?: number, totalSessions?: number, templateName?: string) => void;
 }
 
 const SCREENING_BASE_URL = 'https://tavara.care';
@@ -155,7 +155,8 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
 
       // Offer to send via WhatsApp
       if (onSendScreening && candidate.phone_number) {
-        onSendScreening(candidate.id, candidate.full_name || 'Candidate', link, candidate.phone_number, sessionPosition, totalSessions);
+        const selectedTemplate = templates.find(t => t.id === createForm.templateId);
+        onSendScreening(candidate.id, candidate.full_name || 'Candidate', link, candidate.phone_number, sessionPosition, totalSessions, selectedTemplate?.title);
       } else {
         // Copy link to clipboard
         await navigator.clipboard.writeText(link);
@@ -187,7 +188,7 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
     const sessionPosition = candidateSessions.findIndex(s => s.id === session.id) + 1;
 
     if (onSendScreening && candidate?.phone_number) {
-      onSendScreening(candidate.id, candidate.full_name || session.candidate_name, link, candidate.phone_number, sessionPosition, totalSessions);
+      onSendScreening(candidate.id, candidate.full_name || session.candidate_name, link, candidate.phone_number, sessionPosition, totalSessions, session.template_title);
     } else {
       navigator.clipboard.writeText(link);
       toast.success('Screening link copied to clipboard!');
@@ -297,7 +298,8 @@ export const ScreeningSessionManager = ({ onSendScreening, onResendScreening }: 
           link,
           candidate.phone_number,
           sessionPosition,
-          totalSessions
+          totalSessions,
+          session.template_title
         );
       } else {
         await navigator.clipboard.writeText(link);

@@ -7,10 +7,11 @@ import { ScreeningSessionManager } from '@/components/admin/ScreeningSessionMana
 import { toast } from 'sonner';
 
 export default function ProfessionalScreeningPage() {
-  const handleSendScreening = (candidateId: string, candidateName: string, link: string, phone: string, sessionPosition?: number, totalSessions?: number) => {
+  const handleSendScreening = (candidateId: string, candidateName: string, link: string, phone: string, sessionPosition?: number, totalSessions?: number, templateName?: string) => {
     const cleanPhone = phone.replace(/\D/g, '');
+    const templateLabel = templateName ? `: "${templateName}"` : '';
     const positionLine = (sessionPosition && totalSessions)
-      ? `\n📋 This is Template ${sessionPosition} of ${totalSessions} — each template covers a different area and will be sent separately.\n`
+      ? `\n📋 This is Template ${sessionPosition} of ${totalSessions}${templateLabel} — each template covers a different area and will be sent separately.\n`
       : '';
     const message = encodeURIComponent(
       `Hi! It's the Tavara Team 💙\n\nWe'd like you to complete a brief screening questionnaire to help us finalize the evaluation for ${candidateName}.\n${positionLine}\nPlease tap the link below to answer a few quick questions (voice or text):\n${link}\n\nThank you! 🙏`
@@ -20,10 +21,11 @@ export default function ProfessionalScreeningPage() {
     toast.success(`WhatsApp opened for ${candidateName} screening`);
   };
 
-  const handleResendScreening = (candidateId: string, candidateName: string, link: string, phone: string, sessionPosition?: number, totalSessions?: number) => {
+  const handleResendScreening = (candidateId: string, candidateName: string, link: string, phone: string, sessionPosition?: number, totalSessions?: number, templateName?: string) => {
     const cleanPhone = phone.replace(/\D/g, '');
+    const templateLabel = templateName ? `: "${templateName}"` : '';
     const positionLine = (sessionPosition && totalSessions)
-      ? `\n📋 This is Template ${sessionPosition} of ${totalSessions} — each template covers a different area and will be sent separately.\n`
+      ? `\n📋 This is Template ${sessionPosition} of ${totalSessions}${templateLabel} — each template covers a different area and will be sent separately.\n`
       : '';
     const message = encodeURIComponent(
       `Hi ${candidateName}! It's the Tavara Team 💙\n\nWe'd like to kindly ask you to redo the screening questionnaire. We noticed a few areas we'd love more detail on before we proceed with the next steps.\n${positionLine}\nPlease tap the link below to complete a fresh set of questions (voice or text):\n${link}\n\nThank you for your patience and understanding! 🙏`
