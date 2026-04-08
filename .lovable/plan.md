@@ -1,55 +1,29 @@
 
 
-## Fix: Denise's Screening Sessions Showing "Pending" Despite Claiming Completion
+## Include Template Name in Screening WhatsApp Nudges
 
-### What the Database Actually Shows
+### Problem
+The WhatsApp nudge message says "Template 6 of 6" but does not include the **template name** (e.g., "Logistics, Transport & Professionalism"). Denise sees a generic message without knowing which specific screening area the link covers. Additionally, the total count is based on sessions already created for that candidate rather than a fixed total, which can be misleading.
 
-| Template | Status | Responses |
-|----------|--------|-----------|
-| Opening / Rapport | **reviewed** | 2 answers saved |
-| Clinical Competency | **completed** | 4 answers saved |
-| Team / Rotation Fit | **in_progress** | **empty []** |
-| Reliability, Culture & Red-Flag Checks | **pending** | **empty []** |
-| Cultural Sensitivity & Local Context | **pending** | **empty []** |
-| Logistics, Transport & Professionalism | **pending** | **empty []** |
+### Changes
 
-**Key finding**: The 3 "pending" sessions have **zero responses saved** and were never even opened (status never changed to `in_progress`). Team / Rotation Fit was opened but no answers were submitted.
+#### 1. Update callback signatures to include template name (2 files)
 
-### Root Cause
+**`src/components/admin/ScreeningSessionManager.tsx`**
+- Update the `Props` interface to add `templateName?: string` parameter to both `onSendScreening` and `onResendScreening`
+- In `handleCreateSession` (line 158): pass the selected template's title as `templateName`
+- In `handleResendScreening` (line 190): pass `session.template_title` as `templateName`
+- In the resubmission handler (~line 294): pass the template title as `templateName`
 
-Denise likely completed the first two sessions, then when she clicked subsequent WhatsApp links, she was redirected to `/professional/screening` (the progress dashboard) because she was logged in. From there, clicking "Continue" on a pending session navigates to `/screening/:token` which works — but if she is clicking the **same old WhatsApp link** (for a completed session), she keeps getting redirected to the progress page and may think she completed everything.
+**`src/pages/admin/ProfessionalScreeningPage.tsx`**
+- Update `handleSendScreening` and `handleResendScreening` signatures to accept `templateName?: string`
+- Include template name in the WhatsApp message:
+  - Before: `📋 This is Template 6 of 6 — each template covers a different area...`
+  - After: `📋 This is Template 6 of 6: "Logistics, Transport & Professionalism" — each template covers a different area...`
 
-**The code is working correctly** — the sessions genuinely were never answered. But there are two UX problems:
+### Technical Detail
 
-1. **No clear "Start Next" call-to-action** on the progress page to guide her to the next pending session
-2. **WhatsApp nudge links always point to individual sessions** — if she re-clicks an old completed link, she loops back to the progress page without clarity on what to do next
+The `ScreeningSession` interface already has `template_title?: string` (line 25), and sessions are enriched with template titles during fetch. So the data is available -- it just needs to be threaded through the callback to the WhatsApp message builder.
 
-### Plan: 2 Changes
-
-#### 1. Add Auto-Navigation to Next Pending Session (MobileScreeningPage.tsx)
-
-When a logged-in user opens a completed session link, instead of just redirecting to `/professional/screening`, automatically find the next pending session and offer to start it immediately with a clear prompt:
-
-- After the redirect to `/professional/screening`, the landing page should highlight the next pending session prominently
-- Add a banner at the top: "You have X sessions remaining — continue with [Template Name]" with a large "Start Now" button
-
-**File**: `src/pages/professional/ProfessionalScreeningLandingPage.tsx`
-
-#### 2. Improve the Progress Page UX to Surface Next Action
-
-On the screening landing page, make the next pending session visually prominent:
-- Auto-scroll or highlight the first incomplete session
-- Add a sticky "Continue to Next Session" button at the bottom for mobile users
-- Show a clear message: "3 of 6 sessions remaining"
-
-**File**: `src/pages/professional/ProfessionalScreeningLandingPage.tsx`
-
-### What This Does NOT Change
-- The submission logic (it works correctly)
-- The WhatsApp nudge flow
-- The admin screening management UI
-- No database changes needed
-
-### Immediate Action for Denise
-After these UX improvements, you should nudge Denise via WhatsApp with a link to one of her pending sessions (e.g., Reliability, Culture & Red-Flag Checks) so she can actually complete them. The 3 pending ones were genuinely never opened.
+No database changes. Two files modified. Approximately 10 lines changed total.
 
