@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -23,6 +23,7 @@ const ProfessionalScreeningLandingPage = () => {
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<ScreeningSession[]>([]);
   const [tipsShown, setTipsShown] = useState(true);
+  const nextSessionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -32,7 +33,6 @@ const ProfessionalScreeningLandingPage = () => {
 
   const fetchScreeningSessions = async () => {
     try {
-      // Fetch all sessions for this professional
       const { data: sessionsData, error: sessionsError } = await supabase
         .from("screening_sessions")
         .select("id, status, access_token, template_id")
@@ -51,7 +51,6 @@ const ProfessionalScreeningLandingPage = () => {
         return;
       }
 
-      // Fetch template details for each session
       const templateIds = [...new Set(sessionsData.map(s => s.template_id))];
       const { data: templates } = await supabase
         .from("screening_question_templates")
@@ -79,6 +78,15 @@ const ProfessionalScreeningLandingPage = () => {
     }
   };
 
+  // Auto-scroll to the next incomplete session after loading
+  useEffect(() => {
+    if (!loading && nextSessionRef.current) {
+      setTimeout(() => {
+        nextSessionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 600);
+    }
+  }, [loading, sessions]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -89,8 +97,12 @@ const ProfessionalScreeningLandingPage = () => {
 
   const totalSessions = sessions.length;
   const completedSessions = sessions.filter(s => s.status === "completed" || s.status === "reviewed").length;
+  const remainingSessions = totalSessions - completedSessions;
   const allComplete = totalSessions > 0 && completedSessions === totalSessions;
   const progressPercent = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
+
+  // Find the first incomplete session
+  const nextSession = sessions.find(s => s.status !== "completed" && s.status !== "reviewed");
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -179,7 +191,7 @@ const ProfessionalScreeningLandingPage = () => {
   // Multi-session progress view
   return (
     <div className="min-h-screen bg-background">
-      <div className="container max-w-2xl px-4 py-12">
+      <div className="container max-w-2xl px-4 py-12 pb-28">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-6">
           
           {/* Progress Summary */}
@@ -207,6 +219,43 @@ const ProfessionalScreeningLandingPage = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Next Session Banner */}
+          {nextSession && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+            >
+              <Card className="border-primary bg-primary/5 shadow-md">
+                <CardContent className="py-5 px-5">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm">
+                        {remainingSessions}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm">
+                          {remainingSessions} session{remainingSessions > 1 ? "s" : ""} remaining
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          Up next: <span className="font-medium text-foreground">{formatTemplateName(nextSession.template_name || "")}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      size="lg"
+                      className="w-full"
+                      onClick={() => navigate(`/screening/${nextSession.access_token}`)}
+                    >
+                      {nextSession.status === "in_progress" ? "Continue Where You Left Off" : "Start Next Session"}
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
           {/* Tips - collapsible */}
           {tipsShown && (
@@ -245,18 +294,20 @@ const ProfessionalScreeningLandingPage = () => {
               const isInProgress = session.status === "in_progress";
               const isPending = session.status === "pending";
               const canStart = isPending || isInProgress;
+              const isNextSession = nextSession?.id === session.id;
 
               return (
                 <motion.div
                   key={session.id}
+                  ref={isNextSession ? nextSessionRef : undefined}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.1 }}
                 >
-                  <Card className={`transition-all ${isCompleted ? "border-green-200 bg-green-50/50" : canStart ? "border-primary/30 hover:border-primary/50" : ""}`}>
+                  <Card className={`transition-all ${isCompleted ? "border-green-200 bg-green-50/50" : isNextSession ? "border-primary ring-2 ring-primary/20 shadow-sm" : canStart ? "border-primary/30 hover:border-primary/50" : ""}`}>
                     <CardContent className="flex items-center justify-between py-4 px-5">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-medium ${isCompleted ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-medium ${isCompleted ? "bg-green-100 text-green-700" : isNextSession ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                           {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
                         </div>
                         <div className="min-w-0">
@@ -272,6 +323,7 @@ const ProfessionalScreeningLandingPage = () => {
                       {canStart && (
                         <Button 
                           size="sm" 
+                          variant={isNextSession ? "default" : "outline"}
                           onClick={() => navigate(`/screening/${session.access_token}`)}
                           className="shrink-0 ml-3"
                         >
@@ -292,6 +344,20 @@ const ProfessionalScreeningLandingPage = () => {
           </Button>
         </motion.div>
       </div>
+
+      {/* Sticky bottom CTA for mobile */}
+      {nextSession && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t border-border md:hidden z-50">
+          <Button 
+            size="lg"
+            className="w-full"
+            onClick={() => navigate(`/screening/${nextSession.access_token}`)}
+          >
+            {nextSession.status === "in_progress" ? "Continue Session" : "Start Next Session"}
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
