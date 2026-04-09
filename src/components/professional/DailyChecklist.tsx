@@ -366,7 +366,7 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
         // Insert new log
         const { data, error } = await supabase
           .from('daily_care_logs')
-          .insert(logPayload)
+          .insert(logPayload as any)
           .select('id')
           .single();
         if (error) throw error;
