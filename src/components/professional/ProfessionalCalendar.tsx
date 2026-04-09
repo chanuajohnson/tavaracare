@@ -4,14 +4,16 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp, Clock, Calendar as CalendarIcon, ClipboardCheck, Pencil } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, Calendar as CalendarIcon, ClipboardCheck, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCarePlanShifts } from "@/hooks/useCarePlanShifts";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { DailyChecklist } from "./DailyChecklist";
+import { toast } from "sonner";
 
 interface ProfessionalCalendarProps {
   carePlanId?: string;
@@ -26,6 +28,7 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
   const [careLogs, setCareLogs] = useState<Record<string, any[]>>({});
   const [checklistDialogOpen, setChecklistDialogOpen] = useState(false);
   const [checklistPreload, setChecklistPreload] = useState<{ logId?: string; clientName?: string; date?: string }>({});
+  const [deletingLogId, setDeletingLogId] = useState<string | null>(null);
   
   const { 
     shifts, 
@@ -36,33 +39,32 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
     endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 2, 0)
   });
 
-  // Fetch daily_care_logs for visible months
-  useEffect(() => {
+  const fetchLogs = async () => {
     if (!user?.id) return;
 
-    const fetchLogs = async () => {
-      const startDate = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().split('T')[0];
-      const endDate = new Date(new Date().getFullYear(), new Date().getMonth() + 2, 0).toISOString().split('T')[0];
+    const startDate = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().split('T')[0];
+    const endDate = new Date(new Date().getFullYear(), new Date().getMonth() + 2, 0).toISOString().split('T')[0];
 
-      const { data, error } = await supabase
-        .from('daily_care_logs')
-        .select('id, shift_date, client_name, created_at')
-        .eq('professional_id', user.id)
-        .gte('shift_date', startDate)
-        .lte('shift_date', endDate);
+    const { data, error } = await supabase
+      .from('daily_care_logs')
+      .select('id, shift_date, client_name, created_at')
+      .eq('professional_id', user.id)
+      .gte('shift_date', startDate)
+      .lte('shift_date', endDate);
 
-      if (!error && data) {
-        const grouped: Record<string, any[]> = {};
-        data.forEach(log => {
-          if (!grouped[log.shift_date]) grouped[log.shift_date] = [];
-          grouped[log.shift_date].push(log);
-        });
-        setCareLogs(grouped);
-      }
-    };
+    if (!error && data) {
+      const grouped: Record<string, any[]> = {};
+      data.forEach(log => {
+        if (!grouped[log.shift_date]) grouped[log.shift_date] = [];
+        grouped[log.shift_date].push(log);
+      });
+      setCareLogs(grouped);
+    }
+  };
 
+  useEffect(() => {
     fetchLogs();
-  }, [user?.id, checklistDialogOpen]); // re-fetch when checklist dialog closes
+  }, [user?.id, checklistDialogOpen]);
   
   const getShiftsForDate = (date?: Date) => {
     if (!date || !shifts.length) return [];
@@ -131,6 +133,29 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
     setChecklistDialogOpen(true);
   };
 
+  const handleDeleteLog = async (logId: string) => {
+    setDeletingLogId(logId);
+    try {
+      const { error } = await supabase
+        .from('daily_care_logs')
+        .delete()
+        .eq('id', logId);
+      
+      if (error) {
+        console.error('Error deleting log:', error);
+        toast.error('Failed to delete log: ' + error.message);
+      } else {
+        toast.success('Daily care log deleted successfully');
+        await fetchLogs();
+      }
+    } catch (err) {
+      console.error('Error deleting log:', err);
+      toast.error('An unexpected error occurred');
+    } finally {
+      setDeletingLogId(null);
+    }
+  };
+
   const daysWithShiftsData = getDaysWithShifts();
   
   const userShiftDays = Object.keys(daysWithShiftsData)
@@ -147,7 +172,6 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
 
   const isToday = (d: Date) => d.toDateString() === new Date().toDateString();
 
-  // Get the selected date string for checking logs
   const selectedDateStr = date ? date.toISOString().split('T')[0] : '';
   const selectedDateLogs = selectedDateStr ? (careLogs[selectedDateStr] || []) : [];
 
@@ -234,28 +258,6 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
                       <>Select a date</>
                     )}
                   </h3>
-                  {/* Show log indicator + open checklist button */}
-                  {selectedDateLogs.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="gap-1 text-emerald-700 border-emerald-300 bg-emerald-50">
-                        <ClipboardCheck className="h-3 w-3" />
-                        {selectedDateLogs.length} log{selectedDateLogs.length > 1 ? 's' : ''} recorded
-                      </Badge>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1"
-                        onClick={() => handleOpenChecklist(
-                          selectedDateLogs[0].id,
-                          selectedDateLogs[0].client_name,
-                          selectedDateStr
-                        )}
-                      >
-                        <Pencil className="h-3 w-3" />
-                        View/Edit Checklist
-                      </Button>
-                    </div>
-                  )}
                   {date && selectedDateLogs.length === 0 && (
                     <Button
                       variant="outline"
@@ -268,6 +270,66 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
                     </Button>
                   )}
                 </div>
+
+                {/* Per-log list with View/Edit and Delete */}
+                {selectedDateLogs.length > 0 && (
+                  <div className="space-y-2">
+                    {selectedDateLogs.map((log) => (
+                      <div key={log.id} className="flex items-center justify-between gap-2 p-2 rounded-md border border-emerald-200 bg-emerald-50">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <ClipboardCheck className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <span className="text-sm font-medium truncate block">{log.client_name || 'Care Log'}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 h-7 text-xs"
+                            onClick={() => handleOpenChecklist(log.id, log.client_name, selectedDateStr)}
+                          >
+                            <Pencil className="h-3 w-3" />
+                            View/Edit
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 h-7 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
+                                disabled={deletingLogId === log.id}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Delete
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Daily Care Log?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete the care log for "{log.client_name}" on {selectedDateStr}. This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteLog(log.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete Log
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 
                 {loading || shiftsLoading ? (
                   <div className="py-4 text-center">

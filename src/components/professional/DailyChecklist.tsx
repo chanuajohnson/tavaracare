@@ -159,12 +159,20 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
     const fetchExistingLog = async () => {
       setLoadingExisting(true);
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('daily_care_logs')
           .select('*')
           .eq('professional_id', user.id)
-          .eq('client_name', resolvedClientName)
-          .eq('shift_date', shiftDate)
+          .eq('shift_date', shiftDate);
+        
+        // Prefer matching by care_plan_id when available, fall back to client_name
+        if (selectedCarePlanId) {
+          query = query.eq('care_plan_id', selectedCarePlanId);
+        } else {
+          query = query.eq('client_name', resolvedClientName);
+        }
+        
+        const { data, error } = await query
           .order('created_at', { ascending: false })
           .limit(1);
 
