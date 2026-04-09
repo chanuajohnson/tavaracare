@@ -1,79 +1,91 @@
 
 
-## Add Post-Screening & Matching Nudge Messages
+## Add SOP Handbook + Daily Checklist to Professional Dashboard & Next Steps
 
-### What You Need
-Two new contextual WhatsApp nudge buttons in the UserNudgeTab:
+### What You Want
+1. **Two new cards** on the professional profile Admin Assistant tab: one for the **Nurse Handbook/SOP** PDF and one for the **Daily Checklist** PDF
+2. **Always-visible line items** in the "Your Next Steps" panel (after "Screening Complete") linking to the SOP and Daily Checklist -- visible regardless of journey stage
+3. **Interactive daily checklist UI** where nurses can check off items each shift, creating a documented daily log
+4. **WhatsApp-sendable checklist summary** for shift handoff briefings
+5. **Update the "Onboarding & Job Description" nudge** (not yet implemented) to include links to both documents
 
-1. **For Denise (professional)**: A "Screening Complete — Next Steps" nudge that tells her she passed screening, confirms her availability, and outlines next steps (joining a care team, phone/video call scheduling)
-2. **For the family**: A "Caregiver Found — Next Steps" nudge that informs them a nurse/team has been identified, and next steps are a phone call or video conference to confirm start date
+### Files to Create / Modify
 
-### Current State
-- The Nudge tab already has a **Professional Progress Nudge** showing step-by-step pipeline status
-- When all 8 steps are complete, it shows "All 8 professional steps complete" with no action button
-- For families, the Smart Completion Nudge exists but nothing for the "we found you a match" scenario
+#### 1. Copy uploaded PDFs into the project
+- Copy `Tavara_Nurse_Handbook_Branded_1.pdf` to `public/documents/Tavara_Nurse_Handbook.pdf`
+- Copy `Tavara_Daily_Checklist_Branded.pdf` to `public/documents/Tavara_Daily_Checklist.pdf`
 
-### Plan: 2 New Nudge Message Builders in UserNudgeTab.tsx
+#### 2. New component: `src/components/professional/DailyChecklist.tsx`
+An interactive checklist UI mirroring the PDF structure with these sections:
+- Start of Shift (6 items)
+- Care Tasks (5 items)
+- Emotional Support (4 items)
+- Home Tasks (4 items)
+- Monitoring (3 items)
+- Communication (3 items)
+- Documentation & Logging (5 items)
+- End of Shift (4 items)
 
-#### 1. "Screening Complete" Nudge for Professionals (when all steps are done)
+Features:
+- Nurse name, client name, date, shift selector (Morning/Afternoon/Night)
+- Checkboxes for each task with real-time state
+- Notes/observations text area
+- Time in/out fields
+- **"Save Daily Log"** button that stores the checklist state to `daily_care_logs` table (new migration)
+- **"Send Shift Summary via WhatsApp"** button that builds a text summary of checked/unchecked items and opens WhatsApp with the summary pre-filled
 
-Replace the static green "All 8 professional steps complete" card (lines 707-718) with an actionable card:
+#### 3. New migration: `daily_care_logs` table
+```sql
+create table public.daily_care_logs (
+  id uuid primary key default gen_random_uuid(),
+  professional_id uuid references auth.users(id) not null,
+  client_name text,
+  shift_date date not null default current_date,
+  shift_type text check (shift_type in ('morning', 'afternoon', 'night')),
+  checklist_data jsonb not null default '{}',
+  notes text,
+  time_in text,
+  time_out text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table public.daily_care_logs enable row level security;
+create policy "Professionals manage own logs"
+  on public.daily_care_logs for all
+  to authenticated
+  using (professional_id = auth.uid())
+  with check (professional_id = auth.uid());
+```
 
-- Title: "🎉 Screening Complete — Send Next Steps"
-- Message template:
-  ```
-  Hi [Name]! 💙 Chan from Tavara Care.
+#### 4. Update: `src/components/professional/profile/AdminAssistantCard.tsx`
+Add two new cards to the existing grid:
+- **"Nurse Handbook & SOP"** card with a `BookOpen` icon and link to open/download the PDF
+- **"Daily Care Checklist"** card with a `ClipboardCheck` icon that navigates to the interactive checklist (or opens it in a dialog)
 
-  🎉 Congratulations! You've successfully completed your screening process!
+#### 5. Update: `src/components/professional/EnhancedProfessionalNextStepsPanel.tsx`
+Add two **always-visible** resource cards between the step list and the "Show All" button:
+- A compact row with `BookOpen` icon: "Nurse Handbook & SOP" with a "View PDF" link
+- A compact row with `ClipboardCheck` icon: "Daily Care Checklist" with a "Open Checklist" link
+These render regardless of journey progress -- they appear for every professional.
 
-  We'd like to move forward and place you with a family who needs your skills. Here's what happens next:
+#### 6. Update: `src/components/admin/UserNudgeTab.tsx`
+Add the **"Onboarding & Job Description"** nudge card (previously planned, not yet built) below the "Screening Complete" card for professional users. The WhatsApp message includes:
+- Starting rate ($35/hr Standard, $40 Full Service, $45+ Premium)
+- Team structure (main nurse + rotation + fill-ins)
+- Probationary period
+- Daily log requirements (written, via Tavara platform)
+- WhatsApp group expectations
+- Links to the Nurse Handbook and Daily Checklist PDFs on tavara.care
+- Full job description from GAPP standards
 
-  ✅ Your screening is complete
-  📋 We're matching you with a care team
-  📞 We'll schedule a brief call to confirm your availability and start date
+### Technical Summary
 
-  Could you please confirm:
-  1. Are you still available to start?
-  2. Any schedule preferences or constraints?
-
-  We're excited to have you on board!
-  — Chan, Tavara Care 💙
-  ```
-- Button: "Send Screening Complete Nudge via WhatsApp"
-
-#### 2. "Caregiver Found" Nudge for Families (new card after Smart Completion Nudge)
-
-Add a new card in the family section — a "Matching Update" nudge:
-
-- Title: "🏥 Caregiver Found — Send Update"
-- Message template:
-  ```
-  Hi [Name]! 💙 Chan from Tavara Care.
-
-  Great news! 🎉 We've identified a nurse and care team for your loved one's home care.
-
-  Here's what happens next:
-  📞 We'd like to schedule a brief phone call or video conference with you
-  📋 We'll discuss the care team, confirm the care schedule, and agree on a start date
-  💙 Your input is essential to making sure everything is a perfect fit
-
-  Could you let us know:
-  1. Your preferred time for a call this week?
-  2. Would you prefer a phone call or video conference?
-
-  We're so close to getting your family the support they need!
-  — Chan, Tavara Care 💙
-  ```
-- Button: "Send Caregiver Found Update via WhatsApp"
-- This card appears for family users regardless of profile completeness — it's a separate contextual action
-
-### File Changed
-- `src/components/admin/UserNudgeTab.tsx` only
-
-### Technical Details
-- Two new message builder functions: `buildScreeningCompleteNudge` and `buildCaregiverFoundNudge`
-- Two new handler functions using the existing `getWhatsAppUrl`/`getTavaraWhatsAppUrl` + `logNudgeSent` pattern
-- The screening complete card replaces the passive green checkmark card for professionals
-- The caregiver found card is added as an always-available action card in the family section
-- No database changes, no new files
+| Change | File | Type |
+|--------|------|------|
+| Copy 2 PDFs | `public/documents/` | Asset |
+| Daily checklist component | `src/components/professional/DailyChecklist.tsx` | New |
+| Daily care logs table | Migration | New |
+| Admin assistant cards | `AdminAssistantCard.tsx` | Edit |
+| Always-visible resource links | `EnhancedProfessionalNextStepsPanel.tsx` | Edit |
+| Onboarding nudge | `UserNudgeTab.tsx` | Edit |
 
