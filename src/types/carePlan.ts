@@ -21,7 +21,7 @@ export interface CarePlan {
 export interface CarePlanMetadata {
   planType: 'scheduled' | 'on-demand' | 'both';
   weekdayCoverage?: '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
-  weekendCoverage?: 'yes' | 'no';
+  weekendCoverage?: '6am-6pm' | '8am-4pm' | 'yes' | 'no';
   additionalShifts?: {
     weekdayEvening4pmTo6am?: boolean;
     weekdayEvening4pmTo8am?: boolean;
