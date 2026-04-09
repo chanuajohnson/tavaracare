@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Save, Send, ClipboardCheck, Clock, FileText, BookOpen } from 'lucide-react';
+import { Save, Send, ClipboardCheck, FileText, BookOpen } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { useCurrentAssignments } from '@/hooks/useCurrentAssignments';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -97,7 +98,9 @@ const CHECKLIST_SECTIONS: ChecklistSection[] = [
 
 export const DailyChecklist = () => {
   const { user } = useAuth();
+  const { assignments } = useCurrentAssignments();
   const [clientName, setClientName] = useState('');
+  const [customClientName, setCustomClientName] = useState('');
   const [shiftType, setShiftType] = useState<string>('');
   const [shiftDate, setShiftDate] = useState(new Date().toISOString().split('T')[0]);
   const [timeIn, setTimeIn] = useState('');
@@ -105,8 +108,14 @@ export const DailyChecklist = () => {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Track checked items as a flat map: "sectionIndex-itemIndex" -> boolean
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+
+  // Deduplicate family names from assignments
+  const uniqueFamilies = Array.from(
+    new Map(assignments.map(a => [a.familyId, a.familyName])).entries()
+  ).map(([id, name]) => ({ id, name }));
+
+  const resolvedClientName = clientName === '__other__' ? customClientName : clientName;
 
   const toggleItem = (sectionIdx: number, itemIdx: number) => {
     const key = `${sectionIdx}-${itemIdx}`;
@@ -121,14 +130,14 @@ export const DailyChecklist = () => {
   const completedItems = Object.values(checkedItems).filter(Boolean).length;
   const progressPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
-  const handleSave = async () => {
+  const handleSave = async (): Promise<boolean> => {
     if (!user) {
       toast.error('Please sign in to save your daily log');
-      return;
+      return false;
     }
     if (!shiftType) {
       toast.error('Please select a shift type');
-      return;
+      return false;
     }
 
     setSaving(true);
@@ -143,7 +152,7 @@ export const DailyChecklist = () => {
 
       const { error } = await supabase.from('daily_care_logs').insert({
         professional_id: user.id,
-        client_name: clientName || null,
+        client_name: resolvedClientName || null,
         shift_date: shiftDate,
         shift_type: shiftType as 'morning' | 'afternoon' | 'night',
         checklist_data: checklistData,
@@ -154,9 +163,11 @@ export const DailyChecklist = () => {
 
       if (error) throw error;
       toast.success('Daily care log saved successfully!');
+      return true;
     } catch (err: any) {
       console.error('Error saving daily log:', err);
       toast.error(err.message || 'Failed to save daily log');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -165,7 +176,7 @@ export const DailyChecklist = () => {
   const buildWhatsAppSummary = () => {
     let summary = `📋 *Shift Summary*\n`;
     summary += `👤 Nurse: ${user?.user_metadata?.full_name || 'N/A'}\n`;
-    summary += `🏠 Client: ${clientName || 'N/A'}\n`;
+    summary += `🏠 Client: ${resolvedClientName || 'N/A'}\n`;
     summary += `📅 Date: ${shiftDate}\n`;
     summary += `⏰ Shift: ${shiftType || 'N/A'} (${timeIn || '?'} – ${timeOut || '?'})\n`;
     summary += `✅ Completed: ${completedItems}/${totalItems} tasks (${progressPercent}%)\n\n`;
@@ -194,6 +205,13 @@ export const DailyChecklist = () => {
     window.open(`https://wa.me/?text=${encoded}`, '_blank');
   };
 
+  const handleSaveAndSend = async () => {
+    const saved = await handleSave();
+    if (saved) {
+      handleSendWhatsApp();
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -219,13 +237,13 @@ export const DailyChecklist = () => {
       {/* Quick Links to PDFs */}
       <div className="flex flex-wrap gap-3">
         <Button variant="outline" size="sm" className="gap-2" asChild>
-          <a href="/documents/Tavara_Nurse_Handbook.pdf" target="_blank" rel="noopener noreferrer">
+          <a href="https://tavaracare.lovable.app/documents/Tavara_Nurse_Handbook.pdf" target="_blank" rel="noopener noreferrer" download="Tavara_Nurse_Handbook.pdf">
             <BookOpen className="h-4 w-4" />
             View Nurse Handbook & SOP
           </a>
         </Button>
         <Button variant="outline" size="sm" className="gap-2" asChild>
-          <a href="/documents/Tavara_Daily_Checklist.pdf" target="_blank" rel="noopener noreferrer">
+          <a href="https://tavaracare.lovable.app/documents/Tavara_Daily_Checklist.pdf" target="_blank" rel="noopener noreferrer" download="Tavara_Daily_Checklist.pdf">
             <FileText className="h-4 w-4" />
             View Checklist PDF
           </a>
@@ -237,8 +255,24 @@ export const DailyChecklist = () => {
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="clientName">Client Name</Label>
-              <Input id="clientName" placeholder="Client name" value={clientName} onChange={e => setClientName(e.target.value)} />
+              <Label>Client Name</Label>
+              <Select value={clientName} onValueChange={setClientName}>
+                <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
+                <SelectContent>
+                  {uniqueFamilies.map(f => (
+                    <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>
+                  ))}
+                  <SelectItem value="__other__">✏️ Other (type name)</SelectItem>
+                </SelectContent>
+              </Select>
+              {clientName === '__other__' && (
+                <Input
+                  placeholder="Enter client name"
+                  value={customClientName}
+                  onChange={e => setCustomClientName(e.target.value)}
+                  className="mt-2"
+                />
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="shiftDate">Date</Label>
@@ -318,15 +352,19 @@ export const DailyChecklist = () => {
         </CardContent>
       </Card>
 
-      {/* Actions */}
+      {/* Actions - Three Buttons */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <Button onClick={handleSave} disabled={saving} className="flex-1 gap-2">
+        <Button onClick={() => handleSave()} disabled={saving} className="flex-1 gap-2">
           <Save className="h-4 w-4" />
           {saving ? 'Saving...' : 'Save Daily Log'}
         </Button>
+        <Button variant="secondary" onClick={handleSaveAndSend} disabled={saving} className="flex-1 gap-2">
+          <Save className="h-4 w-4" />
+          {saving ? 'Saving...' : 'Save & Send via WhatsApp'}
+        </Button>
         <Button variant="outline" onClick={handleSendWhatsApp} className="flex-1 gap-2">
           <Send className="h-4 w-4" />
-          Send Shift Summary via WhatsApp
+          Send Summary via WhatsApp
         </Button>
       </div>
     </div>
