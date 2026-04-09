@@ -285,6 +285,45 @@ const buildProfessionalNudgeMessage = (
   return message;
 };
 
+const buildScreeningCompleteNudge = (userName: string): string => {
+  const firstName = userName?.split(' ')[0] || 'there';
+  return `Hi ${firstName}! 💙 Chan from Tavara Care.
+
+🎉 Congratulations! You've successfully completed your screening process!
+
+We'd like to move forward and place you with a family who needs your skills. Here's what happens next:
+
+✅ Your screening is complete
+📋 We're matching you with a care team
+📞 We'll schedule a brief call to confirm your availability and start date
+
+Could you please confirm:
+1. Are you still available to start?
+2. Any schedule preferences or constraints?
+
+We're excited to have you on board!
+— Chan, Tavara Care 💙`;
+};
+
+const buildCaregiverFoundNudge = (userName: string): string => {
+  const firstName = userName?.split(' ')[0] || 'there';
+  return `Hi ${firstName}! 💙 Chan from Tavara Care.
+
+Great news! 🎉 We've identified a nurse and care team for your loved one's home care.
+
+Here's what happens next:
+📞 We'd like to schedule a brief phone call or video conference with you
+📋 We'll discuss the care team, confirm the care schedule, and agree on a start date
+💙 Your input is essential to making sure everything is a perfect fit
+
+Could you let us know:
+1. Your preferred time for a call this week?
+2. Would you prefer a phone call or video conference?
+
+We're so close to getting your family the support they need!
+— Chan, Tavara Care 💙`;
+};
+
 // --- Component ---
 
 export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgress, comprehensiveData }) => {
@@ -451,6 +490,26 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
     window.open(url, '_blank');
     logNudgeSent();
     toast.success('Professional progress nudge sent & logged');
+  };
+
+  const handleSendScreeningCompleteNudge = () => {
+    const message = buildScreeningCompleteNudge(user.full_name);
+    const url = user.phone_number
+      ? getWhatsAppUrl(user.phone_number, message)
+      : getTavaraWhatsAppUrl(message);
+    window.open(url, '_blank');
+    logNudgeSent();
+    toast.success('Screening complete nudge sent & logged');
+  };
+
+  const handleSendCaregiverFoundNudge = () => {
+    const message = buildCaregiverFoundNudge(user.full_name);
+    const url = user.phone_number
+      ? getWhatsAppUrl(user.phone_number, message)
+      : getTavaraWhatsAppUrl(message);
+    window.open(url, '_blank');
+    logNudgeSent();
+    toast.success('Caregiver found nudge sent & logged');
   };
 
   const renderTemplateCard = (template: NudgeTemplate, isRecommended: boolean) => {
@@ -631,6 +690,31 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
         </>
       )}
 
+      {/* Caregiver Found Nudge — for family users */}
+      {user.role === 'family' && (
+        <Card className="border-blue-500/50 bg-blue-50 dark:bg-blue-950/20">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-blue-600" />
+              <span className="font-medium text-sm text-blue-800 dark:text-blue-300">
+                🏥 Caregiver Found — Send Update
+              </span>
+            </div>
+            <p className="text-xs text-blue-700 dark:text-blue-400">
+              Inform the family that a nurse/care team has been identified and propose a phone call or video conference to discuss next steps and start date.
+            </p>
+            <Button
+              size="sm"
+              className="w-full gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={handleSendCaregiverFoundNudge}
+            >
+              <Send className="h-3.5 w-3.5" />
+              Send Caregiver Found Update via WhatsApp
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Smart Progress Nudge — professional users */}
       {user.role === 'professional' && professionalSummary && (
         <>
@@ -706,13 +790,24 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
             </Card>
           ) : (
             <Card className="border-green-500/50 bg-green-50 dark:bg-green-950/20">
-              <CardContent className="p-4">
+              <CardContent className="p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
                   <span className="font-medium text-sm text-green-800 dark:text-green-300">
-                    All 8 professional steps complete ✓
+                    🎉 Screening Complete — Send Next Steps
                   </span>
                 </div>
+                <p className="text-xs text-green-700 dark:text-green-400">
+                  All professional steps are complete. Send a congratulatory nudge with next steps about care team placement and availability confirmation.
+                </p>
+                <Button
+                  size="sm"
+                  className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white"
+                  onClick={handleSendScreeningCompleteNudge}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Send Screening Complete Nudge via WhatsApp
+                </Button>
               </CardContent>
             </Card>
           )}
