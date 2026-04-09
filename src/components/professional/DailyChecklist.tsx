@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -8,114 +8,82 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Save, Send, ClipboardCheck, FileText, BookOpen } from 'lucide-react';
+import { Save, Send, ClipboardCheck, FileText, BookOpen, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useCurrentAssignments } from '@/hooks/useCurrentAssignments';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-interface ChecklistSection {
-  title: string;
-  items: string[];
-}
-
-const CHECKLIST_SECTIONS: ChecklistSection[] = [
-  {
-    title: '🌅 Start of Shift',
-    items: [
-      'Greet and check in with client',
-      'Review previous shift notes',
-      'Check medication schedule',
-      'Assess client mood and comfort',
-      'Inspect home environment for safety',
-      'Confirm emergency contacts are accessible'
-    ]
-  },
-  {
-    title: '🩺 Care Tasks',
-    items: [
-      'Assist with bathing/personal hygiene',
-      'Assist with dressing and grooming',
-      'Oral care completed',
-      'Assist with toileting / incontinence care',
-      'Administer medications (under supervision)'
-    ]
-  },
-  {
-    title: '💙 Emotional Support',
-    items: [
-      'Provide companionship and conversation',
-      'Engage in mental stimulation activities',
-      'Monitor mood and emotional wellbeing',
-      'Encourage social interaction'
-    ]
-  },
-  {
-    title: '🏠 Home Tasks',
-    items: [
-      'Prepare nutritious meals',
-      'Assist with feeding if needed',
-      'Light housekeeping / tidy patient areas',
-      'Laundry support'
-    ]
-  },
-  {
-    title: '📊 Monitoring',
-    items: [
-      'Take vital signs (BP, temp, pulse)',
-      'Monitor mobility and fall risk',
-      'Check for skin integrity / pressure areas'
-    ]
-  },
-  {
-    title: '📞 Communication',
-    items: [
-      'Update WhatsApp care group',
-      'Communicate with family as needed',
-      'Report any concerns to care coordinator'
-    ]
-  },
-  {
-    title: '📝 Documentation & Logging',
-    items: [
-      'Complete daily care log entry',
-      'Document medication administration',
-      'Note any behavioral changes',
-      'Record meals and fluid intake',
-      'Document any incidents or concerns'
-    ]
-  },
-  {
-    title: '🌙 End of Shift',
-    items: [
-      'Brief incoming nurse on client status',
-      'Ensure client is comfortable and safe',
-      'Update shift notes for next nurse',
-      'Confirm next shift coverage'
-    ]
-  }
-];
+import { CHECKLIST_SECTIONS } from './checklist/checklistSections';
+import { ChecklistSectionCard } from './checklist/ChecklistSectionCard';
 
 export const DailyChecklist = () => {
   const { user } = useAuth();
   const { assignments } = useCurrentAssignments();
   const [clientName, setClientName] = useState('');
   const [customClientName, setCustomClientName] = useState('');
-  const [shiftType, setShiftType] = useState<string>('');
+  const [selectedShiftId, setSelectedShiftId] = useState<string>('');
   const [shiftDate, setShiftDate] = useState(new Date().toISOString().split('T')[0]);
   const [timeIn, setTimeIn] = useState('');
   const [timeOut, setTimeOut] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
-
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+  const [availableShifts, setAvailableShifts] = useState<any[]>([]);
 
   // Deduplicate family names from assignments
-  const uniqueFamilies = Array.from(
-    new Map(assignments.map(a => [a.familyId, a.familyName])).entries()
-  ).map(([id, name]) => ({ id, name }));
+  const uniqueFamilies = useMemo(() => {
+    return Array.from(
+      new Map(assignments.map(a => [a.familyId, { id: a.familyId, name: a.familyName, carePlanId: a.carePlanId }])).entries()
+    ).map(([, val]) => val);
+  }, [assignments]);
+
+  // Find selected assignment details
+  const selectedAssignment = useMemo(() => {
+    if (!clientName || clientName === '__other__') return null;
+    return assignments.find(a => a.familyName === clientName) || null;
+  }, [clientName, assignments]);
+
+  const selectedFamilyId = selectedAssignment?.familyId;
+  const selectedCarePlanId = selectedAssignment?.carePlanId;
 
   const resolvedClientName = clientName === '__other__' ? customClientName : clientName;
+
+  // Fetch shifts when client or date changes
+  useEffect(() => {
+    if (!user?.id || !selectedFamilyId) {
+      setAvailableShifts([]);
+      return;
+    }
+
+    const fetchShifts = async () => {
+      const { data, error } = await supabase
+        .from('care_shifts')
+        .select('id, title, start_time, end_time, status')
+        .eq('caregiver_id', user.id)
+        .eq('family_id', selectedFamilyId)
+        .order('start_time', { ascending: true });
+
+      if (!error && data) {
+        setAvailableShifts(data);
+      }
+    };
+
+    fetchShifts();
+  }, [user?.id, selectedFamilyId, shiftDate]);
+
+  // Auto-populate time in/out when shift selected
+  useEffect(() => {
+    if (!selectedShiftId || selectedShiftId === '__other__') return;
+    const shift = availableShifts.find(s => s.id === selectedShiftId);
+    if (shift) {
+      try {
+        const startDate = new Date(shift.start_time);
+        const endDate = new Date(shift.end_time);
+        setTimeIn(startDate.toTimeString().slice(0, 5));
+        setTimeOut(endDate.toTimeString().slice(0, 5));
+      } catch {}
+    }
+  }, [selectedShiftId, availableShifts]);
 
   const toggleItem = (sectionIdx: number, itemIdx: number) => {
     const key = `${sectionIdx}-${itemIdx}`;
@@ -126,17 +94,55 @@ export const DailyChecklist = () => {
     return checkedItems[`${sectionIdx}-${itemIdx}`] || false;
   };
 
+  // Select all for a section
+  const toggleSection = (sectionIdx: number) => {
+    const section = CHECKLIST_SECTIONS[sectionIdx];
+    const allChecked = section.items.every((_, iIdx) => isChecked(sectionIdx, iIdx));
+    setCheckedItems(prev => {
+      const updated = { ...prev };
+      section.items.forEach((_, iIdx) => {
+        updated[`${sectionIdx}-${iIdx}`] = !allChecked;
+      });
+      return updated;
+    });
+  };
+
+  // Select all for entire day
+  const toggleAll = () => {
+    const allChecked = totalItems === completedItems && totalItems > 0;
+    setCheckedItems(() => {
+      const updated: Record<string, boolean> = {};
+      CHECKLIST_SECTIONS.forEach((section, sIdx) => {
+        section.items.forEach((_, iIdx) => {
+          updated[`${sIdx}-${iIdx}`] = !allChecked;
+        });
+      });
+      return updated;
+    });
+  };
+
   const totalItems = CHECKLIST_SECTIONS.reduce((sum, s) => sum + s.items.length, 0);
   const completedItems = Object.values(checkedItems).filter(Boolean).length;
   const progressPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+  const allChecked = totalItems === completedItems && totalItems > 0;
+
+  const getShiftLabel = () => {
+    if (selectedShiftId === '__other__') return 'Ad-hoc Shift';
+    const shift = availableShifts.find(s => s.id === selectedShiftId);
+    return shift?.title || 'N/A';
+  };
 
   const handleSave = async (): Promise<boolean> => {
     if (!user) {
       toast.error('Please sign in to save your daily log');
       return false;
     }
-    if (!shiftType) {
-      toast.error('Please select a shift type');
+    if (!resolvedClientName) {
+      toast.error('Please select a client');
+      return false;
+    }
+    if (!selectedShiftId) {
+      toast.error('Please select a shift');
       return false;
     }
 
@@ -150,11 +156,13 @@ export const DailyChecklist = () => {
         }));
       });
 
+      const shiftType = selectedShiftId === '__other__' ? 'other' : 'scheduled';
+
       const { error } = await supabase.from('daily_care_logs').insert({
         professional_id: user.id,
         client_name: resolvedClientName || null,
         shift_date: shiftDate,
-        shift_type: shiftType as 'morning' | 'afternoon' | 'night',
+        shift_type: shiftType as any,
         checklist_data: checklistData,
         notes: notes || null,
         time_in: timeIn || null,
@@ -174,28 +182,46 @@ export const DailyChecklist = () => {
   };
 
   const buildWhatsAppSummary = () => {
-    let summary = `📋 *Shift Summary*\n`;
+    let summary = `📋 *SHIFT HANDOFF REPORT*\n`;
+    summary += `━━━━━━━━━━━━━━━━━━━━━\n`;
     summary += `👤 Nurse: ${user?.user_metadata?.full_name || 'N/A'}\n`;
     summary += `🏠 Client: ${resolvedClientName || 'N/A'}\n`;
     summary += `📅 Date: ${shiftDate}\n`;
-    summary += `⏰ Shift: ${shiftType || 'N/A'} (${timeIn || '?'} – ${timeOut || '?'})\n`;
+    summary += `⏰ Shift: ${getShiftLabel()} (${timeIn || '?'} – ${timeOut || '?'})\n`;
     summary += `✅ Completed: ${completedItems}/${totalItems} tasks (${progressPercent}%)\n\n`;
 
     CHECKLIST_SECTIONS.forEach((section, sIdx) => {
       const sectionCompleted = section.items.filter((_, iIdx) => isChecked(sIdx, iIdx)).length;
-      if (sectionCompleted < section.items.length) {
-        summary += `${section.title}\n`;
-        section.items.forEach((item, iIdx) => {
-          summary += `  ${isChecked(sIdx, iIdx) ? '✅' : '❌'} ${item}\n`;
-        });
-        summary += '\n';
-      }
+      const sectionTotal = section.items.length;
+      const sectionDone = sectionCompleted === sectionTotal;
+      summary += `${section.title} (${sectionCompleted}/${sectionTotal}) ${sectionDone ? '✅' : ''}\n`;
+      section.items.forEach((item, iIdx) => {
+        summary += `  ${isChecked(sIdx, iIdx) ? '✅' : '❌'} ${item}\n`;
+      });
+      summary += '\n';
     });
 
-    if (notes) {
-      summary += `📝 *Notes:*\n${notes}\n`;
+    // Items needing attention
+    const incompleteItems: string[] = [];
+    CHECKLIST_SECTIONS.forEach((section, sIdx) => {
+      section.items.forEach((item, iIdx) => {
+        if (!isChecked(sIdx, iIdx)) incompleteItems.push(item);
+      });
+    });
+
+    if (incompleteItems.length > 0) {
+      summary += `⚠️ *Items Needing Attention:*\n`;
+      incompleteItems.forEach(item => {
+        summary += `  - ${item}\n`;
+      });
+      summary += '\n';
     }
 
+    if (notes) {
+      summary += `📝 *Notes for Next Nurse:*\n${notes}\n\n`;
+    }
+
+    summary += `━━━━━━━━━━━━━━━━━━━━━\nLogged via Tavara Care`;
     return summary;
   };
 
@@ -217,7 +243,7 @@ export const DailyChecklist = () => {
       {/* Header */}
       <Card className="border-l-4 border-l-primary">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <ClipboardCheck className="h-6 w-6 text-primary" />
               <div>
@@ -227,9 +253,21 @@ export const DailyChecklist = () => {
                 </p>
               </div>
             </div>
-            <Badge variant={progressPercent === 100 ? 'default' : 'secondary'} className="text-sm">
-              {completedItems}/{totalItems} ({progressPercent}%)
-            </Badge>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="select-all-master"
+                  checked={allChecked}
+                  onCheckedChange={toggleAll}
+                />
+                <Label htmlFor="select-all-master" className="text-sm font-medium cursor-pointer">
+                  Select All
+                </Label>
+              </div>
+              <Badge variant={progressPercent === 100 ? 'default' : 'secondary'} className="text-sm">
+                {completedItems}/{totalItems} ({progressPercent}%)
+              </Badge>
+            </div>
           </div>
         </CardHeader>
       </Card>
@@ -256,7 +294,7 @@ export const DailyChecklist = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label>Client Name</Label>
-              <Select value={clientName} onValueChange={setClientName}>
+              <Select value={clientName} onValueChange={(val) => { setClientName(val); setSelectedShiftId(''); }}>
                 <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
                 <SelectContent>
                   {uniqueFamilies.map(f => (
@@ -279,13 +317,16 @@ export const DailyChecklist = () => {
               <Input id="shiftDate" type="date" value={shiftDate} onChange={e => setShiftDate(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Shift Type</Label>
-              <Select value={shiftType} onValueChange={setShiftType}>
+              <Label>Shift</Label>
+              <Select value={selectedShiftId} onValueChange={setSelectedShiftId}>
                 <SelectTrigger><SelectValue placeholder="Select shift" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="morning">☀️ Morning</SelectItem>
-                  <SelectItem value="afternoon">🌤️ Afternoon</SelectItem>
-                  <SelectItem value="night">🌙 Night</SelectItem>
+                  {availableShifts.map(s => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.title}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__other__">✏️ Other (ad-hoc shift)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -306,34 +347,19 @@ export const DailyChecklist = () => {
       {/* Checklist Sections */}
       {CHECKLIST_SECTIONS.map((section, sIdx) => {
         const sectionCompleted = section.items.filter((_, iIdx) => isChecked(sIdx, iIdx)).length;
+        const allSectionChecked = sectionCompleted === section.items.length;
         return (
-          <Card key={sIdx}>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">{section.title}</CardTitle>
-                <Badge variant={sectionCompleted === section.items.length ? 'default' : 'outline'} className="text-xs">
-                  {sectionCompleted}/{section.items.length}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {section.items.map((item, iIdx) => (
-                <div key={iIdx} className="flex items-center gap-3 py-1">
-                  <Checkbox
-                    id={`check-${sIdx}-${iIdx}`}
-                    checked={isChecked(sIdx, iIdx)}
-                    onCheckedChange={() => toggleItem(sIdx, iIdx)}
-                  />
-                  <Label
-                    htmlFor={`check-${sIdx}-${iIdx}`}
-                    className={`font-normal cursor-pointer ${isChecked(sIdx, iIdx) ? 'line-through text-muted-foreground' : ''}`}
-                  >
-                    {item}
-                  </Label>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+          <ChecklistSectionCard
+            key={sIdx}
+            section={section}
+            sectionIdx={sIdx}
+            sectionCompleted={sectionCompleted}
+            allSectionChecked={allSectionChecked}
+            isChecked={isChecked}
+            toggleItem={toggleItem}
+            toggleSection={toggleSection}
+            carePlanId={selectedCarePlanId}
+          />
         );
       })}
 
