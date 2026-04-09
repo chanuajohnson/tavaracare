@@ -1,42 +1,68 @@
 
 
-## Fix Daily Checklist: DB Constraint, Persistence, and PDF Logo
+## Edit & Resubmit Daily Care Logs (No Duplicates)
 
-### Problems Identified
+### What Changes
 
-1. **Save error ("daily_care_logs_shift_type_check")**: The database `shift_type` column has a CHECK constraint allowing only `'morning'`, `'afternoon'`, `'night'`. But the code sends `'scheduled'` or `'other'`. All three buttons (Save, Save & Send, Send) are affected since Save & Send calls Save first.
+#### 1. Load Existing Log on Open
+When the checklist opens (or when client + date changes), query `daily_care_logs` for an existing record matching `professional_id + client_name + shift_date`. If found:
+- Pre-populate all checklist items from `checklist_data` JSONB
+- Pre-fill notes, time_in, time_out, shift_type
+- Store the existing log `id` in state (`existingLogId`)
+- Show a badge: "Editing log from [date]" so the nurse knows this was previously submitted
 
-2. **No persistence across page refresh**: All checklist state (checked items, client, shift, times, notes) is in React `useState` -- lost on refresh.
+#### 2. Upsert Instead of Insert
+Change `handleSave` logic:
+- If `existingLogId` exists → use `.update()` on that row instead of `.insert()`
+- If no existing log → use `.insert()` as before
+- This prevents duplicate logs for the same date/client
+- Button label changes to "Update Daily Log" when editing an existing record
 
-3. **PDF logo**: The Nurse Handbook PDF currently has a text-based or low-quality logo. The user wants the proper `.png` Tavara logo. This requires regenerating the PDF, which is a separate artifact task outside the codebase.
+#### 3. Schedule View Integration
+In the `ProfessionalCalendar.tsx` shift list for each date, add a visual indicator (small checkmark badge) if a `daily_care_logs` record exists for that date. Add a "View/Edit Checklist" button on dates that have a log, which opens the DailyChecklist dialog pre-populated with that log's data.
 
-### Plan
+#### 4. Checklist Data Restoration Logic
+The `checklist_data` JSONB is stored as `{ "Section Title": [{ task, completed }] }`. On load, map this back to the `checkedItems` record by matching section titles and item indices from `CHECKLIST_SECTIONS`.
 
-#### 1. Migration: Update shift_type constraint
-Create a new migration to drop the old CHECK constraint and add an expanded one that includes `'scheduled'`, `'other'`, and the original values:
+### Current DB State
+There are already 2 duplicate logs for April 9 (one with shift_type `morning`, one `scheduled`). The migration should clean this up or the UI should handle multiple existing logs gracefully (use the most recent one).
 
-```sql
-ALTER TABLE public.daily_care_logs DROP CONSTRAINT daily_care_logs_shift_type_check;
-ALTER TABLE public.daily_care_logs ADD CONSTRAINT daily_care_logs_shift_type_check 
-  CHECK (shift_type IN ('morning', 'afternoon', 'night', 'scheduled', 'other'));
-```
-
-#### 2. Add localStorage persistence to DailyChecklist.tsx
-- Create a `STORAGE_KEY` constant (e.g., `'tavara_daily_checklist_draft'`)
-- On every state change (checkedItems, clientName, selectedShiftId, shiftDate, timeIn, timeOut, notes, customClientName), debounce-save to localStorage
-- On mount, restore state from localStorage if a draft exists for the current date
-- On successful save to database, clear the localStorage draft
-- This ensures nurses can close/refresh the browser and continue where they left off
-
-#### 3. Regenerate Nurse Handbook PDF with .png logo
-- Use the uploaded `TAVARACARElogo.png` to regenerate the PDF with proper branding
-- Copy the new PDF to `public/documents/Tavara_Nurse_Handbook.pdf`
-
-### Files Changed
+### Files Modified
 
 | File | Change |
 |------|--------|
-| New migration | Update `shift_type` CHECK constraint |
-| `src/components/professional/DailyChecklist.tsx` | Add localStorage save/restore for draft persistence; clear on successful DB save |
-| `public/documents/Tavara_Nurse_Handbook.pdf` | Regenerate with .png logo |
+| `src/components/professional/DailyChecklist.tsx` | Add existing log fetch, upsert logic, edit mode indicator |
+| `src/components/professional/ProfessionalCalendar.tsx` | Add log-exists indicator per date, "View/Edit Checklist" button |
+
+### Technical Details
+
+**Fetching existing log** (in DailyChecklist, triggered by client + date change):
+```sql
+SELECT * FROM daily_care_logs 
+WHERE professional_id = ? AND client_name = ? AND shift_date = ?
+ORDER BY created_at DESC LIMIT 1
+```
+
+**Restoring checkedItems from JSONB**:
+```ts
+const restored: Record<string, boolean> = {};
+CHECKLIST_SECTIONS.forEach((section, sIdx) => {
+  const saved = checklistData[section.title];
+  if (saved) {
+    saved.forEach((item, iIdx) => {
+      restored[`${sIdx}-${iIdx}`] = item.completed;
+    });
+  }
+});
+```
+
+**Save logic change**:
+- `existingLogId` set → `supabase.from('daily_care_logs').update({...}).eq('id', existingLogId)`
+- No `existingLogId` → `supabase.from('daily_care_logs').insert({...})`
+- Toast says "Log updated" vs "Log saved" accordingly
+
+**Calendar integration**:
+- Fetch `daily_care_logs` for the visible month range alongside shifts
+- On dates with logs, show a small clipboard icon
+- Clicking opens the DailyChecklist dialog with log data pre-loaded via props or URL params
 
