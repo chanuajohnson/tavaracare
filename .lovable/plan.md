@@ -1,88 +1,42 @@
 
 
-## Comprehensive Daily Care Checklist Enhancement
+## Fix Daily Checklist: DB Constraint, Persistence, and PDF Logo
 
-### What Changes
+### Problems Identified
 
-#### 1. Select All per Section Card
-Each checklist section card gets a "Select All" checkbox in the header next to the section title. Checking it toggles all items in that section. Unchecking it clears all items.
+1. **Save error ("daily_care_logs_shift_type_check")**: The database `shift_type` column has a CHECK constraint allowing only `'morning'`, `'afternoon'`, `'night'`. But the code sends `'scheduled'` or `'other'`. All three buttons (Save, Save & Send, Send) are affected since Save & Send calls Save first.
 
-#### 2. Select All for Entire Day
-A master "Select All Tasks" button/checkbox at the top of the checklist (in the header card) that toggles all 34 items across all sections at once.
+2. **No persistence across page refresh**: All checklist state (checked items, client, shift, times, notes) is in React `useState` -- lost on refresh.
 
-#### 3. Enhanced WhatsApp Summary
-Currently the WhatsApp message only shows incomplete sections. The improved message will:
-- Show ALL sections with their completion status
-- List completed tasks with details (not just checkmarks)
-- Include the specific shift title (e.g., "Monday – Friday, 8 AM – 6 PM") instead of generic "morning"
-- Include time in/out
-- Add a "Handoff Notes" section
-- Format as a proper shift handoff briefing
+3. **PDF logo**: The Nurse Handbook PDF currently has a text-based or low-quality logo. The user wants the proper `.png` Tavara logo. This requires regenerating the PDF, which is a separate artifact task outside the codebase.
 
-#### 4. Shift Type from Actual Assigned Shifts
-Replace the generic Morning/Afternoon/Night dropdown with actual shifts from the `care_shifts` table for the selected family. When the nurse selects a client:
-- Fetch their upcoming/today's shifts from `care_shifts` where `caregiver_id` = current user and `family_id` = selected family
-- Show shifts by their real titles (e.g., "☀️ Monday – Friday, 8 AM – 4 PM") with actual start/end times
-- Auto-populate Time In / Time Out from the selected shift
-- Keep a fallback "Other" option for ad-hoc shifts
+### Plan
 
-#### 5. Medication Management Link
-The "Administer medications (under supervision)" checklist item gets a clickable link icon next to it. When a family is selected and has a care plan, this link navigates to `/family/care-management/{carePlanId}?tab=medications` — the Medications tab of that family's care plan.
+#### 1. Migration: Update shift_type constraint
+Create a new migration to drop the old CHECK constraint and add an expanded one that includes `'scheduled'`, `'other'`, and the original values:
 
-#### 6. Enhanced `useCurrentAssignments` Hook
-Add `carePlanId` and `familyId` data to enable fetching shifts. The hook already returns `carePlanId` — we just need to use it in the checklist to fetch relevant shifts.
+```sql
+ALTER TABLE public.daily_care_logs DROP CONSTRAINT daily_care_logs_shift_type_check;
+ALTER TABLE public.daily_care_logs ADD CONSTRAINT daily_care_logs_shift_type_check 
+  CHECK (shift_type IN ('morning', 'afternoon', 'night', 'scheduled', 'other'));
+```
 
-### Files Modified
+#### 2. Add localStorage persistence to DailyChecklist.tsx
+- Create a `STORAGE_KEY` constant (e.g., `'tavara_daily_checklist_draft'`)
+- On every state change (checkedItems, clientName, selectedShiftId, shiftDate, timeIn, timeOut, notes, customClientName), debounce-save to localStorage
+- On mount, restore state from localStorage if a draft exists for the current date
+- On successful save to database, clear the localStorage draft
+- This ensures nurses can close/refresh the browser and continue where they left off
+
+#### 3. Regenerate Nurse Handbook PDF with .png logo
+- Use the uploaded `TAVARACARElogo.png` to regenerate the PDF with proper branding
+- Copy the new PDF to `public/documents/Tavara_Nurse_Handbook.pdf`
+
+### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/professional/DailyChecklist.tsx` | All UI changes: select all, shift dropdown from care_shifts, medication link, enhanced WhatsApp message |
-| `src/hooks/useCurrentAssignments.ts` | No changes needed — already returns `carePlanId` and `familyId` |
-
-### Technical Details
-
-**Shift fetching logic** (in DailyChecklist):
-- When `clientName` changes, find the matching assignment to get `familyId` and `carePlanId`
-- Query `care_shifts` where `caregiver_id = user.id AND family_id = selectedFamilyId` and shifts are near the selected date
-- Populate shift dropdown with real shift titles and times
-- On shift selection, auto-fill `timeIn`/`timeOut` from `start_time`/`end_time`
-
-**WhatsApp message format**:
-```text
-📋 *SHIFT HANDOFF REPORT*
-━━━━━━━━━━━━━━━━━━━━━
-👤 Nurse: Tricia Cumm
-🏠 Client: Peltier Family
-📅 Date: 2026-04-09
-⏰ Shift: Monday – Friday, 8 AM – 4 PM (8:00 AM – 4:00 PM)
-✅ Completed: 30/34 tasks (88%)
-
-🌅 *Start of Shift* (6/6) ✅
-  ✅ Greet and check in with client
-  ✅ Review previous shift notes
-  ...
-
-🩺 *Care Tasks* (4/5)
-  ✅ Assist with bathing/personal hygiene
-  ❌ Administer medications — see meds log
-  ...
-
-📝 *Notes for Next Nurse:*
-Client was in good spirits today...
-
-⚠️ *Items Needing Attention:*
-  - Administer medications (under supervision)
-  ...
-━━━━━━━━━━━━━━━━━━━━━
-Logged via Tavara Care
-```
-
-**Medication link**: When the nurse checks "Administer medications", or clicks the link icon, it opens the care plan's medications tab in a new tab. The URL is constructed from the selected assignment's `carePlanId`.
-
-### What This Does NOT Change
-- The checklist sections/items themselves
-- The database schema (daily_care_logs table)
-- The save logic (same insert)
-- Any routing or navigation files
-- The useCurrentAssignments hook
+| New migration | Update `shift_type` CHECK constraint |
+| `src/components/professional/DailyChecklist.tsx` | Add localStorage save/restore for draft persistence; clear on successful DB save |
+| `public/documents/Tavara_Nurse_Handbook.pdf` | Regenerate with .png logo |
 
