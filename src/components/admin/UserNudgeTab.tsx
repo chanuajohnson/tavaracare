@@ -324,6 +324,62 @@ We're so close to getting your family the support they need!
 — Chan, Tavara Care 💙`;
 };
 
+const buildOnboardingNudge = (userName: string): string => {
+  const firstName = userName?.split(' ')[0] || 'there';
+  return `Hi ${firstName}! 💙 Chan from Tavara Care.
+
+📋 *Your Onboarding Package — Job Description & Requirements*
+
+We're thrilled to welcome you to the Tavara Care team! Here's everything you need to know about your role:
+
+💰 *Starting Rate*
+• Standard Tier: $35/hr
+• Full Service: $40/hr
+• Premium: $45+/hr
+Your tier will be confirmed based on experience, certifications, and assignment complexity.
+
+👥 *Team Structure*
+• You'll serve as the *main nurse* for an assigned home
+• A team of fill-in nurses will support in case of emergencies, appointments, or personal needs
+• Early rotation period: all team members will rotate to familiarize with the home and operations
+• You remain the primary nurse until otherwise decided
+
+📝 *Probationary Period*
+• Performance review period before formalization as part of the Tavara Care nurse body
+• We'll evaluate quality of care, communication, and reliability
+
+📊 *Daily Log Requirements (Mandatory)*
+• Written daily care log — not verbal only
+• Completed via the Tavara platform (accessible to all team nurses)
+• Covers: vitals, care tasks, meals, medications, observations, incidents
+
+💬 *WhatsApp Care Group*
+• A dedicated WhatsApp group will be created for each home
+• Used for daily logs, shift handoff briefings, and team coordination
+• Active participation is required
+
+🩺 *Job Responsibilities (GAPP Standards)*
+✅ Personal care: bathing, dressing, grooming, oral care, incontinence care
+✅ Vital signs: blood pressure, temperature, pulse monitoring
+✅ Mobility: transfers, walking assistance, prescribed exercises
+✅ Nutrition: meal planning, preparation, feeding assistance
+✅ Medication: filling trays under supervision, administration tracking
+✅ Housekeeping: patient area sanitation, room tidying, laundry
+✅ Medical appointments: accompaniment and rehab support
+✅ Companionship: social support, mental stimulation, games
+✅ Documentation: daily logs, incident reports, care plan updates
+
+🌟 *Professional Standards*
+Patience • Compassion • Confidentiality • Collaborative work with families and health professionals
+
+📚 *Resources*
+• Nurse Handbook & SOP: tavara.care/documents/Tavara_Nurse_Handbook.pdf
+• Daily Care Checklist: tavara.care/documents/Tavara_Daily_Checklist.pdf
+
+Please review everything and let me know if you have any questions!
+— Chan, Tavara Care 💙`;
+};
+
 // --- Component ---
 
 export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgress, comprehensiveData }) => {
