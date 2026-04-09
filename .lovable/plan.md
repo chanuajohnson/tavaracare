@@ -1,32 +1,38 @@
 
 
-## Fix Duplicate Daily Care Logs: View, Delete, and Prevent Duplicates
+## Fix 3 Issues: Care Plan Quick Link, Weekend 8-4 Option, and Admin-Created Plan Error
 
-### Changes
+### Issue 1: Add Care Plans Quick Link to Family Dashboard
+The `FamilyShortcutMenuBar` currently shows "Care Management" only after a visit is scheduled (line 146). A dedicated "Care Plans" quick link should always be visible when care plans exist.
 
-#### 1. Database Migration
-- Add unique constraint on `daily_care_logs(professional_id, care_plan_id, shift_date)` to prevent future duplicates
-- Add DELETE RLS policy so professionals can delete their own logs (`professional_id = auth.uid()`)
+**File**: `src/components/family/FamilyShortcutMenuBar.tsx`
+- Add a "Care Plans" button linking to `/family/care-management` that appears for all authenticated families (not gated behind visit scheduling)
+- Use the `FileText` icon to match the care plan iconography used elsewhere
 
-#### 2. Data Fix (via insert tool)
-- Delete the older duplicate log `217b03cc-8e96-4514-9e77-952b5c8c654d` (keeping `e9331b4f...`)
+### Issue 2: Add Weekend 8 AM - 4 PM Shift Option
+Currently the weekend coverage only offers "Saturday - Sunday, 6 AM - 6 PM" or "No Weekend Coverage". An additional option for 8 AM - 4 PM is needed.
 
-#### 3. `src/components/professional/ProfessionalCalendar.tsx`
-Replace the current "N logs recorded" badge + single edit button with a per-log list:
-- Each log shown as a row: client name, created time, View/Edit button, Delete button
-- Delete button opens a confirmation dialog (AlertDialog)
-- After delete, re-fetch logs from DB
-- Keep "New Checklist" button for dates with no logs
+**File**: `src/pages/family/care-management/CreateCarePlanPage.tsx`
+- Change `WeekendOption` type from `'yes' | 'no'` to `'6am-6pm' | '8am-4pm' | 'no'`
+- Add a third radio button: "Saturday - Sunday, 8 AM - 4 PM" (standard weekend hours)
+- Update default value and metadata handling to use the new string values instead of `yes`/`no`
+- Ensure backward compatibility: existing plans with `weekendCoverage: 'yes'` still display correctly
 
-#### 4. `src/components/professional/DailyChecklist.tsx`
-The existing `fetchExistingLog` effect (line 152) already checks for existing logs by `professional_id + client_name + shift_date` and switches to edit mode. This will be enhanced to also match on `care_plan_id` (via `selectedCarePlanId`) for more precise dedup. The DB unique constraint acts as the final safety net.
+### Issue 3: Fix Error When Family Accesses Admin-Created Care Plan
+**Root Cause**: `CarePlanDetailPage.tsx` violates React's rules of hooks. The `useCarePlanData` hook (line 67-81) is called *after* conditional early returns (lines 51-65), and a `useEffect` (line 107) is also placed after conditional returns. React requires hooks to be called in the same order every render -- conditional returns before hooks break this rule, causing a crash.
+
+**File**: `src/pages/family/care-management/CarePlanDetailPage.tsx`
+- Move ALL hooks to the top of the component (before any conditional returns)
+- Move `useCarePlanData` call above the auth/id checks
+- Move the admin-check `useEffect` above conditional returns
+- Provide safe fallback values (`id || ''`, `user?.id || ''`) to hooks when values aren't ready yet
+- Keep the conditional return logic but place it AFTER all hooks
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| New migration | Unique constraint + DELETE RLS policy |
-| Data operation | Delete log `217b03cc...` |
-| `ProfessionalCalendar.tsx` | Per-log rows with delete buttons and confirmation |
-| `DailyChecklist.tsx` | Add `care_plan_id` to existing-log lookup query |
+| `src/components/family/FamilyShortcutMenuBar.tsx` | Add always-visible "Care Plans" quick link |
+| `src/pages/family/care-management/CreateCarePlanPage.tsx` | Add weekend 8 AM - 4 PM option |
+| `src/pages/family/care-management/CarePlanDetailPage.tsx` | Fix hooks ordering to prevent crash on admin-created plans |
 
