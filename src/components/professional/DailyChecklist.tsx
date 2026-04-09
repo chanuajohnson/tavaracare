@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -16,6 +16,20 @@ import { toast } from 'sonner';
 import { CHECKLIST_SECTIONS } from './checklist/checklistSections';
 import { ChecklistSectionCard } from './checklist/ChecklistSectionCard';
 
+const STORAGE_KEY = 'tavara_daily_checklist_draft';
+
+interface DraftState {
+  clientName: string;
+  customClientName: string;
+  selectedShiftId: string;
+  shiftDate: string;
+  timeIn: string;
+  timeOut: string;
+  notes: string;
+  checkedItems: Record<string, boolean>;
+  savedAt: string;
+}
+
 export const DailyChecklist = () => {
   const { user } = useAuth();
   const { assignments } = useCurrentAssignments();
@@ -29,6 +43,54 @@ export const DailyChecklist = () => {
   const [saving, setSaving] = useState(false);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [availableShifts, setAvailableShifts] = useState<any[]>([]);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+
+  // Load draft from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const draft: DraftState = JSON.parse(raw);
+        // Only restore if draft is from today
+        const today = new Date().toISOString().split('T')[0];
+        if (draft.shiftDate === today || draft.savedAt?.startsWith(today)) {
+          setClientName(draft.clientName || '');
+          setCustomClientName(draft.customClientName || '');
+          setSelectedShiftId(draft.selectedShiftId || '');
+          setShiftDate(draft.shiftDate || today);
+          setTimeIn(draft.timeIn || '');
+          setTimeOut(draft.timeOut || '');
+          setNotes(draft.notes || '');
+          setCheckedItems(draft.checkedItems || {});
+        }
+      }
+    } catch {}
+    setDraftLoaded(true);
+  }, []);
+
+  // Save draft to localStorage on state changes (debounced)
+  useEffect(() => {
+    if (!draftLoaded) return;
+    const timer = setTimeout(() => {
+      const draft: DraftState = {
+        clientName,
+        customClientName,
+        selectedShiftId,
+        shiftDate,
+        timeIn,
+        timeOut,
+        notes,
+        checkedItems,
+        savedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [draftLoaded, clientName, customClientName, selectedShiftId, shiftDate, timeIn, timeOut, notes, checkedItems]);
+
+  const clearDraft = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+  }, []);
 
   // Deduplicate family names from assignments
   const uniqueFamilies = useMemo(() => {
@@ -170,6 +232,7 @@ export const DailyChecklist = () => {
       });
 
       if (error) throw error;
+      clearDraft();
       toast.success('Daily care log saved successfully!');
       return true;
     } catch (err: any) {
