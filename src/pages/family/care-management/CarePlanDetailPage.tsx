@@ -7,7 +7,7 @@ import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCarePlanData } from "@/hooks/useCarePlanData";
 import { CareTeamMemberWithProfile } from "@/types/careTypes";
-import { ChefHat, FileText } from "lucide-react";
+import { ChefHat, FileText, ClipboardList } from "lucide-react";
 
 import { CareTeamTab } from "@/components/care-plan/CareTeamTab";
 import { PlanDetailsTab } from "@/components/care-plan/PlanDetailsTab";
@@ -21,6 +21,7 @@ import { CarePlanNotFound } from "@/components/care-plan/CarePlanNotFound";
 import { RemoveTeamMemberDialog } from "@/components/care-plan/RemoveTeamMemberDialog";
 import { MealPlanner } from "@/components/meal-planning/MealPlanner";
 import { ShiftReportGenerator } from "@/components/care-plan/ShiftReportGenerator";
+import { DailyCareLogsTab } from "@/components/care-plan/DailyCareLogsTab";
 
 const CarePlanDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -123,6 +124,10 @@ const CarePlanDetailPage = () => {
               <FileText className="mr-2 h-4 w-4" />
               Shift Reports
             </TabsTrigger>
+            <TabsTrigger value="daily-logs">
+              <ClipboardList className="mr-2 h-4 w-4" />
+              Daily Logs
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="details">
@@ -174,6 +179,10 @@ const CarePlanDetailPage = () => {
 
           <TabsContent value="reports">
             <MedicationReportsTab carePlanId={id} />
+          </TabsContent>
+
+          <TabsContent value="daily-logs">
+            <DailyCareLogsTab carePlanId={id} />
           </TabsContent>
           
           <TabsContent value="payroll">

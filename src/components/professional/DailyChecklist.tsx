@@ -340,7 +340,7 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
 
       const shiftType = selectedShiftId === '__other__' ? 'other' : 'scheduled';
 
-      const logPayload = {
+      const logPayload: Record<string, any> = {
         professional_id: user.id,
         client_name: resolvedClientName || null,
         shift_date: shiftDate,
@@ -349,6 +349,8 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
         notes: notes || null,
         time_in: timeIn || null,
         time_out: timeOut || null,
+        care_plan_id: selectedCarePlanId || null,
+        family_id: selectedFamilyId || null,
       };
 
       if (existingLogId) {
@@ -386,25 +388,13 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
   };
 
   const buildWhatsAppSummary = () => {
-    let summary = `📋 *SHIFT HANDOFF REPORT*\n`;
-    summary += `━━━━━━━━━━━━━━━━━━━━━\n`;
-    summary += `👤 Nurse: ${user?.user_metadata?.full_name || 'N/A'}\n`;
-    summary += `🏠 Client: ${resolvedClientName || 'N/A'}\n`;
-    summary += `📅 Date: ${shiftDate}\n`;
-    summary += `⏰ Shift: ${getShiftLabel()} (${timeIn || '?'} – ${timeOut || '?'})\n`;
-    summary += `✅ Completed: ${completedItems}/${totalItems} tasks (${progressPercent}%)\n\n`;
+    const nurseName = user?.user_metadata?.full_name || 'N/A';
+    let summary = `📋 *SHIFT HANDOFF*\n`;
+    summary += `👤 ${nurseName} → 🏠 ${resolvedClientName || 'N/A'}\n`;
+    summary += `📅 ${shiftDate} | ⏰ ${timeIn || '?'} – ${timeOut || '?'}\n`;
+    summary += `✅ ${completedItems}/${totalItems} tasks completed (${progressPercent}%)\n`;
 
-    CHECKLIST_SECTIONS.forEach((section, sIdx) => {
-      const sectionCompleted = section.items.filter((_, iIdx) => isChecked(sIdx, iIdx)).length;
-      const sectionTotal = section.items.length;
-      const sectionDone = sectionCompleted === sectionTotal;
-      summary += `${section.title} (${sectionCompleted}/${sectionTotal}) ${sectionDone ? '✅' : ''}\n`;
-      section.items.forEach((item, iIdx) => {
-        summary += `  ${isChecked(sIdx, iIdx) ? '✅' : '❌'} ${item}\n`;
-      });
-      summary += '\n';
-    });
-
+    // Only list incomplete items if any
     const incompleteItems: string[] = [];
     CHECKLIST_SECTIONS.forEach((section, sIdx) => {
       section.items.forEach((item, iIdx) => {
@@ -413,18 +403,22 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
     });
 
     if (incompleteItems.length > 0) {
-      summary += `⚠️ *Items Needing Attention:*\n`;
+      summary += `\n⚠️ *Needs attention:*\n`;
       incompleteItems.forEach(item => {
-        summary += `  - ${item}\n`;
+        summary += `• ${item}\n`;
       });
-      summary += '\n';
     }
 
     if (notes) {
-      summary += `📝 *Notes for Next Nurse:*\n${notes}\n\n`;
+      summary += `\n📝 *Notes:* ${notes}\n`;
     }
 
-    summary += `━━━━━━━━━━━━━━━━━━━━━\nLogged via Tavara Care`;
+    // Deep link to care plan daily logs tab
+    if (selectedCarePlanId) {
+      summary += `\n🔗 View full log & care plan:\nhttps://tavaracare.lovable.app/family/care-management/${selectedCarePlanId}?tab=daily-logs\n`;
+    }
+
+    summary += `\n— Tavara Care`;
     return summary;
   };
 
