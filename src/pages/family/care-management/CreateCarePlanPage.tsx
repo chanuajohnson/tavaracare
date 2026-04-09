@@ -20,7 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type PlanType = 'scheduled' | 'on-demand' | 'both';
 type WeekdayOption = '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
-type WeekendOption = 'yes' | 'no';
+type WeekendOption = '6am-6pm' | '8am-4pm' | 'yes' | 'no';
 
 const CreateCarePlanPage = () => {
   const { user } = useAuth();
@@ -38,7 +38,7 @@ const CreateCarePlanPage = () => {
   const [description, setDescription] = useState("");
   const [planType, setPlanType] = useState<PlanType>("scheduled");
   const [weekdayOption, setWeekdayOption] = useState<WeekdayOption>("8am-4pm");
-  const [weekendOption, setWeekendOption] = useState<WeekendOption>("yes");
+  const [weekendOption, setWeekendOption] = useState<WeekendOption>("6am-6pm");
   
   const [shifts, setShifts] = useState({
     weekdayEvening4pmTo6am: false,
@@ -417,13 +417,25 @@ const CreateCarePlanPage = () => {
                         className="space-y-3"
                       >
                         <div className="flex items-start space-x-2">
-                          <RadioGroupItem value="yes" id="weekend-yes" />
+                          <RadioGroupItem value="6am-6pm" id="weekend-6am-6pm" />
                           <div className="grid gap-1.5 leading-none">
-                            <Label htmlFor="weekend-yes" className="font-medium">
-                              Yes: Saturday - Sunday, 6 AM - 6 PM
+                            <Label htmlFor="weekend-6am-6pm" className="font-medium">
+                              Saturday - Sunday, 6 AM - 6 PM
                             </Label>
                             <p className="text-sm text-muted-foreground">
-                              Daytime weekend coverage with a dedicated caregiver.
+                              Full daytime weekend coverage with a dedicated caregiver.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start space-x-2">
+                          <RadioGroupItem value="8am-4pm" id="weekend-8am-4pm" />
+                          <div className="grid gap-1.5 leading-none">
+                            <Label htmlFor="weekend-8am-4pm" className="font-medium">
+                              Saturday - Sunday, 8 AM - 4 PM
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                              Standard weekend hours during business hours.
                             </p>
                           </div>
                         </div>
