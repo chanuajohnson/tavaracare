@@ -876,6 +876,29 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Onboarding & Job Description Nudge */}
+            <Card className="border-purple-500/50 bg-purple-50 dark:bg-purple-950/20">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-purple-600" />
+                  <span className="font-medium text-sm text-purple-800 dark:text-purple-300">
+                    📋 Onboarding & Job Description
+                  </span>
+                </div>
+                <p className="text-xs text-purple-700 dark:text-purple-400">
+                  Send starting rate, team structure, probationary period, daily log requirements, and full job responsibilities based on GAPP standards. Includes links to Nurse Handbook & Daily Checklist.
+                </p>
+                <Button
+                  size="sm"
+                  className="w-full gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={handleSendOnboardingNudge}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Send Onboarding Package via WhatsApp
+                </Button>
+              </CardContent>
+            </Card>
           )}
         </>
       )}
