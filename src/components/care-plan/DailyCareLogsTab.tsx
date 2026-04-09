@@ -53,16 +53,45 @@ export const DailyCareLogsTab = ({ carePlanId }: DailyCareLogsTabProps) => {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Primary query: logs linked to this care plan
+      const { data: linkedLogs, error: linkedError } = await supabase
         .from('daily_care_logs')
         .select('*')
         .eq('care_plan_id', carePlanId)
         .order('shift_date', { ascending: false })
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (linkedError) throw linkedError;
 
-      const typedLogs = (data || []).map(d => ({
+      // Fallback: fetch logs from care team professionals that have NULL care_plan_id
+      let orphanedLogs: any[] = [];
+      const { data: teamMembers } = await supabase
+        .from('care_team_members')
+        .select('caregiver_id')
+        .eq('care_plan_id', carePlanId);
+
+      if (teamMembers && teamMembers.length > 0) {
+        const professionalIds = teamMembers.map(m => m.caregiver_id);
+        const { data: orphaned } = await supabase
+          .from('daily_care_logs')
+          .select('*')
+          .in('professional_id', professionalIds)
+          .is('care_plan_id', null)
+          .order('shift_date', { ascending: false })
+          .order('created_at', { ascending: false });
+        orphanedLogs = orphaned || [];
+      }
+
+      // Merge and deduplicate
+      const allLogs = [...(linkedLogs || []), ...orphanedLogs];
+      const seenIds = new Set<string>();
+      const dedupedLogs = allLogs.filter(l => {
+        if (seenIds.has(l.id)) return false;
+        seenIds.add(l.id);
+        return true;
+      });
+
+      const typedLogs = dedupedLogs.map(d => ({
         ...d,
         checklist_data: (d.checklist_data && typeof d.checklist_data === 'object' ? d.checklist_data : {}) as Record<string, any>,
       }));
