@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Save, Send, ClipboardCheck, FileText, BookOpen, ExternalLink } from 'lucide-react';
+import { Save, Send, ClipboardCheck, FileText, BookOpen, ExternalLink, Pencil } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useCurrentAssignments } from '@/hooks/useCurrentAssignments';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,7 +29,16 @@ interface DraftState {
   savedAt: string;
 }
 
-export const DailyChecklist = () => {
+interface DailyChecklistProps {
+  /** Pre-load an existing log by ID (from calendar view) */
+  preloadLogId?: string;
+  /** Pre-select client name */
+  preloadClientName?: string;
+  /** Pre-select date */
+  preloadDate?: string;
+}
+
+export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }: DailyChecklistProps) => {
   const { user } = useAuth();
   const { assignments } = useCurrentAssignments();
   const [clientName, setClientName] = useState('');
@@ -45,13 +53,27 @@ export const DailyChecklist = () => {
   const [availableShifts, setAvailableShifts] = useState<any[]>([]);
   const [draftLoaded, setDraftLoaded] = useState(false);
 
-  // Load draft from localStorage on mount
+  // Existing log editing state
+  const [existingLogId, setExistingLogId] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(false);
+
+  // Apply preload props
   useEffect(() => {
+    if (preloadDate) setShiftDate(preloadDate);
+    if (preloadClientName) setClientName(preloadClientName);
+  }, [preloadDate, preloadClientName]);
+
+  // Load draft from localStorage on mount (only if no preload)
+  useEffect(() => {
+    if (preloadLogId || preloadClientName) {
+      setDraftLoaded(true);
+      return;
+    }
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const draft: DraftState = JSON.parse(raw);
-        // Only restore if draft is from today
         const today = new Date().toISOString().split('T')[0];
         if (draft.shiftDate === today || draft.savedAt?.startsWith(today)) {
           setClientName(draft.clientName || '');
@@ -66,7 +88,7 @@ export const DailyChecklist = () => {
       }
     } catch {}
     setDraftLoaded(true);
-  }, []);
+  }, [preloadLogId, preloadClientName]);
 
   // Save draft to localStorage on state changes (debounced)
   useEffect(() => {
@@ -109,6 +131,106 @@ export const DailyChecklist = () => {
   const selectedCarePlanId = selectedAssignment?.carePlanId;
 
   const resolvedClientName = clientName === '__other__' ? customClientName : clientName;
+
+  // Restore checkedItems from JSONB checklist_data
+  const restoreChecklistFromData = useCallback((checklistData: Record<string, any>) => {
+    const restored: Record<string, boolean> = {};
+    CHECKLIST_SECTIONS.forEach((section, sIdx) => {
+      const saved = checklistData[section.title];
+      if (saved && Array.isArray(saved)) {
+        saved.forEach((item: any, iIdx: number) => {
+          if (iIdx < section.items.length) {
+            restored[`${sIdx}-${iIdx}`] = item.completed === true;
+          }
+        });
+      }
+    });
+    return restored;
+  }, []);
+
+  // Fetch existing log when client + date changes
+  useEffect(() => {
+    if (!user?.id || !resolvedClientName || !shiftDate) {
+      setExistingLogId(null);
+      setIsEditMode(false);
+      return;
+    }
+
+    const fetchExistingLog = async () => {
+      setLoadingExisting(true);
+      try {
+        const { data, error } = await supabase
+          .from('daily_care_logs')
+          .select('*')
+          .eq('professional_id', user.id)
+          .eq('client_name', resolvedClientName)
+          .eq('shift_date', shiftDate)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          const log = data[0];
+          setExistingLogId(log.id);
+          setIsEditMode(true);
+
+          // Restore all fields from existing log
+          if (log.checklist_data && typeof log.checklist_data === 'object') {
+            const restored = restoreChecklistFromData(log.checklist_data as Record<string, any>);
+            setCheckedItems(restored);
+          }
+          if (log.notes) setNotes(log.notes);
+          if (log.time_in) setTimeIn(log.time_in);
+          if (log.time_out) setTimeOut(log.time_out);
+          // Don't override shift selection - keep what user selected
+        } else {
+          setExistingLogId(null);
+          setIsEditMode(false);
+        }
+      } catch (err) {
+        console.error('Error fetching existing log:', err);
+      } finally {
+        setLoadingExisting(false);
+      }
+    };
+
+    fetchExistingLog();
+  }, [user?.id, resolvedClientName, shiftDate, restoreChecklistFromData]);
+
+  // Load a specific log by ID (from calendar)
+  useEffect(() => {
+    if (!preloadLogId || !user?.id) return;
+
+    const loadById = async () => {
+      setLoadingExisting(true);
+      try {
+        const { data, error } = await supabase
+          .from('daily_care_logs')
+          .select('*')
+          .eq('id', preloadLogId)
+          .single();
+
+        if (!error && data) {
+          setExistingLogId(data.id);
+          setIsEditMode(true);
+          setShiftDate(data.shift_date);
+          if (data.client_name) setClientName(data.client_name);
+          if (data.notes) setNotes(data.notes);
+          if (data.time_in) setTimeIn(data.time_in);
+          if (data.time_out) setTimeOut(data.time_out);
+          if (data.checklist_data && typeof data.checklist_data === 'object') {
+            const restored = restoreChecklistFromData(data.checklist_data as Record<string, any>);
+            setCheckedItems(restored);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading log by ID:', err);
+      } finally {
+        setLoadingExisting(false);
+      }
+    };
+
+    loadById();
+  }, [preloadLogId, user?.id, restoreChecklistFromData]);
 
   // Fetch shifts when client or date changes
   useEffect(() => {
@@ -156,7 +278,6 @@ export const DailyChecklist = () => {
     return checkedItems[`${sectionIdx}-${itemIdx}`] || false;
   };
 
-  // Select all for a section
   const toggleSection = (sectionIdx: number) => {
     const section = CHECKLIST_SECTIONS[sectionIdx];
     const allChecked = section.items.every((_, iIdx) => isChecked(sectionIdx, iIdx));
@@ -169,7 +290,6 @@ export const DailyChecklist = () => {
     });
   };
 
-  // Select all for entire day
   const toggleAll = () => {
     const allChecked = totalItems === completedItems && totalItems > 0;
     setCheckedItems(() => {
@@ -220,7 +340,7 @@ export const DailyChecklist = () => {
 
       const shiftType = selectedShiftId === '__other__' ? 'other' : 'scheduled';
 
-      const { error } = await supabase.from('daily_care_logs').insert({
+      const logPayload = {
         professional_id: user.id,
         client_name: resolvedClientName || null,
         shift_date: shiftDate,
@@ -229,11 +349,32 @@ export const DailyChecklist = () => {
         notes: notes || null,
         time_in: timeIn || null,
         time_out: timeOut || null,
-      });
+      };
 
-      if (error) throw error;
-      clearDraft();
-      toast.success('Daily care log saved successfully!');
+      if (existingLogId) {
+        // Update existing log
+        const { error } = await supabase
+          .from('daily_care_logs')
+          .update(logPayload)
+          .eq('id', existingLogId);
+        if (error) throw error;
+        clearDraft();
+        toast.success('Daily care log updated successfully!');
+      } else {
+        // Insert new log
+        const { data, error } = await supabase
+          .from('daily_care_logs')
+          .insert(logPayload)
+          .select('id')
+          .single();
+        if (error) throw error;
+        if (data) {
+          setExistingLogId(data.id);
+          setIsEditMode(true);
+        }
+        clearDraft();
+        toast.success('Daily care log saved successfully!');
+      }
       return true;
     } catch (err: any) {
       console.error('Error saving daily log:', err);
@@ -264,7 +405,6 @@ export const DailyChecklist = () => {
       summary += '\n';
     });
 
-    // Items needing attention
     const incompleteItems: string[] = [];
     CHECKLIST_SECTIONS.forEach((section, sIdx) => {
       section.items.forEach((item, iIdx) => {
@@ -301,6 +441,14 @@ export const DailyChecklist = () => {
     }
   };
 
+  const saveButtonLabel = isEditMode
+    ? (saving ? 'Updating...' : 'Update Daily Log')
+    : (saving ? 'Saving...' : 'Save Daily Log');
+
+  const saveAndSendLabel = isEditMode
+    ? (saving ? 'Updating...' : 'Update & Send via WhatsApp')
+    : (saving ? 'Saving...' : 'Save & Send via WhatsApp');
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -317,6 +465,12 @@ export const DailyChecklist = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {isEditMode && (
+                <Badge variant="outline" className="gap-1 border-amber-400 text-amber-700 bg-amber-50">
+                  <Pencil className="h-3 w-3" />
+                  Editing existing log
+                </Badge>
+              )}
               <div className="flex items-center gap-2">
                 <Checkbox
                   id="select-all-master"
@@ -404,6 +558,9 @@ export const DailyChecklist = () => {
               </div>
             </div>
           </div>
+          {loadingExisting && (
+            <p className="text-xs text-muted-foreground mt-2 animate-pulse">Checking for existing log...</p>
+          )}
         </CardContent>
       </Card>
 
@@ -445,11 +602,11 @@ export const DailyChecklist = () => {
       <div className="flex flex-col sm:flex-row gap-3">
         <Button onClick={() => handleSave()} disabled={saving} className="flex-1 gap-2">
           <Save className="h-4 w-4" />
-          {saving ? 'Saving...' : 'Save Daily Log'}
+          {saveButtonLabel}
         </Button>
         <Button variant="secondary" onClick={handleSaveAndSend} disabled={saving} className="flex-1 gap-2">
           <Save className="h-4 w-4" />
-          {saving ? 'Saving...' : 'Save & Send via WhatsApp'}
+          {saveAndSendLabel}
         </Button>
         <Button variant="outline" onClick={handleSendWhatsApp} className="flex-1 gap-2">
           <Send className="h-4 w-4" />
