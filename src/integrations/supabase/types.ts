@@ -1597,6 +1597,48 @@ export type Database = {
           },
         ]
       }
+      daily_care_logs: {
+        Row: {
+          checklist_data: Json
+          client_name: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          professional_id: string
+          shift_date: string
+          shift_type: string | null
+          time_in: string | null
+          time_out: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          checklist_data?: Json
+          client_name?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          professional_id: string
+          shift_date?: string
+          shift_type?: string | null
+          time_in?: string | null
+          time_out?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          checklist_data?: Json
+          client_name?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          professional_id?: string
+          shift_date?: string
+          shift_type?: string | null
+          time_in?: string | null
+          time_out?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       family_chat_messages: {
         Row: {
           content: string

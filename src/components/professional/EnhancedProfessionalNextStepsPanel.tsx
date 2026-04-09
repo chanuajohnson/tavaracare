@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Circle, ArrowRight, Clock, Target, TrendingUp, BookOpen, FileCheck, Calendar, Briefcase, Users, Shield } from 'lucide-react';
+import { CheckCircle2, Circle, ArrowRight, Clock, Target, TrendingUp, BookOpen, FileCheck, Calendar, Briefcase, Users, Shield, ClipboardCheck, ExternalLink } from 'lucide-react';
 import { useEnhancedProfessionalProgress } from '@/hooks/useEnhancedProfessionalProgress';
 import { ProfessionalJourneyStageCard } from './ProfessionalJourneyStageCard';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { LeadCaptureModal } from '@/components/family/LeadCaptureModal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DailyChecklist } from './DailyChecklist';
 
 export const EnhancedProfessionalNextStepsPanel = () => {
   const { user } = useAuth();
@@ -28,6 +30,7 @@ export const EnhancedProfessionalNextStepsPanel = () => {
   const [showAllSteps, setShowAllSteps] = useState(false);
   const [showLeadCaptureModal, setShowLeadCaptureModal] = useState(false);
   const [leadCaptureSource, setLeadCaptureSource] = useState('');
+  const [showChecklist, setShowChecklist] = useState(false);
 
   // Handle step actions for anonymous users
   const handleAnonymousStepClick = (stepCategory: string, stepTitle: string) => {
@@ -238,6 +241,26 @@ export const EnhancedProfessionalNextStepsPanel = () => {
               ))}
             </div>
 
+
+            {/* Always-visible resource links */}
+            <div className="mt-4 pt-4 border-t border-border space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">📚 Essential Resources</p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button variant="outline" size="sm" className="flex-1 gap-2 justify-start" asChild>
+                  <a href="/documents/Tavara_Nurse_Handbook.pdf" target="_blank" rel="noopener noreferrer">
+                    <BookOpen className="h-4 w-4 text-primary" />
+                    Nurse Handbook & SOP
+                    <ExternalLink className="h-3 w-3 ml-auto text-muted-foreground" />
+                  </a>
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1 gap-2 justify-start" onClick={() => setShowChecklist(true)}>
+                  <ClipboardCheck className="h-4 w-4 text-primary" />
+                  Daily Care Checklist
+                  <ArrowRight className="h-3 w-3 ml-auto text-muted-foreground" />
+                </Button>
+              </div>
+            </div>
+
             {steps.length > 4 && (
               <div className="mt-4 text-center">
                 <Button
@@ -263,6 +286,19 @@ export const EnhancedProfessionalNextStepsPanel = () => {
           source={leadCaptureSource}
         />
       )}
+
+      {/* Daily Checklist Dialog */}
+      <Dialog open={showChecklist} onOpenChange={setShowChecklist}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5 text-primary" />
+              Daily Care Checklist
+            </DialogTitle>
+          </DialogHeader>
+          <DailyChecklist />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
