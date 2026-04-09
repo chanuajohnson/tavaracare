@@ -7,7 +7,9 @@ import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCarePlanData } from "@/hooks/useCarePlanData";
 import { CareTeamMemberWithProfile } from "@/types/careTypes";
-import { ChefHat, FileText, ClipboardList } from "lucide-react";
+import { ChefHat, FileText, ClipboardList, Info } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 import { CareTeamTab } from "@/components/care-plan/CareTeamTab";
 import { PlanDetailsTab } from "@/components/care-plan/PlanDetailsTab";
@@ -30,6 +32,8 @@ const CarePlanDetailPage = () => {
   const [searchParams] = useSearchParams();
   const [confirmRemoveDialogOpen, setConfirmRemoveDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<CareTeamMemberWithProfile | null>(null);
+  const [isAdminViewing, setIsAdminViewing] = useState(false);
+  const [familyName, setFamilyName] = useState<string | null>(null);
 
   // Get the tab from URL parameters, default to 'details'
   const initialTab = searchParams.get('tab') || 'details';
@@ -99,6 +103,31 @@ const CarePlanDetailPage = () => {
     return <CarePlanNotFound />;
   }
 
+  // Check if admin is viewing on behalf of a family
+  useEffect(() => {
+    if (carePlan && user && carePlan.familyId !== user.id) {
+      const checkAdmin = async () => {
+        const { data } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
+        
+        if (data) {
+          setIsAdminViewing(true);
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', carePlan.familyId)
+            .maybeSingle();
+          setFamilyName(profile?.full_name || 'Family');
+        }
+      };
+      checkAdmin();
+    }
+  }, [carePlan, user]);
+
   console.log('[CarePlanDetailPage] Rendering care plan:', carePlan.id);
 
   return (
@@ -106,6 +135,16 @@ const CarePlanDetailPage = () => {
       <PageViewTracker actionType="family_care_plan_view" additionalData={{ plan_id: id }} />
       
       <Container className="py-8">
+        {isAdminViewing && (
+          <Alert className="mb-4 border-blue-200 bg-blue-50">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              You are managing this care plan on behalf of <strong>{familyName}</strong>. 
+              All changes are visible to the family in real-time.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <CarePlanHeader carePlan={carePlan} />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

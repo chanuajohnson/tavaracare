@@ -89,6 +89,7 @@ import UrgentCaregiversPage from "@/pages/UrgentCaregiversPage";
 import UrgentFamiliesPage from "@/pages/UrgentFamiliesPage";
 import TestimonialManagementPage from "@/pages/admin/TestimonialManagementPage";
 import CampaignLinksPage from "@/pages/admin/CampaignLinksPage";
+import AdminFamilyCarePlansPage from "@/pages/admin/AdminFamilyCarePlansPage";
 import JoinAsCaregiver from "@/pages/JoinAsCaregiver";
 
 export const AppRoutes = () => {
@@ -171,6 +172,7 @@ export const AppRoutes = () => {
       <Route path="/admin/testimonials" element={<TestimonialManagementPage />} />
       <Route path="/admin/caregiver-screening" element={<ProfessionalScreeningPage />} />
       <Route path="/admin/campaign-links" element={<CampaignLinksPage />} />
+      <Route path="/admin/family-care-plans" element={<AdminFamilyCarePlansPage />} />
       
       {/* Legacy Routes */}
       <Route path="/legacy-stories" element={<LegacyStoriesPage />} />

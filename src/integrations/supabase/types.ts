@@ -612,6 +612,44 @@ export type Database = {
           },
         ]
       }
+      care_plan_edit_log: {
+        Row: {
+          care_plan_id: string
+          created_at: string | null
+          edit_summary: string
+          edit_type: string
+          edited_by: string
+          editor_role: string
+          id: string
+        }
+        Insert: {
+          care_plan_id: string
+          created_at?: string | null
+          edit_summary: string
+          edit_type: string
+          edited_by: string
+          editor_role: string
+          id?: string
+        }
+        Update: {
+          care_plan_id?: string
+          created_at?: string | null
+          edit_summary?: string
+          edit_type?: string
+          edited_by?: string
+          editor_role?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_plan_edit_log_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       care_plans: {
         Row: {
           created_at: string | null
