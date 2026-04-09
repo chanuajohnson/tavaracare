@@ -1597,11 +1597,52 @@ export type Database = {
           },
         ]
       }
+      daily_care_log_feedback: {
+        Row: {
+          comment: string
+          created_at: string | null
+          family_id: string
+          id: string
+          log_id: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string | null
+          family_id: string
+          id?: string
+          log_id: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string | null
+          family_id?: string
+          id?: string
+          log_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_care_log_feedback_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_care_log_feedback_log_id_fkey"
+            columns: ["log_id"]
+            isOneToOne: false
+            referencedRelation: "daily_care_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_care_logs: {
         Row: {
+          care_plan_id: string | null
           checklist_data: Json
           client_name: string | null
           created_at: string | null
+          family_id: string | null
           id: string
           notes: string | null
           professional_id: string
@@ -1612,9 +1653,11 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          care_plan_id?: string | null
           checklist_data?: Json
           client_name?: string | null
           created_at?: string | null
+          family_id?: string | null
           id?: string
           notes?: string | null
           professional_id: string
@@ -1625,9 +1668,11 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          care_plan_id?: string | null
           checklist_data?: Json
           client_name?: string | null
           created_at?: string | null
+          family_id?: string | null
           id?: string
           notes?: string | null
           professional_id?: string
@@ -1637,7 +1682,22 @@ export type Database = {
           time_out?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "daily_care_logs_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_care_logs_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       family_chat_messages: {
         Row: {
