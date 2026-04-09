@@ -568,6 +568,16 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
     toast.success('Caregiver found nudge sent & logged');
   };
 
+  const handleSendOnboardingNudge = () => {
+    const message = buildOnboardingNudge(user.full_name);
+    const url = user.phone_number
+      ? getWhatsAppUrl(user.phone_number, message)
+      : getTavaraWhatsAppUrl(message);
+    window.open(url, '_blank');
+    logNudgeSent();
+    toast.success('Onboarding & job description nudge sent & logged');
+  };
+
   const renderTemplateCard = (template: NudgeTemplate, isRecommended: boolean) => {
     const populated = populateTemplate(
       template.message_template,
