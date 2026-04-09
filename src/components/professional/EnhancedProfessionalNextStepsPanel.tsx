@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Circle, ArrowRight, Clock, Target, TrendingUp, BookOpen, FileCheck, Calendar, Briefcase, Users, Shield } from 'lucide-react';
+import { CheckCircle2, Circle, ArrowRight, Clock, Target, TrendingUp, BookOpen, FileCheck, Calendar, Briefcase, Users, Shield, ClipboardCheck, ExternalLink } from 'lucide-react';
 import { useEnhancedProfessionalProgress } from '@/hooks/useEnhancedProfessionalProgress';
 import { ProfessionalJourneyStageCard } from './ProfessionalJourneyStageCard';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { LeadCaptureModal } from '@/components/family/LeadCaptureModal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DailyChecklist } from './DailyChecklist';
 
 export const EnhancedProfessionalNextStepsPanel = () => {
   const { user } = useAuth();
@@ -28,6 +30,7 @@ export const EnhancedProfessionalNextStepsPanel = () => {
   const [showAllSteps, setShowAllSteps] = useState(false);
   const [showLeadCaptureModal, setShowLeadCaptureModal] = useState(false);
   const [leadCaptureSource, setLeadCaptureSource] = useState('');
+  const [showChecklist, setShowChecklist] = useState(false);
 
   // Handle step actions for anonymous users
   const handleAnonymousStepClick = (stepCategory: string, stepTitle: string) => {
