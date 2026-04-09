@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,10 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Info } from "lucide-react";
 import { createCarePlan, fetchCarePlanById, updateCarePlan, type CreateCarePlanDto, type UpdateCarePlanDto } from "@/services/care-plans";
+import { logCarePlanEdit } from "@/services/care-plans/carePlanEditLog";
 import { toast } from "sonner";
 import { CarePlanMetadata } from '@/types/carePlan';
+import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type PlanType = 'scheduled' | 'on-demand' | 'both';
 type WeekdayOption = '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
@@ -23,9 +26,13 @@ const CreateCarePlanPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const familyIdOverride = searchParams.get('familyId');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(!!id);
   const [isEditMode] = useState(!!id);
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [familyName, setFamilyName] = useState<string | null>(null);
   
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -41,6 +48,33 @@ const CreateCarePlanPage = () => {
     weekday8amTo4pm: false,
     weekday8amTo6pm: false,
   });
+
+  // Check if admin is creating on behalf of a family
+  useEffect(() => {
+    if (familyIdOverride && user) {
+      // Check if current user is admin
+      const checkAdmin = async () => {
+        const { data } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
+        
+        if (data) {
+          setIsAdminMode(true);
+          // Fetch family name
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', familyIdOverride)
+            .maybeSingle();
+          setFamilyName(profile?.full_name || 'Selected Family');
+        }
+      };
+      checkAdmin();
+    }
+  }, [familyIdOverride, user]);
 
   useEffect(() => {
     if (id) {
@@ -114,6 +148,9 @@ const CreateCarePlanPage = () => {
         weekendCoverage: weekendOption,
         additionalShifts: shifts
       };
+
+      // Determine which family_id to use
+      const targetFamilyId = (isAdminMode && familyIdOverride) ? familyIdOverride : user.id;
       
       let result;
       if (isEditMode && id) {
@@ -125,24 +162,30 @@ const CreateCarePlanPage = () => {
         };
         result = await updateCarePlan(id, updates);
         if (result) {
+          await logCarePlanEdit(id, 'care_plan', `Updated care plan: ${title}`, isAdminMode ? 'admin' : 'family');
           toast.success("Care plan updated successfully!");
         }
       } else {
         const planDetails: CreateCarePlanDto = {
           title,
           description,
-          family_id: user.id,
+          family_id: targetFamilyId,
           status: 'active',
           metadata: metadata as any
         };
         result = await createCarePlan(planDetails);
         if (result) {
+          await logCarePlanEdit(result.id, 'care_plan', `Created care plan: ${title}`, isAdminMode ? 'admin' : 'family');
           toast.success("Care plan created successfully!");
         }
       }
       
       if (result) {
-        navigate("/family/care-management");
+        if (isAdminMode) {
+          navigate(`/admin/family-care-plans`);
+        } else {
+          navigate("/family/care-management");
+        }
       }
     } catch (error) {
       console.error("Error saving care plan:", error);
@@ -158,14 +201,32 @@ const CreateCarePlanPage = () => {
         <Button 
           variant="ghost" 
           className="mb-4" 
-          onClick={() => navigate(id ? `/family/care-management/${id}` : "/family/care-management")}
+          onClick={() => {
+            if (isAdminMode) {
+              navigate('/admin/family-care-plans');
+            } else {
+              navigate(id ? `/family/care-management/${id}` : "/family/care-management");
+            }
+          }}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          {id ? "Back to Care Plan Details" : "Back to Care Management"}
+          {isAdminMode ? "Back to Family Care Plans" : id ? "Back to Care Plan Details" : "Back to Care Management"}
         </Button>
+
+        {isAdminMode && (
+          <Alert className="mb-4 border-blue-200 bg-blue-50">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              You are creating this care plan on behalf of <strong>{familyName}</strong>. 
+              It will appear on their dashboard immediately.
+            </AlertDescription>
+          </Alert>
+        )}
         
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">{isEditMode ? "Edit Care Plan" : "Create New Care Plan"}</h1>
+          <h1 className="text-3xl font-bold">
+            {isEditMode ? "Edit Care Plan" : isAdminMode ? `Create Care Plan for ${familyName}` : "Create New Care Plan"}
+          </h1>
           <p className="text-muted-foreground mt-1">
             {isEditMode ? "Update the care plan for your loved one" : "Define a care plan for your loved one"}
           </p>
