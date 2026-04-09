@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { Clipboard, ArrowRight, ClipboardEdit, FileCheck, Calendar, Users, Star, Heart } from "lucide-react";
+import { Clipboard, ArrowRight, ClipboardEdit, FileCheck, Calendar, Users, Star, Heart, FileText } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTracking } from "@/hooks/useTracking";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
@@ -115,6 +115,18 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareC
             </Link>
           )}
           
+          {/* Care Plans - always visible for authenticated families */}
+          <Link 
+            to="/family/care-management"
+            onClick={() => handleTrackButtonClick('navigation_click', 'care_plans')}
+          >
+            <Button variant="outline" size="sm" className="flex items-center gap-1">
+              <FileText className="h-4 w-4" />
+              <span>Care Plans</span>
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </Link>
+
           {/* Edit buttons for completed steps */}
           {showRegistrationEdit && (
             <Link 

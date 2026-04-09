@@ -39,31 +39,7 @@ const CarePlanDetailPage = () => {
   const initialTab = searchParams.get('tab') || 'details';
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  // Simplified auth verification
-  useEffect(() => {
-    if (!authLoading && !user) {
-      console.log('[CarePlanDetailPage] No authenticated user, redirecting to auth');
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
-
-  // Don't render anything while auth is loading or user is null
-  if (authLoading) {
-    console.log('[CarePlanDetailPage] Auth loading...');
-    return <CarePlanLoadingState />;
-  }
-
-  if (!user) {
-    console.log('[CarePlanDetailPage] No user authenticated');
-    return <CarePlanLoadingState />;
-  }
-
-  // Don't render if no care plan ID
-  if (!id) {
-    console.log('[CarePlanDetailPage] No care plan ID provided');
-    return <CarePlanNotFound />;
-  }
-
+  // ALL hooks must be called before any conditional returns
   const {
     loading,
     error,
@@ -76,9 +52,17 @@ const CarePlanDetailPage = () => {
     reloadCareTeamMembers,
     reloadCareShifts,
   } = useCarePlanData({
-    carePlanId: id,
-    userId: user.id,
+    carePlanId: id || '',
+    userId: user?.id || '',
   });
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      console.log('[CarePlanDetailPage] No authenticated user, redirecting to auth');
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
 
   // Update active tab when URL parameter changes
   useEffect(() => {
@@ -87,21 +71,6 @@ const CarePlanDetailPage = () => {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams, activeTab]);
-
-  if (loading) {
-    console.log('[CarePlanDetailPage] Care plan data loading');
-    return <CarePlanLoadingState />;
-  }
-
-  if (error) {
-    console.error('[CarePlanDetailPage] Error loading care plan:', error);
-    return <CarePlanNotFound />;
-  }
-
-  if (!carePlan) {
-    console.log('[CarePlanDetailPage] No care plan found');
-    return <CarePlanNotFound />;
-  }
 
   // Check if admin is viewing on behalf of a family
   useEffect(() => {
@@ -128,7 +97,31 @@ const CarePlanDetailPage = () => {
     }
   }, [carePlan, user]);
 
-  console.log('[CarePlanDetailPage] Rendering care plan:', carePlan.id);
+  // Now safe to do conditional returns (all hooks above)
+  if (authLoading) {
+    return <CarePlanLoadingState />;
+  }
+
+  if (!user) {
+    return <CarePlanLoadingState />;
+  }
+
+  if (!id) {
+    return <CarePlanNotFound />;
+  }
+
+  if (loading) {
+    return <CarePlanLoadingState />;
+  }
+
+  if (error) {
+    console.error('[CarePlanDetailPage] Error loading care plan:', error);
+    return <CarePlanNotFound />;
+  }
+
+  if (!carePlan) {
+    return <CarePlanNotFound />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
