@@ -1,39 +1,31 @@
 
 
-## Add "Rates, Care Changes & Escalation" Section to Onboarding Checklist
+## Plan: Fix Family Notes Visibility + Add Rates Section
 
-### Purpose
-Add a new onboarding section that covers pricing transparency, holiday/overtime rates, care escalation triggers, and the change-order process. This ensures families understand the baseline service agreement and what happens when care needs evolve over time.
+### Two changes:
 
-### New Section: "Rates, Care Changes & Escalation"
-Positioned after "Caregiver Matching & Introduction" (section 9) and before "Next Steps & Follow-Up" (section 10), using the `DollarSign` icon from lucide-react.
+### 1. Fix: Family onboarding checklist not showing admin notes
 
-**Checklist items:**
+**Root cause**: `FamilyOnboardingChecklistPage.tsx` passes `filterAssignee="family"` to `OnboardingNotesCard`, so only notes explicitly assigned to "family" appear. The test note "Tell nurse x" was assigned to "admin", so it's correctly filtered out by the current logic — but the family should see **all** notes, not just family-assigned ones.
 
-1. Review base rate tiers: Standard ($35/hr), Full Service ($40/hr), Premium ($45+/hr)
-2. Holiday rates apply — time and a half (1.5x) on recognized holidays; double time (2x) on Christmas
-3. Extended hours / overtime rates — time and a half for shifts beyond standard coverage
-4. Change orders: any increase in service scope is recorded and discussed before taking effect
-5. Care escalation triggers — bedridden status, wheelchair/lift needs, increased fall risk
-6. Dietary changes — stricter dietary requirements may increase care complexity and cost
-7. Medication changes — new prescriptions or regimen changes require updated care documentation
-8. Errands and personal runs (grocery, market) — arranged privately with nurse at agreed stipend, outside Tavara scope
-9. Baseline care level is established at onboarding; all changes from baseline are documented
-10. Family will be notified and consulted before any rate or care level adjustment takes effect
-
-### File Changed
+**Fix**: Remove the `filterAssignee="family"` prop from the `OnboardingNotesCard` in `FamilyOnboardingChecklistPage.tsx` (line ~196). The family will see all notes regardless of assignee, giving them full visibility into action items from the onboarding call.
 
 | File | Change |
 |------|--------|
-| `src/components/admin/onboarding/onboardingSections.ts` | Add new `rates_and_changes` section object to `ONBOARDING_SECTION_DEFS` array between `caregiver_matching` and `next_steps` |
-| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Add `DollarSign` to the lucide icon import and to `ICON_MAP` |
-| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Add `DollarSign` to `ICON_MAP` |
-| `src/pages/public/OnboardingGuidePage.tsx` | Add `DollarSign` to `ICON_MAP` |
+| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Remove `filterAssignee="family"` from `OnboardingNotesCard` |
 
-### Technical Details
-- Uses existing `DollarSign` icon from lucide-react (already available, just needs importing)
-- No database changes — section data lives in the shared `onboardingSections.ts` file
-- All three views (admin, family, public) automatically pick up the new section since they all consume `ONBOARDING_SECTION_DEFS`
-- Holiday rates align with existing `holidaysService.ts` (1.5x standard, 2x Christmas)
-- Rate tiers align with the existing $35/hr minimum and tier structure already in the platform
+### 2. Add "Rates, Care Changes & Escalation" section
+
+Add the new section to `onboardingSections.ts` between `caregiver_matching` (index 8) and `next_steps` (index 9), with the `DollarSign` icon. Add the icon mapping to all three pages' `ICON_MAP`.
+
+**10 checklist items** as specified in the approved plan (rate tiers, holiday rates, overtime, change orders, escalation triggers, dietary changes, medication changes, errands, baseline documentation, family notification).
+
+| File | Change |
+|------|--------|
+| `src/components/admin/onboarding/onboardingSections.ts` | Insert `rates_and_changes` section object at index 9 |
+| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Add `DollarSign` to import and `ICON_MAP` |
+| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Add `DollarSign` to import and `ICON_MAP` |
+| `src/pages/public/OnboardingGuidePage.tsx` | Add `DollarSign` to import and `ICON_MAP` |
+
+No database changes required for either fix.
 
