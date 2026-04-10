@@ -42,6 +42,7 @@ import TrainingResourcesPage from "@/pages/professional/TrainingResourcesPage";
 import ModuleViewerPage from "@/pages/professional/ModuleViewerPage";
 import MessageBoardPage from "@/pages/professional/MessageBoardPage";
 import ProfessionalScreeningLandingPage from "@/pages/professional/ProfessionalScreeningLandingPage";
+import ProfessionalOnboardingChecklistPage from "@/pages/professional/ProfessionalOnboardingChecklistPage";
 
 // Family Pages
 import FamilyFeaturesOverview from "@/pages/family/FamilyFeaturesOverview";
@@ -141,6 +142,7 @@ export const AppRoutes = () => {
       <Route path="/professional/training/module/:moduleId" element={<ModuleViewerPage />} />
       <Route path="/professional/message-board" element={<MessageBoardPage />} />
       <Route path="/professional/screening" element={<ProfessionalScreeningLandingPage />} />
+      <Route path="/professional/onboarding-checklist" element={<ProfessionalOnboardingChecklistPage />} />
       
       {/* Family Routes */}
       <Route path="/family" element={<FamilyFeaturesOverview />} />

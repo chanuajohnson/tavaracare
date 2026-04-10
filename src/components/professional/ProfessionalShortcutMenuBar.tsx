@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Container } from "@/components/ui/container";
-import { ClipboardEdit, ArrowRight, UserCircle, HandHeart, MessageCircle } from "lucide-react";
+import { ClipboardEdit, ArrowRight, UserCircle, HandHeart, MessageCircle, ClipboardCheck } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { toast } from "sonner";
 import { useTracking } from "@/hooks/useTracking";
@@ -170,6 +170,17 @@ export function ProfessionalShortcutMenuBar() {
                   {unreadMessages > 9 ? '9+' : unreadMessages}
                 </Badge>
               )}
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </Link>
+          
+          <Link 
+            to="/professional/onboarding-checklist"
+            onClick={() => handleTrackButtonClick('navigation_click', 'onboarding_progress')}
+          >
+            <Button variant="outline" size="sm" className="flex items-center gap-1">
+              <ClipboardCheck className="h-4 w-4" />
+              <span>Onboarding Progress</span>
               <ArrowRight className="h-3 w-3" />
             </Button>
           </Link>

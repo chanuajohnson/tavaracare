@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   ChevronDown, ClipboardCheck, Monitor, FileText,
@@ -9,6 +10,8 @@ import {
   Heart, Users, CalendarCheck, DollarSign
 } from "lucide-react";
 import { ONBOARDING_SECTION_DEFS } from "@/components/admin/onboarding/onboardingSections";
+import { PROFESSIONAL_ONBOARDING_SECTION_DEFS } from "@/components/admin/onboarding/professionalOnboardingSections";
+import type { OnboardingSectionDef } from "@/components/admin/onboarding/onboardingSections";
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   ClipboardCheck: <ClipboardCheck className="h-5 w-5" />,
@@ -25,7 +28,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   DollarSign: <DollarSign className="h-5 w-5" />,
 };
 
-export default function OnboardingGuidePage() {
+function GuideSections({ sections }: { sections: OnboardingSectionDef[] }) {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
   const toggleSection = (id: string) => {
@@ -33,59 +36,77 @@ export default function OnboardingGuidePage() {
   };
 
   return (
+    <div className="space-y-3">
+      {sections.map((section) => {
+        const isOpen = openSections[section.id] ?? false;
+        return (
+          <Collapsible key={section.id} open={isOpen} onOpenChange={() => toggleSection(section.id)}>
+            <Card>
+              <CollapsibleTrigger className="w-full text-left">
+                <CardHeader className="py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-muted text-muted-foreground">
+                      {ICON_MAP[section.iconName] || <ClipboardCheck className="h-5 w-5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base">
+                        {section.title}
+                        <Badge variant="secondary" className="text-xs ml-2">
+                          {section.items.length} items
+                        </Badge>
+                      </CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">{section.description}</p>
+                    </div>
+                    <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                  </div>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="pt-0 pb-4">
+                  <ul className="space-y-2 pl-2">
+                    {section.items.map((item, i) => (
+                      <li key={i} className="flex items-start gap-3 text-sm">
+                        <span className="text-primary mt-0.5">•</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function OnboardingGuidePage() {
+  return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Tavara.Care Family Onboarding Guide</h1>
+          <h1 className="text-3xl font-bold mb-2">Tavara.Care Onboarding Guide</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            This is the comprehensive onboarding checklist our care coordinators follow when welcoming new families. 
+            This is the comprehensive onboarding checklist our care coordinators follow when welcoming new families and professionals. 
             It covers everything from discovery to care plan setup and first-week follow-up.
           </p>
         </div>
 
-        <div className="space-y-3">
-          {ONBOARDING_SECTION_DEFS.map((section) => {
-            const isOpen = openSections[section.id] ?? false;
+        <Tabs defaultValue="family" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="family">Family Guide</TabsTrigger>
+            <TabsTrigger value="professional">Professional Guide</TabsTrigger>
+          </TabsList>
 
-            return (
-              <Collapsible key={section.id} open={isOpen} onOpenChange={() => toggleSection(section.id)}>
-                <Card>
-                  <CollapsibleTrigger className="w-full text-left">
-                    <CardHeader className="py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-muted text-muted-foreground">
-                          {ICON_MAP[section.iconName] || <ClipboardCheck className="h-5 w-5" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="text-base">
-                            {section.title}
-                            <Badge variant="secondary" className="text-xs ml-2">
-                              {section.items.length} items
-                            </Badge>
-                          </CardTitle>
-                          <p className="text-xs text-muted-foreground mt-0.5">{section.description}</p>
-                        </div>
-                        <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`} />
-                      </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent className="pt-0 pb-4">
-                      <ul className="space-y-2 pl-2">
-                        {section.items.map((item, i) => (
-                          <li key={i} className="flex items-start gap-3 text-sm">
-                            <span className="text-primary mt-0.5">•</span>
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
-            );
-          })}
-        </div>
+          <TabsContent value="family">
+            <GuideSections sections={ONBOARDING_SECTION_DEFS} />
+          </TabsContent>
+
+          <TabsContent value="professional">
+            <GuideSections sections={PROFESSIONAL_ONBOARDING_SECTION_DEFS} />
+          </TabsContent>
+        </Tabs>
 
         <div className="text-center mt-8 text-sm text-muted-foreground">
           <p>© {new Date().getFullYear()} Tavara.Care — Empowering families with compassionate care coordination.</p>
