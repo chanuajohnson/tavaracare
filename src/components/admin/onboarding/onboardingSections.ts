@@ -13,6 +13,7 @@ export interface OnboardingSectionDef {
   description: string;
   items: string[];
   showFamilyData?: boolean;
+  showProfessionalData?: boolean;
 }
 
 export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
