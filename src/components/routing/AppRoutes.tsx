@@ -116,6 +116,7 @@ export const AppRoutes = () => {
       <Route path="/urgent-caregivers" element={<UrgentCaregiversPage />} />
       <Route path="/urgent-families" element={<UrgentFamiliesPage />} />
       <Route path="/join-as-caregiver" element={<JoinAsCaregiver />} />
+      <Route path="/onboarding-guide" element={<OnboardingGuidePage />} />
       
       {/* Registration Routes */}
       <Route path="/registration/family" element={<FamilyRegistration />} />
@@ -154,6 +155,7 @@ export const AppRoutes = () => {
       <Route path="/family/care-management/:carePlanId/meals" element={<MealManagementPage />} />
       <Route path="/family/care-management/create" element={<CreateCarePlanPage />} />
       <Route path="/family/care-journey-progress" element={<CareJourneyProgressPage />} />
+      <Route path="/family/onboarding-checklist" element={<FamilyOnboardingChecklistPage />} />
       
       {/* Community Routes */}
       <Route path="/community" element={<CommunityFeaturesOverview />} />
