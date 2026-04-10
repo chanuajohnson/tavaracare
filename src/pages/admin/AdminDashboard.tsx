@@ -117,6 +117,10 @@ export default function AdminDashboard() {
     navigate('/admin/family-care-plans');
   };
 
+  const handleOnboardingChecklistClick = () => {
+    navigate('/admin/onboarding-checklist');
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -243,6 +247,15 @@ export default function AdminDashboard() {
         >
           <HeartHandshake className="h-6 w-6" />
           <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Family Care Plans</span>
+        </Button>
+
+        <Button
+          onClick={handleOnboardingChecklistClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <ClipboardCheck className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Onboarding Checklist</span>
         </Button>
       </div>
 
