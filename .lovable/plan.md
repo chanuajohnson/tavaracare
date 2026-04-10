@@ -1,44 +1,99 @@
 
 
-## Replace Family Name Input with Family Dropdown & Fix Quick Links to Show Family's Data
+## Briefing + Multi-Feature Plan: Onboarding Checklist Persistence, Public Access, Family View & Notes
 
-### Problem
-The "View Registration", "View Care Assessment", and "View Legacy Story" links currently navigate to blank forms because those pages load data for the **logged-in user** (the admin), not the selected family. The family name field is also a free-text input instead of a dropdown of actual registered families.
+### Your Call Briefing (above in chat)
 
-### Solution
+The data briefing for Ana Maria Aimey and her mother Carol Glenn-Aimey is provided above. Key points to nail the call:
+- Carol is an independent, proud retired educator (74) who doesn't like being "bossed around"
+- Core needs: medication management, meal prep, housekeeping, vitals, memory reminders
+- Ana Maria wants Mon-Fri + Sat-Sun 8am-4pm, professional caregiver, $20-25/hr, English-speaking
+- She already created her care plan — acknowledge and validate that
 
-#### 1. Replace text input with family dropdown (like AdminFamilyCarePlansPage)
-**File**: `src/pages/admin/AdminOnboardingChecklistPage.tsx`
+---
 
-- Import `supabase`, `useAuth`, `Select/SelectContent/SelectItem/SelectTrigger/SelectValue`
-- Fetch families from `profiles` table where `role = 'family'` on mount (same pattern as `AdminFamilyCarePlansPage.tsx`)
-- Replace the `<Input>` for family name with a `<Select>` dropdown showing all family names
-- Store `selectedFamilyId` (UUID) and derive `familyName` from the selected family's `full_name`
-- localStorage persistence still keyed by family name
+### Feature Plan (4 changes)
 
-#### 2. Build inline read-only admin views for family data
-Rather than linking to the family-facing pages (which always load the logged-in user's data), fetch and display the selected family's submissions **inline** within the "Review Client Submissions" collapsible section.
+#### 1. Persist Checklist Data to Supabase (not just localStorage)
 
-When a family is selected from the dropdown, fetch:
-- **Registration data**: from `profiles` table (care_recipient_name, relationship, care_types, special_needs, care_schedule, etc.)
-- **Care Assessment**: from `care_needs_family` table where `profile_id = selectedFamilyId`
-- **Legacy Story**: from `care_recipient_profiles` table where `user_id = selectedFamilyId`
+**New table**: `onboarding_checklists`
+- `id` UUID PK
+- `family_id` UUID references profiles(id)
+- `checked_items` JSONB (the checklist state)
+- `notes` JSONB (array of note objects with text, assigned_to, created_by, created_at)
+- `started_at` timestamp
+- `updated_at` timestamp
+- RLS: admins can read/write all; family users can read their own
 
-Display each as a read-only summary card inside the "Review Client Submissions" section, replacing the external link buttons. Each card shows key fields in a clean, scannable format.
+**Changes to `AdminOnboardingChecklistPage.tsx`**:
+- On family select, load from `onboarding_checklists` table (fall back to localStorage for migration)
+- On checkbox toggle or note add, upsert to Supabase
+- Debounced saves to avoid excessive writes
 
-#### 3. Keep "Edit" links that open the family-facing pages
-After each inline summary, show an "Edit" button that opens the corresponding page in a new tab. These pages will still load the admin's own context, but the admin can reference the inline data while on the call with the family and note edits needed.
+#### 2. Add Notes & Action Items Card
+
+Add a final section at the bottom of the checklist (after Communication & Notifications):
+- **"Notes & Action Items"** card with:
+  - Text area to type a note
+  - Dropdown to assign to: Admin, Family, Caregiver
+  - "Add Note" button
+  - List of existing notes with timestamp, author, assignee
+  - Notes persist in the `onboarding_checklists.notes` JSONB column
+
+#### 3. Family-Facing Onboarding Checklist (Read-Only)
+
+**New route**: `/family/onboarding-checklist`
+**New page**: `src/pages/family/FamilyOnboardingChecklistPage.tsx`
+- Loads the family's onboarding checklist from `onboarding_checklists` where `family_id = auth.uid()`
+- Read-only view of checked items (family can see progress but cannot edit checkboxes)
+- Shows notes/action items assigned to them
+- Same section structure as admin version but without admin-only controls
+- Add quick link on `FamilyShortcutMenuBar` when an onboarding checklist exists for this family
+
+#### 4. Public-Facing Blank Checklist
+
+**New route**: `/onboarding-guide` (no auth required)
+**New page**: `src/pages/public/OnboardingGuidePage.tsx`
+- Static, blank version of the checklist (no family data, no checkboxes active)
+- Shows the full section structure as a reference guide
+- No persistence, no family selector
+- Shareable URL for your co-founder
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Replace text input with family dropdown, fetch family data (profiles, care_needs_family, care_recipient_profiles), display inline read-only summaries in the Review section |
+| **Migration** | Create `onboarding_checklists` table with RLS |
+| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Switch persistence from localStorage to Supabase, add Notes section |
+| `src/components/admin/onboarding/OnboardingNotesCard.tsx` | New: notes/action items component |
+| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | New: family read-only view |
+| `src/pages/public/OnboardingGuidePage.tsx` | New: public blank checklist |
+| `src/components/routing/AppRoutes.tsx` | Add 2 new routes |
+| `src/components/family/FamilyShortcutMenuBar.tsx` | Add onboarding checklist quick link |
+| `src/components/admin/onboarding/onboardingSections.ts` | Extract shared section data to reusable module |
 
-### Technical Details
-- Reuses the same Supabase query pattern from `AdminFamilyCarePlansPage.tsx` for loading families
-- Three additional queries when a family is selected (profiles, care_needs_family, care_recipient_profiles)
-- No changes to routing, no changes to family-facing pages
-- Section links become inline data displays with the fetched family information
-- All existing checklist functionality (checkboxes, progress, localStorage, SOP) preserved
+### Database Schema
+
+```sql
+CREATE TABLE onboarding_checklists (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  family_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL UNIQUE,
+  checked_items JSONB DEFAULT '{}'::jsonb,
+  notes JSONB DEFAULT '[]'::jsonb,
+  started_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- RLS: admins full access, family read own
+ALTER TABLE onboarding_checklists ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can manage all onboarding checklists"
+  ON onboarding_checklists FOR ALL TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'))
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Families can view their own onboarding checklist"
+  ON onboarding_checklists FOR SELECT TO authenticated
+  USING (family_id = auth.uid());
+```
 
