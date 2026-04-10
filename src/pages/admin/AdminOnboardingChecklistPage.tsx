@@ -19,6 +19,7 @@ import { CHECKLIST_SECTIONS } from "@/components/professional/checklist/checklis
 import { ONBOARDING_SECTION_DEFS, getTotalItems, OnboardingSectionDef } from "@/components/admin/onboarding/onboardingSections";
 import { PROFESSIONAL_ONBOARDING_SECTION_DEFS, getProfessionalTotalItems } from "@/components/admin/onboarding/professionalOnboardingSections";
 import FamilySubmissionReview from "@/components/admin/onboarding/FamilySubmissionReview";
+import ProfessionalSubmissionReview from "@/components/admin/onboarding/ProfessionalSubmissionReview";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
 import { toast } from "sonner";
 
@@ -62,6 +63,7 @@ function ChecklistTabContent({
   tableName,
   idColumn,
   showFamilyData,
+  showProfessionalData,
 }: {
   profiles: ProfileOption[];
   loadingProfiles: boolean;
@@ -81,6 +83,7 @@ function ChecklistTabContent({
   tableName: string;
   idColumn: string;
   showFamilyData?: boolean;
+  showProfessionalData?: boolean;
 }) {
   const publicGuideUrl = `${window.location.origin}/onboarding-guide`;
   const copyPublicLink = () => {
@@ -205,6 +208,16 @@ function ChecklistTabContent({
                     {showFamilyData && section.showFamilyData && !selectedId && (
                       <div className="mb-4 p-4 border border-dashed rounded-lg text-center text-sm text-muted-foreground">
                         Select a family above to view their submitted registration, care assessment, and legacy story.
+                      </div>
+                    )}
+                    {showProfessionalData && section.showProfessionalData && selectedId && (
+                      <div className="mb-4">
+                        <ProfessionalSubmissionReview professionalId={selectedId} />
+                      </div>
+                    )}
+                    {showProfessionalData && section.showProfessionalData && !selectedId && (
+                      <div className="mb-4 p-4 border border-dashed rounded-lg text-center text-sm text-muted-foreground">
+                        Select a professional above to view their registration data, documents, references, and screening results.
                       </div>
                     )}
 
