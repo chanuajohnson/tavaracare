@@ -1,99 +1,39 @@
 
 
-## Briefing + Multi-Feature Plan: Onboarding Checklist Persistence, Public Access, Family View & Notes
+## Add "Rates, Care Changes & Escalation" Section to Onboarding Checklist
 
-### Your Call Briefing (above in chat)
+### Purpose
+Add a new onboarding section that covers pricing transparency, holiday/overtime rates, care escalation triggers, and the change-order process. This ensures families understand the baseline service agreement and what happens when care needs evolve over time.
 
-The data briefing for Ana Maria Aimey and her mother Carol Glenn-Aimey is provided above. Key points to nail the call:
-- Carol is an independent, proud retired educator (74) who doesn't like being "bossed around"
-- Core needs: medication management, meal prep, housekeeping, vitals, memory reminders
-- Ana Maria wants Mon-Fri + Sat-Sun 8am-4pm, professional caregiver, $20-25/hr, English-speaking
-- She already created her care plan — acknowledge and validate that
+### New Section: "Rates, Care Changes & Escalation"
+Positioned after "Caregiver Matching & Introduction" (section 9) and before "Next Steps & Follow-Up" (section 10), using the `DollarSign` icon from lucide-react.
 
----
+**Checklist items:**
 
-### Feature Plan (4 changes)
+1. Review base rate tiers: Standard ($35/hr), Full Service ($40/hr), Premium ($45+/hr)
+2. Holiday rates apply — time and a half (1.5x) on recognized holidays; double time (2x) on Christmas
+3. Extended hours / overtime rates — time and a half for shifts beyond standard coverage
+4. Change orders: any increase in service scope is recorded and discussed before taking effect
+5. Care escalation triggers — bedridden status, wheelchair/lift needs, increased fall risk
+6. Dietary changes — stricter dietary requirements may increase care complexity and cost
+7. Medication changes — new prescriptions or regimen changes require updated care documentation
+8. Errands and personal runs (grocery, market) — arranged privately with nurse at agreed stipend, outside Tavara scope
+9. Baseline care level is established at onboarding; all changes from baseline are documented
+10. Family will be notified and consulted before any rate or care level adjustment takes effect
 
-#### 1. Persist Checklist Data to Supabase (not just localStorage)
-
-**New table**: `onboarding_checklists`
-- `id` UUID PK
-- `family_id` UUID references profiles(id)
-- `checked_items` JSONB (the checklist state)
-- `notes` JSONB (array of note objects with text, assigned_to, created_by, created_at)
-- `started_at` timestamp
-- `updated_at` timestamp
-- RLS: admins can read/write all; family users can read their own
-
-**Changes to `AdminOnboardingChecklistPage.tsx`**:
-- On family select, load from `onboarding_checklists` table (fall back to localStorage for migration)
-- On checkbox toggle or note add, upsert to Supabase
-- Debounced saves to avoid excessive writes
-
-#### 2. Add Notes & Action Items Card
-
-Add a final section at the bottom of the checklist (after Communication & Notifications):
-- **"Notes & Action Items"** card with:
-  - Text area to type a note
-  - Dropdown to assign to: Admin, Family, Caregiver
-  - "Add Note" button
-  - List of existing notes with timestamp, author, assignee
-  - Notes persist in the `onboarding_checklists.notes` JSONB column
-
-#### 3. Family-Facing Onboarding Checklist (Read-Only)
-
-**New route**: `/family/onboarding-checklist`
-**New page**: `src/pages/family/FamilyOnboardingChecklistPage.tsx`
-- Loads the family's onboarding checklist from `onboarding_checklists` where `family_id = auth.uid()`
-- Read-only view of checked items (family can see progress but cannot edit checkboxes)
-- Shows notes/action items assigned to them
-- Same section structure as admin version but without admin-only controls
-- Add quick link on `FamilyShortcutMenuBar` when an onboarding checklist exists for this family
-
-#### 4. Public-Facing Blank Checklist
-
-**New route**: `/onboarding-guide` (no auth required)
-**New page**: `src/pages/public/OnboardingGuidePage.tsx`
-- Static, blank version of the checklist (no family data, no checkboxes active)
-- Shows the full section structure as a reference guide
-- No persistence, no family selector
-- Shareable URL for your co-founder
-
-### Files Changed
+### File Changed
 
 | File | Change |
 |------|--------|
-| **Migration** | Create `onboarding_checklists` table with RLS |
-| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Switch persistence from localStorage to Supabase, add Notes section |
-| `src/components/admin/onboarding/OnboardingNotesCard.tsx` | New: notes/action items component |
-| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | New: family read-only view |
-| `src/pages/public/OnboardingGuidePage.tsx` | New: public blank checklist |
-| `src/components/routing/AppRoutes.tsx` | Add 2 new routes |
-| `src/components/family/FamilyShortcutMenuBar.tsx` | Add onboarding checklist quick link |
-| `src/components/admin/onboarding/onboardingSections.ts` | Extract shared section data to reusable module |
+| `src/components/admin/onboarding/onboardingSections.ts` | Add new `rates_and_changes` section object to `ONBOARDING_SECTION_DEFS` array between `caregiver_matching` and `next_steps` |
+| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Add `DollarSign` to the lucide icon import and to `ICON_MAP` |
+| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Add `DollarSign` to `ICON_MAP` |
+| `src/pages/public/OnboardingGuidePage.tsx` | Add `DollarSign` to `ICON_MAP` |
 
-### Database Schema
-
-```sql
-CREATE TABLE onboarding_checklists (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  family_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL UNIQUE,
-  checked_items JSONB DEFAULT '{}'::jsonb,
-  notes JSONB DEFAULT '[]'::jsonb,
-  started_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- RLS: admins full access, family read own
-ALTER TABLE onboarding_checklists ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Admins can manage all onboarding checklists"
-  ON onboarding_checklists FOR ALL TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'))
-  WITH CHECK (public.has_role(auth.uid(), 'admin'));
-
-CREATE POLICY "Families can view their own onboarding checklist"
-  ON onboarding_checklists FOR SELECT TO authenticated
-  USING (family_id = auth.uid());
-```
+### Technical Details
+- Uses existing `DollarSign` icon from lucide-react (already available, just needs importing)
+- No database changes — section data lives in the shared `onboardingSections.ts` file
+- All three views (admin, family, public) automatically pick up the new section since they all consume `ONBOARDING_SECTION_DEFS`
+- Holiday rates align with existing `holidaysService.ts` (1.5x standard, 2x Christmas)
+- Rate tiers align with the existing $35/hr minimum and tier structure already in the platform
 
