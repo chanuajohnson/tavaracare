@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,192 +12,32 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import {
   ArrowLeft, ChevronDown, RotateCcw, ClipboardCheck, Monitor, FileText,
   Pill, UtensilsCrossed, ListChecks, LayoutDashboard, MessageSquare,
-  Heart, Users, CalendarCheck, Loader2
+  Heart, Users, CalendarCheck, Loader2, ExternalLink, Copy
 } from "lucide-react";
 import { CHECKLIST_SECTIONS } from "@/components/professional/checklist/checklistSections";
+import { ONBOARDING_SECTION_DEFS, getTotalItems } from "@/components/admin/onboarding/onboardingSections";
 import FamilySubmissionReview from "@/components/admin/onboarding/FamilySubmissionReview";
+import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
+import { toast } from "sonner";
 
-const STORAGE_KEY_PREFIX = "tavara_onboarding_checklist_";
+const ICON_MAP: Record<string, React.ReactNode> = {
+  ClipboardCheck: <ClipboardCheck className="h-5 w-5" />,
+  Heart: <Heart className="h-5 w-5" />,
+  Monitor: <Monitor className="h-5 w-5" />,
+  FileText: <FileText className="h-5 w-5" />,
+  Pill: <Pill className="h-5 w-5" />,
+  UtensilsCrossed: <UtensilsCrossed className="h-5 w-5" />,
+  ListChecks: <ListChecks className="h-5 w-5" />,
+  LayoutDashboard: <LayoutDashboard className="h-5 w-5" />,
+  Users: <Users className="h-5 w-5" />,
+  CalendarCheck: <CalendarCheck className="h-5 w-5" />,
+  MessageSquare: <MessageSquare className="h-5 w-5" />,
+};
 
 interface FamilyProfile {
   id: string;
   full_name: string | null;
 }
-
-interface OnboardingSectionLink {
-  label: string;
-  url: string;
-  icon: React.ReactNode;
-}
-
-interface OnboardingSection {
-  id: string;
-  title: string;
-  icon: React.ReactNode;
-  description: string;
-  items: string[];
-  links?: OnboardingSectionLink[];
-  showFamilyData?: boolean;
-}
-
-const ONBOARDING_SECTIONS: OnboardingSection[] = [
-  {
-    id: "pre_call",
-    title: "Pre-Call Preparation",
-    icon: <ClipboardCheck className="h-5 w-5" />,
-    description: "Admin review tasks before the onboarding call",
-    items: [
-      "Review family account status (registered, profile complete?)",
-      "Review existing care plan (if family already created one) OR note: care plan to be created during/after call",
-      "Note care recipient name, relationship, and primary conditions",
-      "Have family's phone number / WhatsApp ready",
-      "Review any notes from initial inquiry or chat registration data",
-      "Prepare screen-share or walkthrough materials",
-    ],
-  },
-  {
-    id: "review_submissions",
-    title: "Review Client Submissions",
-    icon: <Heart className="h-5 w-5" />,
-    description: "Review what the family already submitted — registration, care assessment, and legacy story",
-    showFamilyData: true,
-    items: [
-      "Review registration: care recipient name, relationship, care types, special needs",
-      "Review care assessment: ADLs, conditions, care location",
-      "Review legacy story: personality, hobbies, daily routine, joyful things",
-      "Discuss what prompted them to seek care",
-      "Confirm family's expectations and care goals",
-      "Note any updates to cultural, dietary, or language preferences",
-      "Confirm emergency contacts and physician information",
-      "Note any edits needed for follow-up",
-    ],
-  },
-  {
-    id: "platform_overview",
-    title: "Platform Overview for Family",
-    icon: <Monitor className="h-5 w-5" />,
-    description: "Walk the family through core navigation",
-    items: [
-      "How to log in (email + password or magic link)",
-      "Family dashboard layout and shortcuts",
-      "Care Plans quick link on dashboard",
-      "How to view their care plan details",
-      "Care team members and assigned professionals",
-      "How to access the medication dashboard",
-      "How to access the meal planner",
-    ],
-  },
-  {
-    id: "care_plan",
-    title: "Care Plan Review & Setup",
-    icon: <FileText className="h-5 w-5" />,
-    description: "Collaboratively review and finalize the care plan with the family",
-    items: [
-      "Review existing care plan details (if already created by family)",
-      "Care plan types (Scheduled Care, On-Demand)",
-      "Discuss and confirm weekday coverage: 8am-4pm / 8am-6pm / 6am-6pm / 6pm-8am / none",
-      "Discuss and confirm weekend coverage: 6am-6pm / 8am-4pm / none",
-      "Additional shifts if needed (evening/overnight options)",
-      "How to view / edit care plan details",
-      "Care team members tab — who's assigned",
-      "Daily care logs tab — how family views completed logs",
-    ],
-  },
-  {
-    id: "medication",
-    title: "Medication Management",
-    icon: <Pill className="h-5 w-5" />,
-    description: "How the medication system works for families and caregivers",
-    items: [
-      "How family adds medications (name, dosage, frequency, schedule)",
-      "Medication schedule view — today's medications at a glance",
-      "How professionals administer and record medications",
-      "Conflict-aware administration — prevents double-dosing",
-      "Medication history and reports",
-      "Export features (PDF / print)",
-      "Printable medication cards for the caregiver",
-    ],
-  },
-  {
-    id: "meals",
-    title: "Meal Management",
-    icon: <UtensilsCrossed className="h-5 w-5" />,
-    description: "Meal planning and nutrition features",
-    items: [
-      "Meal planner — weekly meal scheduling",
-      "Recipe library — browse and save recipes",
-      "Grocery list manager — auto-generate from meal plan",
-      "Nutrition tracker — monitor dietary intake",
-      "How to share meal plans with the caregiver",
-    ],
-  },
-  {
-    id: "daily_checklist",
-    title: "Daily Care Checklist (Caregiver SOP)",
-    icon: <ListChecks className="h-5 w-5" />,
-    description: "The standard operating procedure caregivers follow each shift",
-    items: [
-      "How the professional fills out the checklist each shift",
-      "One log per professional per care plan per day rule",
-      "How family sees the completed daily logs",
-      "Time-in / time-out tracking",
-      "Shift notes and incident reporting",
-    ],
-  },
-  {
-    id: "professional_dashboard",
-    title: "Professional Dashboard Overview",
-    icon: <LayoutDashboard className="h-5 w-5" />,
-    description: "What the caregiver sees on their side",
-    items: [
-      "Care assignments and client details",
-      "Calendar view with daily log entries",
-      "Medication dashboard for assigned care plans",
-      "Document management and training modules",
-      "Nurse Handbook & SOP resources (always accessible)",
-    ],
-  },
-  {
-    id: "caregiver_matching",
-    title: "Caregiver Matching & Introduction",
-    icon: <Users className="h-5 w-5" />,
-    description: "Match the right caregiver and plan introductions",
-    items: [
-      "Discuss caregiver preferences (skills, personality, language)",
-      "Explain matching process and timeline",
-      "Offer trial day option vs immediate start",
-      "Tentatively assign caregiver (confirm after call)",
-      "Arrange meet-and-greet if applicable",
-    ],
-  },
-  {
-    id: "next_steps",
-    title: "Next Steps & Follow-Up",
-    icon: <CalendarCheck className="h-5 w-5" />,
-    description: "Confirm start date, set up communication, and plan first-week check-in",
-    items: [
-      "Confirm care start date (or trial day date)",
-      "Set up WhatsApp care group",
-      "Schedule 24-48 hour post-first-visit check-in",
-      "Share admin/coordinator direct contact info",
-      "Confirm family knows how to reach support",
-      "Send welcome summary via email/WhatsApp after call",
-    ],
-  },
-  {
-    id: "communication",
-    title: "Communication & Notifications",
-    icon: <MessageSquare className="h-5 w-5" />,
-    description: "How everyone stays connected",
-    items: [
-      "Care plan edit notifications (bidirectional)",
-      "Daily log visibility for family",
-      "WhatsApp care group updates",
-      "How to contact the care coordinator",
-      "Emergency contact setup and visibility",
-    ],
-  },
-];
 
 export default function AdminOnboardingChecklistPage() {
   const navigate = useNavigate();
@@ -206,7 +46,9 @@ export default function AdminOnboardingChecklistPage() {
   const [selectedFamilyId, setSelectedFamilyId] = useState("");
   const [familyName, setFamilyName] = useState("");
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+  const [notes, setNotes] = useState<OnboardingNote[]>([]);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load families on mount
   useEffect(() => {
@@ -228,68 +70,103 @@ export default function AdminOnboardingChecklistPage() {
     loadFamilies();
   }, []);
 
-  // When family is selected, derive name and load persisted checklist
+  // When family is selected, load from Supabase
   useEffect(() => {
     if (selectedFamilyId) {
       const family = families.find((f) => f.id === selectedFamilyId);
-      const name = family?.full_name || "";
-      setFamilyName(name);
+      setFamilyName(family?.full_name || "");
 
-      if (name.trim()) {
-        const key = STORAGE_KEY_PREFIX + name.trim().toLowerCase().replace(/\s+/g, "_");
-        const saved = localStorage.getItem(key);
-        if (saved) {
-          try {
-            setCheckedItems(JSON.parse(saved));
-          } catch {
+      const loadChecklist = async () => {
+        try {
+          const { data, error } = await supabase
+            .from("onboarding_checklists")
+            .select("checked_items, notes")
+            .eq("family_id", selectedFamilyId)
+            .maybeSingle();
+          if (error) throw error;
+          if (data) {
+            setCheckedItems((data.checked_items as unknown as Record<string, boolean>) || {});
+            setNotes((data.notes as unknown as OnboardingNote[]) || []);
+          } else {
             setCheckedItems({});
+            setNotes([]);
           }
-        } else {
+        } catch (err) {
+          console.error("Failed to load checklist:", err);
           setCheckedItems({});
+          setNotes([]);
         }
-      }
+      };
+      loadChecklist();
     } else {
       setFamilyName("");
       setCheckedItems({});
+      setNotes([]);
     }
   }, [selectedFamilyId, families]);
 
-  // Persist checklist progress
-  useEffect(() => {
-    if (familyName.trim() && Object.keys(checkedItems).length > 0) {
-      const key = STORAGE_KEY_PREFIX + familyName.trim().toLowerCase().replace(/\s+/g, "_");
-      localStorage.setItem(key, JSON.stringify(checkedItems));
-    }
-  }, [checkedItems, familyName]);
+  // Debounced save to Supabase
+  const saveToSupabase = useCallback(
+    (items: Record<string, boolean>, notesList: OnboardingNote[]) => {
+      if (!selectedFamilyId) return;
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(async () => {
+        try {
+          const { error } = await supabase
+            .from("onboarding_checklists")
+            .upsert(
+              {
+                family_id: selectedFamilyId,
+                checked_items: items as unknown as Record<string, never>,
+                notes: notesList as unknown as Record<string, never>[],
+              },
+              { onConflict: "family_id" }
+            );
+          if (error) throw error;
+        } catch (err) {
+          console.error("Failed to save checklist:", err);
+        }
+      }, 800);
+    },
+    [selectedFamilyId]
+  );
 
   const toggleItem = (sectionId: string, index: number) => {
     const itemKey = `${sectionId}_${index}`;
-    setCheckedItems((prev) => ({ ...prev, [itemKey]: !prev[itemKey] }));
+    setCheckedItems((prev) => {
+      const next = { ...prev, [itemKey]: !prev[itemKey] };
+      saveToSupabase(next, notes);
+      return next;
+    });
+  };
+
+  const handleAddNote = (note: OnboardingNote) => {
+    setNotes((prev) => {
+      const next = [...prev, note];
+      saveToSupabase(checkedItems, next);
+      return next;
+    });
   };
 
   const toggleSection = (sectionId: string) => {
     setOpenSections((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }));
   };
 
-  const getSectionProgress = (section: OnboardingSection) => {
-    let checked = 0;
-    section.items.forEach((_, i) => {
-      if (checkedItems[`${section.id}_${i}`]) checked++;
-    });
-    return { checked, total: section.items.length };
-  };
-
-  const totalItems = ONBOARDING_SECTIONS.reduce((sum, s) => sum + s.items.length, 0);
+  const totalItems = getTotalItems();
   const totalChecked = Object.values(checkedItems).filter(Boolean).length;
 
   const handleReset = () => {
-    if (window.confirm("Reset all checkboxes for this onboarding session?")) {
+    if (window.confirm("Reset all checkboxes and notes for this onboarding session?")) {
       setCheckedItems({});
-      if (familyName.trim()) {
-        const key = STORAGE_KEY_PREFIX + familyName.trim().toLowerCase().replace(/\s+/g, "_");
-        localStorage.removeItem(key);
-      }
+      setNotes([]);
+      saveToSupabase({}, []);
     }
+  };
+
+  const publicGuideUrl = `${window.location.origin}/onboarding-guide`;
+  const copyPublicLink = () => {
+    navigator.clipboard.writeText(publicGuideUrl);
+    toast.success("Public onboarding guide link copied!");
   };
 
   return (
@@ -304,10 +181,16 @@ export default function AdminOnboardingChecklistPage() {
             Structured guide for onboarding calls with new families
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
-          <RotateCcw className="h-4 w-4" />
-          Reset
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={copyPublicLink} className="gap-1" title="Copy shareable link">
+            <Copy className="h-4 w-4" />
+            Share Guide
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
+            <RotateCcw className="h-4 w-4" />
+            Reset
+          </Button>
+        </div>
       </div>
 
       <Card className="mb-6">
@@ -352,8 +235,12 @@ export default function AdminOnboardingChecklistPage() {
       </Card>
 
       <div className="space-y-3">
-        {ONBOARDING_SECTIONS.map((section) => {
-          const { checked, total } = getSectionProgress(section);
+        {ONBOARDING_SECTION_DEFS.map((section) => {
+          let checked = 0;
+          section.items.forEach((_, i) => {
+            if (checkedItems[`${section.id}_${i}`]) checked++;
+          });
+          const total = section.items.length;
           const isOpen = openSections[section.id] ?? false;
           const isComplete = checked === total && total > 0;
 
@@ -364,7 +251,7 @@ export default function AdminOnboardingChecklistPage() {
                   <CardHeader className="py-4">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${isComplete ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
-                        {section.icon}
+                        {ICON_MAP[section.iconName] || <ClipboardCheck className="h-5 w-5" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-base flex items-center gap-2">
@@ -441,6 +328,9 @@ export default function AdminOnboardingChecklistPage() {
             </Collapsible>
           );
         })}
+
+        {/* Notes & Action Items — always visible at the bottom */}
+        <OnboardingNotesCard notes={notes} onAddNote={handleAddNote} />
       </div>
     </div>
   );

@@ -54,6 +54,7 @@ import CareManagementPage from "@/pages/family/care-management/CareManagementPag
 import CarePlanDetailPage from "@/pages/family/care-management/CarePlanDetailPage";
 import CreateCarePlanPage from "@/pages/family/care-management/CreateCarePlanPage";
 import CareJourneyProgressPage from "@/pages/family/CareJourneyProgressPage";
+import FamilyOnboardingChecklistPage from "@/pages/family/FamilyOnboardingChecklistPage";
 
 // Profile Pages
 import ProfileEditPage from "@/pages/profile/ProfileEditPage";
