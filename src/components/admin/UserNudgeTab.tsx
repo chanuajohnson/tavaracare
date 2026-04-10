@@ -332,10 +332,10 @@ const buildOnboardingNudge = (userName: string): string => {
 
 We're thrilled to welcome you to the Tavara Care team! Here's everything you need to know about your role:
 
-💰 *Starting Rate*
-• Standard Tier: $35/hr
-• Full Service: $40/hr
-• Premium: $45+/hr
+💰 *Rate Tiers*
+• Standard: $35/hr — GAPP-certified personal care, medication admin & logging, vitals monitoring, basic daily dietary meal prep, daily care documentation, specialized care (dementia, palliative, post-surgical)
+• Full Service: $40/hr — Everything in Standard + specialist-directed meal prep (holidays & special occasions), complex medical needs (wound/catheter/oxygen), overnight/live-in, advanced certifications (RN, LPN), behavioral health
+• Premium: $45+/hr — Everything in Full Service + care plan change management, disease progression support, multi-specialist coordination, 24/7 on-call, advanced palliative/end-of-life, family training & transition planning
 Your tier will be confirmed based on experience, certifications, and assignment complexity.
 
 👥 *Team Structure*

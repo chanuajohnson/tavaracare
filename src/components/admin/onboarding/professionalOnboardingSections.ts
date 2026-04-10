@@ -94,7 +94,9 @@ export const PROFESSIONAL_ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     iconName: "DollarSign",
     description: "Rate tiers, holiday/overtime rates, payment schedule, and change orders",
     items: [
-      "Review base rate tiers: Standard ($35/hr), Full Service ($40/hr), Premium ($45+/hr)",
+      "Review rate tiers: Standard ($35/hr) — GAPP-certified personal care, medication admin & logging, vitals monitoring, basic daily dietary meal prep, daily care documentation, specialized care (dementia, palliative, post-surgical)",
+      "Full Service ($40/hr) — Everything in Standard + advanced specialist-directed meal prep (holidays & special occasions), complex medical needs (wound care, catheter care, oxygen management), overnight/live-in shifts, advanced certifications (RN, LPN), behavioral health support",
+      "Premium ($45+/hr) — Everything in Full Service + change-in-care-plan management, disease progression support, multi-specialist coordination, 24/7 on-call availability, advanced palliative/end-of-life care, family training & transition planning",
       "Holiday rates — time and a half (1.5x); double time (2x) on Christmas",
       "Extended hours / overtime rates — time and a half beyond standard shifts",
       "Payment schedule and method (weekly/bi-weekly)",
@@ -109,12 +111,13 @@ export const PROFESSIONAL_ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     iconName: "MessageSquare",
     description: "WhatsApp groups, coordinator contact, and escalation procedures",
     items: [
-      "WhatsApp care group setup — how communication flows",
-      "How to contact the care coordinator directly",
+      "Your Tavara Care Dashboard is your central hub — assignments, daily logs, medications, documents, and messages all in one place",
+      "WhatsApp care group setup — how communication flows alongside your dashboard",
+      "How to contact the care coordinator directly (via dashboard or WhatsApp)",
       "Emergency escalation procedures",
       "Professional message board for peer support",
-      "Nurse Handbook & SOP resources (always accessible)",
-      "How to report concerns or request support",
+      "Nurse Handbook & SOP resources — always accessible from your dashboard",
+      "How to report concerns or request support through the platform",
     ],
   },
   {
