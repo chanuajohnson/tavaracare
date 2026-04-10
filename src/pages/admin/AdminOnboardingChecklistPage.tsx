@@ -563,6 +563,7 @@ export default function AdminOnboardingChecklistPage() {
             profileLabel="Professional"
             tableName="professional_onboarding_checklists"
             idColumn="professional_id"
+            showProfessionalData
           />
         </TabsContent>
       </Tabs>
