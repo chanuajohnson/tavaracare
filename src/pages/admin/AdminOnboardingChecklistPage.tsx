@@ -20,6 +20,7 @@ import { ONBOARDING_SECTION_DEFS, getTotalItems, OnboardingSectionDef } from "@/
 import { PROFESSIONAL_ONBOARDING_SECTION_DEFS, getProfessionalTotalItems } from "@/components/admin/onboarding/professionalOnboardingSections";
 import FamilySubmissionReview from "@/components/admin/onboarding/FamilySubmissionReview";
 import ProfessionalSubmissionReview from "@/components/admin/onboarding/ProfessionalSubmissionReview";
+import RateTierReferenceCard from "@/components/admin/onboarding/RateTierReferenceCard";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
 import { toast } from "sonner";
 
@@ -239,7 +240,7 @@ function ChecklistTabContent({
                       })}
                     </div>
 
-                    {section.id === "daily_checklist" && (
+                    {(section.id === "daily_checklist" || section.id === "daily_checklist_sop") && (
                       <div className="mt-6 border-t pt-4">
                         <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
                           <ListChecks className="h-4 w-4" />
@@ -261,6 +262,10 @@ function ChecklistTabContent({
                           ))}
                         </div>
                       </div>
+                    )}
+
+                    {(section.id === "rates_payment" || section.id === "rates_and_changes") && (
+                      <RateTierReferenceCard />
                     )}
                   </CardContent>
                 </CollapsibleContent>
