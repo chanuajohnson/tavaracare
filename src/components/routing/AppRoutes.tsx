@@ -78,6 +78,9 @@ import TavDemo from "@/pages/TavDemo";
 import TavDashboard from "@/pages/TavDashboard";
 import ImplementationGuide from "@/pages/ImplementationGuide";
 
+// Public Pages
+import OnboardingGuidePage from "@/pages/public/OnboardingGuidePage";
+
 // Demo Pages
 import DemoFamilyRegistration from "@/pages/demo/DemoFamilyRegistration";
 import DemoCareAssessment from "@/pages/demo/DemoCareAssessment";
