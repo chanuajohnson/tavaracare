@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { CHECKLIST_SECTIONS } from "@/components/professional/checklist/checklistSections";
+import RateTierReferenceCard from "@/components/admin/onboarding/RateTierReferenceCard";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -182,12 +184,40 @@ export default function ProfessionalOnboardingChecklistPage() {
                                 <Circle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                               )}
                               <span className={`text-sm ${isChecked ? "text-muted-foreground" : ""}`}>
-                                {item}
-                              </span>
-                            </div>
-                          );
-                        })}
+                          {item}
+                        </span>
                       </div>
+                    );
+                  })}
+                </div>
+
+                {section.id === "daily_checklist_sop" && (
+                  <div className="mt-6 border-t pt-4">
+                    <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                      <ListChecks className="h-4 w-4" />
+                      Full Daily Checklist (SOP Reference)
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {CHECKLIST_SECTIONS.map((sopSection, idx) => (
+                        <div key={idx} className="bg-muted/50 rounded-lg p-3">
+                          <p className="font-medium text-sm mb-2">{sopSection.title}</p>
+                          <ul className="space-y-1">
+                            {sopSection.items.map((sopItem, j) => (
+                              <li key={j} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                <span className="text-primary mt-0.5">•</span>
+                                {sopItem}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {section.id === "rates_payment" && (
+                  <RateTierReferenceCard />
+                )}
                     </CardContent>
                   </CollapsibleContent>
                 </Card>

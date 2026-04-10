@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import RateTierReferenceCard from "@/components/admin/onboarding/RateTierReferenceCard";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -184,12 +185,16 @@ export default function FamilyOnboardingChecklistPage() {
                                 <Circle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                               )}
                               <span className={`text-sm ${isChecked ? "text-muted-foreground" : ""}`}>
-                                {item}
-                              </span>
-                            </div>
-                          );
-                        })}
+                          {item}
+                        </span>
                       </div>
+                    );
+                  })}
+                </div>
+
+                {section.id === "rates_and_changes" && (
+                  <RateTierReferenceCard />
+                )}
                     </CardContent>
                   </CollapsibleContent>
                 </Card>
