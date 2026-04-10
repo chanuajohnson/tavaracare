@@ -54,6 +54,7 @@ import CareManagementPage from "@/pages/family/care-management/CareManagementPag
 import CarePlanDetailPage from "@/pages/family/care-management/CarePlanDetailPage";
 import CreateCarePlanPage from "@/pages/family/care-management/CreateCarePlanPage";
 import CareJourneyProgressPage from "@/pages/family/CareJourneyProgressPage";
+import FamilyOnboardingChecklistPage from "@/pages/family/FamilyOnboardingChecklistPage";
 
 // Profile Pages
 import ProfileEditPage from "@/pages/profile/ProfileEditPage";
@@ -76,6 +77,9 @@ import LegacyStoriesPage from "@/pages/legacy/LegacyStoriesPage";
 import TavDemo from "@/pages/TavDemo";
 import TavDashboard from "@/pages/TavDashboard";
 import ImplementationGuide from "@/pages/ImplementationGuide";
+
+// Public Pages
+import OnboardingGuidePage from "@/pages/public/OnboardingGuidePage";
 
 // Demo Pages
 import DemoFamilyRegistration from "@/pages/demo/DemoFamilyRegistration";
@@ -112,6 +116,7 @@ export const AppRoutes = () => {
       <Route path="/urgent-caregivers" element={<UrgentCaregiversPage />} />
       <Route path="/urgent-families" element={<UrgentFamiliesPage />} />
       <Route path="/join-as-caregiver" element={<JoinAsCaregiver />} />
+      <Route path="/onboarding-guide" element={<OnboardingGuidePage />} />
       
       {/* Registration Routes */}
       <Route path="/registration/family" element={<FamilyRegistration />} />
@@ -150,6 +155,7 @@ export const AppRoutes = () => {
       <Route path="/family/care-management/:carePlanId/meals" element={<MealManagementPage />} />
       <Route path="/family/care-management/create" element={<CreateCarePlanPage />} />
       <Route path="/family/care-journey-progress" element={<CareJourneyProgressPage />} />
+      <Route path="/family/onboarding-checklist" element={<FamilyOnboardingChecklistPage />} />
       
       {/* Community Routes */}
       <Route path="/community" element={<CommunityFeaturesOverview />} />
