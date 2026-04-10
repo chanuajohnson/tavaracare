@@ -3057,6 +3057,41 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_checklists: {
+        Row: {
+          checked_items: Json | null
+          family_id: string
+          id: string
+          notes: Json | null
+          started_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          checked_items?: Json | null
+          family_id: string
+          id?: string
+          notes?: Json | null
+          started_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          checked_items?: Json | null
+          family_id?: string
+          id?: string
+          notes?: Json | null
+          started_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_checklists_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_transactions: {
         Row: {
           amount: number
