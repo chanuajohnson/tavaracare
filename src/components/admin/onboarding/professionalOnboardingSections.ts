@@ -7,6 +7,7 @@ export const PROFESSIONAL_ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     title: "Pre-Screening Review",
     iconName: "ClipboardCheck",
     description: "Review background check, references, and screening session status",
+    showProfessionalData: true,
     items: [
       "Review professional's registration data (name, experience, certifications)",
       "Check background check status and proof document",
