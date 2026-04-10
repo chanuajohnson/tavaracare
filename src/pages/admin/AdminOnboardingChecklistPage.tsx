@@ -9,13 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft, ChevronDown, RotateCcw, ClipboardCheck, Monitor, FileText,
   Pill, UtensilsCrossed, ListChecks, LayoutDashboard, MessageSquare,
-  Heart, Users, CalendarCheck, Loader2, ExternalLink, Copy, DollarSign
+  Heart, Users, CalendarCheck, Loader2, Copy, DollarSign
 } from "lucide-react";
 import { CHECKLIST_SECTIONS } from "@/components/professional/checklist/checklistSections";
-import { ONBOARDING_SECTION_DEFS, getTotalItems } from "@/components/admin/onboarding/onboardingSections";
+import { ONBOARDING_SECTION_DEFS, getTotalItems, OnboardingSectionDef } from "@/components/admin/onboarding/onboardingSections";
+import { PROFESSIONAL_ONBOARDING_SECTION_DEFS, getProfessionalTotalItems } from "@/components/admin/onboarding/professionalOnboardingSections";
 import FamilySubmissionReview from "@/components/admin/onboarding/FamilySubmissionReview";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
 import { toast } from "sonner";
@@ -35,135 +37,51 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   DollarSign: <DollarSign className="h-5 w-5" />,
 };
 
-interface FamilyProfile {
+interface ProfileOption {
   id: string;
   full_name: string | null;
 }
 
-export default function AdminOnboardingChecklistPage() {
-  const navigate = useNavigate();
-  const [families, setFamilies] = useState<FamilyProfile[]>([]);
-  const [loadingFamilies, setLoadingFamilies] = useState(true);
-  const [selectedFamilyId, setSelectedFamilyId] = useState("");
-  const [familyName, setFamilyName] = useState("");
-  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
-  const [notes, setNotes] = useState<OnboardingNote[]>([]);
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
-  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Load families on mount
-  useEffect(() => {
-    const loadFamilies = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("id, full_name")
-          .eq("role", "family")
-          .order("full_name");
-        if (error) throw error;
-        setFamilies(data || []);
-      } catch (err) {
-        console.error("Failed to load families:", err);
-      } finally {
-        setLoadingFamilies(false);
-      }
-    };
-    loadFamilies();
-  }, []);
-
-  // When family is selected, load from Supabase
-  useEffect(() => {
-    if (selectedFamilyId) {
-      const family = families.find((f) => f.id === selectedFamilyId);
-      setFamilyName(family?.full_name || "");
-
-      const loadChecklist = async () => {
-        try {
-          const { data, error } = await supabase
-            .from("onboarding_checklists")
-            .select("checked_items, notes")
-            .eq("family_id", selectedFamilyId)
-            .maybeSingle();
-          if (error) throw error;
-          if (data) {
-            setCheckedItems((data.checked_items as unknown as Record<string, boolean>) || {});
-            setNotes((data.notes as unknown as OnboardingNote[]) || []);
-          } else {
-            setCheckedItems({});
-            setNotes([]);
-          }
-        } catch (err) {
-          console.error("Failed to load checklist:", err);
-          setCheckedItems({});
-          setNotes([]);
-        }
-      };
-      loadChecklist();
-    } else {
-      setFamilyName("");
-      setCheckedItems({});
-      setNotes([]);
-    }
-  }, [selectedFamilyId, families]);
-
-  // Debounced save to Supabase
-  const saveToSupabase = useCallback(
-    (items: Record<string, boolean>, notesList: OnboardingNote[]) => {
-      if (!selectedFamilyId) return;
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(async () => {
-        try {
-          const { error } = await supabase
-            .from("onboarding_checklists")
-            .upsert(
-              {
-                family_id: selectedFamilyId,
-                checked_items: items as unknown as Record<string, never>,
-                notes: notesList as unknown as Record<string, never>[],
-              },
-              { onConflict: "family_id" }
-            );
-          if (error) throw error;
-        } catch (err) {
-          console.error("Failed to save checklist:", err);
-        }
-      }, 800);
-    },
-    [selectedFamilyId]
-  );
-
-  const toggleItem = (sectionId: string, index: number) => {
-    const itemKey = `${sectionId}_${index}`;
-    setCheckedItems((prev) => {
-      const next = { ...prev, [itemKey]: !prev[itemKey] };
-      saveToSupabase(next, notes);
-      return next;
-    });
-  };
-
-  const handleAddNote = (note: OnboardingNote) => {
-    setNotes((prev) => {
-      const next = [...prev, note];
-      saveToSupabase(checkedItems, next);
-      return next;
-    });
-  };
-
-  const toggleSection = (sectionId: string) => {
-    setOpenSections((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }));
-  };
-
-  const totalItems = getTotalItems();
-  const totalChecked = Object.values(checkedItems).filter(Boolean).length;
-
-  const handleReset = () => {
-    if (window.confirm("Reset all checkboxes and notes for this onboarding session?")) {
-      setCheckedItems({});
-      setNotes([]);
-      saveToSupabase({}, []);
-    }
-  };
-
+// Reusable checklist tab content
+function ChecklistTabContent({
+  profiles,
+  loadingProfiles,
+  selectedId,
+  setSelectedId,
+  checkedItems,
+  toggleItem,
+  notes,
+  handleAddNote,
+  openSections,
+  toggleSection,
+  handleReset,
+  sectionDefs,
+  totalItems,
+  totalChecked,
+  profileLabel,
+  tableName,
+  idColumn,
+  showFamilyData,
+}: {
+  profiles: ProfileOption[];
+  loadingProfiles: boolean;
+  selectedId: string;
+  setSelectedId: (id: string) => void;
+  checkedItems: Record<string, boolean>;
+  toggleItem: (sectionId: string, index: number) => void;
+  notes: OnboardingNote[];
+  handleAddNote: (note: OnboardingNote) => void;
+  openSections: Record<string, boolean>;
+  toggleSection: (id: string) => void;
+  handleReset: () => void;
+  sectionDefs: OnboardingSectionDef[];
+  totalItems: number;
+  totalChecked: number;
+  profileLabel: string;
+  tableName: string;
+  idColumn: string;
+  showFamilyData?: boolean;
+}) {
   const publicGuideUrl = `${window.location.origin}/onboarding-guide`;
   const copyPublicLink = () => {
     navigator.clipboard.writeText(publicGuideUrl);
@@ -171,57 +89,46 @@ export default function AdminOnboardingChecklistPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="flex items-center gap-3 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/admin")}>
-          <ArrowLeft className="h-5 w-5" />
+    <>
+      <div className="flex justify-end gap-2 mb-4">
+        <Button variant="outline" size="sm" onClick={copyPublicLink} className="gap-1" title="Copy shareable link">
+          <Copy className="h-4 w-4" />
+          Share Guide
         </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">Family Onboarding Checklist</h1>
-          <p className="text-sm text-muted-foreground">
-            Structured guide for onboarding calls with new families
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={copyPublicLink} className="gap-1" title="Copy shareable link">
-            <Copy className="h-4 w-4" />
-            Share Guide
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
-            <RotateCcw className="h-4 w-4" />
-            Reset
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
+          <RotateCcw className="h-4 w-4" />
+          Reset
+        </Button>
       </div>
 
       <Card className="mb-6">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
             <div className="flex-1 space-y-2">
-              <Label htmlFor="familySelect">Select Family</Label>
-              {loadingFamilies ? (
+              <Label htmlFor={`${idColumn}Select`}>Select {profileLabel}</Label>
+              {loadingProfiles ? (
                 <div className="flex items-center gap-2 h-10">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm text-muted-foreground">Loading families…</span>
+                  <span className="text-sm text-muted-foreground">Loading…</span>
                 </div>
               ) : (
                 <>
-                  <Select value={selectedFamilyId} onValueChange={setSelectedFamilyId}>
-                    <SelectTrigger id="familySelect">
-                      <SelectValue placeholder="Choose a family to begin onboarding" />
+                  <Select value={selectedId} onValueChange={setSelectedId}>
+                    <SelectTrigger id={`${idColumn}Select`}>
+                      <SelectValue placeholder={`Choose a ${profileLabel.toLowerCase()} to begin onboarding`} />
                     </SelectTrigger>
                     <SelectContent>
-                      {families.map((f) => (
-                        <SelectItem key={f.id} value={f.id}>
-                          {f.full_name || "Unnamed family"}
+                      {profiles.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.full_name || `Unnamed ${profileLabel.toLowerCase()}`}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {selectedFamilyId && (
+                  {selectedId && (
                     <div className="flex items-center gap-2 mt-1">
                       <p className="text-xs text-muted-foreground font-mono truncate">
-                        Profile ID: {selectedFamilyId}
+                        Profile ID: {selectedId}
                       </p>
                       <Button
                         type="button"
@@ -229,8 +136,8 @@ export default function AdminOnboardingChecklistPage() {
                         size="sm"
                         className="h-5 px-1.5 text-xs"
                         onClick={() => {
-                          navigator.clipboard.writeText(selectedFamilyId);
-                          toast.success("Family profile ID copied!");
+                          navigator.clipboard.writeText(selectedId);
+                          toast.success(`${profileLabel} profile ID copied!`);
                         }}
                       >
                         <Copy className="h-3 w-3" />
@@ -257,7 +164,7 @@ export default function AdminOnboardingChecklistPage() {
       </Card>
 
       <div className="space-y-3">
-        {ONBOARDING_SECTION_DEFS.map((section) => {
+        {sectionDefs.map((section) => {
           let checked = 0;
           section.items.forEach((_, i) => {
             if (checkedItems[`${section.id}_${i}`]) checked++;
@@ -290,14 +197,12 @@ export default function AdminOnboardingChecklistPage() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <CardContent className="pt-0 pb-4">
-                    {/* Inline family data review for the submissions section */}
-                    {section.showFamilyData && selectedFamilyId && (
+                    {showFamilyData && section.showFamilyData && selectedId && (
                       <div className="mb-4">
-                        <FamilySubmissionReview familyId={selectedFamilyId} />
+                        <FamilySubmissionReview familyId={selectedId} />
                       </div>
                     )}
-
-                    {section.showFamilyData && !selectedFamilyId && (
+                    {showFamilyData && section.showFamilyData && !selectedId && (
                       <div className="mb-4 p-4 border border-dashed rounded-lg text-center text-sm text-muted-foreground">
                         Select a family above to view their submitted registration, care assessment, and legacy story.
                       </div>
@@ -351,9 +256,303 @@ export default function AdminOnboardingChecklistPage() {
           );
         })}
 
-        {/* Notes & Action Items — always visible at the bottom */}
         <OnboardingNotesCard notes={notes} onAddNote={handleAddNote} />
       </div>
+    </>
+  );
+}
+
+export default function AdminOnboardingChecklistPage() {
+  const navigate = useNavigate();
+
+  // Family state
+  const [families, setFamilies] = useState<ProfileOption[]>([]);
+  const [loadingFamilies, setLoadingFamilies] = useState(true);
+  const [selectedFamilyId, setSelectedFamilyId] = useState("");
+  const [familyCheckedItems, setFamilyCheckedItems] = useState<Record<string, boolean>>({});
+  const [familyNotes, setFamilyNotes] = useState<OnboardingNote[]>([]);
+  const [familyOpenSections, setFamilyOpenSections] = useState<Record<string, boolean>>({});
+  const familySaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Professional state
+  const [professionals, setProfessionals] = useState<ProfileOption[]>([]);
+  const [loadingProfessionals, setLoadingProfessionals] = useState(true);
+  const [selectedProfessionalId, setSelectedProfessionalId] = useState("");
+  const [profCheckedItems, setProfCheckedItems] = useState<Record<string, boolean>>({});
+  const [profNotes, setProfNotes] = useState<OnboardingNote[]>([]);
+  const [profOpenSections, setProfOpenSections] = useState<Record<string, boolean>>({});
+  const profSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load families
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .eq("role", "family")
+          .order("full_name");
+        if (error) throw error;
+        setFamilies(data || []);
+      } catch (err) {
+        console.error("Failed to load families:", err);
+      } finally {
+        setLoadingFamilies(false);
+      }
+    };
+    load();
+  }, []);
+
+  // Load professionals
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .eq("role", "professional")
+          .order("full_name");
+        if (error) throw error;
+        setProfessionals(data || []);
+      } catch (err) {
+        console.error("Failed to load professionals:", err);
+      } finally {
+        setLoadingProfessionals(false);
+      }
+    };
+    load();
+  }, []);
+
+  // Load family checklist
+  useEffect(() => {
+    if (!selectedFamilyId) {
+      setFamilyCheckedItems({});
+      setFamilyNotes([]);
+      return;
+    }
+    const load = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("onboarding_checklists")
+          .select("checked_items, notes")
+          .eq("family_id", selectedFamilyId)
+          .maybeSingle();
+        if (error) throw error;
+        if (data) {
+          setFamilyCheckedItems((data.checked_items as unknown as Record<string, boolean>) || {});
+          setFamilyNotes((data.notes as unknown as OnboardingNote[]) || []);
+        } else {
+          setFamilyCheckedItems({});
+          setFamilyNotes([]);
+        }
+      } catch (err) {
+        console.error("Failed to load family checklist:", err);
+        setFamilyCheckedItems({});
+        setFamilyNotes([]);
+      }
+    };
+    load();
+  }, [selectedFamilyId]);
+
+  // Load professional checklist
+  useEffect(() => {
+    if (!selectedProfessionalId) {
+      setProfCheckedItems({});
+      setProfNotes([]);
+      return;
+    }
+    const load = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("professional_onboarding_checklists")
+          .select("checked_items, notes")
+          .eq("professional_id", selectedProfessionalId)
+          .maybeSingle();
+        if (error) throw error;
+        if (data) {
+          setProfCheckedItems((data.checked_items as unknown as Record<string, boolean>) || {});
+          setProfNotes((data.notes as unknown as OnboardingNote[]) || []);
+        } else {
+          setProfCheckedItems({});
+          setProfNotes([]);
+        }
+      } catch (err) {
+        console.error("Failed to load professional checklist:", err);
+        setProfCheckedItems({});
+        setProfNotes([]);
+      }
+    };
+    load();
+  }, [selectedProfessionalId]);
+
+  // Family save
+  const saveFamilyToSupabase = useCallback(
+    (items: Record<string, boolean>, notesList: OnboardingNote[]) => {
+      if (!selectedFamilyId) return;
+      if (familySaveTimerRef.current) clearTimeout(familySaveTimerRef.current);
+      familySaveTimerRef.current = setTimeout(async () => {
+        try {
+          const { error } = await supabase
+            .from("onboarding_checklists")
+            .upsert(
+              {
+                family_id: selectedFamilyId,
+                checked_items: items as unknown as Record<string, never>,
+                notes: notesList as unknown as Record<string, never>[],
+              },
+              { onConflict: "family_id" }
+            );
+          if (error) throw error;
+        } catch (err) {
+          console.error("Failed to save family checklist:", err);
+        }
+      }, 800);
+    },
+    [selectedFamilyId]
+  );
+
+  // Professional save
+  const saveProfToSupabase = useCallback(
+    (items: Record<string, boolean>, notesList: OnboardingNote[]) => {
+      if (!selectedProfessionalId) return;
+      if (profSaveTimerRef.current) clearTimeout(profSaveTimerRef.current);
+      profSaveTimerRef.current = setTimeout(async () => {
+        try {
+          const { error } = await supabase
+            .from("professional_onboarding_checklists")
+            .upsert(
+              {
+                professional_id: selectedProfessionalId,
+                checked_items: items as unknown as Record<string, never>,
+                notes: notesList as unknown as Record<string, never>[],
+              },
+              { onConflict: "professional_id" }
+            );
+          if (error) throw error;
+        } catch (err) {
+          console.error("Failed to save professional checklist:", err);
+        }
+      }, 800);
+    },
+    [selectedProfessionalId]
+  );
+
+  const toggleFamilyItem = (sectionId: string, index: number) => {
+    const itemKey = `${sectionId}_${index}`;
+    setFamilyCheckedItems((prev) => {
+      const next = { ...prev, [itemKey]: !prev[itemKey] };
+      saveFamilyToSupabase(next, familyNotes);
+      return next;
+    });
+  };
+
+  const toggleProfItem = (sectionId: string, index: number) => {
+    const itemKey = `${sectionId}_${index}`;
+    setProfCheckedItems((prev) => {
+      const next = { ...prev, [itemKey]: !prev[itemKey] };
+      saveProfToSupabase(next, profNotes);
+      return next;
+    });
+  };
+
+  const handleFamilyAddNote = (note: OnboardingNote) => {
+    setFamilyNotes((prev) => {
+      const next = [...prev, note];
+      saveFamilyToSupabase(familyCheckedItems, next);
+      return next;
+    });
+  };
+
+  const handleProfAddNote = (note: OnboardingNote) => {
+    setProfNotes((prev) => {
+      const next = [...prev, note];
+      saveProfToSupabase(profCheckedItems, next);
+      return next;
+    });
+  };
+
+  const familyTotalItems = getTotalItems();
+  const familyTotalChecked = Object.values(familyCheckedItems).filter(Boolean).length;
+  const profTotalItems = getProfessionalTotalItems();
+  const profTotalChecked = Object.values(profCheckedItems).filter(Boolean).length;
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="flex items-center gap-3 mb-6">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/admin")}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold">Onboarding Checklist</h1>
+          <p className="text-sm text-muted-foreground">
+            Structured guide for onboarding calls with new families and professionals
+          </p>
+        </div>
+      </div>
+
+      <Tabs defaultValue="family" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="family">Family</TabsTrigger>
+          <TabsTrigger value="professional">Professional</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="family">
+          <ChecklistTabContent
+            profiles={families}
+            loadingProfiles={loadingFamilies}
+            selectedId={selectedFamilyId}
+            setSelectedId={setSelectedFamilyId}
+            checkedItems={familyCheckedItems}
+            toggleItem={toggleFamilyItem}
+            notes={familyNotes}
+            handleAddNote={handleFamilyAddNote}
+            openSections={familyOpenSections}
+            toggleSection={(id) => setFamilyOpenSections((prev) => ({ ...prev, [id]: !prev[id] }))}
+            handleReset={() => {
+              if (window.confirm("Reset all checkboxes and notes for this family onboarding session?")) {
+                setFamilyCheckedItems({});
+                setFamilyNotes([]);
+                saveFamilyToSupabase({}, []);
+              }
+            }}
+            sectionDefs={ONBOARDING_SECTION_DEFS}
+            totalItems={familyTotalItems}
+            totalChecked={familyTotalChecked}
+            profileLabel="Family"
+            tableName="onboarding_checklists"
+            idColumn="family_id"
+            showFamilyData
+          />
+        </TabsContent>
+
+        <TabsContent value="professional">
+          <ChecklistTabContent
+            profiles={professionals}
+            loadingProfiles={loadingProfessionals}
+            selectedId={selectedProfessionalId}
+            setSelectedId={setSelectedProfessionalId}
+            checkedItems={profCheckedItems}
+            toggleItem={toggleProfItem}
+            notes={profNotes}
+            handleAddNote={handleProfAddNote}
+            openSections={profOpenSections}
+            toggleSection={(id) => setProfOpenSections((prev) => ({ ...prev, [id]: !prev[id] }))}
+            handleReset={() => {
+              if (window.confirm("Reset all checkboxes and notes for this professional onboarding session?")) {
+                setProfCheckedItems({});
+                setProfNotes([]);
+                saveProfToSupabase({}, []);
+              }
+            }}
+            sectionDefs={PROFESSIONAL_ONBOARDING_SECTION_DEFS}
+            totalItems={profTotalItems}
+            totalChecked={profTotalChecked}
+            profileLabel="Professional"
+            tableName="professional_onboarding_checklists"
+            idColumn="professional_id"
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
