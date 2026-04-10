@@ -1,21 +1,28 @@
 
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   ArrowLeft, ChevronDown, RotateCcw, ClipboardCheck, Monitor, FileText,
   Pill, UtensilsCrossed, ListChecks, LayoutDashboard, MessageSquare,
-  Heart, Users, ExternalLink, CalendarCheck, PhoneForwarded
+  Heart, Users, CalendarCheck, Loader2
 } from "lucide-react";
 import { CHECKLIST_SECTIONS } from "@/components/professional/checklist/checklistSections";
+import FamilySubmissionReview from "@/components/admin/onboarding/FamilySubmissionReview";
 
 const STORAGE_KEY_PREFIX = "tavara_onboarding_checklist_";
+
+interface FamilyProfile {
+  id: string;
+  full_name: string | null;
+}
 
 interface OnboardingSectionLink {
   label: string;
@@ -30,6 +37,7 @@ interface OnboardingSection {
   description: string;
   items: string[];
   links?: OnboardingSectionLink[];
+  showFamilyData?: boolean;
 }
 
 const ONBOARDING_SECTIONS: OnboardingSection[] = [
@@ -52,11 +60,7 @@ const ONBOARDING_SECTIONS: OnboardingSection[] = [
     title: "Review Client Submissions",
     icon: <Heart className="h-5 w-5" />,
     description: "Review what the family already submitted — registration, care assessment, and legacy story",
-    links: [
-      { label: "View Registration", url: "/registration/family", icon: <ExternalLink className="h-4 w-4" /> },
-      { label: "View Care Assessment", url: "/family/care-assessment?mode=edit", icon: <ExternalLink className="h-4 w-4" /> },
-      { label: "View Legacy Story", url: "/family/story", icon: <ExternalLink className="h-4 w-4" /> },
-    ],
+    showFamilyData: true,
     items: [
       "Review registration: care recipient name, relationship, care types, special needs",
       "Review care assessment: ADLs, conditions, care location",
@@ -197,26 +201,60 @@ const ONBOARDING_SECTIONS: OnboardingSection[] = [
 
 export default function AdminOnboardingChecklistPage() {
   const navigate = useNavigate();
+  const [families, setFamilies] = useState<FamilyProfile[]>([]);
+  const [loadingFamilies, setLoadingFamilies] = useState(true);
+  const [selectedFamilyId, setSelectedFamilyId] = useState("");
   const [familyName, setFamilyName] = useState("");
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
+  // Load families on mount
   useEffect(() => {
-    if (familyName.trim()) {
-      const key = STORAGE_KEY_PREFIX + familyName.trim().toLowerCase().replace(/\s+/g, "_");
-      const saved = localStorage.getItem(key);
-      if (saved) {
-        try {
-          setCheckedItems(JSON.parse(saved));
-        } catch {
+    const loadFamilies = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .eq("role", "family")
+          .order("full_name");
+        if (error) throw error;
+        setFamilies(data || []);
+      } catch (err) {
+        console.error("Failed to load families:", err);
+      } finally {
+        setLoadingFamilies(false);
+      }
+    };
+    loadFamilies();
+  }, []);
+
+  // When family is selected, derive name and load persisted checklist
+  useEffect(() => {
+    if (selectedFamilyId) {
+      const family = families.find((f) => f.id === selectedFamilyId);
+      const name = family?.full_name || "";
+      setFamilyName(name);
+
+      if (name.trim()) {
+        const key = STORAGE_KEY_PREFIX + name.trim().toLowerCase().replace(/\s+/g, "_");
+        const saved = localStorage.getItem(key);
+        if (saved) {
+          try {
+            setCheckedItems(JSON.parse(saved));
+          } catch {
+            setCheckedItems({});
+          }
+        } else {
           setCheckedItems({});
         }
-      } else {
-        setCheckedItems({});
       }
+    } else {
+      setFamilyName("");
+      setCheckedItems({});
     }
-  }, [familyName]);
+  }, [selectedFamilyId, families]);
 
+  // Persist checklist progress
   useEffect(() => {
     if (familyName.trim() && Object.keys(checkedItems).length > 0) {
       const key = STORAGE_KEY_PREFIX + familyName.trim().toLowerCase().replace(/\s+/g, "_");
@@ -276,13 +314,26 @@ export default function AdminOnboardingChecklistPage() {
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
             <div className="flex-1 space-y-2">
-              <Label htmlFor="familyName">Family Name</Label>
-              <Input
-                id="familyName"
-                placeholder="e.g. Ana Marie"
-                value={familyName}
-                onChange={(e) => setFamilyName(e.target.value)}
-              />
+              <Label htmlFor="familySelect">Select Family</Label>
+              {loadingFamilies ? (
+                <div className="flex items-center gap-2 h-10">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground">Loading families…</span>
+                </div>
+              ) : (
+                <Select value={selectedFamilyId} onValueChange={setSelectedFamilyId}>
+                  <SelectTrigger id="familySelect">
+                    <SelectValue placeholder="Choose a family to begin onboarding" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {families.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        {f.full_name || "Unnamed family"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="text-right">
               <p className="text-sm text-muted-foreground">Overall Progress</p>
@@ -330,17 +381,16 @@ export default function AdminOnboardingChecklistPage() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <CardContent className="pt-0 pb-4">
-                    {/* Quick-link buttons */}
-                    {section.links && section.links.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-4 pl-2">
-                        {section.links.map((link, idx) => (
-                          <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer">
-                            <Button variant="outline" size="sm" className="gap-2">
-                              {link.icon}
-                              {link.label}
-                            </Button>
-                          </a>
-                        ))}
+                    {/* Inline family data review for the submissions section */}
+                    {section.showFamilyData && selectedFamilyId && (
+                      <div className="mb-4">
+                        <FamilySubmissionReview familyId={selectedFamilyId} />
+                      </div>
+                    )}
+
+                    {section.showFamilyData && !selectedFamilyId && (
+                      <div className="mb-4 p-4 border border-dashed rounded-lg text-center text-sm text-muted-foreground">
+                        Select a family above to view their submitted registration, care assessment, and legacy story.
                       </div>
                     )}
 
