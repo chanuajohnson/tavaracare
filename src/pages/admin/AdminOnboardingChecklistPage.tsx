@@ -12,7 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import {
   ArrowLeft, ChevronDown, RotateCcw, ClipboardCheck, Monitor, FileText,
   Pill, UtensilsCrossed, ListChecks, LayoutDashboard, MessageSquare,
-  Heart, Users, CalendarCheck, Loader2, ExternalLink, Copy
+  Heart, Users, CalendarCheck, Loader2, ExternalLink, Copy, DollarSign
 } from "lucide-react";
 import { CHECKLIST_SECTIONS } from "@/components/professional/checklist/checklistSections";
 import { ONBOARDING_SECTION_DEFS, getTotalItems } from "@/components/admin/onboarding/onboardingSections";
@@ -32,6 +32,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Users: <Users className="h-5 w-5" />,
   CalendarCheck: <CalendarCheck className="h-5 w-5" />,
   MessageSquare: <MessageSquare className="h-5 w-5" />,
+  DollarSign: <DollarSign className="h-5 w-5" />,
 };
 
 interface FamilyProfile {

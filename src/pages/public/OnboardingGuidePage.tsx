@@ -6,7 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import {
   ChevronDown, ClipboardCheck, Monitor, FileText,
   Pill, UtensilsCrossed, ListChecks, LayoutDashboard, MessageSquare,
-  Heart, Users, CalendarCheck
+  Heart, Users, CalendarCheck, DollarSign
 } from "lucide-react";
 import { ONBOARDING_SECTION_DEFS } from "@/components/admin/onboarding/onboardingSections";
 
@@ -22,6 +22,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Users: <Users className="h-5 w-5" />,
   CalendarCheck: <CalendarCheck className="h-5 w-5" />,
   MessageSquare: <MessageSquare className="h-5 w-5" />,
+  DollarSign: <DollarSign className="h-5 w-5" />,
 };
 
 export default function OnboardingGuidePage() {
