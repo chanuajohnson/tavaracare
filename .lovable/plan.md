@@ -1,35 +1,42 @@
 
 
-## Plan: Add Professional Submission Review to Admin Onboarding Checklist
+## Plan: Update Rate Tier Definitions + Generate Caregiver Pre-Meeting Message
 
-### What This Does
-Adds inline data review cards to the Professional tab of the admin onboarding checklist, mirroring how the Family tab shows registration data, care assessment, and legacy story. When an admin selects a professional, the "Pre-Screening Review" section will display:
+### Part 1: Generate Shareable Pre-Meeting Message
 
-1. **Registration Data** — Name, professional type, years of experience, certifications, care types, availability, hourly rate, background check status, location, contact info
-2. **Uploaded Documents** — List of all documents the professional uploaded (ID, certificates, background check proof, training certs) with document type and file name
-3. **References** — All submitted references with name, relationship, years known, status (pending/verified/flagged)
-4. **Screening Results** — Head nurse interview outcomes with status, rating, recommendation, interviewer name
+I will create a ready-to-send message (WhatsApp/text format) for the caregiver that includes:
+- A warm greeting about tomorrow's onboarding session
+- What will be covered (the 9 professional onboarding sections summarized)
+- Navigation instructions: "Log in to your Tavara Care dashboard, look for the **Onboarding Progress** button in your Quick Access shortcuts, and click it to preview your checklist"
+- The published URL path: `tavaracare.lovable.app/professional/onboarding-checklist`
+- Encouraging tone aligned with Tavara brand voice
 
-### File Changes
+This will be output as a text file to `/mnt/documents/` for easy copy-paste.
+
+### Part 2: Correct Rate Tier Definitions
+
+The user wants the tiers restructured as follows:
+
+| Tier | Rate | Includes |
+|------|------|----------|
+| **Standard** | $35/hr | Companionship, medication reminders, light meal prep, mobility assistance, light housekeeping, transportation accompaniment + GAPP-certified personal care (bathing, dressing, toileting), full meal preparation with basic daily dietary compliance, medication administration and logging, vital signs monitoring, detailed daily care documentation, specialized care (dementia/Alzheimer's, post-surgical, palliative) |
+| **Full Service** | $40/hr | Everything in Standard + advanced specialist-directed meal prep with holidays and special occasions, complex medical needs (wound care, catheter care, oxygen management), overnight/live-in shifts, advanced certifications required (RN, LPN), behavioral health support |
+| **Premium** | $45+/hr | Everything in Full Service + change-in-care-plan management, disease progression support (escalating needs beyond Full Service scope), multi-specialist coordination, 24/7 on-call availability, advanced palliative/end-of-life care, family training and transition planning |
+
+**Files to update:**
 
 | File | Change |
 |------|--------|
-| `src/components/admin/onboarding/ProfessionalSubmissionReview.tsx` | **New** — Component that fetches and displays professional profile, documents, references, and screening data in styled cards (blue for registration, green for documents, orange for references, purple for screening) |
-| `src/components/admin/onboarding/professionalOnboardingSections.ts` | Add `showProfessionalData: true` to the `pre_screening` section |
-| `src/components/admin/onboarding/onboardingSections.ts` | Add `showProfessionalData?: boolean` to the `OnboardingSectionDef` interface |
-| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Update `ChecklistTabContent` to accept a `showProfessionalData` prop, render `ProfessionalSubmissionReview` when the section has `showProfessionalData: true` and a professional is selected |
+| `src/components/admin/onboarding/professionalOnboardingSections.ts` | Update `rates_payment` items with corrected tier descriptions and communication section to emphasize dashboard hub |
+| `src/components/admin/onboarding/onboardingSections.ts` | Update `rates_and_changes` items with corrected tier descriptions (family-facing) |
+| `src/components/admin/UserNudgeTab.tsx` | Update the nudge template rate text to match new tier definitions |
+| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Add rate tier reference card (like the SOP card) for `rates_payment` and `rates_and_changes` sections; add SOP reference for `daily_checklist_sop` |
+| `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx` | Add rate tier and SOP reference cards inline |
+| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Add rate tier reference card inline |
 
-### Data Sources (all existing tables, no DB changes needed)
+### Part 3: Update Communication Section
 
-- `profiles` — professional_type, years_of_experience, certifications, care_types, care_schedule, hourly_rate, background_check, etc.
-- `professional_documents` — document_type, file_name, uploaded files
-- `professional_references` — reference_name, reference_relationship, years_known, status
-- `professional_screening` — screening_type, status, rating, recommendation, interviewer_name
+Update `communication_support` items in `professionalOnboardingSections.ts` to lead with the Tavara Care Dashboard as the central hub, positioning WhatsApp as a secondary flow.
 
-### Technical Details
-
-- Follows exact same pattern as `FamilySubmissionReview`: fetches data via `Promise.all`, renders cards with `renderField`/`renderArrayField` helpers
-- Uses same color-coded card style (blue border for registration, green for documents, orange for references, purple for screening)
-- The `ChecklistTabContent` component already supports `showFamilyData` — we add a parallel `showProfessionalData` prop using the same conditional rendering pattern
-- No database migration needed — all data already exists
+No database changes required.
 
