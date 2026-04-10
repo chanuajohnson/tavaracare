@@ -98,6 +98,12 @@ export default function FamilyOnboardingChecklistPage() {
           <p className="text-muted-foreground mb-4">
             Your onboarding checklist will appear here once your care coordinator begins the process.
           </p>
+          {user?.email && (
+            <p className="text-xs text-muted-foreground mb-4">
+              Signed in as <span className="font-medium">{user.email}</span>. Onboarding progress is tied to this account.
+              If your household's onboarding was started under a different family member's account, please sign in with that account to view progress.
+            </p>
+          )}
           <Button onClick={() => navigate("/dashboard/family")}>Back to Dashboard</Button>
         </div>
       </div>

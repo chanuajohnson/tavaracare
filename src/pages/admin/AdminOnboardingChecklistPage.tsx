@@ -205,18 +205,39 @@ export default function AdminOnboardingChecklistPage() {
                   <span className="text-sm text-muted-foreground">Loading families…</span>
                 </div>
               ) : (
-                <Select value={selectedFamilyId} onValueChange={setSelectedFamilyId}>
-                  <SelectTrigger id="familySelect">
-                    <SelectValue placeholder="Choose a family to begin onboarding" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {families.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
-                        {f.full_name || "Unnamed family"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <>
+                  <Select value={selectedFamilyId} onValueChange={setSelectedFamilyId}>
+                    <SelectTrigger id="familySelect">
+                      <SelectValue placeholder="Choose a family to begin onboarding" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {families.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          {f.full_name || "Unnamed family"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedFamilyId && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-xs text-muted-foreground font-mono truncate">
+                        Profile ID: {selectedFamilyId}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 px-1.5 text-xs"
+                        onClick={() => {
+                          navigator.clipboard.writeText(selectedFamilyId);
+                          toast.success("Family profile ID copied!");
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <div className="text-right">
