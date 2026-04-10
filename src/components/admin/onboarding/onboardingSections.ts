@@ -152,7 +152,9 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     iconName: "DollarSign",
     description: "Pricing transparency, holiday/overtime rates, and how costs evolve as care needs change",
     items: [
-      "Review base rate tiers: Standard ($35/hr), Full Service ($40/hr), Premium ($45+/hr)",
+      "Review rate tiers: Standard ($35/hr) — GAPP-certified personal care, medication admin & logging, vitals monitoring, basic daily dietary meal prep, daily care documentation, specialized care (dementia, palliative, post-surgical)",
+      "Full Service ($40/hr) — Everything in Standard + advanced specialist-directed meal prep (holidays & special occasions), complex medical needs (wound care, catheter care, oxygen management), overnight/live-in shifts, advanced certifications (RN, LPN), behavioral health support",
+      "Premium ($45+/hr) — Everything in Full Service + change-in-care-plan management, disease progression support, multi-specialist coordination, 24/7 on-call availability, advanced palliative/end-of-life care, family training & transition planning",
       "Holiday rates apply — time and a half (1.5x) on recognized holidays; double time (2x) on Christmas",
       "Extended hours / overtime rates — time and a half for shifts beyond standard coverage",
       "Change orders: any increase in service scope is recorded and discussed before taking effect",
