@@ -51,8 +51,8 @@ export default function FamilyOnboardingChecklistPage() {
         if (error) throw error;
         if (data) {
           setHasChecklist(true);
-          setCheckedItems((data.checked_items as Record<string, boolean>) || {});
-          setNotes((data.notes as OnboardingNote[]) || []);
+          setCheckedItems((data.checked_items as unknown as Record<string, boolean>) || {});
+          setNotes((data.notes as unknown as OnboardingNote[]) || []);
         }
       } catch (err) {
         console.error("Failed to load onboarding checklist:", err);
