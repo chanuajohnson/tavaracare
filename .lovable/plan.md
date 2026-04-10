@@ -1,31 +1,47 @@
 
+Diagnosis:
 
-## Plan: Fix Family Notes Visibility + Add Rates Section
+- The Quick Access "Onboarding Progress" button is not personalized. It shows for any logged-in family user because `src/components/family/FamilyShortcutMenuBar.tsx` always renders the `/family/onboarding-checklist` link.
+- The actual checklist data is personalized. `src/pages/family/FamilyOnboardingChecklistPage.tsx` loads `onboarding_checklists` with:
+  - `eq("family_id", user.id)`
+- So the page does not load by family name, care recipient, or household. It loads only by the exact logged-in profile ID.
 
-### Two changes:
+What I confirmed:
 
-### 1. Fix: Family onboarding checklist not showing admin notes
+- `User1 Family Family Family` has an `onboarding_checklists` record and 1 note.
+- `Ana Maria Aimey` also has an `onboarding_checklists` record with the large checked set.
+- `Marcos Aimey` does not have an `onboarding_checklists` record.
 
-**Root cause**: `FamilyOnboardingChecklistPage.tsx` passes `filterAssignee="family"` to `OnboardingNotesCard`, so only notes explicitly assigned to "family" appear. The test note "Tell nurse x" was assigned to "admin", so it's correctly filtered out by the current logic — but the family should see **all** notes, not just family-assigned ones.
+Most likely difference:
 
-**Fix**: Remove the `filterAssignee="family"` prop from the `OnboardingNotesCard` in `FamilyOnboardingChecklistPage.tsx` (line ~196). The family will see all notes regardless of assignee, giving them full visibility into action items from the onboarding call.
+- If Ana Maria herself logs in with the `Ana Maria Aimey` account, she should get her checklist.
+- If someone in that household is logging in under a different family account, especially `Marcos Aimey`, they will still see the same Quick Access button, but the checklist page will show no checklist because there is no row for that user ID.
+- In short: the link is account-agnostic, but the checklist data is account-specific.
 
-| File | Change |
-|------|--------|
-| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Remove `filterAssignee="family"` from `OnboardingNotesCard` |
+Recommended fix to implement after approval:
 
-### 2. Add "Rates, Care Changes & Escalation" section
+1. Add a stronger empty state on `/family/onboarding-checklist`
+   - If no checklist exists for the logged-in user, show the signed-in family name and explain that onboarding progress is tied to the specific account.
+   - This prevents the feeling that the page is broken.
 
-Add the new section to `onboardingSections.ts` between `caregiver_matching` (index 8) and `next_steps` (index 9), with the `DollarSign` icon. Add the icon mapping to all three pages' `ICON_MAP`.
+2. Add admin-side visibility/debugging aid
+   - Show the selected family’s profile ID on the admin onboarding page.
+   - Optionally include a small “copy family login identifier” helper so you can verify you are testing the exact same account.
 
-**10 checklist items** as specified in the approved plan (rate tiers, holiday rates, overtime, change orders, escalation triggers, dietary changes, medication changes, errands, baseline documentation, family notification).
+3. Optional product fix if you want household-wide sharing
+   - Change the checklist model so multiple family users tied to the same care recipient/household can see the same onboarding record.
+   - This is a broader data-model change and should only be done if you want spouses/family members to share onboarding progress across accounts.
 
-| File | Change |
-|------|--------|
-| `src/components/admin/onboarding/onboardingSections.ts` | Insert `rates_and_changes` section object at index 9 |
-| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Add `DollarSign` to import and `ICON_MAP` |
-| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Add `DollarSign` to import and `ICON_MAP` |
-| `src/pages/public/OnboardingGuidePage.tsx` | Add `DollarSign` to import and `ICON_MAP` |
+Files involved if we implement the safer UX fix:
 
-No database changes required for either fix.
+- `src/pages/family/FamilyOnboardingChecklistPage.tsx`
+  - Improve the no-checklist state with account-specific guidance
+- `src/pages/admin/AdminOnboardingChecklistPage.tsx`
+  - Add visible family identifier/debug info for the selected profile
+
+Technical note:
+
+- This is not a publish issue.
+- This is not a route issue.
+- This is a user-identity mismatch issue: same household expectation, but current implementation stores onboarding per `profiles.id`.
 
