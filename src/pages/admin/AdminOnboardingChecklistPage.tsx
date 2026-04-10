@@ -8,10 +8,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, ChevronDown, RotateCcw, ClipboardCheck, UserPlus, Monitor, FileText, Pill, UtensilsCrossed, ListChecks, LayoutDashboard, MessageSquare } from "lucide-react";
+import {
+  ArrowLeft, ChevronDown, RotateCcw, ClipboardCheck, Monitor, FileText,
+  Pill, UtensilsCrossed, ListChecks, LayoutDashboard, MessageSquare,
+  Heart, Users, ExternalLink, CalendarCheck, PhoneForwarded
+} from "lucide-react";
 import { CHECKLIST_SECTIONS } from "@/components/professional/checklist/checklistSections";
 
 const STORAGE_KEY_PREFIX = "tavara_onboarding_checklist_";
+
+interface OnboardingSectionLink {
+  label: string;
+  url: string;
+  icon: React.ReactNode;
+}
 
 interface OnboardingSection {
   id: string;
@@ -19,6 +29,7 @@ interface OnboardingSection {
   icon: React.ReactNode;
   description: string;
   items: string[];
+  links?: OnboardingSectionLink[];
 }
 
 const ONBOARDING_SECTIONS: OnboardingSection[] = [
@@ -26,15 +37,35 @@ const ONBOARDING_SECTIONS: OnboardingSection[] = [
     id: "pre_call",
     title: "Pre-Call Preparation",
     icon: <ClipboardCheck className="h-5 w-5" />,
-    description: "Admin tasks to complete before the onboarding call",
+    description: "Admin review tasks before the onboarding call",
     items: [
-      "Confirm family account exists and is active",
-      "Create care plan on behalf of family (via Admin → Family Care Plans)",
-      "Set up shifts — weekday 8 AM – 4 PM",
-      "Set up shifts — weekend 8 AM – 4 PM (if needed)",
-      "Assign caregiver to care plan",
-      "Note family's care recipient name and relationship",
+      "Review family account status (registered, profile complete?)",
+      "Review existing care plan (if family already created one) OR note: care plan to be created during/after call",
+      "Note care recipient name, relationship, and primary conditions",
       "Have family's phone number / WhatsApp ready",
+      "Review any notes from initial inquiry or chat registration data",
+      "Prepare screen-share or walkthrough materials",
+    ],
+  },
+  {
+    id: "review_submissions",
+    title: "Review Client Submissions",
+    icon: <Heart className="h-5 w-5" />,
+    description: "Review what the family already submitted — registration, care assessment, and legacy story",
+    links: [
+      { label: "View Registration", url: "/registration/family", icon: <ExternalLink className="h-4 w-4" /> },
+      { label: "View Care Assessment", url: "/family/care-assessment?mode=edit", icon: <ExternalLink className="h-4 w-4" /> },
+      { label: "View Legacy Story", url: "/family/story", icon: <ExternalLink className="h-4 w-4" /> },
+    ],
+    items: [
+      "Review registration: care recipient name, relationship, care types, special needs",
+      "Review care assessment: ADLs, conditions, care location",
+      "Review legacy story: personality, hobbies, daily routine, joyful things",
+      "Discuss what prompted them to seek care",
+      "Confirm family's expectations and care goals",
+      "Note any updates to cultural, dietary, or language preferences",
+      "Confirm emergency contacts and physician information",
+      "Note any edits needed for follow-up",
     ],
   },
   {
@@ -54,17 +85,18 @@ const ONBOARDING_SECTIONS: OnboardingSection[] = [
   },
   {
     id: "care_plan",
-    title: "Care Plan Walkthrough",
+    title: "Care Plan Review & Setup",
     icon: <FileText className="h-5 w-5" />,
-    description: "Explain care plan structure and management",
+    description: "Collaboratively review and finalize the care plan with the family",
     items: [
-      "Care plan types (Scheduled Care)",
-      "Weekday coverage options (8–4, 6–6, custom)",
-      "Weekend coverage options (8–4, 6–6, none)",
+      "Review existing care plan details (if already created by family)",
+      "Care plan types (Scheduled Care, On-Demand)",
+      "Discuss and confirm weekday coverage: 8am-4pm / 8am-6pm / 6am-6pm / 6pm-8am / none",
+      "Discuss and confirm weekend coverage: 6am-6pm / 8am-4pm / none",
+      "Additional shifts if needed (evening/overnight options)",
       "How to view / edit care plan details",
       "Care team members tab — who's assigned",
       "Daily care logs tab — how family views completed logs",
-      "Care plan edit notifications (family ↔ admin)",
     ],
   },
   {
@@ -122,6 +154,33 @@ const ONBOARDING_SECTIONS: OnboardingSection[] = [
     ],
   },
   {
+    id: "caregiver_matching",
+    title: "Caregiver Matching & Introduction",
+    icon: <Users className="h-5 w-5" />,
+    description: "Match the right caregiver and plan introductions",
+    items: [
+      "Discuss caregiver preferences (skills, personality, language)",
+      "Explain matching process and timeline",
+      "Offer trial day option vs immediate start",
+      "Tentatively assign caregiver (confirm after call)",
+      "Arrange meet-and-greet if applicable",
+    ],
+  },
+  {
+    id: "next_steps",
+    title: "Next Steps & Follow-Up",
+    icon: <CalendarCheck className="h-5 w-5" />,
+    description: "Confirm start date, set up communication, and plan first-week check-in",
+    items: [
+      "Confirm care start date (or trial day date)",
+      "Set up WhatsApp care group",
+      "Schedule 24-48 hour post-first-visit check-in",
+      "Share admin/coordinator direct contact info",
+      "Confirm family knows how to reach support",
+      "Send welcome summary via email/WhatsApp after call",
+    ],
+  },
+  {
     id: "communication",
     title: "Communication & Notifications",
     icon: <MessageSquare className="h-5 w-5" />,
@@ -142,7 +201,6 @@ export default function AdminOnboardingChecklistPage() {
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
-  // Load from localStorage when familyName changes
   useEffect(() => {
     if (familyName.trim()) {
       const key = STORAGE_KEY_PREFIX + familyName.trim().toLowerCase().replace(/\s+/g, "_");
@@ -159,7 +217,6 @@ export default function AdminOnboardingChecklistPage() {
     }
   }, [familyName]);
 
-  // Save to localStorage on changes
   useEffect(() => {
     if (familyName.trim() && Object.keys(checkedItems).length > 0) {
       const key = STORAGE_KEY_PREFIX + familyName.trim().toLowerCase().replace(/\s+/g, "_");
@@ -199,7 +256,6 @@ export default function AdminOnboardingChecklistPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/admin")}>
           <ArrowLeft className="h-5 w-5" />
@@ -216,7 +272,6 @@ export default function AdminOnboardingChecklistPage() {
         </Button>
       </div>
 
-      {/* Family Name Input + Progress */}
       <Card className="mb-6">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
@@ -245,7 +300,6 @@ export default function AdminOnboardingChecklistPage() {
         </CardContent>
       </Card>
 
-      {/* Onboarding Sections */}
       <div className="space-y-3">
         {ONBOARDING_SECTIONS.map((section) => {
           const { checked, total } = getSectionProgress(section);
@@ -276,6 +330,20 @@ export default function AdminOnboardingChecklistPage() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <CardContent className="pt-0 pb-4">
+                    {/* Quick-link buttons */}
+                    {section.links && section.links.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-4 pl-2">
+                        {section.links.map((link, idx) => (
+                          <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline" size="sm" className="gap-2">
+                              {link.icon}
+                              {link.label}
+                            </Button>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+
                     <div className="space-y-3 pl-2">
                       {section.items.map((item, i) => {
                         const itemKey = `${section.id}_${i}`;
@@ -294,7 +362,6 @@ export default function AdminOnboardingChecklistPage() {
                       })}
                     </div>
 
-                    {/* Inline SOP for Daily Checklist section */}
                     {section.id === "daily_checklist" && (
                       <div className="mt-6 border-t pt-4">
                         <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
