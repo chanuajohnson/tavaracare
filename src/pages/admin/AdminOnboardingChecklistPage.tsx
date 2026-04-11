@@ -165,6 +165,80 @@ interface ProfileOption {
   full_name: string | null;
 }
 
+/** Render items in 2-column flow, returning final Y position */
+function renderDetailedSections(
+  pdf: jsPDF,
+  sectionDefs: OnboardingSectionDef[],
+  checkedItems: Record<string, boolean | string>,
+  startY: number,
+  M: number,
+  W: number,
+  H: number,
+  fontSize: number = 6.5,
+  lineH: number = 3,
+  skipSectionId?: string,
+) {
+  const colW = (W - M * 2 - 6) / 2;
+  let col = 0;
+  let colY = [startY, startY];
+  const footerZone = H - 14;
+  const maxItemLen = Math.floor(colW / (fontSize * 0.22)); // approx chars that fit
+
+  for (const section of sectionDefs) {
+    if (section.id === skipSectionId) continue;
+    let checked = 0;
+    section.items.forEach((_, i) => { if (checkedItems[`${section.id}_${i}`]) checked++; });
+    const total = section.items.length;
+    const isComplete = checked === total && total > 0;
+
+    // Estimate height needed for this section
+    const sectionHeight = 4 + total * lineH;
+    // Pick column with more room, or if current col overflows switch
+    if (col === 0 && colY[0] + sectionHeight > footerZone && colY[1] + sectionHeight <= footerZone) {
+      col = 1;
+    } else if (col === 1 && colY[1] + sectionHeight > footerZone && colY[0] + sectionHeight <= footerZone) {
+      col = 0;
+    }
+    // If both columns would overflow, pick whichever has more room
+    if (colY[col] + 6 > footerZone) {
+      col = colY[0] <= colY[1] ? 0 : 1;
+      if (colY[col] + 6 > footerZone) break; // truly out of space
+    }
+
+    const x = M + col * (colW + 6);
+
+    // Section header
+    pdf.setFontSize(fontSize + 1);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(isComplete ? 34 : 60, isComplete ? 120 : 60, isComplete ? 34 : 80);
+    const headerText = `${section.title} (${checked}/${total})`;
+    pdf.text(headerText, x, colY[col]);
+    colY[col] += lineH + 0.8;
+
+    // Items
+    pdf.setFontSize(fontSize);
+    pdf.setFont("helvetica", "normal");
+    for (let i = 0; i < total; i++) {
+      if (colY[col] > footerZone) break;
+      const itemChecked = !!checkedItems[`${section.id}_${i}`];
+      const icon = itemChecked ? "✓" : "○";
+      pdf.setTextColor(itemChecked ? 34 : 130, itemChecked ? 130 : 130, itemChecked ? 34 : 130);
+      let text = section.items[i];
+      if (text.length > maxItemLen) text = text.substring(0, maxItemLen - 1) + "…";
+      pdf.text(`${icon} ${text}`, x + 1, colY[col]);
+      colY[col] += lineH;
+    }
+    colY[col] += 1.5; // gap between sections
+
+    // Alternate columns for balance
+    if (colY[col] > colY[1 - col] + sectionHeight * 0.5) {
+      col = 1 - col;
+    }
+  }
+
+  return Math.max(colY[0], colY[1]);
+}
+
 /** Generate a single-page landscape PDF report for the selected family */
 function generateFamilyReport(
   familyName: string,
@@ -175,154 +249,111 @@ function generateFamilyReport(
   const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const W = 297;
   const H = 210;
-  const M = 12; // margin
+  const M = 10;
   let y = M;
 
   // --- Header ---
-  pdf.setFontSize(14);
+  pdf.setFontSize(13);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(30, 64, 120);
   pdf.text("TAVARA.CARE — Family Onboarding Report", M, y);
-  y += 6;
-  pdf.setFontSize(9);
+  y += 5.5;
+  pdf.setFontSize(8.5);
   pdf.setFont("helvetica", "normal");
   pdf.setTextColor(80);
   pdf.text(`Family: ${familyName}    |    Generated: ${format(new Date(), "PPP")}`, M, y);
-  y += 7;
-
-  // --- Divider ---
-  pdf.setDrawColor(200);
-  pdf.line(M, y, W - M, y);
   y += 5;
 
+  pdf.setDrawColor(200);
+  pdf.line(M, y, W - M, y);
+  y += 4;
+
   // --- Care Summary ---
-  pdf.setFontSize(10);
+  pdf.setFontSize(9);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(30, 64, 120);
   pdf.text("Care Summary", M, y);
-  y += 5;
+  y += 4;
 
   const startDateStr = checkedItems["post_onboarding_3_date"] as string | undefined;
   const startDateFmt = startDateStr ? format(parseLocalDate(startDateStr), "PPP") : "Not set";
 
-  pdf.setFontSize(8.5);
+  pdf.setFontSize(7.5);
   pdf.setFont("helvetica", "normal");
   pdf.setTextColor(50);
-  const summaryLines = [
-    `Rate: $35/hr (Standard)   |   Plan: Tavara Family Care Plan (weekly)   |   Start Date: ${startDateFmt}`,
-    `Payment: Weekly (due every Friday)   |   Late Fee: 5% after 3 business days   |   Holiday/OT: 1.5x (2x Christmas)`,
-  ];
-  summaryLines.forEach((line) => {
-    pdf.text(line, M, y);
-    y += 4;
-  });
-  y += 3;
+  pdf.text(`Rate: $35/hr (Standard)   |   Plan: Tavara Family Care Plan (weekly)   |   Start Date: ${startDateFmt}`, M, y);
+  y += 3.5;
+  pdf.text(`Payment: Weekly (due every Friday)   |   Late Fee: 5% after 3 business days   |   Holiday/OT: 1.5x (2x Christmas)`, M, y);
+  y += 5;
 
-  // --- Onboarding Progress ---
+  // --- Onboarding Progress header ---
   let totalChecked = 0;
   let totalItems = 0;
   sectionDefs.forEach((s) => {
-    s.items.forEach((_, i) => {
-      totalItems++;
-      if (checkedItems[`${s.id}_${i}`]) totalChecked++;
-    });
+    s.items.forEach((_, i) => { totalItems++; if (checkedItems[`${s.id}_${i}`]) totalChecked++; });
   });
   const pct = totalItems ? Math.round((totalChecked / totalItems) * 100) : 0;
 
-  pdf.setFontSize(10);
+  pdf.setFontSize(9);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(30, 64, 120);
   pdf.text(`Onboarding Progress: ${totalChecked}/${totalItems} (${pct}%)`, M, y);
-  y += 5;
+  y += 4;
 
-  // Two-column section listing
-  const colW = (W - M * 2 - 8) / 2;
-  const startY = y;
-  let col = 0;
-  let colY = startY;
-
-  pdf.setFontSize(8);
-  sectionDefs.forEach((section) => {
-    let checked = 0;
-    section.items.forEach((_, i) => {
-      if (checkedItems[`${section.id}_${i}`]) checked++;
-    });
-    const total = section.items.length;
-    const isComplete = checked === total && total > 0;
-    const icon = isComplete ? "✓" : "○";
-    const x = M + col * (colW + 8);
-
-    pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(isComplete ? 34 : 100, isComplete ? 139 : 100, isComplete ? 34 : 100);
-    pdf.text(`${icon}  ${section.title}`, x, colY);
-
-    pdf.setTextColor(120);
-    pdf.text(`${checked}/${total}`, x + colW - 2, colY, { align: "right" });
-
-    colY += 4.2;
-    if (colY > startY + (sectionDefs.length / 2) * 4.2 + 2 && col === 0) {
-      col = 1;
-      colY = startY;
-    }
-  });
-
-  y = startY + Math.ceil(sectionDefs.length / 2) * 4.2 + 3;
+  // --- Detailed sections in 2-column layout ---
+  const afterSections = renderDetailedSections(pdf, sectionDefs, checkedItems, y, M, W, H);
+  y = afterSections + 2;
 
   // --- Key Dates ---
-  const introDate = checkedItems["post_onboarding_1_date"] as string | undefined;
-  const meetingDate = checkedItems["post_onboarding_2_date"] as string | undefined;
-
-  pdf.setFontSize(10);
-  pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(30, 64, 120);
-  pdf.text("Key Dates", M, y);
-  y += 5;
-
-  pdf.setFontSize(8.5);
-  pdf.setFont("helvetica", "normal");
-  pdf.setTextColor(50);
-  const dates = [
-    `Introduction: ${introDate ? format(parseLocalDate(introDate), "PPP") : "Not set"}`,
-    `Meeting: ${meetingDate ? format(parseLocalDate(meetingDate), "PPP") : "Not set"}`,
-    `Start: ${startDateFmt}`,
-  ].join("   |   ");
-  pdf.text(dates, M, y);
-  y += 7;
+  if (y < H - 22) {
+    const introDate = checkedItems["post_onboarding_1_date"] as string | undefined;
+    const meetingDate = checkedItems["post_onboarding_2_date"] as string | undefined;
+    pdf.setFontSize(9);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(30, 64, 120);
+    pdf.text("Key Dates", M, y);
+    y += 4;
+    pdf.setFontSize(7.5);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(50);
+    pdf.text([
+      `Introduction: ${introDate ? format(parseLocalDate(introDate), "PPP") : "Not set"}`,
+      `Meeting: ${meetingDate ? format(parseLocalDate(meetingDate), "PPP") : "Not set"}`,
+      `Start: ${startDateFmt}`,
+    ].join("   |   "), M, y);
+    y += 5;
+  }
 
   // --- Notes ---
-  if (notes.length > 0) {
-    pdf.setFontSize(10);
+  if (notes.length > 0 && y < H - 18) {
+    pdf.setFontSize(9);
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(30, 64, 120);
     pdf.text("Onboarding Notes", M, y);
-    y += 5;
-
-    pdf.setFontSize(7.5);
+    y += 4;
+    pdf.setFontSize(6.5);
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(60);
-    const maxNotes = Math.min(notes.length, 8);
+    const maxNotes = Math.min(notes.length, 5);
     for (let i = 0; i < maxNotes; i++) {
+      if (y > H - 12) break;
       const note = notes[i];
       const dateFmt = format(new Date(note.created_at), "MMM d");
-      const truncated = note.text.length > 100 ? note.text.substring(0, 100) + "…" : note.text;
-      const line = `•  [${dateFmt}] [${note.assigned_to}] ${truncated}`;
-      if (y > H - 12) break; // prevent overflow
-      pdf.text(line, M, y);
-      y += 3.8;
+      const truncated = note.text.length > 120 ? note.text.substring(0, 120) + "…" : note.text;
+      pdf.text(`•  [${dateFmt}] [${note.assigned_to}] ${truncated}`, M, y);
+      y += 3.2;
     }
     if (notes.length > maxNotes) {
       pdf.text(`   ... and ${notes.length - maxNotes} more notes`, M, y);
-      y += 3.8;
     }
   }
 
   // --- Footer ---
-  pdf.setFontSize(7);
+  pdf.setFontSize(6.5);
   pdf.setTextColor(150);
   pdf.text("Generated from tavara.care/admin/onboarding-checklist", M, H - 5);
   pdf.text(`Page 1 of 1`, W - M, H - 5, { align: "right" });
 
-  // Download
   const safeName = familyName.replace(/[^a-zA-Z0-9]/g, "_");
   pdf.save(`Onboarding_Report_${safeName}_${format(new Date(), "yyyy-MM-dd")}.pdf`);
 }
@@ -339,171 +370,131 @@ function generateProfessionalReport(
   const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const W = 297;
   const H = 210;
-  const M = 12;
+  const M = 10;
   let y = M;
 
   // --- Header ---
-  pdf.setFontSize(14);
+  pdf.setFontSize(13);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(30, 64, 120);
   pdf.text("TAVARA.CARE — Professional Onboarding Report", M, y);
-  y += 6;
-  pdf.setFontSize(9);
+  y += 5.5;
+  pdf.setFontSize(8.5);
   pdf.setFont("helvetica", "normal");
   pdf.setTextColor(80);
   pdf.text(`Professional: ${professionalName}    |    Assigned Family: ${assignedFamilyName || "Not assigned"}    |    Generated: ${format(new Date(), "PPP")}`, M, y);
-  y += 7;
+  y += 5;
 
   pdf.setDrawColor(200);
   pdf.line(M, y, W - M, y);
-  y += 5;
+  y += 4;
 
   // --- Care Summary ---
-  pdf.setFontSize(10);
+  pdf.setFontSize(9);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(30, 64, 120);
   pdf.text("Care Summary", M, y);
-  y += 5;
+  y += 4;
 
   const startDateStr = (linkedFamilyCheckedItems["post_onboarding_3_date"] || checkedItems["post_onboarding_3_date"]) as string | undefined;
   const startDateFmt = startDateStr ? format(parseLocalDate(startDateStr), "PPP") : "Not set";
 
-  pdf.setFontSize(8.5);
+  pdf.setFontSize(7.5);
   pdf.setFont("helvetica", "normal");
   pdf.setTextColor(50);
-  const summaryLines = [
-    `Rate: $35/hr (Standard)   |   Plan: Tavara Family Care Plan (weekly)   |   Start Date: ${startDateFmt}`,
-    `Payment: Weekly by Tavara (every Friday)   |   Processing: Up to 3 business days   |   Holiday/OT: 1.5x (2x Christmas)`,
-    `NIS: Covered by Tavara   |   Probationary Period: 30 days   |   Rotation Pool: Yes`,
-  ];
-  summaryLines.forEach((line) => {
-    pdf.text(line, M, y);
-    y += 4;
-  });
-  y += 3;
+  pdf.text(`Rate: $35/hr (Standard)   |   Plan: Tavara Family Care Plan (weekly)   |   Start Date: ${startDateFmt}`, M, y);
+  y += 3.5;
+  pdf.text(`Payment: Weekly by Tavara (every Friday)   |   Processing: Up to 3 business days   |   Holiday/OT: 1.5x (2x Christmas)`, M, y);
+  y += 3.5;
+  pdf.text(`NIS: Covered by Tavara   |   Probationary Period: 30 days   |   Rotation Pool: Yes`, M, y);
+  y += 5;
 
-  // --- Terms & Conditions Status ---
+  // --- Terms & Conditions Status (prominent) ---
   const tcSection = sectionDefs.find((s) => s.id === "terms_conditions");
   if (tcSection) {
     let tcChecked = 0;
-    tcSection.items.forEach((_, i) => {
-      if (checkedItems[`terms_conditions_${i}`]) tcChecked++;
-    });
+    tcSection.items.forEach((_, i) => { if (checkedItems[`terms_conditions_${i}`]) tcChecked++; });
     const allAccepted = tcChecked === tcSection.items.length;
 
-    pdf.setFontSize(10);
+    pdf.setFontSize(9);
     pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(allAccepted ? 34 : 180, allAccepted ? 139 : 50, allAccepted ? 34 : 50);
-    pdf.text(`Terms & Conditions: ${allAccepted ? "ALL ACCEPTED ✓" : `${tcChecked}/${tcSection.items.length} acknowledged`}`, M, y);
-    y += 5;
+    pdf.setTextColor(allAccepted ? 34 : 180, allAccepted ? 120 : 50, allAccepted ? 34 : 50);
+    pdf.text(`Terms & Conditions: ${allAccepted ? "ALL ACCEPTED" : `${tcChecked}/${tcSection.items.length} acknowledged`}`, M, y);
+    y += 4;
 
-    pdf.setFontSize(7.5);
+    pdf.setFontSize(6.5);
     pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(60);
     tcSection.items.forEach((item, i) => {
       const checked = !!checkedItems[`terms_conditions_${i}`];
-      const icon = checked ? "✓" : "○";
-      pdf.setTextColor(checked ? 34 : 150, checked ? 139 : 150, checked ? 34 : 150);
-      const truncated = item.length > 90 ? item.substring(0, 90) + "…" : item;
-      pdf.text(`${icon}  ${truncated}`, M + 2, y);
-      y += 3.5;
+      pdf.setTextColor(checked ? 34 : 150, checked ? 130 : 150, checked ? 34 : 150);
+      const truncated = item.length > 110 ? item.substring(0, 110) + "…" : item;
+      pdf.text(`${checked ? "✓" : "○"} ${truncated}`, M + 1, y);
+      y += 3;
     });
     y += 2;
   }
 
-  // --- Onboarding Progress ---
+  // --- Onboarding Progress header ---
   let totalChecked = 0;
   let totalItems = 0;
   sectionDefs.forEach((s) => {
-    s.items.forEach((_, i) => {
-      totalItems++;
-      if (checkedItems[`${s.id}_${i}`]) totalChecked++;
-    });
+    s.items.forEach((_, i) => { totalItems++; if (checkedItems[`${s.id}_${i}`]) totalChecked++; });
   });
   const pct = totalItems ? Math.round((totalChecked / totalItems) * 100) : 0;
 
-  pdf.setFontSize(10);
+  pdf.setFontSize(9);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(30, 64, 120);
   pdf.text(`Onboarding Progress: ${totalChecked}/${totalItems} (${pct}%)`, M, y);
-  y += 5;
+  y += 4;
 
-  const colW = (W - M * 2 - 8) / 2;
-  const startY = y;
-  let col = 0;
-  let colY = startY;
+  // --- Detailed sections (skip T&C since already shown above) ---
+  const afterSections = renderDetailedSections(pdf, sectionDefs, checkedItems, y, M, W, H, 6.5, 3, "terms_conditions");
+  y = afterSections + 2;
 
-  pdf.setFontSize(8);
-  sectionDefs.forEach((section) => {
-    let checked = 0;
-    section.items.forEach((_, i) => {
-      if (checkedItems[`${section.id}_${i}`]) checked++;
-    });
-    const total = section.items.length;
-    const isComplete = checked === total && total > 0;
-    const icon = isComplete ? "✓" : "○";
-    const x = M + col * (colW + 8);
-
+  // --- Key Dates (synced from family) ---
+  if (y < H - 22) {
+    const introDate = (linkedFamilyCheckedItems["post_onboarding_1_date"] || checkedItems["post_onboarding_1_date"]) as string | undefined;
+    const meetingDate = (linkedFamilyCheckedItems["post_onboarding_2_date"] || checkedItems["post_onboarding_2_date"]) as string | undefined;
+    pdf.setFontSize(9);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(30, 64, 120);
+    pdf.text("Key Dates", M, y);
+    y += 4;
+    pdf.setFontSize(7.5);
     pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(isComplete ? 34 : 100, isComplete ? 139 : 100, isComplete ? 34 : 100);
-    pdf.text(`${icon}  ${section.title}`, x, colY);
-    pdf.setTextColor(120);
-    pdf.text(`${checked}/${total}`, x + colW - 2, colY, { align: "right" });
-
-    colY += 4.2;
-    if (colY > startY + (sectionDefs.length / 2) * 4.2 + 2 && col === 0) {
-      col = 1;
-      colY = startY;
-    }
-  });
-
-  y = startY + Math.ceil(sectionDefs.length / 2) * 4.2 + 3;
-
-  // --- Key Dates ---
-  const introDate = checkedItems["post_onboarding_1_date"] as string | undefined;
-  const meetingDate = checkedItems["post_onboarding_2_date"] as string | undefined;
-
-  pdf.setFontSize(10);
-  pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(30, 64, 120);
-  pdf.text("Key Dates", M, y);
-  y += 5;
-
-  pdf.setFontSize(8.5);
-  pdf.setFont("helvetica", "normal");
-  pdf.setTextColor(50);
-  const dates = [
-    `Introduction: ${introDate ? format(parseLocalDate(introDate), "PPP") : "Not set"}`,
-    `Meeting: ${meetingDate ? format(parseLocalDate(meetingDate), "PPP") : "Not set"}`,
-    `Start: ${startDateFmt}`,
-  ].join("   |   ");
-  pdf.text(dates, M, y);
-  y += 7;
+    pdf.setTextColor(50);
+    pdf.text([
+      `Introduction: ${introDate ? format(parseLocalDate(introDate), "PPP") : "Not set"}`,
+      `Meeting: ${meetingDate ? format(parseLocalDate(meetingDate), "PPP") : "Not set"}`,
+      `Start: ${startDateFmt}`,
+    ].join("   |   "), M, y);
+    y += 5;
+  }
 
   // --- Notes ---
-  if (notes.length > 0 && y < H - 20) {
-    pdf.setFontSize(10);
+  if (notes.length > 0 && y < H - 18) {
+    pdf.setFontSize(9);
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(30, 64, 120);
     pdf.text("Onboarding Notes", M, y);
-    y += 5;
-
-    pdf.setFontSize(7.5);
+    y += 4;
+    pdf.setFontSize(6.5);
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(60);
-    const maxNotes = Math.min(notes.length, 6);
+    const maxNotes = Math.min(notes.length, 5);
     for (let i = 0; i < maxNotes; i++) {
+      if (y > H - 12) break;
       const note = notes[i];
       const dateFmt = format(new Date(note.created_at), "MMM d");
-      const truncated = note.text.length > 100 ? note.text.substring(0, 100) + "…" : note.text;
-      if (y > H - 12) break;
+      const truncated = note.text.length > 120 ? note.text.substring(0, 120) + "…" : note.text;
       pdf.text(`•  [${dateFmt}] [${note.assigned_to}] ${truncated}`, M, y);
-      y += 3.8;
+      y += 3.2;
     }
   }
 
   // --- Footer ---
-  pdf.setFontSize(7);
+  pdf.setFontSize(6.5);
   pdf.setTextColor(150);
   pdf.text("Generated from tavara.care/admin/onboarding-checklist", M, H - 5);
   pdf.text(`Page 1 of 1`, W - M, H - 5, { align: "right" });
@@ -734,13 +725,26 @@ function ChecklistTabContent({
                                   Open
                                 </a>
                               )}
-                              {dateFieldLabel && onDateChange && (
-                                <DateFieldPicker
-                                  dateFieldLabel={dateFieldLabel}
-                                  storedDate={storedDate}
-                                  onDateChange={(val) => onDateChange(dateKey, val)}
-                                />
-                              )}
+                              {dateFieldLabel && onDateChange && (() => {
+                                // If linked family has this date, show read-only
+                                const linkedDate = linkedCheckedItems?.[dateKey] as string | undefined;
+                                if (linkedDate && section.id === "post_onboarding") {
+                                  return (
+                                    <Badge variant="outline" className="mt-1.5 text-xs gap-1.5">
+                                      <CalendarIcon className="h-3 w-3" />
+                                      {dateFieldLabel}: {format(parseLocalDate(linkedDate), "PPP")}
+                                      <span className="text-muted-foreground ml-1">(from family)</span>
+                                    </Badge>
+                                  );
+                                }
+                                return (
+                                  <DateFieldPicker
+                                    dateFieldLabel={dateFieldLabel}
+                                    storedDate={storedDate}
+                                    onDateChange={(val) => onDateChange(dateKey, val)}
+                                  />
+                                );
+                              })()}
                             </div>
                           </div>
                         );
