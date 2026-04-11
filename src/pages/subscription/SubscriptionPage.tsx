@@ -98,8 +98,10 @@ const SubscriptionPage = () => {
   const familyPlans = [{
     id: "basic",
     name: "Family Basic",
-    price: "Free",
-    period: "",
+    priceWeekly: "Free",
+    priceMonthly: "Free",
+    periodWeekly: "",
+    periodMonthly: "",
     description: "Unlimited chat with all matched caregivers",
     features: [{
       name: "Unlimited caregiver chat",
@@ -132,8 +134,10 @@ const SubscriptionPage = () => {
   }, {
     id: "care",
     name: "Family Care",
-    price: "$199.99",
-    period: "week",
+    priceWeekly: "$199.99",
+    priceMonthly: "$699.99",
+    periodWeekly: "week",
+    periodMonthly: "month",
     description: "Enhanced features plus instant video calls with caregivers",
     features: [{
       name: "Unlimited caregiver chat",
@@ -166,8 +170,10 @@ const SubscriptionPage = () => {
   }, {
     id: "premium",
     name: "Family Premium",
-    price: "$699.99",
-    period: "month",
+    priceWeekly: "$399.99",
+    priceMonthly: "$1,099.99",
+    periodWeekly: "month",
+    periodMonthly: "month",
     description: "Complete access with priority matching and extended video sessions — best value",
     features: [{
       name: "Unlimited caregiver chat",
@@ -198,6 +204,14 @@ const SubscriptionPage = () => {
     buttonColor: "bg-primary hover:bg-primary/90",
     buttonText: "Upgrade to Premium"
   }];
+  
+  const getPlanPrice = (plan: typeof familyPlans[0]) => {
+    return billingCycle === "weekly" ? plan.priceWeekly : plan.priceMonthly;
+  };
+  
+  const getPlanPeriod = (plan: typeof familyPlans[0]) => {
+    return billingCycle === "weekly" ? plan.periodWeekly : plan.periodMonthly;
+  };
   
   const professionalPlans = [{
     id: "basic",
