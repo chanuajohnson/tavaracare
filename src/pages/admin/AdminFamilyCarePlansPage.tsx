@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Container } from "@/components/ui/container";
 import { ArrowLeft, Plus, FileText, Pill, ChefHat, Eye, Users, ClipboardList } from "lucide-react";
+import DocumentGenerationMenu from "@/components/admin/care-plans/DocumentGenerationMenu";
 import { fetchCarePlans } from "@/services/care-plans";
 import { CarePlan } from "@/types/carePlan";
 import { toast } from "sonner";
