@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { CHECKLIST_SECTIONS } from "@/components/professional/checklist/checklistSections";
 import RateTierReferenceCard from "@/components/admin/onboarding/RateTierReferenceCard";
@@ -10,13 +10,61 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { format } from "date-fns";
 import {
   ArrowLeft, ChevronDown, ClipboardCheck, Monitor, FileText,
   Pill, ListChecks, LayoutDashboard, MessageSquare,
-  Heart, Users, CalendarCheck, Loader2, CheckCircle2, Circle, DollarSign
+  Heart, Users, CalendarCheck, Loader2, CheckCircle2, Circle, DollarSign,
+  ExternalLink, CalendarIcon
 } from "lucide-react";
 import { PROFESSIONAL_ONBOARDING_SECTION_DEFS, getProfessionalTotalItems } from "@/components/admin/onboarding/professionalOnboardingSections";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
+
+/** Parse "YYYY-MM-DD" as local date (not UTC) */
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Care Summary header for post-onboarding */
+function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, boolean | string> }) {
+  const startDateStr = checkedItems["post_onboarding_3_date"] as string | undefined;
+  return (
+    <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+      <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-blue-900">
+        💙 Your Care Summary
+      </h4>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="text-sm">
+          <span className="text-muted-foreground">Rate:</span>{" "}
+          <span className="font-medium">$35/hr (Standard)</span>
+        </div>
+        <div className="text-sm">
+          <span className="text-muted-foreground">Plan:</span>{" "}
+          <span className="font-medium">Tavara Family Care Plan (weekly)</span>
+        </div>
+        <div className="text-sm">
+          <span className="text-muted-foreground">Start Date:</span>{" "}
+          <span className="font-medium">
+            {startDateStr ? format(parseLocalDate(startDateStr), "PPP") : "Not set"}
+          </span>
+        </div>
+        <div className="text-sm">
+          <span className="text-muted-foreground">Payment:</span>{" "}
+          <span className="font-medium">Weekly (due every Friday)</span>
+        </div>
+        <div className="text-sm">
+          <span className="text-muted-foreground">Late Fee:</span>{" "}
+          <span className="font-medium">5% after 3 business days</span>
+        </div>
+        <div className="text-sm">
+          <span className="text-muted-foreground">Holiday/OT:</span>{" "}
+          <span className="font-medium">1.5× (2× Christmas)</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   ClipboardCheck: <ClipboardCheck className="h-5 w-5" />,
@@ -30,12 +78,13 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   CalendarCheck: <CalendarCheck className="h-5 w-5" />,
   MessageSquare: <MessageSquare className="h-5 w-5" />,
   DollarSign: <DollarSign className="h-5 w-5" />,
+  CheckCircle2: <CheckCircle2 className="h-5 w-5" />,
 };
 
 export default function ProfessionalOnboardingChecklistPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean | string>>({});
   const [notes, setNotes] = useState<OnboardingNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -53,7 +102,7 @@ export default function ProfessionalOnboardingChecklistPage() {
         if (error) throw error;
         if (data) {
           setHasChecklist(true);
-          setCheckedItems((data.checked_items as unknown as Record<string, boolean>) || {});
+          setCheckedItems((data.checked_items as unknown as Record<string, boolean | string>) || {});
           setNotes((data.notes as unknown as OnboardingNote[]) || []);
         }
       } catch (err) {
@@ -70,7 +119,7 @@ export default function ProfessionalOnboardingChecklistPage() {
   };
 
   const totalItems = getProfessionalTotalItems();
-  const totalChecked = Object.values(checkedItems).filter(Boolean).length;
+  const totalChecked = Object.entries(checkedItems).filter(([key, val]) => val === true).length;
 
   if (loading) {
     return (
@@ -143,7 +192,7 @@ export default function ProfessionalOnboardingChecklistPage() {
           {PROFESSIONAL_ONBOARDING_SECTION_DEFS.map((section) => {
             let checked = 0;
             section.items.forEach((_, i) => {
-              if (checkedItems[`${section.id}_${i}`]) checked++;
+              if (checkedItems[`${section.id}_${i}`] === true) checked++;
             });
             const total = section.items.length;
             const isOpen = openSections[section.id] ?? false;
@@ -173,9 +222,17 @@ export default function ProfessionalOnboardingChecklistPage() {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <CardContent className="pt-0 pb-4">
+                      {section.id === "post_onboarding" && (
+                        <CareSummaryHeader checkedItems={checkedItems} />
+                      )}
                       <div className="space-y-2 pl-2">
                         {section.items.map((item, i) => {
-                          const isChecked = !!checkedItems[`${section.id}_${i}`];
+                          const isChecked = checkedItems[`${section.id}_${i}`] === true;
+                          const dateKey = `${section.id}_${i}_date`;
+                          const dateVal = checkedItems[dateKey] as string | undefined;
+                          const dateLabel = section.dateFields?.[i];
+                          const linkUrl = section.links?.[i];
+
                           return (
                             <div key={i} className="flex items-start gap-3">
                               {isChecked ? (
@@ -183,41 +240,56 @@ export default function ProfessionalOnboardingChecklistPage() {
                               ) : (
                                 <Circle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                               )}
-                              <span className={`text-sm ${isChecked ? "text-muted-foreground" : ""}`}>
-                          {item}
-                        </span>
+                              <div className="flex-1">
+                                {linkUrl ? (
+                                  <Link to={linkUrl} className="text-sm text-primary hover:underline flex items-center gap-1">
+                                    {item}
+                                    <ExternalLink className="h-3 w-3" />
+                                  </Link>
+                                ) : (
+                                  <span className={`text-sm ${isChecked ? "text-muted-foreground" : ""}`}>
+                                    {item}
+                                  </span>
+                                )}
+                                {dateLabel && dateVal && (
+                                  <Badge variant="outline" className="mt-1 text-xs gap-1">
+                                    <CalendarIcon className="h-3 w-3" />
+                                    {dateLabel}: {format(parseLocalDate(dateVal), "PPP")}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
 
-                {section.id === "daily_checklist_sop" && (
-                  <div className="mt-6 border-t pt-4">
-                    <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                      <ListChecks className="h-4 w-4" />
-                      Full Daily Checklist (SOP Reference)
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {CHECKLIST_SECTIONS.map((sopSection, idx) => (
-                        <div key={idx} className="bg-muted/50 rounded-lg p-3">
-                          <p className="font-medium text-sm mb-2">{sopSection.title}</p>
-                          <ul className="space-y-1">
-                            {sopSection.items.map((sopItem, j) => (
-                              <li key={j} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                                <span className="text-primary mt-0.5">•</span>
-                                {sopItem}
-                              </li>
+                      {section.id === "daily_checklist_sop" && (
+                        <div className="mt-6 border-t pt-4">
+                          <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                            <ListChecks className="h-4 w-4" />
+                            Full Daily Checklist (SOP Reference)
+                          </h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {CHECKLIST_SECTIONS.map((sopSection, idx) => (
+                              <div key={idx} className="bg-muted/50 rounded-lg p-3">
+                                <p className="font-medium text-sm mb-2">{sopSection.title}</p>
+                                <ul className="space-y-1">
+                                  {sopSection.items.map((sopItem, j) => (
+                                    <li key={j} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                      <span className="text-primary mt-0.5">•</span>
+                                      {sopItem}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
                             ))}
-                          </ul>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                      )}
 
-                {section.id === "rates_payment" && (
-                  <RateTierReferenceCard />
-                )}
+                      {section.id === "rates_payment" && (
+                        <RateTierReferenceCard />
+                      )}
                     </CardContent>
                   </CollapsibleContent>
                 </Card>
