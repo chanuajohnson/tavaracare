@@ -95,8 +95,12 @@ function DateFieldPicker({
 }
 
 /** Summary header for Post-Onboarding section */
-function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, boolean | string> }) {
-  const startDateStr = checkedItems["post_onboarding_3_date"] as string | undefined;
+function CareSummaryHeader({ checkedItems, linkedCheckedItems, assignedFamilyName }: {
+  checkedItems: Record<string, boolean | string>;
+  linkedCheckedItems?: Record<string, boolean | string>;
+  assignedFamilyName?: string;
+}) {
+  const startDateStr = (linkedCheckedItems?.["post_onboarding_3_date"] || checkedItems["post_onboarding_3_date"]) as string | undefined;
   return (
     <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
       <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-blue-900">
@@ -129,6 +133,12 @@ function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, bool
           <span className="text-muted-foreground">Holiday/OT:</span>{" "}
           <span className="font-medium">1.5× (2× Christmas)</span>
         </div>
+        {assignedFamilyName && (
+          <div className="text-sm">
+            <span className="text-muted-foreground">Assigned Family:</span>{" "}
+            <span className="font-medium">{assignedFamilyName}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -317,6 +327,191 @@ function generateFamilyReport(
   pdf.save(`Onboarding_Report_${safeName}_${format(new Date(), "yyyy-MM-dd")}.pdf`);
 }
 
+/** Generate a single-page landscape PDF report for the selected professional */
+function generateProfessionalReport(
+  professionalName: string,
+  assignedFamilyName: string,
+  checkedItems: Record<string, boolean | string>,
+  linkedFamilyCheckedItems: Record<string, boolean | string>,
+  notes: OnboardingNote[],
+  sectionDefs: OnboardingSectionDef[],
+) {
+  const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const W = 297;
+  const H = 210;
+  const M = 12;
+  let y = M;
+
+  // --- Header ---
+  pdf.setFontSize(14);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(30, 64, 120);
+  pdf.text("TAVARA.CARE — Professional Onboarding Report", M, y);
+  y += 6;
+  pdf.setFontSize(9);
+  pdf.setFont("helvetica", "normal");
+  pdf.setTextColor(80);
+  pdf.text(`Professional: ${professionalName}    |    Assigned Family: ${assignedFamilyName || "Not assigned"}    |    Generated: ${format(new Date(), "PPP")}`, M, y);
+  y += 7;
+
+  pdf.setDrawColor(200);
+  pdf.line(M, y, W - M, y);
+  y += 5;
+
+  // --- Care Summary ---
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(30, 64, 120);
+  pdf.text("Care Summary", M, y);
+  y += 5;
+
+  const startDateStr = (linkedFamilyCheckedItems["post_onboarding_3_date"] || checkedItems["post_onboarding_3_date"]) as string | undefined;
+  const startDateFmt = startDateStr ? format(parseLocalDate(startDateStr), "PPP") : "Not set";
+
+  pdf.setFontSize(8.5);
+  pdf.setFont("helvetica", "normal");
+  pdf.setTextColor(50);
+  const summaryLines = [
+    `Rate: $35/hr (Standard)   |   Plan: Tavara Family Care Plan (weekly)   |   Start Date: ${startDateFmt}`,
+    `Payment: Weekly by Tavara (every Friday)   |   Processing: Up to 3 business days   |   Holiday/OT: 1.5x (2x Christmas)`,
+    `NIS: Covered by Tavara   |   Probationary Period: 30 days   |   Rotation Pool: Yes`,
+  ];
+  summaryLines.forEach((line) => {
+    pdf.text(line, M, y);
+    y += 4;
+  });
+  y += 3;
+
+  // --- Terms & Conditions Status ---
+  const tcSection = sectionDefs.find((s) => s.id === "terms_conditions");
+  if (tcSection) {
+    let tcChecked = 0;
+    tcSection.items.forEach((_, i) => {
+      if (checkedItems[`terms_conditions_${i}`]) tcChecked++;
+    });
+    const allAccepted = tcChecked === tcSection.items.length;
+
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(allAccepted ? 34 : 180, allAccepted ? 139 : 50, allAccepted ? 34 : 50);
+    pdf.text(`Terms & Conditions: ${allAccepted ? "ALL ACCEPTED ✓" : `${tcChecked}/${tcSection.items.length} acknowledged`}`, M, y);
+    y += 5;
+
+    pdf.setFontSize(7.5);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(60);
+    tcSection.items.forEach((item, i) => {
+      const checked = !!checkedItems[`terms_conditions_${i}`];
+      const icon = checked ? "✓" : "○";
+      pdf.setTextColor(checked ? 34 : 150, checked ? 139 : 150, checked ? 34 : 150);
+      const truncated = item.length > 90 ? item.substring(0, 90) + "…" : item;
+      pdf.text(`${icon}  ${truncated}`, M + 2, y);
+      y += 3.5;
+    });
+    y += 2;
+  }
+
+  // --- Onboarding Progress ---
+  let totalChecked = 0;
+  let totalItems = 0;
+  sectionDefs.forEach((s) => {
+    s.items.forEach((_, i) => {
+      totalItems++;
+      if (checkedItems[`${s.id}_${i}`]) totalChecked++;
+    });
+  });
+  const pct = totalItems ? Math.round((totalChecked / totalItems) * 100) : 0;
+
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(30, 64, 120);
+  pdf.text(`Onboarding Progress: ${totalChecked}/${totalItems} (${pct}%)`, M, y);
+  y += 5;
+
+  const colW = (W - M * 2 - 8) / 2;
+  const startY = y;
+  let col = 0;
+  let colY = startY;
+
+  pdf.setFontSize(8);
+  sectionDefs.forEach((section) => {
+    let checked = 0;
+    section.items.forEach((_, i) => {
+      if (checkedItems[`${section.id}_${i}`]) checked++;
+    });
+    const total = section.items.length;
+    const isComplete = checked === total && total > 0;
+    const icon = isComplete ? "✓" : "○";
+    const x = M + col * (colW + 8);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(isComplete ? 34 : 100, isComplete ? 139 : 100, isComplete ? 34 : 100);
+    pdf.text(`${icon}  ${section.title}`, x, colY);
+    pdf.setTextColor(120);
+    pdf.text(`${checked}/${total}`, x + colW - 2, colY, { align: "right" });
+
+    colY += 4.2;
+    if (colY > startY + (sectionDefs.length / 2) * 4.2 + 2 && col === 0) {
+      col = 1;
+      colY = startY;
+    }
+  });
+
+  y = startY + Math.ceil(sectionDefs.length / 2) * 4.2 + 3;
+
+  // --- Key Dates ---
+  const introDate = checkedItems["post_onboarding_1_date"] as string | undefined;
+  const meetingDate = checkedItems["post_onboarding_2_date"] as string | undefined;
+
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(30, 64, 120);
+  pdf.text("Key Dates", M, y);
+  y += 5;
+
+  pdf.setFontSize(8.5);
+  pdf.setFont("helvetica", "normal");
+  pdf.setTextColor(50);
+  const dates = [
+    `Introduction: ${introDate ? format(parseLocalDate(introDate), "PPP") : "Not set"}`,
+    `Meeting: ${meetingDate ? format(parseLocalDate(meetingDate), "PPP") : "Not set"}`,
+    `Start: ${startDateFmt}`,
+  ].join("   |   ");
+  pdf.text(dates, M, y);
+  y += 7;
+
+  // --- Notes ---
+  if (notes.length > 0 && y < H - 20) {
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(30, 64, 120);
+    pdf.text("Onboarding Notes", M, y);
+    y += 5;
+
+    pdf.setFontSize(7.5);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(60);
+    const maxNotes = Math.min(notes.length, 6);
+    for (let i = 0; i < maxNotes; i++) {
+      const note = notes[i];
+      const dateFmt = format(new Date(note.created_at), "MMM d");
+      const truncated = note.text.length > 100 ? note.text.substring(0, 100) + "…" : note.text;
+      if (y > H - 12) break;
+      pdf.text(`•  [${dateFmt}] [${note.assigned_to}] ${truncated}`, M, y);
+      y += 3.8;
+    }
+  }
+
+  // --- Footer ---
+  pdf.setFontSize(7);
+  pdf.setTextColor(150);
+  pdf.text("Generated from tavara.care/admin/onboarding-checklist", M, H - 5);
+  pdf.text(`Page 1 of 1`, W - M, H - 5, { align: "right" });
+
+  const safeName = professionalName.replace(/[^a-zA-Z0-9]/g, "_");
+  pdf.save(`Professional_Onboarding_Report_${safeName}_${format(new Date(), "yyyy-MM-dd")}.pdf`);
+}
+
 // Reusable checklist tab content
 function ChecklistTabContent({
   profiles,
@@ -340,6 +535,8 @@ function ChecklistTabContent({
   showFamilyData,
   showProfessionalData,
   onDownloadReport,
+  linkedCheckedItems,
+  assignedFamilyName,
 }: {
   profiles: ProfileOption[];
   loadingProfiles: boolean;
@@ -362,6 +559,8 @@ function ChecklistTabContent({
   showFamilyData?: boolean;
   showProfessionalData?: boolean;
   onDownloadReport?: () => void;
+  linkedCheckedItems?: Record<string, boolean | string>;
+  assignedFamilyName?: string;
 }) {
   const publicGuideUrl = `${window.location.origin}/onboarding-guide`;
   const copyPublicLink = () => {
@@ -577,7 +776,11 @@ function ChecklistTabContent({
                     )}
 
                     {section.id === "post_onboarding" && (
-                      <CareSummaryHeader checkedItems={checkedItems} />
+                      <CareSummaryHeader
+                        checkedItems={checkedItems}
+                        linkedCheckedItems={linkedCheckedItems}
+                        assignedFamilyName={assignedFamilyName}
+                      />
                     )}
                   </CardContent>
                 </CollapsibleContent>
@@ -608,10 +811,12 @@ export default function AdminOnboardingChecklistPage() {
   const [professionals, setProfessionals] = useState<ProfileOption[]>([]);
   const [loadingProfessionals, setLoadingProfessionals] = useState(true);
   const [selectedProfessionalId, setSelectedProfessionalId] = useState("");
-  const [profCheckedItems, setProfCheckedItems] = useState<Record<string, boolean>>({});
+  const [profCheckedItems, setProfCheckedItems] = useState<Record<string, boolean | string>>({});
   const [profNotes, setProfNotes] = useState<OnboardingNote[]>([]);
   const [profOpenSections, setProfOpenSections] = useState<Record<string, boolean>>({});
   const profSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [profAssignedFamilyId, setProfAssignedFamilyId] = useState("");
+  const [linkedFamilyCheckedItems, setLinkedFamilyCheckedItems] = useState<Record<string, boolean | string>>({});
 
   // Load families
   useEffect(() => {
@@ -689,6 +894,7 @@ export default function AdminOnboardingChecklistPage() {
     if (!selectedProfessionalId) {
       setProfCheckedItems({});
       setProfNotes([]);
+      setProfAssignedFamilyId("");
       return;
     }
     const load = async () => {
@@ -700,20 +906,48 @@ export default function AdminOnboardingChecklistPage() {
           .maybeSingle();
         if (error) throw error;
         if (data) {
-          setProfCheckedItems((data.checked_items as unknown as Record<string, boolean>) || {});
+          const items = (data.checked_items as unknown as Record<string, boolean | string>) || {};
+          setProfCheckedItems(items);
           setProfNotes((data.notes as unknown as OnboardingNote[]) || []);
+          setProfAssignedFamilyId((items.assigned_family_id as string) || "");
         } else {
           setProfCheckedItems({});
           setProfNotes([]);
+          setProfAssignedFamilyId("");
         }
       } catch (err) {
         console.error("Failed to load professional checklist:", err);
         setProfCheckedItems({});
         setProfNotes([]);
+        setProfAssignedFamilyId("");
       }
     };
     load();
   }, [selectedProfessionalId]);
+
+  // Load linked family's checklist data when assigned family changes
+  useEffect(() => {
+    if (!profAssignedFamilyId) {
+      setLinkedFamilyCheckedItems({});
+      return;
+    }
+    const load = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("onboarding_checklists")
+          .select("checked_items")
+          .eq("family_id", profAssignedFamilyId)
+          .maybeSingle();
+        if (error) throw error;
+        setLinkedFamilyCheckedItems(
+          (data?.checked_items as unknown as Record<string, boolean | string>) || {}
+        );
+      } catch {
+        setLinkedFamilyCheckedItems({});
+      }
+    };
+    load();
+  }, [profAssignedFamilyId]);
 
   // Family save
   const saveFamilyToSupabase = useCallback(
@@ -743,7 +977,7 @@ export default function AdminOnboardingChecklistPage() {
 
   // Professional save
   const saveProfToSupabase = useCallback(
-    (items: Record<string, boolean>, notesList: OnboardingNote[]) => {
+    (items: Record<string, boolean | string>, notesList: OnboardingNote[]) => {
       if (!selectedProfessionalId) return;
       if (profSaveTimerRef.current) clearTimeout(profSaveTimerRef.current);
       profSaveTimerRef.current = setTimeout(async () => {
@@ -927,6 +1161,42 @@ export default function AdminOnboardingChecklistPage() {
         </TabsContent>
 
         <TabsContent value="professional">
+          {selectedProfessionalId && (
+            <Card className="mb-4">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="flex-1 space-y-2">
+                    <Label htmlFor="assignedFamilySelect">Assigned Family</Label>
+                    <Select
+                      value={profAssignedFamilyId}
+                      onValueChange={(val) => {
+                        setProfAssignedFamilyId(val);
+                        const next = { ...profCheckedItems, assigned_family_id: val };
+                        setProfCheckedItems(next);
+                        saveProfToSupabase(next, profNotes);
+                      }}
+                    >
+                      <SelectTrigger id="assignedFamilySelect">
+                        <SelectValue placeholder="Link this professional to a family" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {families.map((f) => (
+                          <SelectItem key={f.id} value={f.id}>
+                            {f.full_name || "Unnamed family"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {profAssignedFamilyId && (
+                      <p className="text-xs text-muted-foreground">
+                        Linked to: <span className="font-medium">{families.find(f => f.id === profAssignedFamilyId)?.full_name || profAssignedFamilyId}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <ChecklistTabContent
             profiles={professionals}
             loadingProfiles={loadingProfessionals}
@@ -934,6 +1204,11 @@ export default function AdminOnboardingChecklistPage() {
             setSelectedId={setSelectedProfessionalId}
             checkedItems={profCheckedItems}
             toggleItem={toggleProfItem}
+            onDateChange={(key, value) => {
+              const next = { ...profCheckedItems, [key]: value };
+              setProfCheckedItems(next);
+              saveProfToSupabase(next, profNotes);
+            }}
             notes={profNotes}
             handleAddNote={handleProfAddNote}
             openSections={profOpenSections}
@@ -942,6 +1217,7 @@ export default function AdminOnboardingChecklistPage() {
               if (window.confirm("Reset all checkboxes and notes for this professional onboarding session?")) {
                 setProfCheckedItems({});
                 setProfNotes([]);
+                setProfAssignedFamilyId("");
                 saveProfToSupabase({}, []);
               }
             }}
@@ -952,6 +1228,13 @@ export default function AdminOnboardingChecklistPage() {
             tableName="professional_onboarding_checklists"
             idColumn="professional_id"
             showProfessionalData
+            linkedCheckedItems={linkedFamilyCheckedItems}
+            assignedFamilyName={families.find(f => f.id === profAssignedFamilyId)?.full_name}
+            onDownloadReport={selectedProfessionalId ? () => {
+              const profName = professionals.find(p => p.id === selectedProfessionalId)?.full_name || "Professional";
+              const familyName = families.find(f => f.id === profAssignedFamilyId)?.full_name || "";
+              generateProfessionalReport(profName, familyName, profCheckedItems, linkedFamilyCheckedItems, profNotes, PROFESSIONAL_ONBOARDING_SECTION_DEFS);
+            } : undefined}
           />
         </TabsContent>
       </Tabs>

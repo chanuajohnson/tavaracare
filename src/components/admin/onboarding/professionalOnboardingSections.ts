@@ -135,6 +135,22 @@ export const PROFESSIONAL_ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     ],
   },
   {
+    id: "terms_conditions",
+    title: "Terms & Conditions of Engagement",
+    iconName: "FileText",
+    description: "Critical employment terms the professional must acknowledge and accept",
+    items: [
+      "Professional acknowledges they are hired through Tavara Care, not directly by the family",
+      "Professional understands they are part of a caregiver rotation pool for seamless coverage",
+      "Professional agrees to a 30-day probationary/orientation period",
+      "Professional confirms payment is made weekly by Tavara (every Friday)",
+      "Professional understands payment processing may take up to 3 business days",
+      "Professional acknowledges NIS contributions are covered by Tavara",
+      "Professional agrees to Tavara's attendance, punctuality, and cancellation policies",
+      "Professional confirms they have reviewed and accepted all terms (digital approval)",
+    ],
+  },
+  {
     id: "post_onboarding",
     title: "Post-Onboarding Summary",
     iconName: "CheckCircle2",
