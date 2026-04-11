@@ -19,6 +19,40 @@ import {
 import { ONBOARDING_SECTION_DEFS, getTotalItems } from "@/components/admin/onboarding/onboardingSections";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
 
+/** Parse "YYYY-MM-DD" as local date (not UTC) */
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Read-only summary header for Post-Onboarding section */
+function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, boolean | string> }) {
+  const startDateStr = checkedItems["post_onboarding_3_date"] as string | undefined;
+  return (
+    <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+      <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-blue-900">
+        💙 Your Care Summary
+      </h4>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="text-sm">
+          <span className="text-muted-foreground">Rate:</span>{" "}
+          <span className="font-medium">$35/hr (Standard)</span>
+        </div>
+        <div className="text-sm">
+          <span className="text-muted-foreground">Plan:</span>{" "}
+          <span className="font-medium">Tavara Family Care Plan (weekly)</span>
+        </div>
+        <div className="text-sm">
+          <span className="text-muted-foreground">Start Date:</span>{" "}
+          <span className="font-medium">
+            {startDateStr ? format(parseLocalDate(startDateStr), "PPP") : "Not set"}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const ICON_MAP: Record<string, React.ReactNode> = {
   ClipboardCheck: <ClipboardCheck className="h-5 w-5" />,
   Heart: <Heart className="h-5 w-5" />,
@@ -219,7 +253,7 @@ export default function FamilyOnboardingChecklistPage() {
                                 {dateFieldLabel && storedDate && (
                                   <Badge variant="outline" className="ml-2 text-xs gap-1">
                                     <CalendarIcon className="h-3 w-3" />
-                                    {format(new Date(storedDate), "PPP")}
+                                    {format(parseLocalDate(storedDate), "PPP")}
                                   </Badge>
                                 )}
                               </div>
@@ -230,6 +264,10 @@ export default function FamilyOnboardingChecklistPage() {
 
                 {section.id === "rates_and_changes" && (
                   <RateTierReferenceCard />
+                )}
+
+                {section.id === "post_onboarding" && (
+                  <CareSummaryHeader checkedItems={checkedItems} />
                 )}
                     </CardContent>
                   </CollapsibleContent>
