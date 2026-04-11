@@ -602,8 +602,8 @@ const SubscriptionPage = () => {
                         {plan.id !== 'basic' && <Video className="h-4 w-4 text-purple-500" />}
                       </CardTitle>
                       <div className="flex items-end gap-1">
-                        <span className="text-3xl font-bold">{plan.price}</span>
-                        {plan.period && <span className="text-gray-500">/{plan.period}</span>}
+                        <span className="text-3xl font-bold">{getPlanPrice(plan)}</span>
+                        {getPlanPeriod(plan) && <span className="text-muted-foreground">/{getPlanPeriod(plan)}</span>}
                       </div>
                       <CardDescription>{plan.description}</CardDescription>
                     </CardHeader>
