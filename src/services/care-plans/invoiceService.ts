@@ -64,14 +64,14 @@ export interface CareBillingData {
 
 // ─── Constants ───────────────────────────────────────────────────────
 
-const TAVARA_PURPLE = '#7E69AB';
+const TAVARA_BLUE = '#5B8DEF';
 const TAVARA_TEAL = '#0D9488';
 const PAGE_WIDTH = 816; // 8.5" at 96dpi
 const PAGE_HEIGHT = 1056; // 11" at 96dpi
 
 const COMPANY_INFO = {
   name: 'Tavara.Care',
-  tagline: 'Compassionate Care, Connected',
+  tagline: 'It takes a village to care',
   address: 'Trinidad & Tobago',
   phone: '+1 (868) 123-4567',
   email: 'support@tavara.care',
