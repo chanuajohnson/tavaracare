@@ -608,10 +608,12 @@ export default function AdminOnboardingChecklistPage() {
   const [professionals, setProfessionals] = useState<ProfileOption[]>([]);
   const [loadingProfessionals, setLoadingProfessionals] = useState(true);
   const [selectedProfessionalId, setSelectedProfessionalId] = useState("");
-  const [profCheckedItems, setProfCheckedItems] = useState<Record<string, boolean>>({});
+  const [profCheckedItems, setProfCheckedItems] = useState<Record<string, boolean | string>>({});
   const [profNotes, setProfNotes] = useState<OnboardingNote[]>([]);
   const [profOpenSections, setProfOpenSections] = useState<Record<string, boolean>>({});
   const profSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [profAssignedFamilyId, setProfAssignedFamilyId] = useState("");
+  const [linkedFamilyCheckedItems, setLinkedFamilyCheckedItems] = useState<Record<string, boolean | string>>({});
 
   // Load families
   useEffect(() => {
