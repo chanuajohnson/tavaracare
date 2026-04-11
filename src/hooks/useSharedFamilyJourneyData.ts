@@ -94,9 +94,34 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       category: 'scheduling',
       accessible: false
     },
-    // Trial Steps (9-11)
+    // Care Coordination Steps (9-11)
+    {
+      id: 9,
+      title: "Caregiver Assigned",
+      description: "A caregiver has been matched and assigned to your family. View your care team.",
+      completed: false,
+      category: 'scheduling',
+      accessible: false
+    },
+    {
+      id: 10,
+      title: "Initial Family Meeting",
+      description: "Meet and greet with your assigned caregiver at your home.",
+      completed: false,
+      category: 'scheduling',
+      accessible: false
+    },
+    {
+      id: 11,
+      title: "Care Begins",
+      description: "Your caregiver starts providing care. View your care plan for schedules and details.",
+      completed: false,
+      category: 'scheduling',
+      accessible: false
+    },
+    // Trial Steps (12-14)
     { 
-      id: 9, 
+      id: 12, 
       title: "Schedule Trial Day (Optional)", 
       description: "Choose a trial date with your matched caregiver. This is an optional step before choosing your care model.", 
       completed: false, 
@@ -105,7 +130,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       accessible: false
     },
     { 
-      id: 10, 
+      id: 13, 
       title: "Pay for Trial Day (Optional)", 
       description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience.", 
       completed: false, 
@@ -114,7 +139,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       accessible: false
     },
     { 
-      id: 11, 
+      id: 14, 
       title: "Begin Your Trial (Optional)", 
       description: "Your caregiver begins the scheduled trial session.", 
       completed: false, 
@@ -122,9 +147,9 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       category: 'trial',
       accessible: false
     },
-    // Conversion Step (12)
+    // Conversion Step (15)
     { 
-      id: 12, 
+      id: 15, 
       title: "Rate & Choose Your Path", 
       description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr) for full support tools. Can skip trial and go directly here after visit confirmation.", 
       completed: false, 
