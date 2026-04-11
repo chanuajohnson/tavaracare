@@ -745,7 +745,7 @@ export default function AdminOnboardingChecklistPage() {
 
   // Professional save
   const saveProfToSupabase = useCallback(
-    (items: Record<string, boolean>, notesList: OnboardingNote[]) => {
+    (items: Record<string, boolean | string>, notesList: OnboardingNote[]) => {
       if (!selectedProfessionalId) return;
       if (profSaveTimerRef.current) clearTimeout(profSaveTimerRef.current);
       profSaveTimerRef.current = setTimeout(async () => {
