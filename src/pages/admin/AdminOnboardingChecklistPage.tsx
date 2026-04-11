@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import DocumentGenerationMenu from "@/components/admin/care-plans/DocumentGenerationMenu";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -515,6 +516,22 @@ export default function AdminOnboardingChecklistPage() {
         </TabsList>
 
         <TabsContent value="family">
+          {selectedFamilyId && (
+            <Card className="mb-4">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold">Billing Documents</h3>
+                    <p className="text-xs text-muted-foreground">Generate a quote, invoice, or receipt for this family</p>
+                  </div>
+                  <DocumentGenerationMenu
+                    familyName={families.find(f => f.id === selectedFamilyId)?.full_name || 'Family'}
+                    carePlanTitle="Care Services"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <ChecklistTabContent
             profiles={families}
             loadingProfiles={loadingFamilies}
