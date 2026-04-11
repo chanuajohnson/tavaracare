@@ -95,8 +95,12 @@ function DateFieldPicker({
 }
 
 /** Summary header for Post-Onboarding section */
-function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, boolean | string> }) {
-  const startDateStr = checkedItems["post_onboarding_3_date"] as string | undefined;
+function CareSummaryHeader({ checkedItems, linkedCheckedItems, assignedFamilyName }: {
+  checkedItems: Record<string, boolean | string>;
+  linkedCheckedItems?: Record<string, boolean | string>;
+  assignedFamilyName?: string;
+}) {
+  const startDateStr = (linkedCheckedItems?.["post_onboarding_3_date"] || checkedItems["post_onboarding_3_date"]) as string | undefined;
   return (
     <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
       <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-blue-900">
@@ -129,6 +133,12 @@ function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, bool
           <span className="text-muted-foreground">Holiday/OT:</span>{" "}
           <span className="font-medium">1.5× (2× Christmas)</span>
         </div>
+        {assignedFamilyName && (
+          <div className="text-sm">
+            <span className="text-muted-foreground">Assigned Family:</span>{" "}
+            <span className="font-medium">{assignedFamilyName}</span>
+          </div>
+        )}
       </div>
     </div>
   );
