@@ -691,6 +691,7 @@ export default function AdminOnboardingChecklistPage() {
     if (!selectedProfessionalId) {
       setProfCheckedItems({});
       setProfNotes([]);
+      setProfAssignedFamilyId("");
       return;
     }
     const load = async () => {
@@ -702,20 +703,48 @@ export default function AdminOnboardingChecklistPage() {
           .maybeSingle();
         if (error) throw error;
         if (data) {
-          setProfCheckedItems((data.checked_items as unknown as Record<string, boolean>) || {});
+          const items = (data.checked_items as unknown as Record<string, boolean | string>) || {};
+          setProfCheckedItems(items);
           setProfNotes((data.notes as unknown as OnboardingNote[]) || []);
+          setProfAssignedFamilyId((items.assigned_family_id as string) || "");
         } else {
           setProfCheckedItems({});
           setProfNotes([]);
+          setProfAssignedFamilyId("");
         }
       } catch (err) {
         console.error("Failed to load professional checklist:", err);
         setProfCheckedItems({});
         setProfNotes([]);
+        setProfAssignedFamilyId("");
       }
     };
     load();
   }, [selectedProfessionalId]);
+
+  // Load linked family's checklist data when assigned family changes
+  useEffect(() => {
+    if (!profAssignedFamilyId) {
+      setLinkedFamilyCheckedItems({});
+      return;
+    }
+    const load = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("onboarding_checklists")
+          .select("checked_items")
+          .eq("family_id", profAssignedFamilyId)
+          .maybeSingle();
+        if (error) throw error;
+        setLinkedFamilyCheckedItems(
+          (data?.checked_items as unknown as Record<string, boolean | string>) || {}
+        );
+      } catch {
+        setLinkedFamilyCheckedItems({});
+      }
+    };
+    load();
+  }, [profAssignedFamilyId]);
 
   // Family save
   const saveFamilyToSupabase = useCallback(
