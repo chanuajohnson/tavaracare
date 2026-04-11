@@ -11,10 +11,15 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import {
   ArrowLeft, ChevronDown, RotateCcw, ClipboardCheck, Monitor, FileText,
   Pill, UtensilsCrossed, ListChecks, LayoutDashboard, MessageSquare,
-  Heart, Users, CalendarCheck, Loader2, Copy, DollarSign
+  Heart, Users, CalendarCheck, Loader2, Copy, DollarSign, CheckCircle2,
+  CalendarIcon, ExternalLink
 } from "lucide-react";
 import { CHECKLIST_SECTIONS } from "@/components/professional/checklist/checklistSections";
 import { ONBOARDING_SECTION_DEFS, getTotalItems, OnboardingSectionDef } from "@/components/admin/onboarding/onboardingSections";
@@ -38,6 +43,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   CalendarCheck: <CalendarCheck className="h-5 w-5" />,
   MessageSquare: <MessageSquare className="h-5 w-5" />,
   DollarSign: <DollarSign className="h-5 w-5" />,
+  CheckCircle2: <CheckCircle2 className="h-5 w-5" />,
 };
 
 interface ProfileOption {
@@ -53,6 +59,7 @@ function ChecklistTabContent({
   setSelectedId,
   checkedItems,
   toggleItem,
+  onDateChange,
   notes,
   handleAddNote,
   openSections,
@@ -73,6 +80,7 @@ function ChecklistTabContent({
   setSelectedId: (id: string) => void;
   checkedItems: Record<string, boolean | string>;
   toggleItem: (sectionId: string, index: number) => void;
+  onDateChange?: (key: string, value: string) => void;
   notes: OnboardingNote[];
   handleAddNote: (note: OnboardingNote) => void;
   openSections: Record<string, boolean>;
@@ -226,16 +234,68 @@ function ChecklistTabContent({
                     <div className="space-y-3 pl-2">
                       {section.items.map((item, i) => {
                         const itemKey = `${section.id}_${i}`;
+                        const dateFieldLabel = section.dateFields?.[i];
+                        const dateKey = `${section.id}_${i}_date`;
+                        const storedDate = checkedItems[dateKey] as string | undefined;
+                        const linkUrl = section.links?.[i];
+
                         return (
-                          <div key={i} className="flex items-start gap-3">
+                          <div key={i} className="flex items-start gap-3 flex-wrap">
                             <Checkbox
                               checked={!!checkedItems[itemKey]}
                               onCheckedChange={() => toggleItem(section.id, i)}
                               className="mt-0.5"
                             />
-                            <span className={`text-sm ${checkedItems[itemKey] ? "line-through text-muted-foreground" : ""}`}>
-                              {item}
-                            </span>
+                            <div className="flex-1 min-w-0">
+                              <span className={`text-sm ${checkedItems[itemKey] ? "line-through text-muted-foreground" : ""}`}>
+                                {item}
+                              </span>
+                              {linkUrl && (
+                                <a
+                                  href={linkUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 ml-2 text-xs text-primary hover:underline"
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                  Open
+                                </a>
+                              )}
+                              {dateFieldLabel && onDateChange && (
+                                <div className="mt-1.5">
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className={cn(
+                                          "h-8 text-xs gap-1.5",
+                                          !storedDate && "text-muted-foreground"
+                                        )}
+                                      >
+                                        <CalendarIcon className="h-3.5 w-3.5" />
+                                        {storedDate
+                                          ? `${dateFieldLabel}: ${format(new Date(storedDate), "PPP")}`
+                                          : `Set ${dateFieldLabel}`}
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                      <Calendar
+                                        mode="single"
+                                        selected={storedDate ? new Date(storedDate) : undefined}
+                                        onSelect={(date) => {
+                                          if (date) {
+                                            onDateChange(dateKey, date.toISOString().split("T")[0]);
+                                          }
+                                        }}
+                                        initialFocus
+                                        className={cn("p-3 pointer-events-auto")}
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -585,6 +645,11 @@ export default function AdminOnboardingChecklistPage() {
             setSelectedId={setSelectedFamilyId}
             checkedItems={familyCheckedItems}
             toggleItem={toggleFamilyItem}
+            onDateChange={(key, value) => {
+              const next = { ...familyCheckedItems, [key]: value };
+              setFamilyCheckedItems(next);
+              saveFamilyToSupabase(next, familyNotes);
+            }}
             notes={familyNotes}
             handleAddNote={handleFamilyAddNote}
             openSections={familyOpenSections}

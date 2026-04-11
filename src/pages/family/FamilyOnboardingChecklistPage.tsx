@@ -9,11 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { format } from "date-fns";
 import {
   ArrowLeft, ChevronDown, ClipboardCheck, Monitor, FileText,
   Pill, UtensilsCrossed, ListChecks, LayoutDashboard, MessageSquare,
   Heart, Users, CalendarCheck, Loader2, CheckCircle2, Circle, DollarSign,
-  ExternalLink
+  ExternalLink, CalendarIcon
 } from "lucide-react";
 import { ONBOARDING_SECTION_DEFS, getTotalItems } from "@/components/admin/onboarding/onboardingSections";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
@@ -37,7 +38,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 export default function FamilyOnboardingChecklistPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean | string>>({});
   const [notes, setNotes] = useState<OnboardingNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -55,7 +56,7 @@ export default function FamilyOnboardingChecklistPage() {
         if (error) throw error;
         if (data) {
           setHasChecklist(true);
-          setCheckedItems((data.checked_items as unknown as Record<string, boolean>) || {});
+          setCheckedItems((data.checked_items as unknown as Record<string, boolean | string>) || {});
           setNotes((data.notes as unknown as OnboardingNote[]) || []);
         }
       } catch (err) {
@@ -181,6 +182,9 @@ export default function FamilyOnboardingChecklistPage() {
                           const isChecked = !!checkedItems[`${section.id}_${i}`];
                           const linkUrl = section.links?.[i];
                           const isDocLink = linkUrl?.includes("documents");
+                          const dateFieldLabel = section.dateFields?.[i];
+                          const dateKey = `${section.id}_${i}_date`;
+                          const storedDate = checkedItems[dateKey] as string | undefined;
                           // For invoice: require quote done; for receipt: require quote+invoice done
                           const isDisabledLink = isDocLink && (
                             (i === 10 && !checkedItems[`${section.id}_9`]) ||
@@ -194,23 +198,31 @@ export default function FamilyOnboardingChecklistPage() {
                               ) : (
                                 <Circle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                               )}
-                              {linkUrl && !isDisabledLink ? (
-                                <a
-                                  href={linkUrl}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    navigate(linkUrl);
-                                  }}
-                                  className="text-sm text-primary hover:underline flex items-center gap-1"
-                                >
-                                  {item}
-                                  <ExternalLink className="h-3 w-3" />
-                                </a>
-                              ) : (
-                                <span className={`text-sm ${isChecked ? "text-muted-foreground" : ""} ${isDisabledLink ? "text-muted-foreground/50 italic" : ""}`}>
-                                  {item}{isDisabledLink ? " (complete previous step first)" : ""}
-                                </span>
-                              )}
+                              <div className="flex-1 min-w-0">
+                                {linkUrl && !isDisabledLink ? (
+                                  <a
+                                    href={linkUrl}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      navigate(linkUrl);
+                                    }}
+                                    className="text-sm text-primary hover:underline flex items-center gap-1"
+                                  >
+                                    {item}
+                                    <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                ) : (
+                                  <span className={`text-sm ${isChecked ? "text-muted-foreground" : ""} ${isDisabledLink ? "text-muted-foreground/50 italic" : ""}`}>
+                                    {item}{isDisabledLink ? " (complete previous step first)" : ""}
+                                  </span>
+                                )}
+                                {dateFieldLabel && storedDate && (
+                                  <Badge variant="outline" className="ml-2 text-xs gap-1">
+                                    <CalendarIcon className="h-3 w-3" />
+                                    {format(new Date(storedDate), "PPP")}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           );
                         })}

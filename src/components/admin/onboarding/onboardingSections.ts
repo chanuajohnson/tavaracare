@@ -15,6 +15,7 @@ export interface OnboardingSectionDef {
   showFamilyData?: boolean;
   showProfessionalData?: boolean;
   links?: Record<number, string>; // item index -> URL for clickable links on family page
+  dateFields?: Record<number, string>; // item index -> label for date picker on admin page
 }
 
 export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
@@ -220,6 +221,11 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
       9: "/family/care-management?tab=documents",
       10: "/family/care-management?tab=documents",
       11: "/family/care-management?tab=documents",
+    },
+    dateFields: {
+      1: "Introduction Date",
+      2: "Meeting Date & Time",
+      3: "Start Date",
     },
   },
 ];
