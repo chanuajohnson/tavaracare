@@ -1143,6 +1143,42 @@ export default function AdminOnboardingChecklistPage() {
         </TabsContent>
 
         <TabsContent value="professional">
+          {selectedProfessionalId && (
+            <Card className="mb-4">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="flex-1 space-y-2">
+                    <Label htmlFor="assignedFamilySelect">Assigned Family</Label>
+                    <Select
+                      value={profAssignedFamilyId}
+                      onValueChange={(val) => {
+                        setProfAssignedFamilyId(val);
+                        const next = { ...profCheckedItems, assigned_family_id: val };
+                        setProfCheckedItems(next);
+                        saveProfToSupabase(next, profNotes);
+                      }}
+                    >
+                      <SelectTrigger id="assignedFamilySelect">
+                        <SelectValue placeholder="Link this professional to a family" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {families.map((f) => (
+                          <SelectItem key={f.id} value={f.id}>
+                            {f.full_name || "Unnamed family"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {profAssignedFamilyId && (
+                      <p className="text-xs text-muted-foreground">
+                        Linked to: <span className="font-medium">{families.find(f => f.id === profAssignedFamilyId)?.full_name || profAssignedFamilyId}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <ChecklistTabContent
             profiles={professionals}
             loadingProfiles={loadingProfessionals}
@@ -1150,6 +1186,11 @@ export default function AdminOnboardingChecklistPage() {
             setSelectedId={setSelectedProfessionalId}
             checkedItems={profCheckedItems}
             toggleItem={toggleProfItem}
+            onDateChange={(key, value) => {
+              const next = { ...profCheckedItems, [key]: value };
+              setProfCheckedItems(next);
+              saveProfToSupabase(next, profNotes);
+            }}
             notes={profNotes}
             handleAddNote={handleProfAddNote}
             openSections={profOpenSections}
@@ -1158,6 +1199,7 @@ export default function AdminOnboardingChecklistPage() {
               if (window.confirm("Reset all checkboxes and notes for this professional onboarding session?")) {
                 setProfCheckedItems({});
                 setProfNotes([]);
+                setProfAssignedFamilyId("");
                 saveProfToSupabase({}, []);
               }
             }}
@@ -1168,6 +1210,11 @@ export default function AdminOnboardingChecklistPage() {
             tableName="professional_onboarding_checklists"
             idColumn="professional_id"
             showProfessionalData
+            onDownloadReport={selectedProfessionalId ? () => {
+              const profName = professionals.find(p => p.id === selectedProfessionalId)?.full_name || "Professional";
+              const familyName = families.find(f => f.id === profAssignedFamilyId)?.full_name || "";
+              generateProfessionalReport(profName, familyName, profCheckedItems, linkedFamilyCheckedItems, profNotes, PROFESSIONAL_ONBOARDING_SECTION_DEFS);
+            } : undefined}
           />
         </TabsContent>
       </Tabs>
