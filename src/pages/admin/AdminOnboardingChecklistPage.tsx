@@ -59,6 +59,7 @@ function ChecklistTabContent({
   setSelectedId,
   checkedItems,
   toggleItem,
+  onDateChange,
   notes,
   handleAddNote,
   openSections,
@@ -79,6 +80,7 @@ function ChecklistTabContent({
   setSelectedId: (id: string) => void;
   checkedItems: Record<string, boolean | string>;
   toggleItem: (sectionId: string, index: number) => void;
+  onDateChange?: (key: string, value: string) => void;
   notes: OnboardingNote[];
   handleAddNote: (note: OnboardingNote) => void;
   openSections: Record<string, boolean>;
