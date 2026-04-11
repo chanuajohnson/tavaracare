@@ -409,8 +409,9 @@ export async function generateReceiptPDF(data: CareBillingData): Promise<void> {
  */
 export function buildDefaultCareBillingData(overrides: Partial<CareBillingData> & { familyName: string }): CareBillingData {
   const nurseRate = 35;
-  const platformFee = 5;
   const hoursPerWeek = 40;
+  const nursingTotal = nurseRate * hoursPerWeek;
+  const subscriptionRate = 199.99; // Family Care weekly
 
   return {
     familyName: overrides.familyName,
@@ -425,22 +426,16 @@ export function buildDefaultCareBillingData(overrides: Partial<CareBillingData> 
         description: 'Nursing Care (Standard Tier)',
         hoursPerWeek,
         ratePerHour: nurseRate,
-        amount: nurseRate * hoursPerWeek,
+        amount: nursingTotal,
       },
       {
-        description: 'Tavara Platform Management Fee',
-        hoursPerWeek,
-        ratePerHour: platformFee,
-        amount: platformFee * hoursPerWeek,
-      },
-      {
-        description: 'NIS Coverage (National Insurance)',
-        amount: 0,
-        note: '(included)',
+        description: 'Family Care Plan — Care Management & Coordination',
+        amount: subscriptionRate,
+        note: '(weekly)',
       },
     ],
-    subtotal: overrides.subtotal ?? (nurseRate + platformFee) * hoursPerWeek,
-    total: overrides.total ?? (nurseRate + platformFee) * hoursPerWeek,
+    subtotal: overrides.subtotal ?? (nursingTotal + subscriptionRate),
+    total: overrides.total ?? (nursingTotal + subscriptionRate),
     subscriptionTier: overrides.subscriptionTier || 'Family Care',
     subscriptionRate: overrides.subscriptionRate || '$199.99/week',
     subscriptionIncludes: overrides.subscriptionIncludes || [
@@ -459,7 +454,7 @@ export function buildDefaultCareBillingData(overrides: Partial<CareBillingData> 
     paymentDate: overrides.paymentDate,
     amountPaid: overrides.amountPaid,
     additionalNotes: overrides.additionalNotes || [
-      'NIS (National Insurance) contributions for the assigned caregiver are covered by Tavara.',
+      'NIS (National Insurance) contributions for the assigned caregiver are included and covered by Tavara as required by Trinidad & Tobago law.',
       'Tavara provides continuity of care — if your assigned caregiver is unavailable, a qualified replacement will be provided at no extra charge.',
       'Rate adjustments may apply if care needs change (e.g., disease progression, additional services).',
     ],
