@@ -1,30 +1,67 @@
 
 
-## Plan: Add Family Terms & Conditions Section + Update Billing Document Descriptions
+## Plan: Fix Care Coordination Journey + Admin Caregiver Assignment
 
-### Two changes:
+### What's Broken & What Changes
 
-**1. Add "Terms & Conditions of Engagement" section to the family onboarding checklist**
+There are **3 interconnected problems** to fix:
 
-New section in `onboardingSections.ts`, placed just before `post_onboarding`. Items tailored to the family's perspective:
+---
 
-- Family acknowledges they are engaging care services through Tavara Care, not hiring the caregiver directly
-- Family understands the assigned caregiver is part of Tavara's rotation pool for seamless coverage
-- Family confirms they are subscribing to the Family Care Plan (weekly) — refer to quotation for full pricing details
-- Family understands payment is due weekly (every Friday) as per the billing terms
-- Family acknowledges that payment processing may take up to 3 business days to clear
-- Family acknowledges NIS (National Insurance) contributions for the caregiver are covered by Tavara
-- Family understands rate adjustments may apply if care needs change, with prior notice
-- Family confirms they have reviewed the quotation and accepted all terms (digital approval)
+### 1. Admin "Find & Assign Caregiver" has no Family Selector
 
-**2. Update billing line item description from "Nursing Care (Standard Tier)" to "Standard Weekly Care"**
+**Problem**: When opened from the admin dashboard, the `UnifiedMatchingInterface` receives no `familyUserId`. The admin can search caregivers and fill out the form, but clicking "Create Assignment" fails with "Please select a caregiver" (the real issue is no family is selected).
 
-In `invoiceService.ts` `buildDefaultCareBillingData()`, change the first line item description from `"Nursing Care (Standard Tier)"` to `"Standard Weekly Care — Nursing (40 hrs/wk)"` to make it explicitly clear this is the weekly care plan. This change flows through to all generated Quotes, Invoices, and Receipts automatically since they all use the same data builder.
+**Fix**: Add a **"Select Family"** dropdown at the top of `UnifiedMatchingInterface` when `familyUserId` is not provided as a prop. This dropdown loads all family profiles and lets the admin pick which family to assign the caregiver to. When a family is selected, match scores auto-calculate. The validation message will also be corrected to say "Please select a family and a caregiver."
+
+---
+
+### 2. Family Dashboard "Care Coordination" Stage is Outdated
+
+**Problem**: The scheduling/care coordination stage in the journey panel only shows "Get Started with Care" and "Confirm Your Visit." For families like Ana Maria who already have a caregiver assigned and are past the visit stage, the journey doesn't reflect reality. There's no step for "Caregiver Assigned," "Initial Family Meeting," "Care Start Date," or a link to the care plan.
+
+**Fix**: Replace the current scheduling steps (7-8) with a more accurate care coordination flow. The scheduling category steps become:
+
+- **Step 7**: "Get Started with Care" (existing -- schedule visit) 
+- **Step 8**: "Confirm Your Visit" (existing -- visit confirmed)
+- **Step 9** (new, replaces old trial step): **"Caregiver Assigned"** -- checks `caregiver_assignments` or `manual_caregiver_assignments` table for an active assignment. Links to care team view.
+- **Step 10** (new): **"Initial Family Meeting"** -- checks the family's onboarding checklist for `post_onboarding_1_date` (Introduction Date). Displays the date when set.
+- **Step 11** (new): **"Care Begins"** -- checks for `post_onboarding_3_date` (Start Date) from onboarding checklist. Links to care plan.
+
+The existing trial/conversion steps (9-12) shift to steps 12-15 to accommodate the new steps.
+
+These new steps will be added to both `useSharedFamilyJourneyData.ts` and the fallback `calculateSteps()` in `useEnhancedJourneyProgress.ts`.
+
+Data sources for new steps:
+- Caregiver assignment: query `caregiver_assignments` + `manual_caregiver_assignments` for `family_user_id = userId`
+- Meeting & start dates: query `family_onboarding_checklists` for `family_id = userId`, parse the JSON `checked_items` for date fields
+
+---
+
+### 3. Quick Access Bar "Schedule Care" Button Outdated
+
+**Problem**: The `FamilyShortcutMenuBar` shows "Schedule Care" when matches exist but no visit is scheduled. For families past the visit stage with an assigned caregiver, this is misleading.
+
+**Fix**: Update `FamilyShortcutMenuBar` to:
+- Hide "Schedule Care" if a caregiver is already assigned
+- Add a **"View Care Team"** button that links to the care plan's care team tab when an assignment exists
+- Keep "Onboarding Progress" and "Care Plans" links as-is
+
+---
 
 ### Files Modified
 
-| File | Change |
-|------|--------|
-| `src/components/admin/onboarding/onboardingSections.ts` | Add "Terms & Conditions of Engagement" section (8 items) before `post_onboarding` |
-| `src/services/care-plans/invoiceService.ts` | Update line item description to "Standard Weekly Care — Nursing (40 hrs/wk)" |
+| File | Changes |
+|------|---------|
+| `src/components/admin/UnifiedMatchingInterface.tsx` | Add family selector dropdown when `familyUserId` prop is not provided; fix validation message |
+| `src/hooks/useSharedFamilyJourneyData.ts` | Add steps 9-11 (Caregiver Assigned, Initial Meeting, Care Begins); shift trial/conversion steps; query assignment tables and onboarding checklists |
+| `src/hooks/useEnhancedJourneyProgress.ts` | Mirror new steps in `calculateSteps()` and mock data; fetch caregiver assignments and onboarding dates |
+| `src/components/family/FamilyShortcutMenuBar.tsx` | Add assignment-awareness; show "View Care Team" when caregiver assigned; hide "Schedule Care" when past that stage |
+
+### Technical Details
+
+- New Supabase queries in journey hooks: `caregiver_assignments` (where `family_user_id = userId, status = 'active'`), `manual_caregiver_assignments` (same), and `family_onboarding_checklists` (where `family_id = userId`) to parse `checked_items` JSON for date fields
+- The `UnifiedMatchingInterface` family selector reuses the existing pattern of querying `profiles` where `role = 'family'`
+- Step IDs are renumbered: foundation (1-6), scheduling (7-8), care coordination (9-11), trial (12-14), conversion (15)
+- Actions for new steps: Step 9 navigates to `/family/care-management` (care team tab), Step 10 shows meeting date info, Step 11 navigates to `/family/care-management`
 
