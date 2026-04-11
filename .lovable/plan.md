@@ -1,62 +1,74 @@
 
 
-## Plan: Add Download PDF Report for Family Onboarding Checklist
+## Plan: Professional Terms & Conditions, Family Assignment Link, and Professional Report
 
-### What It Does
-Adds a "Download Report" button next to the existing "Share Guide" and "Reset" buttons on the Family tab. When clicked, it generates a single-page PDF summarizing the selected family's entire onboarding status -- checklist progress, dates, care summary, payment terms, and onboarding notes -- formatted for stakeholders.
+### What This Covers
 
-### PDF Layout (single page, landscape A4 for space)
+Based on your requirements, there are 4 major additions:
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│  TAVARA.CARE — Family Onboarding Report                         │
-│  Family: Ava Johnson    Generated: April 11, 2026               │
-│                                                                  │
-│  ── Care Summary ──────────────────────────────────────────────  │
-│  Rate: $35/hr | Plan: Family Care (weekly) | Start: Apr 13      │
-│  Payment: Weekly (Fri) | Late Fee: 5% | Holiday: 1.5x/2x       │
-│                                                                  │
-│  ── Onboarding Progress: 45/72 (63%) ─────────────────────────  │
-│  ✅ Pre-Call Preparation          6/6                            │
-│  ✅ Review Client Submissions     8/8                            │
-│  ⬜ Platform Overview             3/7                            │
-│  ... (all 13 sections as compact rows)                           │
-│                                                                  │
-│  ── Key Dates ─────────────────────────────────────────────────  │
-│  Introduction: Apr 11, 2026 | Meeting: Apr 13 | Start: Apr 14   │
-│                                                                  │
-│  ── Onboarding Notes ─────────────────────────────────────────   │
-│  • [Apr 10] Family prefers morning shifts...                     │
-│  • [Apr 11] Nurse assigned: Sandra M...                          │
-└──────────────────────────────────────────────────────────────────┘
-```
+1. **Terms & Conditions section** in the professional onboarding checklist -- critical employment terms the nurse must acknowledge
+2. **"Select Family" dropdown** on the Professional tab (below Select Professional) to link the professional to their assigned family
+3. **Professional PDF Report** (Download Report button) -- mirrors the family report, includes T&C acknowledgment status
+4. **Synced Care Summary** -- the professional's post-onboarding summary card pulls family data (start date, plan) when a family is linked
 
-### Implementation
+---
 
-**File: `src/pages/admin/AdminOnboardingChecklistPage.tsx`**
+### 1. New "Terms & Conditions of Engagement" Section
 
-1. Import `jsPDF` (already a project dependency)
-2. Add a `generateFamilyReport()` function that:
-   - Creates a landscape jsPDF document
-   - Renders the Tavara header with family name and date
-   - Renders the Care Summary block (rate, plan, start date, payment terms)
-   - Iterates over `ONBOARDING_SECTION_DEFS`, counting checked items per section, rendering each as a compact row with check/uncheck icon and progress count
-   - Renders key dates (Introduction, Meeting, Start) extracted from `familyCheckedItems`
-   - Renders onboarding notes (truncated if too many to fit)
-   - Uses small font sizes (8-10pt) and tight spacing to fit on one page
-3. Add a "Download Report" button in the `ChecklistTabContent` toolbar (next to Share Guide and Reset), only visible when a family is selected
-4. The button calls `generateFamilyReport()` which saves the PDF
+Added to `professionalOnboardingSections.ts` as a new section (before Post-Onboarding Summary), with these checklist items:
+
+- Professional acknowledges they are hired through Tavara Care, not directly by the family
+- Professional understands they are part of a caregiver rotation pool for seamless coverage
+- Professional agrees to a 30-day probationary/orientation period
+- Professional confirms payment is made weekly by Tavara (every Friday)
+- Professional understands payment processing may take up to 3 business days
+- Professional acknowledges NIS contributions are covered by Tavara
+- Professional agrees to Tavara's attendance, punctuality, and cancellation policies
+- Professional confirms they have reviewed and accepted these terms (digital approval)
+
+This section acts as the digital signature/approval -- checking the final item means the nurse has agreed to all terms.
+
+### 2. "Select Family" Dropdown on Professional Tab
+
+In `AdminOnboardingChecklistPage.tsx`, below the "Select Professional" dropdown, add a "Select Family" dropdown that:
+- Shows all family profiles (reuses the already-loaded `families` list)
+- Stores the selected family ID in `profCheckedItems` as `assigned_family_id`
+- Persists to `professional_onboarding_checklists` with the rest of the checked items
+- When set, the Post-Onboarding Care Summary card pulls the family's start date and other details from the linked family's onboarding checklist
+
+### 3. Professional PDF Report Generation
+
+A `generateProfessionalReport()` function (mirrors `generateFamilyReport`) that produces a one-page landscape A4 PDF containing:
+- **Header**: "TAVARA.CARE -- Professional Onboarding Report" with professional name and assigned family
+- **Care Summary**: Rate, Plan, Start Date, Payment Terms
+- **Onboarding Progress**: All 11 sections with completion counts
+- **Terms & Conditions Status**: Clear indication of whether all T&C items were acknowledged (with timestamp if available)
+- **Key Dates**: Introduction, Meeting, Start dates
+- **Notes**: Up to 8 most recent notes
+- **Footer**: Source URL and page indicator
+
+A "Download Report" button added to the Professional tab toolbar.
+
+### 4. Synced Care Summary
+
+The `CareSummaryHeader` on the professional side will accept the assigned family's checklist data to display:
+- Start Date from the family's `post_onboarding_3_date`
+- Assigned Family name
+- Same rate/payment info
+
+---
 
 ### Files Modified
 
-| File | Change |
-|------|--------|
-| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Add `generateFamilyReport` function + Download Report button |
+| File | Changes |
+|------|---------|
+| `src/components/admin/onboarding/professionalOnboardingSections.ts` | Add "Terms & Conditions of Engagement" section (8 items) before post_onboarding |
+| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Add family selector on Professional tab, add `generateProfessionalReport()`, wire Download Report button, sync Care Summary with family data |
 
 ### Technical Details
-- Uses `jsPDF` directly (no html2canvas needed -- pure text/drawing for crisp output)
-- Landscape orientation gives ~280mm width for readable tables
-- Compact 8-9pt font for section rows, 10pt for headers
-- Color-coded: green for complete sections, gray for incomplete
-- Single dependency already in project: `jspdf`
+
+- The assigned family ID is stored as `assigned_family_id` inside `profCheckedItems` (same JSON blob that's already persisted to Supabase)
+- When a family is selected on the Professional tab, we fetch that family's onboarding checklist to pull their start date for the Care Summary
+- The professional report includes a dedicated "Terms & Conditions" section showing each T&C item with a check/uncheck indicator
+- The `profCheckedItems` type will need to accept `string` values (like the family side) to support `assigned_family_id` and date fields
 
