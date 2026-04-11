@@ -12,7 +12,8 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import {
   ArrowLeft, ChevronDown, ClipboardCheck, Monitor, FileText,
   Pill, UtensilsCrossed, ListChecks, LayoutDashboard, MessageSquare,
-  Heart, Users, CalendarCheck, Loader2, CheckCircle2, Circle, DollarSign
+  Heart, Users, CalendarCheck, Loader2, CheckCircle2, Circle, DollarSign,
+  ExternalLink
 } from "lucide-react";
 import { ONBOARDING_SECTION_DEFS, getTotalItems } from "@/components/admin/onboarding/onboardingSections";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
@@ -30,6 +31,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   CalendarCheck: <CalendarCheck className="h-5 w-5" />,
   MessageSquare: <MessageSquare className="h-5 w-5" />,
   DollarSign: <DollarSign className="h-5 w-5" />,
+  CheckCircle2: <CheckCircle2 className="h-5 w-5" />,
 };
 
 export default function FamilyOnboardingChecklistPage() {
