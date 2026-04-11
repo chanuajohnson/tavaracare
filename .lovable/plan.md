@@ -1,39 +1,52 @@
-## Plan: Add Post-Onboarding Summary Card
 
-Create a new "Post-Onboarding Summary" card that appears after the Communication & Notifications section on both the admin and family-facing onboarding pages. This card contains structured, checkable items summarizing what was completed and next actions -- distinct from the free-form "Notes & Action Items" section.
 
-### What the Card Contains
+## Plan: Add Date Fields and Links to Post-Onboarding Section
 
-A structured checklist with these items (admin can check them off, family sees read-only status):
+### Problem Analysis
 
-1. Onboarding completed successfully -- welcome to Tavara.Care!
-2. Assigned nurse confirmed and to be introduced to family
-3. First meeting: Tavara coordinator, assigned nurse, and family at client residence (date/time set in billing config)
-4. Assigned nurse commences work at client residence (placeholder here for start date that is to be confirmed and not to be altered once started, this is to be used for  billing config start date for first billing quote/ etc/payment when generated)
-5. Assigned nurse is paid weekly by Tavara
-6. Tavara subscription: Family Care Plan (weekly) -- [link to /subscription]
-7. NIS (National Insurance) contributions covered by Tavara for assigned nurse
-8. View your care plan and team -- [link to /family/care-management]
-9. View your onboarding progress -- [link to /family/onboarding-checklist]
-10. Generate your first quote -- [link to care plan Documents tab]
-11. Or Generate your first invoice only clickable when quote  is done -- [link to care plan Documents tab]
-12. and Generate your first receipt only clickable when quote and invoice are done -- [link to care plan Documents tab]
+1. **No date inputs on admin side**: Items 1-3 in post_onboarding ("Assigned nurse confirmed...", "First meeting...", "Assigned nurse commences work...") need date/time pickers so admin can record when these happen. Currently they're just checkboxes with text.
+
+2. **Links not rendering on admin side**: The `links` property IS defined in `onboardingSections.ts` (indices 5, 7, 8, 9, 10, 11) but the admin checklist page (`AdminOnboardingChecklistPage.tsx` lines 226-241) only renders checkboxes + plain text -- it never reads `section.links`. The family page does render links, but only for items that have them.
+
+3. **Subscription link exists but may not show**: Link for index 5 (`/subscription`) is already defined in the section definition. It should render on the family page. Need to verify family page rendering handles it.
+
+### Changes
+
+**1. `src/components/admin/onboarding/onboardingSections.ts`**
+- Add `dateFields?: Record<number, string>` to `OnboardingSectionDef` interface -- maps item index to a label for the date field
+- Add `dateFields` to the `post_onboarding` section for indices 1, 2, 3:
+  - Index 1: "Introduction Date"
+  - Index 2: "Meeting Date & Time" 
+  - Index 3: "Start Date"
+
+**2. `src/pages/admin/AdminOnboardingChecklistPage.tsx`**
+- In the item rendering loop (lines 226-241), detect if the current section has `dateFields[i]`
+- If so, render a date picker (using Popover + Calendar from shadcn) next to the checkbox + text
+- Store selected dates in `checkedItems` JSONB as `post_onboarding_1_date`, `post_onboarding_2_date`, `post_onboarding_3_date`
+- Also render links from `section.links` as clickable anchors (like the family page does) so admin can quickly navigate
+
+**3. `src/pages/family/FamilyOnboardingChecklistPage.tsx`**
+- Already renders links -- verify indices 5, 7, 8, 9, 10, 11 all work
+- Display the stored dates next to items 1-3 as read-only badges (e.g., "Apr 14, 2026" next to "First meeting...")
+- This gives the family visibility into scheduled dates
+
+### Data Storage
+
+Dates stored in existing `onboarding_checklists.checked_items` JSONB:
+```json
+{
+  "post_onboarding_1_date": "2026-04-11",
+  "post_onboarding_2_date": "2026-04-11T15:00",
+  "post_onboarding_3_date": "2026-04-13"
+}
+```
+No migration needed.
 
 ### Files Changed
 
+| File | Action |
+|------|--------|
+| `src/components/admin/onboarding/onboardingSections.ts` | Add `dateFields` to interface and `post_onboarding` section |
+| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Add date pickers for flagged items + render links from section definition |
+| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Show stored dates as read-only badges next to relevant items |
 
-| File                                                    | Action                                                                                                                                                              |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/components/admin/onboarding/onboardingSections.ts` | Add new `post_onboarding` section at the end of `ONBOARDING_SECTION_DEFS`                                                                                           |
-| `src/pages/family/FamilyOnboardingChecklistPage.tsx`    | Render items in the `post_onboarding` section as clickable links where applicable (subscription page, care management, documents tab)                               |
-| `src/pages/admin/AdminOnboardingChecklistPage.tsx`      | No structural change needed -- the `ChecklistTabContent` loop already renders all sections from `ONBOARDING_SECTION_DEFS`, so the new section appears automatically |
-
-
-### Technical Details
-
-- The new section uses `id: "post_onboarding"` and `iconName: "CheckCircle2"` (or `"CalendarCheck"`)
-- Items with links will be rendered as anchor tags on the family-facing page by detecting link syntax in the item text (e.g., items containing `[link:/path]` suffix)
-- Add a `links` optional field to `OnboardingSectionDef` interface: `links?: Record<number, string>` mapping item index to URL
-- On the family page, when a link exists for an item index, render the item text as a clickable link
-- Data is stored in the same `checked_items` JSONB field using keys like `post_onboarding_0`, `post_onboarding_1`, etc.
-- No migration needed -- uses existing `onboarding_checklists` table
