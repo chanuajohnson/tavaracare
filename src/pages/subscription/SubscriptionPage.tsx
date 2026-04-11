@@ -413,7 +413,7 @@ const SubscriptionPage = () => {
         plan_id: planId,
         plan_name: planName,
         feature_accessed: featureType,
-        price: plans.find(p => p.id === planId)?.price,
+        price: getPlanPrice(plans.find(p => p.id === planId) as any),
         previous_plan: userSubscription,
         action: action
       });
