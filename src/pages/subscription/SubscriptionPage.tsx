@@ -131,8 +131,8 @@ const SubscriptionPage = () => {
   }, {
     id: "care",
     name: "Family Care",
-    price: "$14.99",
-    period: "monthly",
+    price: "$199.99",
+    period: "week",
     description: "Enhanced features plus instant video calls with caregivers",
     features: [{
       name: "Unlimited caregiver chat",
@@ -159,15 +159,15 @@ const SubscriptionPage = () => {
       name: "Priority caregiver matching",
       included: false
     }],
-    popular: true,
+    popular: false,
     buttonColor: "bg-primary hover:bg-primary/90",
     buttonText: "Upgrade to Care"
   }, {
     id: "premium",
     name: "Family Premium",
-    price: "$29.99",
-    period: "monthly",
-    description: "Complete access with priority matching and extended video sessions",
+    price: "$699.99",
+    period: "month",
+    description: "Complete access with priority matching and extended video sessions — best value",
     features: [{
       name: "Unlimited caregiver chat",
       included: true
@@ -193,7 +193,7 @@ const SubscriptionPage = () => {
       name: "Priority caregiver matching",
       included: true
     }],
-    popular: false,
+    popular: true,
     buttonColor: "bg-primary hover:bg-primary/90",
     buttonText: "Upgrade to Premium"
   }];
