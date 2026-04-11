@@ -78,7 +78,7 @@ const faqs: FAQ[] = [
   {
     id: "faq-11",
     question: "What are the subscription plans and pricing?",
-    answer: "Plan Name | Features Included | Price\n\n---|---|---\nFamily Basic | Limited access to caregiver search and messaging | Free\nFamily Care | Unlimited profile views, direct messaging, and posting care needs | $14.99/month\nFamily Premium | All 'Family Care' features + personalized matching and priority support | $29.99/month\nProfessional Pro | Enhanced profile visibility and unlimited job applications | $19.99/month\nProfessional Expert | Complete feature access, priority matching, and advanced analytics | $34.99/month",
+    answer: "Family Plans:\n\n✔ Family Basic (Free) — Complete profile & care preferences, initial care needs assessment, Legacy Story for your loved one, instant caregiver matching, medication management & scheduling, meal planning & grocery lists, unlimited caregiver chat, email & community support.\n\n🚀 Family Care ($199.99/week or $699.99/month) — All Basic features plus dedicated care coordinator, priority caregiver matching, and video consultations with caregivers.\n\n🚀 Family Premium ($399.99/month or $1,099.99/month) — All Care features plus care plan management, 24/7 on-call support, and weekly/monthly billing management.\n\nProfessional Plans:\n\n✔ Professional Basic (Free) — Limited access to essential features.\n🚀 Professional Pro ($19.99/month) — Enhanced profile visibility and unlimited job applications.\n🚀 Professional Expert ($34.99/month) — Complete feature access, priority matching, and advanced analytics.",
     category: "Subscription & Pricing"
   },
   {
