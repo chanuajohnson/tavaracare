@@ -103,30 +103,42 @@ const SubscriptionPage = () => {
     priceMonthly: "Free",
     periodWeekly: "",
     periodMonthly: "",
-    description: "Unlimited chat with all matched caregivers",
+    description: "Everything you need to start your caregiving journey",
     features: [{
+      name: "Complete family profile and care preferences",
+      included: true
+    }, {
+      name: "Initial care needs assessment",
+      included: true
+    }, {
+      name: "Legacy Story for your loved one",
+      included: true
+    }, {
+      name: "Instant caregiver matching",
+      included: true
+    }, {
+      name: "Medication management and scheduling",
+      included: true
+    }, {
+      name: "Meal planning and grocery lists",
+      included: true
+    }, {
       name: "Unlimited caregiver chat",
       included: true
     }, {
-      name: "View matched caregiver profiles",
+      name: "Email and community support",
       included: true
     }, {
-      name: "Basic care need posting",
-      included: true
-    }, {
-      name: "Email support",
-      included: true
-    }, {
-      name: "Instant video calls with caregivers",
-      included: false
-    }, {
-      name: "Skip chat phase entirely",
-      included: false
-    }, {
-      name: "30-minute video sessions",
+      name: "Dedicated care coordinator",
       included: false
     }, {
       name: "Priority caregiver matching",
+      included: false
+    }, {
+      name: "Video consultations with caregivers",
+      included: false
+    }, {
+      name: "Weekly/monthly billing management",
       included: false
     }],
     popular: false,
@@ -141,16 +153,7 @@ const SubscriptionPage = () => {
     periodMonthly: "month",
     description: "Enhanced features plus instant video calls with caregivers",
     features: [{
-      name: "Unlimited caregiver chat",
-      included: true
-    }, {
-      name: "View matched caregiver profiles",
-      included: true
-    }, {
-      name: "Basic care need posting",
-      included: true
-    }, {
-      name: "Email support",
+      name: "Everything in Family Basic",
       included: true
     }, {
       name: "Instant video calls with caregivers",
@@ -162,7 +165,16 @@ const SubscriptionPage = () => {
       name: "30-minute video sessions",
       included: true
     }, {
+      name: "Dedicated care coordinator",
+      included: true
+    }, {
+      name: "Weekly/monthly billing management",
+      included: true
+    }, {
       name: "Priority caregiver matching",
+      included: false
+    }, {
+      name: "Extended video sessions",
       included: false
     }],
     popular: false,
@@ -177,28 +189,28 @@ const SubscriptionPage = () => {
     periodMonthly: "month",
     description: "Complete access with priority matching and extended video sessions — best value",
     features: [{
-      name: "Unlimited caregiver chat",
-      included: true
-    }, {
-      name: "View matched caregiver profiles",
-      included: true
-    }, {
-      name: "Basic care need posting",
-      included: true
-    }, {
-      name: "Email support",
-      included: true
-    }, {
-      name: "Instant video calls with caregivers",
-      included: true
-    }, {
-      name: "Skip chat phase entirely",
-      included: true
-    }, {
-      name: "30-minute video sessions",
+      name: "Everything in Family Care",
       included: true
     }, {
       name: "Priority caregiver matching",
+      included: true
+    }, {
+      name: "Extended video sessions",
+      included: true
+    }, {
+      name: "Advanced care plan management",
+      included: true
+    }, {
+      name: "Priority support & escalation",
+      included: true
+    }, {
+      name: "Custom care team coordination",
+      included: true
+    }, {
+      name: "Detailed care analytics & reports",
+      included: true
+    }, {
+      name: "Multi-caregiver scheduling",
       included: true
     }],
     popular: true,
