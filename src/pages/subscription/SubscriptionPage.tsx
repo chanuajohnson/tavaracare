@@ -618,7 +618,7 @@ const SubscriptionPage = () => {
                       </div>
                     </CardContent>
                     <CardFooter className="flex flex-col gap-2">
-                      {!isCurrentUserPlan && plan.id !== "basic" && <PayPalSubscribeButton planId={plan.id} planName={plan.name} price={plan.price.toString()} className="w-full" variant={plan.popular ? "default" : "outline"} isComingSoon={true} onSuccess={subscriptionId => {
+                      {!isCurrentUserPlan && plan.id !== "basic" && <PayPalSubscribeButton planId={plan.id} planName={plan.name} price={getPlanPrice(plan)} className="w-full" variant={plan.popular ? "default" : "outline"} isComingSoon={true} onSuccess={subscriptionId => {
                     toast({
                       title: "Subscription Activated",
                       description: `Successfully subscribed to ${plan.name}!`,
