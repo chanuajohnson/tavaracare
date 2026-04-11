@@ -645,6 +645,11 @@ export default function AdminOnboardingChecklistPage() {
             setSelectedId={setSelectedFamilyId}
             checkedItems={familyCheckedItems}
             toggleItem={toggleFamilyItem}
+            onDateChange={(key, value) => {
+              const next = { ...familyCheckedItems, [key]: value };
+              setFamilyCheckedItems(next);
+              saveFamilyToSupabase(next, familyNotes);
+            }}
             notes={familyNotes}
             handleAddNote={handleFamilyAddNote}
             openSections={familyOpenSections}
