@@ -1228,6 +1228,8 @@ export default function AdminOnboardingChecklistPage() {
             tableName="professional_onboarding_checklists"
             idColumn="professional_id"
             showProfessionalData
+            linkedCheckedItems={linkedFamilyCheckedItems}
+            assignedFamilyName={families.find(f => f.id === profAssignedFamilyId)?.full_name}
             onDownloadReport={selectedProfessionalId ? () => {
               const profName = professionals.find(p => p.id === selectedProfessionalId)?.full_name || "Professional";
               const familyName = families.find(f => f.id === profAssignedFamilyId)?.full_name || "";
