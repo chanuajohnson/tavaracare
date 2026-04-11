@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, AlertCircle, ArrowLeft, Crown, XCircle, Clock, Video, MessageCircle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -21,6 +22,7 @@ const SubscriptionPage = () => {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [userSubscription, setUserSubscription] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [billingCycle, setBillingCycle] = useState<"weekly" | "monthly">("weekly");
   
   const returnPath = location.state?.returnPath || (userRole === 'professional' ? "/dashboard/professional" : "/dashboard/family");
   const featureType = location.state?.featureType || "premium feature";
@@ -97,8 +99,10 @@ const SubscriptionPage = () => {
   const familyPlans = [{
     id: "basic",
     name: "Family Basic",
-    price: "Free",
-    period: "",
+    priceWeekly: "Free",
+    priceMonthly: "Free",
+    periodWeekly: "",
+    periodMonthly: "",
     description: "Unlimited chat with all matched caregivers",
     features: [{
       name: "Unlimited caregiver chat",
@@ -131,8 +135,10 @@ const SubscriptionPage = () => {
   }, {
     id: "care",
     name: "Family Care",
-    price: "$199.99",
-    period: "week",
+    priceWeekly: "$199.99",
+    priceMonthly: "$699.99",
+    periodWeekly: "week",
+    periodMonthly: "month",
     description: "Enhanced features plus instant video calls with caregivers",
     features: [{
       name: "Unlimited caregiver chat",
@@ -165,8 +171,10 @@ const SubscriptionPage = () => {
   }, {
     id: "premium",
     name: "Family Premium",
-    price: "$699.99",
-    period: "month",
+    priceWeekly: "$399.99",
+    priceMonthly: "$1,099.99",
+    periodWeekly: "month",
+    periodMonthly: "month",
     description: "Complete access with priority matching and extended video sessions — best value",
     features: [{
       name: "Unlimited caregiver chat",
@@ -198,11 +206,21 @@ const SubscriptionPage = () => {
     buttonText: "Upgrade to Premium"
   }];
   
+  const getPlanPrice = (plan: typeof familyPlans[0]) => {
+    return billingCycle === "weekly" ? plan.priceWeekly : plan.priceMonthly;
+  };
+  
+  const getPlanPeriod = (plan: typeof familyPlans[0]) => {
+    return billingCycle === "weekly" ? plan.periodWeekly : plan.periodMonthly;
+  };
+  
   const professionalPlans = [{
     id: "basic",
     name: "Professional Basic",
-    price: "Free",
-    period: "",
+    priceWeekly: "Free",
+    priceMonthly: "Free",
+    periodWeekly: "",
+    periodMonthly: "",
     description: "Limited access for casual professionals",
     features: [{
       name: "Apply for 3 jobs per week",
@@ -235,8 +253,10 @@ const SubscriptionPage = () => {
   }, {
     id: "pro",
     name: "Professional Pro",
-    price: "$19.99",
-    period: "monthly",
+    priceWeekly: "$19.99",
+    priceMonthly: "$19.99",
+    periodWeekly: "monthly",
+    periodMonthly: "monthly",
     description: "Enhanced features for active professionals",
     features: [{
       name: "Apply for 3 jobs per week",
@@ -269,8 +289,10 @@ const SubscriptionPage = () => {
   }, {
     id: "expert",
     name: "Professional Expert",
-    price: "$34.99",
-    period: "monthly",
+    priceWeekly: "$34.99",
+    priceMonthly: "$34.99",
+    periodWeekly: "monthly",
+    periodMonthly: "monthly",
     description: "Complete access for dedicated care professionals",
     features: [{
       name: "Apply for 3 jobs per week",
@@ -398,7 +420,7 @@ const SubscriptionPage = () => {
         plan_id: planId,
         plan_name: planName,
         feature_accessed: featureType,
-        price: plans.find(p => p.id === planId)?.price,
+        price: getPlanPrice(plans.find(p => p.id === planId) as any),
         previous_plan: userSubscription,
         action: action
       });
@@ -556,6 +578,22 @@ const SubscriptionPage = () => {
               </div>
             </div>
             
+            {/* Billing Cycle Toggle */}
+            {getUserSpecificPlans() === familyPlans && (
+              <div className="flex items-center justify-center gap-3 pt-4">
+                <span className={`text-sm font-medium ${billingCycle === 'weekly' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  Weekly
+                </span>
+                <Switch
+                  checked={billingCycle === 'monthly'}
+                  onCheckedChange={(checked) => setBillingCycle(checked ? 'monthly' : 'weekly')}
+                />
+                <span className={`text-sm font-medium ${billingCycle === 'monthly' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  Monthly
+                </span>
+              </div>
+            )}
+            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
               {plans.map(plan => {
               const isCurrentUserPlan = isCurrentPlan(plan.id);
@@ -570,8 +608,8 @@ const SubscriptionPage = () => {
                         {plan.id !== 'basic' && <Video className="h-4 w-4 text-purple-500" />}
                       </CardTitle>
                       <div className="flex items-end gap-1">
-                        <span className="text-3xl font-bold">{plan.price}</span>
-                        {plan.period && <span className="text-gray-500">/{plan.period}</span>}
+                        <span className="text-3xl font-bold">{getPlanPrice(plan)}</span>
+                        {getPlanPeriod(plan) && <span className="text-muted-foreground">/{getPlanPeriod(plan)}</span>}
                       </div>
                       <CardDescription>{plan.description}</CardDescription>
                     </CardHeader>
@@ -586,7 +624,7 @@ const SubscriptionPage = () => {
                       </div>
                     </CardContent>
                     <CardFooter className="flex flex-col gap-2">
-                      {!isCurrentUserPlan && plan.id !== "basic" && <PayPalSubscribeButton planId={plan.id} planName={plan.name} price={plan.price.toString()} className="w-full" variant={plan.popular ? "default" : "outline"} isComingSoon={true} onSuccess={subscriptionId => {
+                      {!isCurrentUserPlan && plan.id !== "basic" && <PayPalSubscribeButton planId={plan.id} planName={plan.name} price={getPlanPrice(plan)} className="w-full" variant={plan.popular ? "default" : "outline"} isComingSoon={true} onSuccess={subscriptionId => {
                     toast({
                       title: "Subscription Activated",
                       description: `Successfully subscribed to ${plan.name}!`,
@@ -596,7 +634,7 @@ const SubscriptionPage = () => {
                       plan_id: plan.id,
                       plan_name: plan.name,
                       feature_accessed: featureType,
-                      price: plan.price,
+                      price: getPlanPrice(plan),
                       previous_plan: userSubscription,
                       action: planAction,
                       payment_method: 'paypal'
