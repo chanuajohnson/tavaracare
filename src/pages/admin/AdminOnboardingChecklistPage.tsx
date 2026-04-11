@@ -288,7 +288,7 @@ export default function AdminOnboardingChecklistPage() {
   const [families, setFamilies] = useState<ProfileOption[]>([]);
   const [loadingFamilies, setLoadingFamilies] = useState(true);
   const [selectedFamilyId, setSelectedFamilyId] = useState("");
-  const [familyCheckedItems, setFamilyCheckedItems] = useState<Record<string, boolean>>({});
+  const [familyCheckedItems, setFamilyCheckedItems] = useState<Record<string, boolean | string>>({});
   const [familyNotes, setFamilyNotes] = useState<OnboardingNote[]>([]);
   const [familyOpenSections, setFamilyOpenSections] = useState<Record<string, boolean>>({});
   const familySaveTimerRef = useRef<NodeJS.Timeout | null>(null);
