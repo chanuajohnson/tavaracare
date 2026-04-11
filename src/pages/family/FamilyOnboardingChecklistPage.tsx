@@ -182,6 +182,9 @@ export default function FamilyOnboardingChecklistPage() {
                           const isChecked = !!checkedItems[`${section.id}_${i}`];
                           const linkUrl = section.links?.[i];
                           const isDocLink = linkUrl?.includes("documents");
+                          const dateFieldLabel = section.dateFields?.[i];
+                          const dateKey = `${section.id}_${i}_date`;
+                          const storedDate = checkedItems[dateKey] as string | undefined;
                           // For invoice: require quote done; for receipt: require quote+invoice done
                           const isDisabledLink = isDocLink && (
                             (i === 10 && !checkedItems[`${section.id}_9`]) ||
@@ -195,23 +198,31 @@ export default function FamilyOnboardingChecklistPage() {
                               ) : (
                                 <Circle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                               )}
-                              {linkUrl && !isDisabledLink ? (
-                                <a
-                                  href={linkUrl}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    navigate(linkUrl);
-                                  }}
-                                  className="text-sm text-primary hover:underline flex items-center gap-1"
-                                >
-                                  {item}
-                                  <ExternalLink className="h-3 w-3" />
-                                </a>
-                              ) : (
-                                <span className={`text-sm ${isChecked ? "text-muted-foreground" : ""} ${isDisabledLink ? "text-muted-foreground/50 italic" : ""}`}>
-                                  {item}{isDisabledLink ? " (complete previous step first)" : ""}
-                                </span>
-                              )}
+                              <div className="flex-1 min-w-0">
+                                {linkUrl && !isDisabledLink ? (
+                                  <a
+                                    href={linkUrl}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      navigate(linkUrl);
+                                    }}
+                                    className="text-sm text-primary hover:underline flex items-center gap-1"
+                                  >
+                                    {item}
+                                    <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                ) : (
+                                  <span className={`text-sm ${isChecked ? "text-muted-foreground" : ""} ${isDisabledLink ? "text-muted-foreground/50 italic" : ""}`}>
+                                    {item}{isDisabledLink ? " (complete previous step first)" : ""}
+                                  </span>
+                                )}
+                                {dateFieldLabel && storedDate && (
+                                  <Badge variant="outline" className="ml-2 text-xs gap-1">
+                                    <CalendarIcon className="h-3 w-3" />
+                                    {format(new Date(storedDate), "PPP")}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           );
                         })}
