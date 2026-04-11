@@ -56,7 +56,7 @@ export default function FamilyOnboardingChecklistPage() {
         if (error) throw error;
         if (data) {
           setHasChecklist(true);
-          setCheckedItems((data.checked_items as unknown as Record<string, boolean>) || {});
+          setCheckedItems((data.checked_items as unknown as Record<string, boolean | string>) || {});
           setNotes((data.notes as unknown as OnboardingNote[]) || []);
         }
       } catch (err) {
