@@ -1,37 +1,49 @@
 
 
-## Plan: Add Billing Cycle Toggle to Family Care & Premium Plans
+## Plan: Fix /subscription Redirect + Reinstate Free Plan with Journey Features
 
-### What Changes
+### Problem 1: /subscription redirects to dashboard
+The `useAuthRedirection.ts` hook redirects logged-in users to their role-based dashboard. The `/subscription` path is not in the skip list, so authenticated users get bounced before the page loads.
 
-The subscription page currently shows 3 cards (Basic free, Care $199.99/wk, Premium $699.99/mo). We keep 3 cards but add a **weekly/monthly toggle** to the two paid plans:
+### Problem 2: Free plan needs journey-based features
+The Free plan currently lists generic features (chat, profiles, care posting, email support). It should reflect what families like Ana Maria actually use for free on their journey.
 
-| Card | Weekly | Monthly |
-|------|--------|---------|
-| Family Basic | Free | — |
-| Family Care | $199.99/week | $699.99/month |
-| Family Premium | $399.99/month | $1,099.99/month |
+### Changes
 
-### How It Works
+**File 1: `src/hooks/auth/useAuthRedirection.ts`**
+Add `/subscription` to the redirect exemption list (similar to `/screening/`, `/family/`, `/admin/`):
+```
+if (location.pathname.startsWith('/subscription')) {
+  console.log('[AuthProvider] On subscription page, skipping redirection');
+  return;
+}
+```
 
-1. Add a `billingCycle` state (`"weekly" | "monthly"`) with a toggle switch above the plan cards
-2. Update the `familyPlans` data to include both `weeklyPrice` and `monthlyPrice` fields for each paid plan
-3. The displayed price and period dynamically change based on the selected billing cycle
-4. Family Premium only has monthly options, so the toggle switches between the two monthly price points ($399.99 and $1,099.99) — labeled as "Standard Monthly" vs "Premium Monthly" or simply both shown as monthly with the toggle acting as a tier selector
+**File 2: `src/pages/subscription/SubscriptionPage.tsx`**
+Update the Family Basic (Free) plan features to reflect the actual journey tools families use:
 
-**Wait — clarification needed:** Family Premium has $399.99/mo and $1,099.99/mo. Since both are monthly, the toggle for Premium would be more like a "Standard vs Extended" toggle rather than weekly/monthly. Let me structure it as:
+| Free Plan Features (included) |
+|---|
+| Complete family profile and care preferences |
+| Initial care needs assessment |
+| Legacy Story for your loved one |
+| Instant caregiver matching |
+| Medication management and scheduling |
+| Meal planning and grocery lists |
+| Unlimited caregiver chat |
+| Email and community support |
 
-- **Global toggle**: Weekly / Monthly
-- **Family Care**: $199.99 (weekly) ↔ $699.99 (monthly)  
-- **Family Premium**: $399.99 (monthly) ↔ $1,099.99 (monthly) — when weekly is selected, show $399.99/mo; when monthly is selected, show $1,099.99/mo
+| Free Plan Features (not included) |
+|---|
+| Dedicated care coordinator |
+| Priority caregiver matching |
+| Video consultations with caregivers |
+| Weekly/monthly billing management |
 
-This way the toggle conceptually maps to a shorter vs longer commitment across both plans.
+The three-card layout stays intact with the global weekly/monthly toggle:
+- **Family Basic** -- Free (no toggle effect)
+- **Family Care** -- $199.99/week or $699.99/month
+- **Family Premium** -- $399.99/month or $1,099.99/month
 
-### File Changed
-
-`src/pages/subscription/SubscriptionPage.tsx`:
-- Add `billingCycle` state and a toggle UI (pill-style switcher) above the cards
-- Update plan objects with dual pricing (`priceWeekly`/`priceMonthly`)
-- Render price dynamically based on toggle state
-- Pass correct price to PayPal button based on selected cycle
+No other files changed. No routes, no database, no registration files touched.
 
