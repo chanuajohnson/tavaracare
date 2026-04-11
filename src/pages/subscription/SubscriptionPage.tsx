@@ -487,16 +487,6 @@ const SubscriptionPage = () => {
     navigate(-1);
   };
   
-  const ComingSoonBanner = () => <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-      <Clock className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-      <div>
-        <h3 className="font-medium text-blue-800">PayPal Subscriptions Coming Soon</h3>
-        <p className="text-blue-700 text-sm mt-1">
-          Our PayPal subscription service is currently in development and will be available soon. 
-          In the meantime, you can explore our subscription plans.
-        </p>
-      </div>
-    </div>;
   
   if (!user) {
     return <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -563,7 +553,7 @@ const SubscriptionPage = () => {
               </Button>
             </div>
             
-            <ComingSoonBanner />
+            
             
             <div className="bg-muted/30 border p-4 rounded-lg">
               <div className="flex items-start gap-2">
@@ -636,7 +626,7 @@ const SubscriptionPage = () => {
                       </div>
                     </CardContent>
                     <CardFooter className="flex flex-col gap-2">
-                      {!isCurrentUserPlan && plan.id !== "basic" && <PayPalSubscribeButton planId={plan.id} planName={plan.name} price={getPlanPrice(plan)} className="w-full" variant={plan.popular ? "default" : "outline"} isComingSoon={true} onSuccess={subscriptionId => {
+                      {!isCurrentUserPlan && plan.id !== "basic" && <PayPalSubscribeButton planId={plan.id} planName={plan.name} price={getPlanPrice(plan)} className="w-full" variant={plan.popular ? "default" : "outline"} isComingSoon={false} onSuccess={subscriptionId => {
                     toast({
                       title: "Subscription Activated",
                       description: `Successfully subscribed to ${plan.name}!`,

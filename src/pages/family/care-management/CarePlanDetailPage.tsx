@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCarePlanData } from "@/hooks/useCarePlanData";
 import { CareTeamMemberWithProfile } from "@/types/careTypes";
 import { ChefHat, FileText, ClipboardList, Info } from "lucide-react";
+import DocumentGenerationMenu from "@/components/admin/care-plans/DocumentGenerationMenu";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -138,7 +139,15 @@ const CarePlanDetailPage = () => {
           </Alert>
         )}
 
-        <CarePlanHeader carePlan={carePlan} />
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <CarePlanHeader carePlan={carePlan} />
+          <DocumentGenerationMenu
+            familyName={user?.user_metadata?.full_name || familyName || 'Family'}
+            familyEmail={user?.email}
+            carePlanId={id}
+            carePlanTitle={carePlan.title}
+          />
+        </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-6">
