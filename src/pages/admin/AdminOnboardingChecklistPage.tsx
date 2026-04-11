@@ -262,41 +262,11 @@ function ChecklistTabContent({
                                 </a>
                               )}
                               {dateFieldLabel && onDateChange && (
-                                <div className="mt-1.5">
-                                  <Popover>
-                                    <PopoverTrigger asChild>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className={cn(
-                                          "h-8 text-xs gap-1.5",
-                                          !storedDate && "text-muted-foreground"
-                                        )}
-                                      >
-                                        <CalendarIcon className="h-3.5 w-3.5" />
-                                        {storedDate
-                                          ? `${dateFieldLabel}: ${format(new Date(storedDate), "PPP")}`
-                                          : `Set ${dateFieldLabel}`}
-                                      </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                      <Calendar
-                                        mode="single"
-                                        selected={storedDate ? new Date(storedDate) : undefined}
-                                        onSelect={(date) => {
-                                          if (date) {
-                                            const yyyy = date.getFullYear();
-                                            const mm = String(date.getMonth() + 1).padStart(2, '0');
-                                            const dd = String(date.getDate()).padStart(2, '0');
-                                            onDateChange(dateKey, `${yyyy}-${mm}-${dd}`);
-                                          }
-                                        }}
-                                        initialFocus
-                                        className={cn("p-3 pointer-events-auto")}
-                                      />
-                                    </PopoverContent>
-                                  </Popover>
-                                </div>
+                                <DateFieldPicker
+                                  dateFieldLabel={dateFieldLabel}
+                                  storedDate={storedDate}
+                                  onDateChange={(val) => onDateChange(dateKey, val)}
+                                />
                               )}
                             </div>
                           </div>
@@ -330,6 +300,10 @@ function ChecklistTabContent({
 
                     {(section.id === "rates_payment" || section.id === "rates_and_changes") && (
                       <RateTierReferenceCard />
+                    )}
+
+                    {section.id === "post_onboarding" && (
+                      <CareSummaryHeader checkedItems={checkedItems} />
                     )}
                   </CardContent>
                 </CollapsibleContent>
