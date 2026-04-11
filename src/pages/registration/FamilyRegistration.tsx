@@ -1209,9 +1209,9 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
                     <SelectValue placeholder="Select your budget range" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">
-                    <SelectItem value="35_hour">$35/hour — Standard (companionship, medication reminders, light meal prep)</SelectItem>
-                    <SelectItem value="40_hour">$40/hour — Full Service ⭐ Recommended (GAPP-certified: meals, cleaning, personal care)</SelectItem>
-                    <SelectItem value="45_plus">$45+/hour — Premium (specialized care, complex medical needs, advanced certifications)</SelectItem>
+                    <SelectItem value="35_hour">$35/hour — Standard (GAPP-certified personal care, medication admin, vitals, daily documentation, specialized care)</SelectItem>
+                    <SelectItem value="40_hour">$40/hour — Full Service ⭐ Recommended (Standard + specialist meal prep, complex medical, overnight/live-in)</SelectItem>
+                    <SelectItem value="45_plus">$45+/hour — Premium (Full Service + care plan management, disease progression, 24/7 on-call)</SelectItem>
                   </SelectContent>
                 </Select>
                 {validationErrors.some(e => e.includes('Budget')) && (
