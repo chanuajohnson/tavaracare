@@ -217,8 +217,10 @@ const SubscriptionPage = () => {
   const professionalPlans = [{
     id: "basic",
     name: "Professional Basic",
-    price: "Free",
-    period: "",
+    priceWeekly: "Free",
+    priceMonthly: "Free",
+    periodWeekly: "",
+    periodMonthly: "",
     description: "Limited access for casual professionals",
     features: [{
       name: "Apply for 3 jobs per week",
@@ -251,8 +253,10 @@ const SubscriptionPage = () => {
   }, {
     id: "pro",
     name: "Professional Pro",
-    price: "$19.99",
-    period: "monthly",
+    priceWeekly: "$19.99",
+    priceMonthly: "$19.99",
+    periodWeekly: "monthly",
+    periodMonthly: "monthly",
     description: "Enhanced features for active professionals",
     features: [{
       name: "Apply for 3 jobs per week",
@@ -285,8 +289,10 @@ const SubscriptionPage = () => {
   }, {
     id: "expert",
     name: "Professional Expert",
-    price: "$34.99",
-    period: "monthly",
+    priceWeekly: "$34.99",
+    priceMonthly: "$34.99",
+    periodWeekly: "monthly",
+    periodMonthly: "monthly",
     description: "Complete access for dedicated care professionals",
     features: [{
       name: "Apply for 3 jobs per week",
