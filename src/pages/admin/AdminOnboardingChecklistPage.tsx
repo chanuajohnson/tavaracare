@@ -28,7 +28,97 @@ import FamilySubmissionReview from "@/components/admin/onboarding/FamilySubmissi
 import ProfessionalSubmissionReview from "@/components/admin/onboarding/ProfessionalSubmissionReview";
 import RateTierReferenceCard from "@/components/admin/onboarding/RateTierReferenceCard";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
-import { toast } from "sonner";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+
+/** Parse "YYYY-MM-DD" as local date (not UTC) */
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Format a local date string to "YYYY-MM-DD" */
+function formatLocalDate(date: Date): string {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+/** Controlled date picker that closes after selection */
+function DateFieldPicker({
+  dateFieldLabel,
+  storedDate,
+  onDateChange,
+}: {
+  dateFieldLabel: string;
+  storedDate: string | undefined;
+  onDateChange: (val: string) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="mt-1.5">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "h-8 text-xs gap-1.5",
+              !storedDate && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="h-3.5 w-3.5" />
+            {storedDate
+              ? `${dateFieldLabel}: ${format(parseLocalDate(storedDate), "PPP")}`
+              : `Set ${dateFieldLabel}`}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={storedDate ? parseLocalDate(storedDate) : undefined}
+            onSelect={(date) => {
+              if (date) {
+                onDateChange(formatLocalDate(date));
+                setOpen(false);
+              }
+            }}
+            initialFocus
+            className={cn("p-3 pointer-events-auto")}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
+/** Summary header for Post-Onboarding section */
+function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, boolean | string> }) {
+  const startDateStr = checkedItems["post_onboarding_3_date"] as string | undefined;
+  return (
+    <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+      <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-blue-900">
+        💙 Care Summary
+      </h4>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="text-sm">
+          <span className="text-muted-foreground">Rate:</span>{" "}
+          <span className="font-medium">$35/hr (Standard)</span>
+        </div>
+        <div className="text-sm">
+          <span className="text-muted-foreground">Plan:</span>{" "}
+          <span className="font-medium">Tavara Family Care Plan (weekly)</span>
+        </div>
+        <div className="text-sm">
+          <span className="text-muted-foreground">Start Date:</span>{" "}
+          <span className="font-medium">
+            {startDateStr ? format(parseLocalDate(startDateStr), "PPP") : "Not set"}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   ClipboardCheck: <ClipboardCheck className="h-5 w-5" />,
