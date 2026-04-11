@@ -535,6 +535,8 @@ function ChecklistTabContent({
   showFamilyData,
   showProfessionalData,
   onDownloadReport,
+  linkedCheckedItems,
+  assignedFamilyName,
 }: {
   profiles: ProfileOption[];
   loadingProfiles: boolean;
@@ -557,6 +559,8 @@ function ChecklistTabContent({
   showFamilyData?: boolean;
   showProfessionalData?: boolean;
   onDownloadReport?: () => void;
+  linkedCheckedItems?: Record<string, boolean | string>;
+  assignedFamilyName?: string;
 }) {
   const publicGuideUrl = `${window.location.origin}/onboarding-guide`;
   const copyPublicLink = () => {
