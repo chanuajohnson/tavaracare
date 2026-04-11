@@ -14,6 +14,7 @@ export interface OnboardingSectionDef {
   items: string[];
   showFamilyData?: boolean;
   showProfessionalData?: boolean;
+  links?: Record<number, string>; // item index -> URL for clickable links on family page
 }
 
 export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
