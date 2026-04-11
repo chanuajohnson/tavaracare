@@ -253,7 +253,7 @@ export default function FamilyOnboardingChecklistPage() {
                                 {dateFieldLabel && storedDate && (
                                   <Badge variant="outline" className="ml-2 text-xs gap-1">
                                     <CalendarIcon className="h-3 w-3" />
-                                    {format(new Date(storedDate), "PPP")}
+                                    {format(parseLocalDate(storedDate), "PPP")}
                                   </Badge>
                                 )}
                               </div>
@@ -264,6 +264,10 @@ export default function FamilyOnboardingChecklistPage() {
 
                 {section.id === "rates_and_changes" && (
                   <RateTierReferenceCard />
+                )}
+
+                {section.id === "post_onboarding" && (
+                  <CareSummaryHeader checkedItems={checkedItems} />
                 )}
                     </CardContent>
                   </CollapsibleContent>
