@@ -1,51 +1,33 @@
 
 
-## Plan: Add Post-Onboarding Family Nudge to UserNudgeTab
+## Plan: Fix Date Picker Timezone Bug and Allow Date Changes
 
-Add a new "Post-Onboarding Complete" nudge card for family users in `src/components/admin/UserNudgeTab.tsx`. This is a standard nudge the admin sends once a family's onboarding is finished, directing them to their dashboard and onboarding checklist.
+### Problem
+Two issues with the post-onboarding date picker:
 
-### What It Does
+1. **Timezone bug**: When the user selects April 11th, the code calls `date.toISOString().split("T")[0]` which converts to UTC first. In Trinidad (UTC-4), this shifts the date back by one day, storing "2026-04-10" instead of "2026-04-11".
 
-A new card (green/teal themed) appears in the family section of the Nudge tab, after the "Caregiver Found" card. It contains a pre-built WhatsApp message that:
+2. **Cannot change date**: Once a date is set, re-selecting a different date should work (the Calendar component supports this), but the timezone bug makes it appear broken since the displayed date is always one day behind.
 
-- Congratulates the family on completing onboarding
-- Directs them to their dashboard quick links
-- Points them to `/family/onboarding-checklist` to view post-onboarding notes
-- Tells them to scroll to the Post-Onboarding Summary section
-- Warm sign-off with "It takes a village to care" brand line
+### Fix
 
-### Message Template
+**File: `src/pages/admin/AdminOnboardingChecklistPage.tsx`**
 
-```
-Hi [Name]! 💙 Chan from Tavara Care.
+**Line 288** -- Replace UTC-based date formatting with local date formatting:
 
-So happy we were able to successfully complete your onboarding! 🎉
+```typescript
+// Before (broken - converts to UTC, shifts date)
+onDateChange(dateKey, date.toISOString().split("T")[0]);
 
-Here's what to do next:
-
-📱 Visit your dashboard: https://tavaracare.lovable.app/dashboard/family
-Check your Quick Links for easy navigation to everything you need.
-
-📋 View your onboarding progress: https://tavaracare.lovable.app/family/onboarding-checklist
-Scroll down to the "Post-Onboarding Summary" section — you'll find all your care details, important dates, and helpful links there.
-
-We're truly excited to be part of your care village. 💙
-It takes a village to care.
-
-Questions? Just reply here!
-— Chan, Tavara Care 💙
+// After (correct - uses local date components)
+const yyyy = date.getFullYear();
+const mm = String(date.getMonth() + 1).padStart(2, '0');
+const dd = String(date.getDate()).padStart(2, '0');
+onDateChange(dateKey, `${yyyy}-${mm}-${dd}`);
 ```
 
-### Changes
+This single change fixes both issues: the date will now store correctly in the user's local timezone, and changing the date will reflect the correct selection.
 
-| File | Action |
-|------|--------|
-| `src/components/admin/UserNudgeTab.tsx` | Add `buildPostOnboardingFamilyNudge` function + handler + card UI after the Caregiver Found card (around line 782) |
-
-### Technical Details
-
-- New function `buildPostOnboardingFamilyNudge(userName: string): string` added alongside existing nudge builders (lines ~288-381)
-- New handler `handleSendPostOnboardingNudge` following same pattern as `handleSendCaregiverFoundNudge`
-- Card uses teal/green theme (`border-teal-500/50 bg-teal-50`) with `CheckCircle2` icon
-- Logs to `admin_communications` via existing `logNudgeSent()` flow
+### Technical Detail
+`Date.toISOString()` always returns UTC. A user in UTC-4 selecting "April 11" at any local time creates a Date object where the UTC representation could be "April 10" (if local time is before 8 PM, which maps to before midnight UTC). Using `getFullYear()`/`getMonth()`/`getDate()` preserves the local date the user actually clicked.
 
