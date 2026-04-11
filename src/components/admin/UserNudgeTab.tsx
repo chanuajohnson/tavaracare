@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { MessageSquare, ExternalLink, Plus, Send, Sparkles, AlertTriangle, CheckCircle, Clock, Zap } from 'lucide-react';
+import { MessageSquare, ExternalLink, Plus, Send, Sparkles, AlertTriangle, CheckCircle, CheckCircle2, Clock, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -324,6 +324,27 @@ We're so close to getting your family the support they need!
 — Chan, Tavara Care 💙`;
 };
 
+const buildPostOnboardingFamilyNudge = (userName: string): string => {
+  const firstName = userName?.split(' ')[0] || 'there';
+  return `Hi ${firstName}! 💙 Chan from Tavara Care.
+
+So happy we were able to successfully complete your onboarding! 🎉
+
+Here's what to do next:
+
+📱 Visit your dashboard: https://tavaracare.lovable.app/dashboard/family
+Check your Quick Links for easy navigation to everything you need.
+
+📋 View your onboarding progress: https://tavaracare.lovable.app/family/onboarding-checklist
+Scroll down to the "Post-Onboarding Summary" section — you'll find all your care details, important dates, and helpful links there.
+
+We're truly excited to be part of your care village. 💙
+It takes a village to care.
+
+Questions? Just reply here!
+— Chan, Tavara Care 💙`;
+};
+
 const buildOnboardingNudge = (userName: string): string => {
   const firstName = userName?.split(' ')[0] || 'there';
   return `Hi ${firstName}! 💙 Chan from Tavara Care.
@@ -568,6 +589,16 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
     toast.success('Caregiver found nudge sent & logged');
   };
 
+  const handleSendPostOnboardingNudge = () => {
+    const message = buildPostOnboardingFamilyNudge(user.full_name);
+    const url = user.phone_number
+      ? getWhatsAppUrl(user.phone_number, message)
+      : getTavaraWhatsAppUrl(message);
+    window.open(url, '_blank');
+    logNudgeSent();
+    toast.success('Post-onboarding nudge sent & logged');
+  };
+
   const handleSendOnboardingNudge = () => {
     const message = buildOnboardingNudge(user.full_name);
     const url = user.phone_number
@@ -776,6 +807,31 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
             >
               <Send className="h-3.5 w-3.5" />
               Send Caregiver Found Update via WhatsApp
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Post-Onboarding Complete Nudge — for family users */}
+      {user.role === 'family' && (
+        <Card className="border-teal-500/50 bg-teal-50 dark:bg-teal-950/20">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-teal-600" />
+              <span className="font-medium text-sm text-teal-800 dark:text-teal-300">
+                ✅ Post-Onboarding Complete — Send Summary
+              </span>
+            </div>
+            <p className="text-xs text-teal-700 dark:text-teal-400">
+              Congratulate the family on completing onboarding and direct them to their dashboard and post-onboarding checklist with important dates and links.
+            </p>
+            <Button
+              size="sm"
+              className="w-full gap-2 bg-teal-600 hover:bg-teal-700 text-white"
+              onClick={handleSendPostOnboardingNudge}
+            >
+              <Send className="h-3.5 w-3.5" />
+              Send Post-Onboarding Summary via WhatsApp
             </Button>
           </CardContent>
         </Card>
