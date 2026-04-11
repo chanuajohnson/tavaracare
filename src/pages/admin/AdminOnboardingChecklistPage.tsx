@@ -919,6 +919,10 @@ export default function AdminOnboardingChecklistPage() {
             tableName="onboarding_checklists"
             idColumn="family_id"
             showFamilyData
+            onDownloadReport={selectedFamilyId ? () => {
+              const familyName = families.find(f => f.id === selectedFamilyId)?.full_name || "Family";
+              generateFamilyReport(familyName, familyCheckedItems, familyNotes, ONBOARDING_SECTION_DEFS);
+            } : undefined}
           />
         </TabsContent>
 
