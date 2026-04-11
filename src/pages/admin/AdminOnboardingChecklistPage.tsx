@@ -19,7 +19,7 @@ import {
   ArrowLeft, ChevronDown, RotateCcw, ClipboardCheck, Monitor, FileText,
   Pill, UtensilsCrossed, ListChecks, LayoutDashboard, MessageSquare,
   Heart, Users, CalendarCheck, Loader2, Copy, DollarSign, CheckCircle2,
-  CalendarIcon, ExternalLink
+  CalendarIcon, ExternalLink, Download
 } from "lucide-react";
 import { CHECKLIST_SECTIONS } from "@/components/professional/checklist/checklistSections";
 import { ONBOARDING_SECTION_DEFS, getTotalItems, OnboardingSectionDef } from "@/components/admin/onboarding/onboardingSections";
@@ -30,6 +30,7 @@ import RateTierReferenceCard from "@/components/admin/onboarding/RateTierReferen
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
 import { toast } from "sonner";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import jsPDF from "jspdf";
 
 /** Parse "YYYY-MM-DD" as local date (not UTC) */
 function parseLocalDate(dateStr: string): Date {
