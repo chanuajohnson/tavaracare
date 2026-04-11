@@ -628,7 +628,7 @@ const SubscriptionPage = () => {
                       plan_id: plan.id,
                       plan_name: plan.name,
                       feature_accessed: featureType,
-                      price: plan.price,
+                      price: getPlanPrice(plan),
                       previous_plan: userSubscription,
                       action: planAction,
                       payment_method: 'paypal'
