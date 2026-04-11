@@ -134,6 +134,31 @@ export const PROFESSIONAL_ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
       "Share coordinator direct contact info and welcome packet",
     ],
   },
+  {
+    id: "post_onboarding",
+    title: "Post-Onboarding Summary",
+    iconName: "CheckCircle2",
+    description: "Final milestones, assignment confirmation, and next steps",
+    items: [
+      "Onboarding completed successfully — welcome to the Tavara Care team",
+      "Assigned nurse confirmed and to be introduced to family",
+      "First meeting: Tavara coordinator, professional, and family at client residence",
+      "Professional commences work at client residence",
+      "Professional is paid weekly by Tavara (every Friday)",
+      "NIS contributions covered by Tavara",
+      "View your assignments and care plans",
+      "View your onboarding progress",
+    ],
+    dateFields: {
+      1: "Introduction Date",
+      2: "Meeting Date",
+      3: "Start Date",
+    },
+    links: {
+      6: "/dashboard/professional",
+      7: "/professional/onboarding-checklist",
+    },
+  },
 ];
 
 export function getProfessionalTotalItems(): number {

@@ -101,7 +101,7 @@ function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, bool
       <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-blue-900">
         💙 Care Summary
       </h4>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <div className="text-sm">
           <span className="text-muted-foreground">Rate:</span>{" "}
           <span className="font-medium">$35/hr (Standard)</span>
@@ -115,6 +115,18 @@ function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, bool
           <span className="font-medium">
             {startDateStr ? format(parseLocalDate(startDateStr), "PPP") : "Not set"}
           </span>
+        </div>
+        <div className="text-sm">
+          <span className="text-muted-foreground">Payment:</span>{" "}
+          <span className="font-medium">Weekly (due every Friday)</span>
+        </div>
+        <div className="text-sm">
+          <span className="text-muted-foreground">Late Fee:</span>{" "}
+          <span className="font-medium">5% after 3 business days</span>
+        </div>
+        <div className="text-sm">
+          <span className="text-muted-foreground">Holiday/OT:</span>{" "}
+          <span className="font-medium">1.5× (2× Christmas)</span>
         </div>
       </div>
     </div>
