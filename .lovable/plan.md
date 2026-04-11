@@ -1,60 +1,39 @@
+## Plan: Add Post-Onboarding Summary Card
 
+Create a new "Post-Onboarding Summary" card that appears after the Communication & Notifications section on both the admin and family-facing onboarding pages. This card contains structured, checkable items summarizing what was completed and next actions -- distinct from the free-form "Notes & Action Items" section.
 
-## Plan: Move Documents to Tab, Add Period Selection, Fix Branding, Improve Line Items
+### What the Card Contains
 
-This is a multi-part update covering UI placement, billing period logic, branding corrections, and line item improvements for the care billing document system.
+A structured checklist with these items (admin can check them off, family sees read-only status):
 
-### Changes Overview
-
-**1. Move Documents from header button to a tab** (`CarePlanDetailPage.tsx`)
-- Remove `DocumentGenerationMenu` from the header area (lines 144-149)
-- Add a new "Documents" tab after "Plan Details" in the TabsList
-- Create a new `DocumentsTab` component that contains the generation buttons (Quote, Invoice, Receipt) as cards rather than a dropdown, plus a period selector
-
-**2. Create `DocumentsTab` component** (new file: `src/components/care-plan/DocumentsTab.tsx`)
-- Period selector: date picker for selecting the billing period (start date auto-calculated from a "service start date" field, end date = start + 7 days for weekly or start + 30 days for monthly)
-- Cadence display: shows whether this family is weekly or monthly
-- Three generation buttons as cards (Quote, Invoice, Receipt) with the selected period passed to the PDF generator
-- Pulls family-specific data (nurse rate, hours, subscription tier) to build accurate line items
-
-**3. Add Billing Start Date and Cadence fields to admin onboarding checklist** (`AdminOnboardingChecklistPage.tsx`)
-- Add a "Billing Configuration" card in the family tab with:
-  - Service Start Date (date picker)
-  - Billing Cadence (weekly / monthly dropdown)
-- Store these in the existing `onboarding_checklists` JSONB `checked_items` field as `billing_start_date` and `billing_cadence`
-- These values feed into the DocumentsTab period selector
-
-**4. Fix PDF branding** (`invoiceService.ts`)
-- Change `TAVARA_PURPLE = '#7E69AB'` to Tavara blue `#5B8DEF` (derived from CSS `--primary: 217 75% 65%`)
-- Change tagline from `'Compassionate Care, Connected'` to `'It takes a village to care'`
-- Apply the blue color to: header bar background, table header, total row, subscription border
-
-**5. Improve line items** (`invoiceService.ts`)
-- Line 1: "Nursing Care (Standard Tier)" -- keep as-is, pulled from family-specific rate and hours
-- Line 2: Rename "Tavara Platform Management Fee" to the subscription tier name (e.g., "Family Care Plan -- Care Management & Coordination"). Show it as the subscription amount (e.g., $199.99/week or $699.99/month) rather than hours x rate
-- Remove NIS as a line item; move it to a footer note: "NIS (National Insurance) contributions for the assigned caregiver are included and covered by Tavara as required by Trinidad & Tobago law."
-- Update `buildDefaultCareBillingData` to reflect these changes
-- Update `CareBillingData` type to support subscription as a line item (flat amount, no hours/rate)
-
-**6. Quote period selection logic**
-- When generating a quote, the user selects which billing period (e.g., "Week 1: Apr 14 - Apr 18" based on start date + cadence)
-- The `billingPeriodStart` and `billingPeriodEnd` are passed to `generateQuotePDF`
-- Quote validity = 14 days from generation date (unchanged)
+1. Onboarding completed successfully -- welcome to Tavara.Care!
+2. Assigned nurse confirmed and to be introduced to family
+3. First meeting: Tavara coordinator, assigned nurse, and family at client residence (date/time set in billing config)
+4. Assigned nurse commences work at client residence (placeholder here for start date that is to be confirmed and not to be altered once started, this is to be used for  billing config start date for first billing quote/ etc/payment when generated)
+5. Assigned nurse is paid weekly by Tavara
+6. Tavara subscription: Family Care Plan (weekly) -- [link to /subscription]
+7. NIS (National Insurance) contributions covered by Tavara for assigned nurse
+8. View your care plan and team -- [link to /family/care-management]
+9. View your onboarding progress -- [link to /family/onboarding-checklist]
+10. Generate your first quote -- [link to care plan Documents tab]
+11. Or Generate your first invoice only clickable when quote  is done -- [link to care plan Documents tab]
+12. and Generate your first receipt only clickable when quote and invoice are done -- [link to care plan Documents tab]
 
 ### Files Changed
 
-| File | Action |
-|------|--------|
-| `src/components/care-plan/DocumentsTab.tsx` | **Create** -- New tab with period selector + generation buttons |
-| `src/pages/family/care-management/CarePlanDetailPage.tsx` | **Modify** -- Remove header DocumentGenerationMenu, add Documents tab |
-| `src/services/care-plans/invoiceService.ts` | **Modify** -- Fix branding colors/tagline, improve line items, remove NIS line item |
-| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | **Modify** -- Add billing start date + cadence fields |
+
+| File                                                    | Action                                                                                                                                                              |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/components/admin/onboarding/onboardingSections.ts` | Add new `post_onboarding` section at the end of `ONBOARDING_SECTION_DEFS`                                                                                           |
+| `src/pages/family/FamilyOnboardingChecklistPage.tsx`    | Render items in the `post_onboarding` section as clickable links where applicable (subscription page, care management, documents tab)                               |
+| `src/pages/admin/AdminOnboardingChecklistPage.tsx`      | No structural change needed -- the `ChecklistTabContent` loop already renders all sections from `ONBOARDING_SECTION_DEFS`, so the new section appears automatically |
+
 
 ### Technical Details
 
-- Tavara brand blue hex: `#5B8DEF` (from CSS variable `--primary: 217 75% 65%`)
-- Tagline: "It takes a village to care"
-- Billing config stored in existing JSONB column (no migration needed)
-- Period calculation: start date + (7 days for weekly, 30 days for monthly) = end date
-- Line items dynamically built from: nurse rate (from onboarding/care plan), subscription tier (from family selection), and hours (from care schedule)
-
+- The new section uses `id: "post_onboarding"` and `iconName: "CheckCircle2"` (or `"CalendarCheck"`)
+- Items with links will be rendered as anchor tags on the family-facing page by detecting link syntax in the item text (e.g., items containing `[link:/path]` suffix)
+- Add a `links` optional field to `OnboardingSectionDef` interface: `links?: Record<number, string>` mapping item index to URL
+- On the family page, when a link exists for an item index, render the item text as a clickable link
+- Data is stored in the same `checked_items` JSONB field using keys like `post_onboarding_0`, `post_onboarding_1`, etc.
+- No migration needed -- uses existing `onboarding_checklists` table
