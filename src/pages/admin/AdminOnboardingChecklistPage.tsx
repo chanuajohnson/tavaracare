@@ -11,10 +11,15 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import {
   ArrowLeft, ChevronDown, RotateCcw, ClipboardCheck, Monitor, FileText,
   Pill, UtensilsCrossed, ListChecks, LayoutDashboard, MessageSquare,
-  Heart, Users, CalendarCheck, Loader2, Copy, DollarSign
+  Heart, Users, CalendarCheck, Loader2, Copy, DollarSign, CheckCircle2,
+  CalendarIcon, ExternalLink
 } from "lucide-react";
 import { CHECKLIST_SECTIONS } from "@/components/professional/checklist/checklistSections";
 import { ONBOARDING_SECTION_DEFS, getTotalItems, OnboardingSectionDef } from "@/components/admin/onboarding/onboardingSections";
@@ -38,6 +43,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   CalendarCheck: <CalendarCheck className="h-5 w-5" />,
   MessageSquare: <MessageSquare className="h-5 w-5" />,
   DollarSign: <DollarSign className="h-5 w-5" />,
+  CheckCircle2: <CheckCircle2 className="h-5 w-5" />,
 };
 
 interface ProfileOption {
