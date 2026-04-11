@@ -165,8 +165,128 @@ interface ProfileOption {
   full_name: string | null;
 }
 
-/** Render items in 2-column flow, returning final Y position */
-function renderDetailedSections(
+/** Map raw checklist items to past-tense, agreement-focused language */
+const REPORT_ITEM_MAP: Record<string, string> = {
+  // Pre-Call
+  "pre_call_0": "Reviewed family account status and registration completeness",
+  "pre_call_1": "Reviewed existing care plan (or noted: to be created post-call)",
+  "pre_call_2": "Noted care recipient name, relationship, and primary conditions",
+  "pre_call_3": "Family contact details (phone/WhatsApp) confirmed and ready",
+  "pre_call_4": "Reviewed notes from initial inquiry or chat registration",
+  "pre_call_5": "Screen-share and walkthrough materials prepared",
+  // Review Submissions
+  "review_submissions_0": "Reviewed: care recipient name, relationship, care types, special needs",
+  "review_submissions_1": "Reviewed: ADLs, conditions, care location from assessment",
+  "review_submissions_2": "Reviewed: personality, hobbies, daily routine, joyful things (legacy story)",
+  "review_submissions_3": "Discussed what prompted the family to seek care",
+  "review_submissions_4": "Confirmed family expectations and care goals",
+  "review_submissions_5": "Noted cultural, dietary, and language preferences",
+  "review_submissions_6": "Confirmed emergency contacts and physician information",
+  "review_submissions_7": "Noted any edits needed for follow-up",
+  // Platform Overview
+  "platform_overview_0": "Covered: login methods (email + password or magic link)",
+  "platform_overview_1": "Covered: family dashboard layout and shortcuts",
+  "platform_overview_2": "Covered: Care Plans quick link on dashboard",
+  "platform_overview_3": "Covered: how to view care plan details",
+  "platform_overview_4": "Covered: care team members and assigned professionals",
+  "platform_overview_5": "Covered: medication dashboard access",
+  "platform_overview_6": "Covered: meal planner access",
+  // Care Plan
+  "care_plan_0": "Existing care plan details reviewed and confirmed",
+  "care_plan_1": "Care plan type confirmed (Scheduled Care / On-Demand)",
+  "care_plan_2": "Weekday coverage confirmed",
+  "care_plan_3": "Weekend coverage confirmed",
+  "care_plan_4": "Additional shift needs discussed (evening/overnight)",
+  "care_plan_5": "Covered: how to view/edit care plan details",
+  "care_plan_6": "Covered: care team members tab — who's assigned",
+  "care_plan_7": "Covered: daily care logs tab — how to view completed logs",
+  // Medication
+  "medication_0": "Covered: how family adds medications (name, dosage, frequency, schedule)",
+  "medication_1": "Covered: medication schedule view — today's medications at a glance",
+  "medication_2": "Covered: how professionals administer and record medications",
+  "medication_3": "Covered: conflict-aware administration — prevents double-dosing",
+  "medication_4": "Covered: medication history and reports",
+  "medication_5": "Covered: export features (PDF/print)",
+  "medication_6": "Covered: printable medication cards for the caregiver",
+  // Meals
+  "meals_0": "Covered: weekly meal scheduling",
+  "meals_1": "Covered: recipe library — browse and save recipes",
+  "meals_2": "Covered: grocery list manager — auto-generate from meal plan",
+  "meals_3": "Covered: nutrition tracker — monitor dietary intake",
+  "meals_4": "Covered: how to share meal plans with the caregiver",
+  // Daily Checklist
+  "daily_checklist_0": "Covered: how the professional fills out the checklist each shift",
+  "daily_checklist_1": "Covered: one log per professional per care plan per day rule",
+  "daily_checklist_2": "Covered: how family sees the completed daily logs",
+  "daily_checklist_3": "Covered: time-in / time-out tracking",
+  "daily_checklist_4": "Covered: shift notes and incident reporting",
+  // Professional Dashboard
+  "professional_dashboard_0": "Covered: care assignments and client details",
+  "professional_dashboard_1": "Covered: calendar view with daily log entries",
+  "professional_dashboard_2": "Covered: medication dashboard for assigned care plans",
+  "professional_dashboard_3": "Covered: document management and training modules",
+  "professional_dashboard_4": "Covered: Nurse Handbook & SOP resources",
+  // Caregiver Matching
+  "caregiver_matching_0": "Discussed caregiver preferences (skills, personality, language)",
+  "caregiver_matching_1": "Explained matching process and timeline",
+  "caregiver_matching_2": "Discussed trial day option vs immediate start",
+  "caregiver_matching_3": "Tentatively assigned caregiver (pending confirmation)",
+  "caregiver_matching_4": "Meet-and-greet arranged if applicable",
+  // Rates
+  "rates_and_changes_0": "Agreed: Standard rate tier ($35/hr) — GAPP-certified personal care, medication admin, vitals, meal prep, documentation, specialized care",
+  "rates_and_changes_1": "Agreed: Full Service rate ($40/hr) — Standard + advanced meal prep, complex medical, overnight/live-in, advanced certs, behavioral health",
+  "rates_and_changes_2": "Agreed: Premium rate ($45+/hr) — Full Service + change-in-care management, multi-specialist coordination, 24/7, palliative, family training",
+  "rates_and_changes_3": "Agreed: Holiday rates — 1.5x on recognized holidays, 2x on Christmas",
+  "rates_and_changes_4": "Agreed: Overtime rates — 1.5x for shifts beyond standard coverage",
+  "rates_and_changes_5": "Acknowledged: Change orders documented and discussed before taking effect",
+  "rates_and_changes_6": "Acknowledged: Care escalation triggers — bedridden status, wheelchair/lift, fall risk",
+  "rates_and_changes_7": "Acknowledged: Dietary changes may increase care complexity and cost",
+  "rates_and_changes_8": "Acknowledged: Medication changes require updated care documentation",
+  "rates_and_changes_9": "Acknowledged: Errands/personal runs arranged privately with nurse, outside Tavara scope",
+  "rates_and_changes_10": "Agreed: Baseline care level established at onboarding; changes documented",
+  "rates_and_changes_11": "Agreed: Family notified before any rate or care level adjustment",
+  // Next Steps
+  "next_steps_0": "Care start date confirmed (or trial day date set)",
+  "next_steps_1": "WhatsApp care group set up",
+  "next_steps_2": "24-48 hour post-first-visit check-in scheduled",
+  "next_steps_3": "Admin/coordinator direct contact info shared",
+  "next_steps_4": "Family knows how to reach support",
+  "next_steps_5": "Welcome summary sent via email/WhatsApp after call",
+  // Communication
+  "communication_0": "Covered: care plan edit notifications (bidirectional)",
+  "communication_1": "Covered: daily log visibility for family",
+  "communication_2": "Covered: WhatsApp care group updates",
+  "communication_3": "Covered: how to contact the care coordinator",
+  "communication_4": "Covered: emergency contact setup and visibility",
+  // Family T&C
+  "family_terms_0": "Agreed: Care services engaged through Tavara Care, not direct hire",
+  "family_terms_1": "Agreed: Assigned caregiver is part of Tavara rotation pool",
+  "family_terms_2": "Agreed: Subscribing to the Family Care Plan (weekly) — as per quotation",
+  "family_terms_3": "Agreed: Payment due weekly (every Friday) per billing terms",
+  "family_terms_4": "Agreed: NIS contributions for caregiver covered by Tavara",
+  "family_terms_5": "Agreed: Rate adjustments may apply if care needs change, with prior notice",
+  "family_terms_6": "Agreed: Wi-Fi access (if available) provided to caregiver for platform use",
+  "family_terms_7": "Agreed: Quotation reviewed and all terms accepted (digital approval)",
+  // Post Onboarding
+  "post_onboarding_0": "Onboarding completed — welcome to Tavara.Care!",
+  "post_onboarding_1": "Assigned nurse confirmed and introduced to family",
+  "post_onboarding_2": "First meeting: Tavara coordinator, nurse, and family at client residence",
+  "post_onboarding_3": "Assigned nurse commences work (start date confirms billing period)",
+  "post_onboarding_4": "Assigned nurse paid weekly by Tavara",
+  "post_onboarding_5": "Tavara subscription: Family Care Plan (weekly)",
+  "post_onboarding_6": "NIS contributions covered by Tavara",
+  "post_onboarding_7": "Care plan and team accessible via dashboard",
+  "post_onboarding_8": "Onboarding progress viewable via dashboard",
+  "post_onboarding_9": "Quote generated",
+  "post_onboarding_10": "Invoice generated",
+  "post_onboarding_11": "Receipt generated",
+};
+
+/** Sections that are always expanded (never compressed) */
+const ALWAYS_EXPAND_SECTIONS = ["family_terms", "rates_and_changes", "terms_conditions"];
+
+/** Render sections with smart compression */
+function renderSmartSections(
   pdf: jsPDF,
   sectionDefs: OnboardingSectionDef[],
   checkedItems: Record<string, boolean | string>,
@@ -182,7 +302,7 @@ function renderDetailedSections(
   let col = 0;
   let colY = [startY, startY];
   const footerZone = H - 14;
-  const maxItemLen = Math.floor(colW / (fontSize * 0.22)); // approx chars that fit
+  const maxItemLen = Math.floor(colW / (fontSize * 0.22));
 
   for (const section of sectionDefs) {
     if (section.id === skipSectionId) continue;
@@ -190,19 +310,35 @@ function renderDetailedSections(
     section.items.forEach((_, i) => { if (checkedItems[`${section.id}_${i}`]) checked++; });
     const total = section.items.length;
     const isComplete = checked === total && total > 0;
+    const alwaysExpand = ALWAYS_EXPAND_SECTIONS.includes(section.id);
 
-    // Estimate height needed for this section
+    // Smart compression: if all items checked AND not a critical section, show one line
+    if (isComplete && !alwaysExpand) {
+      // Pick column with more room
+      if (colY[col] + 5 > footerZone) {
+        col = colY[0] <= colY[1] ? 0 : 1;
+        if (colY[col] + 5 > footerZone) break;
+      }
+      const x = M + col * (colW + 6);
+      pdf.setFontSize(fontSize);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(34, 120, 34);
+      pdf.text(`✓ ${section.title} — all ${total} items covered`, x, colY[col]);
+      colY[col] += lineH + 1;
+      if (colY[col] > colY[1 - col] + 8) col = 1 - col;
+      continue;
+    }
+
+    // Estimate height for expanded section
     const sectionHeight = 4 + total * lineH;
-    // Pick column with more room, or if current col overflows switch
     if (col === 0 && colY[0] + sectionHeight > footerZone && colY[1] + sectionHeight <= footerZone) {
       col = 1;
     } else if (col === 1 && colY[1] + sectionHeight > footerZone && colY[0] + sectionHeight <= footerZone) {
       col = 0;
     }
-    // If both columns would overflow, pick whichever has more room
     if (colY[col] + 6 > footerZone) {
       col = colY[0] <= colY[1] ? 0 : 1;
-      if (colY[col] + 6 > footerZone) break; // truly out of space
+      if (colY[col] + 6 > footerZone) break;
     }
 
     const x = M + col * (colW + 6);
@@ -211,26 +347,29 @@ function renderDetailedSections(
     pdf.setFontSize(fontSize + 1);
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(isComplete ? 34 : 60, isComplete ? 120 : 60, isComplete ? 34 : 80);
-    const headerText = `${section.title} (${checked}/${total})`;
-    pdf.text(headerText, x, colY[col]);
+    pdf.text(`${section.title} (${checked}/${total})`, x, colY[col]);
     colY[col] += lineH + 0.8;
 
-    // Items
+    // Items with mapped text
     pdf.setFontSize(fontSize);
     pdf.setFont("helvetica", "normal");
     for (let i = 0; i < total; i++) {
       if (colY[col] > footerZone) break;
       const itemChecked = !!checkedItems[`${section.id}_${i}`];
       const icon = itemChecked ? "✓" : "○";
-      pdf.setTextColor(itemChecked ? 34 : 130, itemChecked ? 130 : 130, itemChecked ? 34 : 130);
-      let text = section.items[i];
+      const prefix = itemChecked ? "" : "Pending: ";
+      // Use mapped text if available, otherwise fallback to raw
+      const mappedKey = `${section.id}_${i}`;
+      let text = REPORT_ITEM_MAP[mappedKey] || (prefix + section.items[i]);
+      if (!itemChecked && REPORT_ITEM_MAP[mappedKey]) {
+        text = "Pending: " + text;
+      }
       if (text.length > maxItemLen) text = text.substring(0, maxItemLen - 1) + "…";
+      pdf.setTextColor(itemChecked ? 34 : 130, itemChecked ? 130 : 130, itemChecked ? 34 : 130);
       pdf.text(`${icon} ${text}`, x + 1, colY[col]);
       colY[col] += lineH;
     }
-    colY[col] += 1.5; // gap between sections
-
-    // Alternate columns for balance
+    colY[col] += 1.5;
     if (colY[col] > colY[1 - col] + sectionHeight * 0.5) {
       col = 1 - col;
     }
@@ -256,7 +395,7 @@ function generateFamilyReport(
   pdf.setFontSize(13);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(30, 64, 120);
-  pdf.text("TAVARA.CARE — Family Onboarding Report", M, y);
+  pdf.text("TAVARA.CARE — Family Onboarding Agreement Record", M, y);
   y += 5.5;
   pdf.setFontSize(8.5);
   pdf.setFont("helvetica", "normal");
@@ -297,11 +436,11 @@ function generateFamilyReport(
   pdf.setFontSize(9);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(30, 64, 120);
-  pdf.text(`Onboarding Progress: ${totalChecked}/${totalItems} (${pct}%)`, M, y);
+  pdf.text(`Onboarding Coverage: ${totalChecked}/${totalItems} items (${pct}%)`, M, y);
   y += 4;
 
-  // --- Detailed sections in 2-column layout ---
-  const afterSections = renderDetailedSections(pdf, sectionDefs, checkedItems, y, M, W, H);
+  // --- Smart sections in 2-column layout ---
+  const afterSections = renderSmartSections(pdf, sectionDefs, checkedItems, y, M, W, H);
   y = afterSections + 2;
 
   // --- Key Dates ---
@@ -351,6 +490,7 @@ function generateFamilyReport(
   // --- Footer ---
   pdf.setFontSize(6.5);
   pdf.setTextColor(150);
+  pdf.text("This document serves as a baseline agreement record of what was covered during onboarding.", M, H - 8);
   pdf.text("Generated from tavara.care/admin/onboarding-checklist", M, H - 5);
   pdf.text(`Page 1 of 1`, W - M, H - 5, { align: "right" });
 
@@ -377,7 +517,7 @@ function generateProfessionalReport(
   pdf.setFontSize(13);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(30, 64, 120);
-  pdf.text("TAVARA.CARE — Professional Onboarding Report", M, y);
+  pdf.text("TAVARA.CARE — Professional Onboarding Agreement Record", M, y);
   y += 5.5;
   pdf.setFontSize(8.5);
   pdf.setFont("helvetica", "normal");
@@ -404,7 +544,7 @@ function generateProfessionalReport(
   pdf.setTextColor(50);
   pdf.text(`Rate: $35/hr (Standard)   |   Plan: Tavara Family Care Plan (weekly)   |   Start Date: ${startDateFmt}`, M, y);
   y += 3.5;
-  pdf.text(`Payment: Weekly by Tavara (every Friday)   |   Processing: Up to 3 business days   |   Holiday/OT: 1.5x (2x Christmas)`, M, y);
+  pdf.text(`Payment: Weekly by Tavara (every Friday)   |   Holiday/OT: 1.5x (2x Christmas)`, M, y);
   y += 3.5;
   pdf.text(`NIS: Covered by Tavara   |   Probationary Period: 30 days   |   Rotation Pool: Yes`, M, y);
   y += 5;
@@ -427,8 +567,10 @@ function generateProfessionalReport(
     tcSection.items.forEach((item, i) => {
       const checked = !!checkedItems[`terms_conditions_${i}`];
       pdf.setTextColor(checked ? 34 : 150, checked ? 130 : 150, checked ? 34 : 150);
-      const truncated = item.length > 110 ? item.substring(0, 110) + "…" : item;
-      pdf.text(`${checked ? "✓" : "○"} ${truncated}`, M + 1, y);
+      // Use agreement language for T&C items
+      const prefix = checked ? "Agreed: " : "Pending: ";
+      const truncated = item.length > 105 ? item.substring(0, 105) + "…" : item;
+      pdf.text(`${checked ? "✓" : "○"} ${prefix}${truncated}`, M + 1, y);
       y += 3;
     });
     y += 2;
@@ -445,11 +587,11 @@ function generateProfessionalReport(
   pdf.setFontSize(9);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(30, 64, 120);
-  pdf.text(`Onboarding Progress: ${totalChecked}/${totalItems} (${pct}%)`, M, y);
+  pdf.text(`Onboarding Coverage: ${totalChecked}/${totalItems} items (${pct}%)`, M, y);
   y += 4;
 
-  // --- Detailed sections (skip T&C since already shown above) ---
-  const afterSections = renderDetailedSections(pdf, sectionDefs, checkedItems, y, M, W, H, 6.5, 3, "terms_conditions");
+  // --- Smart sections (skip T&C since already shown above) ---
+  const afterSections = renderSmartSections(pdf, sectionDefs, checkedItems, y, M, W, H, 6.5, 3, "terms_conditions");
   y = afterSections + 2;
 
   // --- Key Dates (synced from family) ---
@@ -496,6 +638,7 @@ function generateProfessionalReport(
   // --- Footer ---
   pdf.setFontSize(6.5);
   pdf.setTextColor(150);
+  pdf.text("This document serves as a baseline agreement record of what was covered during onboarding.", M, H - 8);
   pdf.text("Generated from tavara.care/admin/onboarding-checklist", M, H - 5);
   pdf.text(`Page 1 of 1`, W - M, H - 5, { align: "right" });
 
