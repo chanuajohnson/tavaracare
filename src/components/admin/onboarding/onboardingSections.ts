@@ -196,6 +196,22 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     ],
   },
   {
+    id: "family_terms",
+    title: "Terms & Conditions of Engagement",
+    iconName: "FileCheck",
+    description: "Family acknowledges and agrees to the terms of engaging Tavara Care services",
+    items: [
+      "Family acknowledges they are engaging care services through Tavara Care, not hiring the caregiver directly",
+      "Family understands the assigned caregiver is part of Tavara's rotation pool for seamless coverage",
+      "Family confirms they are subscribing to the Family Care Plan (weekly) — refer to quotation for full pricing details",
+      "Family understands payment is due weekly (every Friday) as per the billing terms",
+      "Family acknowledges that payment processing may take up to 3 business days to clear",
+      "Family acknowledges NIS (National Insurance) contributions for the caregiver are covered by Tavara",
+      "Family understands rate adjustments may apply if care needs change, with prior notice",
+      "Family confirms they have reviewed the quotation and accepted all terms (digital approval)",
+    ],
+  },
+  {
     id: "post_onboarding",
     title: "Post-Onboarding Summary",
     iconName: "CheckCircle2",

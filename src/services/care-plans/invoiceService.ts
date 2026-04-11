@@ -423,7 +423,7 @@ export function buildDefaultCareBillingData(overrides: Partial<CareBillingData> 
     caregiverRole: overrides.caregiverRole || 'Nurse',
     lineItems: overrides.lineItems || [
       {
-        description: 'Nursing Care (Standard Tier)',
+        description: 'Standard Weekly Care — Nursing (40 hrs/wk)',
         hoursPerWeek,
         ratePerHour: nurseRate,
         amount: nursingTotal,
