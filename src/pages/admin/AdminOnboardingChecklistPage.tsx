@@ -371,7 +371,13 @@ function ChecklistTabContent({
 
   return (
     <>
-      <div className="flex justify-end gap-2 mb-4">
+      <div className="flex justify-end gap-2 mb-4 flex-wrap">
+        {onDownloadReport && (
+          <Button variant="outline" size="sm" onClick={onDownloadReport} className="gap-1">
+            <Download className="h-4 w-4" />
+            Download Report
+          </Button>
+        )}
         <Button variant="outline" size="sm" onClick={copyPublicLink} className="gap-1" title="Copy shareable link">
           <Copy className="h-4 w-4" />
           Share Guide
