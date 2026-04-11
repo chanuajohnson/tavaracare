@@ -285,7 +285,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
 
       // Check family onboarding checklist for meeting/start dates
       const { data: familyChecklist } = await supabase
-        .from('family_onboarding_checklists')
+        .from('onboarding_checklists')
         .select('checked_items')
         .eq('family_id', userId)
         .maybeSingle();
