@@ -406,7 +406,7 @@ export default function AdminOnboardingChecklistPage() {
 
   // Family save
   const saveFamilyToSupabase = useCallback(
-    (items: Record<string, boolean>, notesList: OnboardingNote[]) => {
+    (items: Record<string, boolean | string>, notesList: OnboardingNote[]) => {
       if (!selectedFamilyId) return;
       if (familySaveTimerRef.current) clearTimeout(familySaveTimerRef.current);
       familySaveTimerRef.current = setTimeout(async () => {
