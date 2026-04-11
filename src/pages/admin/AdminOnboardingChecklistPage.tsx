@@ -725,13 +725,26 @@ function ChecklistTabContent({
                                   Open
                                 </a>
                               )}
-                              {dateFieldLabel && onDateChange && (
-                                <DateFieldPicker
-                                  dateFieldLabel={dateFieldLabel}
-                                  storedDate={storedDate}
-                                  onDateChange={(val) => onDateChange(dateKey, val)}
-                                />
-                              )}
+                              {dateFieldLabel && onDateChange && (() => {
+                                // If linked family has this date, show read-only
+                                const linkedDate = linkedCheckedItems?.[dateKey] as string | undefined;
+                                if (linkedDate && section.id === "post_onboarding") {
+                                  return (
+                                    <Badge variant="outline" className="mt-1.5 text-xs gap-1.5">
+                                      <CalendarIcon className="h-3 w-3" />
+                                      {dateFieldLabel}: {format(parseLocalDate(linkedDate), "PPP")}
+                                      <span className="text-muted-foreground ml-1">(from family)</span>
+                                    </Badge>
+                                  );
+                                }
+                                return (
+                                  <DateFieldPicker
+                                    dateFieldLabel={dateFieldLabel}
+                                    storedDate={storedDate}
+                                    onDateChange={(val) => onDateChange(dateKey, val)}
+                                  />
+                                );
+                              })()}
                             </div>
                           </div>
                         );
