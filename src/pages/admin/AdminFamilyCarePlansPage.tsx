@@ -225,6 +225,14 @@ const AdminFamilyCarePlansPage = () => {
                             Daily Logs
                           </Button>
                         </div>
+                        <div className="pt-2">
+                          <DocumentGenerationMenu
+                            familyName={selectedFamily?.full_name || 'Family'}
+                            familyEmail={selectedFamily?.email}
+                            carePlanId={plan.id}
+                            carePlanTitle={plan.title}
+                          />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
