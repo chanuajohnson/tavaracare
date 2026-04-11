@@ -1,33 +1,37 @@
 
 
-## Plan: Align Rate Tier Descriptions Across All Surfaces
-
-### Problem
-The Family Dashboard rate info card, Family Registration budget dropdown, and Admin Nudge Tab all show outdated, simplified rate tier descriptions that don't match the corrected definitions already established in `RateTierReferenceCard.tsx` and the onboarding section definitions.
+## Plan: Add Billing Cycle Toggle to Family Care & Premium Plans
 
 ### What Changes
 
-| File | Change |
-|------|--------|
-| `src/components/family/FamilyDashboard.tsx` (lines 141-143) | Update the 3 rate lines to match corrected tier definitions |
-| `src/pages/registration/FamilyRegistration.tsx` (lines 1212-1214) | Update budget dropdown options to match corrected tiers |
-| `src/components/admin/UserNudgeTab.tsx` (lines 336-338) | Already correct -- no change needed |
+The subscription page currently shows 3 cards (Basic free, Care $199.99/wk, Premium $699.99/mo). We keep 3 cards but add a **weekly/monthly toggle** to the two paid plans:
 
-### Updated Rate Text (Family Dashboard card)
+| Card | Weekly | Monthly |
+|------|--------|---------|
+| Family Basic | Free | — |
+| Family Care | $199.99/week | $699.99/month |
+| Family Premium | $399.99/month | $1,099.99/month |
 
-- **$35/hr -- Standard:** GAPP-certified personal care, medication admin & logging, vitals monitoring, basic daily dietary meal prep, daily care documentation, specialized care (dementia, palliative, post-surgical)
-- **$40/hr -- Full Service:** Everything in Standard + specialist-directed meal prep (holidays & special occasions), complex medical needs (wound/catheter/oxygen care), overnight/live-in shifts, advanced certifications (RN, LPN)
-- **$45+/hr -- Premium:** Everything in Full Service + care plan change management, disease progression support, multi-specialist coordination, 24/7 on-call, advanced palliative/end-of-life care, family training & transition planning
+### How It Works
 
-### Updated Budget Dropdown (Family Registration)
+1. Add a `billingCycle` state (`"weekly" | "monthly"`) with a toggle switch above the plan cards
+2. Update the `familyPlans` data to include both `weeklyPrice` and `monthlyPrice` fields for each paid plan
+3. The displayed price and period dynamically change based on the selected billing cycle
+4. Family Premium only has monthly options, so the toggle switches between the two monthly price points ($399.99 and $1,099.99) — labeled as "Standard Monthly" vs "Premium Monthly" or simply both shown as monthly with the toggle acting as a tier selector
 
-- $35/hour -- Standard (GAPP-certified personal care, medication admin, vitals, daily documentation)
-- $40/hour -- Full Service (Standard + specialist meal prep, complex medical, overnight/live-in)
-- $45+/hour -- Premium (Full Service + care plan management, disease progression, 24/7 on-call)
+**Wait — clarification needed:** Family Premium has $399.99/mo and $1,099.99/mo. Since both are monthly, the toggle for Premium would be more like a "Standard vs Extended" toggle rather than weekly/monthly. Let me structure it as:
 
-### Files NOT changed
-- `RateTierReferenceCard.tsx` -- already correct
-- `professionalOnboardingSections.ts` -- already correct
-- `onboardingSections.ts` -- already correct
-- `UserNudgeTab.tsx` -- already correct
+- **Global toggle**: Weekly / Monthly
+- **Family Care**: $199.99 (weekly) ↔ $699.99 (monthly)  
+- **Family Premium**: $399.99 (monthly) ↔ $1,099.99 (monthly) — when weekly is selected, show $399.99/mo; when monthly is selected, show $1,099.99/mo
+
+This way the toggle conceptually maps to a shorter vs longer commitment across both plans.
+
+### File Changed
+
+`src/pages/subscription/SubscriptionPage.tsx`:
+- Add `billingCycle` state and a toggle UI (pill-style switcher) above the cards
+- Update plan objects with dual pricing (`priceWeekly`/`priceMonthly`)
+- Render price dynamically based on toggle state
+- Pass correct price to PayPal button based on selected cycle
 
