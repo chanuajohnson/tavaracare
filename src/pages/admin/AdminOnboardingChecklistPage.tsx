@@ -234,16 +234,68 @@ function ChecklistTabContent({
                     <div className="space-y-3 pl-2">
                       {section.items.map((item, i) => {
                         const itemKey = `${section.id}_${i}`;
+                        const dateFieldLabel = section.dateFields?.[i];
+                        const dateKey = `${section.id}_${i}_date`;
+                        const storedDate = checkedItems[dateKey] as string | undefined;
+                        const linkUrl = section.links?.[i];
+
                         return (
-                          <div key={i} className="flex items-start gap-3">
+                          <div key={i} className="flex items-start gap-3 flex-wrap">
                             <Checkbox
                               checked={!!checkedItems[itemKey]}
                               onCheckedChange={() => toggleItem(section.id, i)}
                               className="mt-0.5"
                             />
-                            <span className={`text-sm ${checkedItems[itemKey] ? "line-through text-muted-foreground" : ""}`}>
-                              {item}
-                            </span>
+                            <div className="flex-1 min-w-0">
+                              <span className={`text-sm ${checkedItems[itemKey] ? "line-through text-muted-foreground" : ""}`}>
+                                {item}
+                              </span>
+                              {linkUrl && (
+                                <a
+                                  href={linkUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 ml-2 text-xs text-primary hover:underline"
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                  Open
+                                </a>
+                              )}
+                              {dateFieldLabel && onDateChange && (
+                                <div className="mt-1.5">
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className={cn(
+                                          "h-8 text-xs gap-1.5",
+                                          !storedDate && "text-muted-foreground"
+                                        )}
+                                      >
+                                        <CalendarIcon className="h-3.5 w-3.5" />
+                                        {storedDate
+                                          ? `${dateFieldLabel}: ${format(new Date(storedDate), "PPP")}`
+                                          : `Set ${dateFieldLabel}`}
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                      <Calendar
+                                        mode="single"
+                                        selected={storedDate ? new Date(storedDate) : undefined}
+                                        onSelect={(date) => {
+                                          if (date) {
+                                            onDateChange(dateKey, date.toISOString().split("T")[0]);
+                                          }
+                                        }}
+                                        initialFocus
+                                        className={cn("p-3 pointer-events-auto")}
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
