@@ -14,6 +14,7 @@ export interface OnboardingSectionDef {
   items: string[];
   showFamilyData?: boolean;
   showProfessionalData?: boolean;
+  links?: Record<number, string>; // item index -> URL for clickable links on family page
 }
 
 export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
@@ -192,6 +193,34 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
       "How to contact the care coordinator",
       "Emergency contact setup and visibility",
     ],
+  },
+  {
+    id: "post_onboarding",
+    title: "Post-Onboarding Summary",
+    iconName: "CheckCircle2",
+    description: "Summary of completed onboarding and next steps for the family",
+    items: [
+      "Onboarding completed successfully — welcome to Tavara.Care!",
+      "Assigned nurse confirmed and to be introduced to family",
+      "First meeting: Tavara coordinator, assigned nurse, and family at client residence",
+      "Assigned nurse commences work at client residence (start date confirms billing period)",
+      "Assigned nurse is paid weekly by Tavara",
+      "Tavara subscription: Family Care Plan (weekly)",
+      "NIS (National Insurance) contributions covered by Tavara for assigned nurse",
+      "View your care plan and team",
+      "View your onboarding progress",
+      "Generate your first quote",
+      "Generate your first invoice",
+      "Generate your first receipt",
+    ],
+    links: {
+      5: "/subscription",
+      7: "/family/care-management",
+      8: "/family/onboarding-checklist",
+      9: "/family/care-management?tab=documents",
+      10: "/family/care-management?tab=documents",
+      11: "/family/care-management?tab=documents",
+    },
   },
 ];
 

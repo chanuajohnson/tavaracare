@@ -12,7 +12,8 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import {
   ArrowLeft, ChevronDown, ClipboardCheck, Monitor, FileText,
   Pill, UtensilsCrossed, ListChecks, LayoutDashboard, MessageSquare,
-  Heart, Users, CalendarCheck, Loader2, CheckCircle2, Circle, DollarSign
+  Heart, Users, CalendarCheck, Loader2, CheckCircle2, Circle, DollarSign,
+  ExternalLink
 } from "lucide-react";
 import { ONBOARDING_SECTION_DEFS, getTotalItems } from "@/components/admin/onboarding/onboardingSections";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
@@ -30,6 +31,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   CalendarCheck: <CalendarCheck className="h-5 w-5" />,
   MessageSquare: <MessageSquare className="h-5 w-5" />,
   DollarSign: <DollarSign className="h-5 w-5" />,
+  CheckCircle2: <CheckCircle2 className="h-5 w-5" />,
 };
 
 export default function FamilyOnboardingChecklistPage() {
@@ -177,6 +179,14 @@ export default function FamilyOnboardingChecklistPage() {
                       <div className="space-y-2 pl-2">
                         {section.items.map((item, i) => {
                           const isChecked = !!checkedItems[`${section.id}_${i}`];
+                          const linkUrl = section.links?.[i];
+                          const isDocLink = linkUrl?.includes("documents");
+                          // For invoice: require quote done; for receipt: require quote+invoice done
+                          const isDisabledLink = isDocLink && (
+                            (i === 10 && !checkedItems[`${section.id}_9`]) ||
+                            (i === 11 && (!checkedItems[`${section.id}_9`] || !checkedItems[`${section.id}_10`]))
+                          );
+
                           return (
                             <div key={i} className="flex items-start gap-3">
                               {isChecked ? (
@@ -184,12 +194,26 @@ export default function FamilyOnboardingChecklistPage() {
                               ) : (
                                 <Circle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                               )}
-                              <span className={`text-sm ${isChecked ? "text-muted-foreground" : ""}`}>
-                          {item}
-                        </span>
-                      </div>
-                    );
-                  })}
+                              {linkUrl && !isDisabledLink ? (
+                                <a
+                                  href={linkUrl}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    navigate(linkUrl);
+                                  }}
+                                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                                >
+                                  {item}
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
+                              ) : (
+                                <span className={`text-sm ${isChecked ? "text-muted-foreground" : ""} ${isDisabledLink ? "text-muted-foreground/50 italic" : ""}`}>
+                                  {item}{isDisabledLink ? " (complete previous step first)" : ""}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
                 </div>
 
                 {section.id === "rates_and_changes" && (
