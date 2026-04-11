@@ -19,7 +19,7 @@ import {
   ArrowLeft, ChevronDown, RotateCcw, ClipboardCheck, Monitor, FileText,
   Pill, UtensilsCrossed, ListChecks, LayoutDashboard, MessageSquare,
   Heart, Users, CalendarCheck, Loader2, Copy, DollarSign, CheckCircle2,
-  CalendarIcon, ExternalLink
+  CalendarIcon, ExternalLink, Download
 } from "lucide-react";
 import { CHECKLIST_SECTIONS } from "@/components/professional/checklist/checklistSections";
 import { ONBOARDING_SECTION_DEFS, getTotalItems, OnboardingSectionDef } from "@/components/admin/onboarding/onboardingSections";
@@ -30,6 +30,7 @@ import RateTierReferenceCard from "@/components/admin/onboarding/RateTierReferen
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
 import { toast } from "sonner";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import jsPDF from "jspdf";
 
 /** Parse "YYYY-MM-DD" as local date (not UTC) */
 function parseLocalDate(dateStr: string): Date {
@@ -154,6 +155,168 @@ interface ProfileOption {
   full_name: string | null;
 }
 
+/** Generate a single-page landscape PDF report for the selected family */
+function generateFamilyReport(
+  familyName: string,
+  checkedItems: Record<string, boolean | string>,
+  notes: OnboardingNote[],
+  sectionDefs: OnboardingSectionDef[],
+) {
+  const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const W = 297;
+  const H = 210;
+  const M = 12; // margin
+  let y = M;
+
+  // --- Header ---
+  pdf.setFontSize(14);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(30, 64, 120);
+  pdf.text("TAVARA.CARE — Family Onboarding Report", M, y);
+  y += 6;
+  pdf.setFontSize(9);
+  pdf.setFont("helvetica", "normal");
+  pdf.setTextColor(80);
+  pdf.text(`Family: ${familyName}    |    Generated: ${format(new Date(), "PPP")}`, M, y);
+  y += 7;
+
+  // --- Divider ---
+  pdf.setDrawColor(200);
+  pdf.line(M, y, W - M, y);
+  y += 5;
+
+  // --- Care Summary ---
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(30, 64, 120);
+  pdf.text("Care Summary", M, y);
+  y += 5;
+
+  const startDateStr = checkedItems["post_onboarding_3_date"] as string | undefined;
+  const startDateFmt = startDateStr ? format(parseLocalDate(startDateStr), "PPP") : "Not set";
+
+  pdf.setFontSize(8.5);
+  pdf.setFont("helvetica", "normal");
+  pdf.setTextColor(50);
+  const summaryLines = [
+    `Rate: $35/hr (Standard)   |   Plan: Tavara Family Care Plan (weekly)   |   Start Date: ${startDateFmt}`,
+    `Payment: Weekly (due every Friday)   |   Late Fee: 5% after 3 business days   |   Holiday/OT: 1.5x (2x Christmas)`,
+  ];
+  summaryLines.forEach((line) => {
+    pdf.text(line, M, y);
+    y += 4;
+  });
+  y += 3;
+
+  // --- Onboarding Progress ---
+  let totalChecked = 0;
+  let totalItems = 0;
+  sectionDefs.forEach((s) => {
+    s.items.forEach((_, i) => {
+      totalItems++;
+      if (checkedItems[`${s.id}_${i}`]) totalChecked++;
+    });
+  });
+  const pct = totalItems ? Math.round((totalChecked / totalItems) * 100) : 0;
+
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(30, 64, 120);
+  pdf.text(`Onboarding Progress: ${totalChecked}/${totalItems} (${pct}%)`, M, y);
+  y += 5;
+
+  // Two-column section listing
+  const colW = (W - M * 2 - 8) / 2;
+  const startY = y;
+  let col = 0;
+  let colY = startY;
+
+  pdf.setFontSize(8);
+  sectionDefs.forEach((section) => {
+    let checked = 0;
+    section.items.forEach((_, i) => {
+      if (checkedItems[`${section.id}_${i}`]) checked++;
+    });
+    const total = section.items.length;
+    const isComplete = checked === total && total > 0;
+    const icon = isComplete ? "✓" : "○";
+    const x = M + col * (colW + 8);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(isComplete ? 34 : 100, isComplete ? 139 : 100, isComplete ? 34 : 100);
+    pdf.text(`${icon}  ${section.title}`, x, colY);
+
+    pdf.setTextColor(120);
+    pdf.text(`${checked}/${total}`, x + colW - 2, colY, { align: "right" });
+
+    colY += 4.2;
+    if (colY > startY + (sectionDefs.length / 2) * 4.2 + 2 && col === 0) {
+      col = 1;
+      colY = startY;
+    }
+  });
+
+  y = startY + Math.ceil(sectionDefs.length / 2) * 4.2 + 3;
+
+  // --- Key Dates ---
+  const introDate = checkedItems["post_onboarding_1_date"] as string | undefined;
+  const meetingDate = checkedItems["post_onboarding_2_date"] as string | undefined;
+
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(30, 64, 120);
+  pdf.text("Key Dates", M, y);
+  y += 5;
+
+  pdf.setFontSize(8.5);
+  pdf.setFont("helvetica", "normal");
+  pdf.setTextColor(50);
+  const dates = [
+    `Introduction: ${introDate ? format(parseLocalDate(introDate), "PPP") : "Not set"}`,
+    `Meeting: ${meetingDate ? format(parseLocalDate(meetingDate), "PPP") : "Not set"}`,
+    `Start: ${startDateFmt}`,
+  ].join("   |   ");
+  pdf.text(dates, M, y);
+  y += 7;
+
+  // --- Notes ---
+  if (notes.length > 0) {
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(30, 64, 120);
+    pdf.text("Onboarding Notes", M, y);
+    y += 5;
+
+    pdf.setFontSize(7.5);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(60);
+    const maxNotes = Math.min(notes.length, 8);
+    for (let i = 0; i < maxNotes; i++) {
+      const note = notes[i];
+      const dateFmt = format(new Date(note.created_at), "MMM d");
+      const truncated = note.text.length > 100 ? note.text.substring(0, 100) + "…" : note.text;
+      const line = `•  [${dateFmt}] [${note.assigned_to}] ${truncated}`;
+      if (y > H - 12) break; // prevent overflow
+      pdf.text(line, M, y);
+      y += 3.8;
+    }
+    if (notes.length > maxNotes) {
+      pdf.text(`   ... and ${notes.length - maxNotes} more notes`, M, y);
+      y += 3.8;
+    }
+  }
+
+  // --- Footer ---
+  pdf.setFontSize(7);
+  pdf.setTextColor(150);
+  pdf.text("Generated from tavara.care/admin/onboarding-checklist", M, H - 5);
+  pdf.text(`Page 1 of 1`, W - M, H - 5, { align: "right" });
+
+  // Download
+  const safeName = familyName.replace(/[^a-zA-Z0-9]/g, "_");
+  pdf.save(`Onboarding_Report_${safeName}_${format(new Date(), "yyyy-MM-dd")}.pdf`);
+}
+
 // Reusable checklist tab content
 function ChecklistTabContent({
   profiles,
@@ -176,6 +339,7 @@ function ChecklistTabContent({
   idColumn,
   showFamilyData,
   showProfessionalData,
+  onDownloadReport,
 }: {
   profiles: ProfileOption[];
   loadingProfiles: boolean;
@@ -197,6 +361,7 @@ function ChecklistTabContent({
   idColumn: string;
   showFamilyData?: boolean;
   showProfessionalData?: boolean;
+  onDownloadReport?: () => void;
 }) {
   const publicGuideUrl = `${window.location.origin}/onboarding-guide`;
   const copyPublicLink = () => {
@@ -206,7 +371,13 @@ function ChecklistTabContent({
 
   return (
     <>
-      <div className="flex justify-end gap-2 mb-4">
+      <div className="flex justify-end gap-2 mb-4 flex-wrap">
+        {onDownloadReport && (
+          <Button variant="outline" size="sm" onClick={onDownloadReport} className="gap-1">
+            <Download className="h-4 w-4" />
+            Download Report
+          </Button>
+        )}
         <Button variant="outline" size="sm" onClick={copyPublicLink} className="gap-1" title="Copy shareable link">
           <Copy className="h-4 w-4" />
           Share Guide
@@ -748,6 +919,10 @@ export default function AdminOnboardingChecklistPage() {
             tableName="onboarding_checklists"
             idColumn="family_id"
             showFamilyData
+            onDownloadReport={selectedFamilyId ? () => {
+              const familyName = families.find(f => f.id === selectedFamilyId)?.full_name || "Family";
+              generateFamilyReport(familyName, familyCheckedItems, familyNotes, ONBOARDING_SECTION_DEFS);
+            } : undefined}
           />
         </TabsContent>
 
