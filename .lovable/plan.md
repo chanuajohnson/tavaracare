@@ -1,49 +1,39 @@
 
 
-## Plan: Fix /subscription Redirect + Reinstate Free Plan with Journey Features
+## Plan: Align Subscription Features Page and FAQ with Current Pricing
 
-### Problem 1: /subscription redirects to dashboard
-The `useAuthRedirection.ts` hook redirects logged-in users to their role-based dashboard. The `/subscription` path is not in the skip list, so authenticated users get bounced before the page loads.
+### Problem
+Two files still show outdated pricing ($14.99, $29.99, $19.99, $34.99) that conflicts with the updated subscription tiers on `/subscription`.
 
-### Problem 2: Free plan needs journey-based features
-The Free plan currently lists generic features (chat, profiles, care posting, email support). It should reflect what families like Ana Maria actually use for free on their journey.
+### Affected Files
 
-### Changes
+**File 1: `src/pages/subscription/SubscriptionFeaturesPage.tsx`** (lines 466-541)
 
-**File 1: `src/hooks/auth/useAuthRedirection.ts`**
-Add `/subscription` to the redirect exemption list (similar to `/screening/`, `/family/`, `/admin/`):
-```
-if (location.pathname.startsWith('/subscription')) {
-  console.log('[AuthProvider] On subscription page, skipping redirection');
-  return;
-}
-```
+The pricing sidebar shows:
+- Family: "$14.99 Monthly subscription" with old feature list
+- Professional Pro: "$19.99/month"
+- Professional Expert: "$34.99/month"
 
-**File 2: `src/pages/subscription/SubscriptionPage.tsx`**
-Update the Family Basic (Free) plan features to reflect the actual journey tools families use:
-
-| Free Plan Features (included) |
-|---|
-| Complete family profile and care preferences |
-| Initial care needs assessment |
-| Legacy Story for your loved one |
-| Instant caregiver matching |
-| Medication management and scheduling |
-| Meal planning and grocery lists |
-| Unlimited caregiver chat |
-| Email and community support |
-
-| Free Plan Features (not included) |
-|---|
-| Dedicated care coordinator |
-| Priority caregiver matching |
-| Video consultations with caregivers |
-| Weekly/monthly billing management |
-
-The three-card layout stays intact with the global weekly/monthly toggle:
-- **Family Basic** -- Free (no toggle effect)
+Update the family section to show the 3-tier structure matching `/subscription`:
+- **Family Basic** -- Free (profile, assessment, Legacy Story, matching, medication mgmt, meal planning, chat, community support)
 - **Family Care** -- $199.99/week or $699.99/month
 - **Family Premium** -- $399.99/month or $1,099.99/month
 
-No other files changed. No routes, no database, no registration files touched.
+Add a "View All Plans" button linking to `/subscription` instead of inline PayPal buttons, since the sidebar is too narrow for a full toggle + 3 cards. Keep the professional section as-is for now (separate concern).
+
+**File 2: `src/pages/support/FAQPage.tsx`** (lines 79-82)
+
+The FAQ answer for "What are the subscription plans and pricing?" lists:
+- Family Care: $14.99/month
+- Family Premium: $29.99/month
+- Professional Pro: $19.99/month
+- Professional Expert: $34.99/month
+
+Update to:
+- Family Basic: Free -- profile, assessment, Legacy Story, matching, medication mgmt, meal planning, chat
+- Family Care: $199.99/week or $699.99/month -- all Basic features + dedicated care coordinator, priority matching, video consultations
+- Family Premium: $399.99/month or $1,099.99/month -- all Care features + care plan management, 24/7 on-call, billing management
+
+### No other files affected
+The `SubscriptionFeatureLink.tsx`, `LeadCaptureModal.tsx`, and `EnhancedFamilyNextStepsPanel.tsx` only contain navigation paths (not prices), so they need no changes.
 
