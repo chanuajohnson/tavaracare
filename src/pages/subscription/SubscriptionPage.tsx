@@ -21,6 +21,7 @@ const SubscriptionPage = () => {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [userSubscription, setUserSubscription] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [billingCycle, setBillingCycle] = useState<"weekly" | "monthly">("weekly");
   
   const returnPath = location.state?.returnPath || (userRole === 'professional' ? "/dashboard/professional" : "/dashboard/family");
   const featureType = location.state?.featureType || "premium feature";
