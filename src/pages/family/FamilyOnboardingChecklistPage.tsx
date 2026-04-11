@@ -38,7 +38,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 export default function FamilyOnboardingChecklistPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean | string>>({});
   const [notes, setNotes] = useState<OnboardingNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
