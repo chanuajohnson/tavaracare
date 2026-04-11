@@ -138,9 +138,9 @@ const FamilyDashboard = () => {
                   <div className="space-y-2">
                     <h4 className="font-semibold text-blue-900">Tavara Care Rates</h4>
                     <div className="space-y-1 text-sm">
-                      <p><span className="font-medium text-blue-800">$35/hr — Standard:</span> <span className="text-blue-700">Companionship, medication reminders, light meal prep</span></p>
-                      <p><span className="font-medium text-blue-800">$40/hr — Full Service (Recommended):</span> <span className="text-blue-700">GAPP-certified care including meals, light cleaning, personal care</span></p>
-                      <p><span className="font-medium text-blue-800">$45+/hr — Premium:</span> <span className="text-blue-700">Specialized or complex medical care needs</span></p>
+                      <p><span className="font-medium text-blue-800">$35/hr — Standard:</span> <span className="text-blue-700">GAPP-certified personal care, medication admin &amp; logging, vitals monitoring, basic daily dietary meal prep, daily care documentation, specialized care (dementia, palliative, post-surgical)</span></p>
+                      <p><span className="font-medium text-blue-800">$40/hr — Full Service (Recommended):</span> <span className="text-blue-700">Everything in Standard + specialist-directed meal prep (holidays &amp; special occasions), complex medical needs (wound/catheter/oxygen care), overnight/live-in shifts, advanced certifications (RN, LPN)</span></p>
+                      <p><span className="font-medium text-blue-800">$45+/hr — Premium:</span> <span className="text-blue-700">Everything in Full Service + care plan change management, disease progression support, multi-specialist coordination, 24/7 on-call, advanced palliative/end-of-life care, family training &amp; transition planning</span></p>
                     </div>
                     <p className="text-xs text-blue-600">These rates reflect the professional standards of certified caregivers in Trinidad &amp; Tobago.</p>
                   </div>
