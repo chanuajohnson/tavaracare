@@ -71,7 +71,7 @@ function ChecklistTabContent({
   loadingProfiles: boolean;
   selectedId: string;
   setSelectedId: (id: string) => void;
-  checkedItems: Record<string, boolean>;
+  checkedItems: Record<string, boolean | string>;
   toggleItem: (sectionId: string, index: number) => void;
   notes: OnboardingNote[];
   handleAddNote: (note: OnboardingNote) => void;
