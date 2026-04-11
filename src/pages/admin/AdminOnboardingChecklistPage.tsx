@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import DocumentGenerationMenu from "@/components/admin/care-plans/DocumentGenerationMenu";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
