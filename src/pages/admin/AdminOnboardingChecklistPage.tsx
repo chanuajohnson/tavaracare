@@ -776,7 +776,11 @@ function ChecklistTabContent({
                     )}
 
                     {section.id === "post_onboarding" && (
-                      <CareSummaryHeader checkedItems={checkedItems} />
+                      <CareSummaryHeader
+                        checkedItems={checkedItems}
+                        linkedCheckedItems={linkedCheckedItems}
+                        assignedFamilyName={assignedFamilyName}
+                      />
                     )}
                   </CardContent>
                 </CollapsibleContent>
