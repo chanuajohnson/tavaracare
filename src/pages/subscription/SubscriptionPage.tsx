@@ -571,6 +571,22 @@ const SubscriptionPage = () => {
               </div>
             </div>
             
+            {/* Billing Cycle Toggle */}
+            {getUserSpecificPlans() === familyPlans && (
+              <div className="flex items-center justify-center gap-3 pt-4">
+                <span className={`text-sm font-medium ${billingCycle === 'weekly' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  Weekly
+                </span>
+                <Switch
+                  checked={billingCycle === 'monthly'}
+                  onCheckedChange={(checked) => setBillingCycle(checked ? 'monthly' : 'weekly')}
+                />
+                <span className={`text-sm font-medium ${billingCycle === 'monthly' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  Monthly
+                </span>
+              </div>
+            )}
+            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
               {plans.map(plan => {
               const isCurrentUserPlan = isCurrentPlan(plan.id);
