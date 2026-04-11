@@ -680,6 +680,51 @@ export const useEnhancedJourneyProgress = () => {
       {
         id: "9",
         step_number: 9,
+        title: "Caregiver Assigned",
+        description: "A caregiver has been matched and assigned to your family",
+        completed: false, // Will be updated via sharedJourneyData
+        accessible: isVisitConfirmed,
+        category: 'scheduling',
+        icon_name: 'UserCheck',
+        tooltip_content: 'View your assigned caregiver',
+        detailed_explanation: 'Your caregiver has been assigned. View your care team.',
+        time_estimate_minutes: 0,
+        is_optional: false,
+        action: () => navigate('/family/care-management')
+      },
+      {
+        id: "10",
+        step_number: 10,
+        title: "Initial Family Meeting",
+        description: "Meet and greet with your assigned caregiver at your home",
+        completed: false, // Will be updated via sharedJourneyData
+        accessible: false,
+        category: 'scheduling',
+        icon_name: 'Home',
+        tooltip_content: 'Family meeting scheduled',
+        detailed_explanation: 'Introduction visit at your home',
+        time_estimate_minutes: 60,
+        is_optional: false,
+        action: () => navigate('/family/care-management')
+      },
+      {
+        id: "11",
+        step_number: 11,
+        title: "Care Begins",
+        description: "Your caregiver starts providing care",
+        completed: false, // Will be updated via sharedJourneyData
+        accessible: false,
+        category: 'scheduling',
+        icon_name: 'Play',
+        tooltip_content: 'Care has started',
+        detailed_explanation: 'View your care plan for schedules and details',
+        time_estimate_minutes: 0,
+        is_optional: false,
+        action: () => navigate('/family/care-management')
+      },
+      {
+        id: "12",
+        step_number: 12,
         title: "Schedule Trial Day (Optional)",
         description: "Choose a trial date with your matched caregiver",
         completed: hasTrialPayment,
@@ -695,8 +740,8 @@ export const useEnhancedJourneyProgress = () => {
         }
       },
       {
-        id: "10",
-        step_number: 10,
+        id: "13",
+        step_number: 13,
         title: "Pay for Trial Day (Optional)",
         description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience",
         completed: hasTrialPayment,
@@ -712,8 +757,8 @@ export const useEnhancedJourneyProgress = () => {
         }
       },
       {
-        id: "11",
-        step_number: 11,
+        id: "14",
+        step_number: 14,
         title: "Begin Your Trial (Optional)",
         description: "Your caregiver begins the scheduled trial session",
         completed: hasTrialPayment,
@@ -729,8 +774,8 @@ export const useEnhancedJourneyProgress = () => {
         }
       },
       {
-        id: "12",
-        step_number: 12,
+        id: "15",
+        step_number: 15,
         title: "Rate & Choose Your Path",
         description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr)",
         completed: !!visitNotes?.care_model,
