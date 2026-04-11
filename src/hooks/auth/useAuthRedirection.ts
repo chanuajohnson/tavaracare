@@ -48,6 +48,12 @@ export const useAuthRedirection = (
       return;
     }
 
+    // Skip redirect on subscription page
+    if (location.pathname.startsWith('/subscription')) {
+      console.log('[AuthProvider] On subscription page, skipping redirection');
+      return;
+    }
+
     // CRITICAL FIX: Check for email verification flag specifically
     const skipEmailVerification = hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
     if (skipEmailVerification) {
