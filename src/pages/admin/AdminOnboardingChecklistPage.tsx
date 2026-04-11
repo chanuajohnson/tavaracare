@@ -317,6 +317,191 @@ function generateFamilyReport(
   pdf.save(`Onboarding_Report_${safeName}_${format(new Date(), "yyyy-MM-dd")}.pdf`);
 }
 
+/** Generate a single-page landscape PDF report for the selected professional */
+function generateProfessionalReport(
+  professionalName: string,
+  assignedFamilyName: string,
+  checkedItems: Record<string, boolean | string>,
+  linkedFamilyCheckedItems: Record<string, boolean | string>,
+  notes: OnboardingNote[],
+  sectionDefs: OnboardingSectionDef[],
+) {
+  const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const W = 297;
+  const H = 210;
+  const M = 12;
+  let y = M;
+
+  // --- Header ---
+  pdf.setFontSize(14);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(30, 64, 120);
+  pdf.text("TAVARA.CARE — Professional Onboarding Report", M, y);
+  y += 6;
+  pdf.setFontSize(9);
+  pdf.setFont("helvetica", "normal");
+  pdf.setTextColor(80);
+  pdf.text(`Professional: ${professionalName}    |    Assigned Family: ${assignedFamilyName || "Not assigned"}    |    Generated: ${format(new Date(), "PPP")}`, M, y);
+  y += 7;
+
+  pdf.setDrawColor(200);
+  pdf.line(M, y, W - M, y);
+  y += 5;
+
+  // --- Care Summary ---
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(30, 64, 120);
+  pdf.text("Care Summary", M, y);
+  y += 5;
+
+  const startDateStr = (linkedFamilyCheckedItems["post_onboarding_3_date"] || checkedItems["post_onboarding_3_date"]) as string | undefined;
+  const startDateFmt = startDateStr ? format(parseLocalDate(startDateStr), "PPP") : "Not set";
+
+  pdf.setFontSize(8.5);
+  pdf.setFont("helvetica", "normal");
+  pdf.setTextColor(50);
+  const summaryLines = [
+    `Rate: $35/hr (Standard)   |   Plan: Tavara Family Care Plan (weekly)   |   Start Date: ${startDateFmt}`,
+    `Payment: Weekly by Tavara (every Friday)   |   Processing: Up to 3 business days   |   Holiday/OT: 1.5x (2x Christmas)`,
+    `NIS: Covered by Tavara   |   Probationary Period: 30 days   |   Rotation Pool: Yes`,
+  ];
+  summaryLines.forEach((line) => {
+    pdf.text(line, M, y);
+    y += 4;
+  });
+  y += 3;
+
+  // --- Terms & Conditions Status ---
+  const tcSection = sectionDefs.find((s) => s.id === "terms_conditions");
+  if (tcSection) {
+    let tcChecked = 0;
+    tcSection.items.forEach((_, i) => {
+      if (checkedItems[`terms_conditions_${i}`]) tcChecked++;
+    });
+    const allAccepted = tcChecked === tcSection.items.length;
+
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(allAccepted ? 34 : 180, allAccepted ? 139 : 50, allAccepted ? 34 : 50);
+    pdf.text(`Terms & Conditions: ${allAccepted ? "ALL ACCEPTED ✓" : `${tcChecked}/${tcSection.items.length} acknowledged`}`, M, y);
+    y += 5;
+
+    pdf.setFontSize(7.5);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(60);
+    tcSection.items.forEach((item, i) => {
+      const checked = !!checkedItems[`terms_conditions_${i}`];
+      const icon = checked ? "✓" : "○";
+      pdf.setTextColor(checked ? 34 : 150, checked ? 139 : 150, checked ? 34 : 150);
+      const truncated = item.length > 90 ? item.substring(0, 90) + "…" : item;
+      pdf.text(`${icon}  ${truncated}`, M + 2, y);
+      y += 3.5;
+    });
+    y += 2;
+  }
+
+  // --- Onboarding Progress ---
+  let totalChecked = 0;
+  let totalItems = 0;
+  sectionDefs.forEach((s) => {
+    s.items.forEach((_, i) => {
+      totalItems++;
+      if (checkedItems[`${s.id}_${i}`]) totalChecked++;
+    });
+  });
+  const pct = totalItems ? Math.round((totalChecked / totalItems) * 100) : 0;
+
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(30, 64, 120);
+  pdf.text(`Onboarding Progress: ${totalChecked}/${totalItems} (${pct}%)`, M, y);
+  y += 5;
+
+  const colW = (W - M * 2 - 8) / 2;
+  const startY = y;
+  let col = 0;
+  let colY = startY;
+
+  pdf.setFontSize(8);
+  sectionDefs.forEach((section) => {
+    let checked = 0;
+    section.items.forEach((_, i) => {
+      if (checkedItems[`${section.id}_${i}`]) checked++;
+    });
+    const total = section.items.length;
+    const isComplete = checked === total && total > 0;
+    const icon = isComplete ? "✓" : "○";
+    const x = M + col * (colW + 8);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(isComplete ? 34 : 100, isComplete ? 139 : 100, isComplete ? 34 : 100);
+    pdf.text(`${icon}  ${section.title}`, x, colY);
+    pdf.setTextColor(120);
+    pdf.text(`${checked}/${total}`, x + colW - 2, colY, { align: "right" });
+
+    colY += 4.2;
+    if (colY > startY + (sectionDefs.length / 2) * 4.2 + 2 && col === 0) {
+      col = 1;
+      colY = startY;
+    }
+  });
+
+  y = startY + Math.ceil(sectionDefs.length / 2) * 4.2 + 3;
+
+  // --- Key Dates ---
+  const introDate = checkedItems["post_onboarding_1_date"] as string | undefined;
+  const meetingDate = checkedItems["post_onboarding_2_date"] as string | undefined;
+
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(30, 64, 120);
+  pdf.text("Key Dates", M, y);
+  y += 5;
+
+  pdf.setFontSize(8.5);
+  pdf.setFont("helvetica", "normal");
+  pdf.setTextColor(50);
+  const dates = [
+    `Introduction: ${introDate ? format(parseLocalDate(introDate), "PPP") : "Not set"}`,
+    `Meeting: ${meetingDate ? format(parseLocalDate(meetingDate), "PPP") : "Not set"}`,
+    `Start: ${startDateFmt}`,
+  ].join("   |   ");
+  pdf.text(dates, M, y);
+  y += 7;
+
+  // --- Notes ---
+  if (notes.length > 0 && y < H - 20) {
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(30, 64, 120);
+    pdf.text("Onboarding Notes", M, y);
+    y += 5;
+
+    pdf.setFontSize(7.5);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(60);
+    const maxNotes = Math.min(notes.length, 6);
+    for (let i = 0; i < maxNotes; i++) {
+      const note = notes[i];
+      const dateFmt = format(new Date(note.created_at), "MMM d");
+      const truncated = note.text.length > 100 ? note.text.substring(0, 100) + "…" : note.text;
+      if (y > H - 12) break;
+      pdf.text(`•  [${dateFmt}] [${note.assigned_to}] ${truncated}`, M, y);
+      y += 3.8;
+    }
+  }
+
+  // --- Footer ---
+  pdf.setFontSize(7);
+  pdf.setTextColor(150);
+  pdf.text("Generated from tavara.care/admin/onboarding-checklist", M, H - 5);
+  pdf.text(`Page 1 of 1`, W - M, H - 5, { align: "right" });
+
+  const safeName = professionalName.replace(/[^a-zA-Z0-9]/g, "_");
+  pdf.save(`Professional_Onboarding_Report_${safeName}_${format(new Date(), "yyyy-MM-dd")}.pdf`);
+}
+
 // Reusable checklist tab content
 function ChecklistTabContent({
   profiles,
