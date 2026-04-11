@@ -41,7 +41,7 @@ interface UnifiedMatchingInterfaceProps {
 }
 
 export const UnifiedMatchingInterface: React.FC<UnifiedMatchingInterfaceProps> = ({
-  familyUserId,
+  familyUserId: familyUserIdProp,
   onClose,
   onMatchAssigned
 }) => {
@@ -55,8 +55,28 @@ export const UnifiedMatchingInterface: React.FC<UnifiedMatchingInterfaceProps> =
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [matchScores, setMatchScores] = useState<Record<string, any>>({});
+  const [allFamilies, setAllFamilies] = useState<FamilyProfile[]>([]);
+  const [selectedFamilyId, setSelectedFamilyId] = useState<string>(familyUserIdProp || '');
+  
+  const familyUserId = familyUserIdProp || selectedFamilyId;
   
   const { calculateMatchScore, createAssignment } = useUnifiedMatches('family');
+
+  // Fetch all family profiles when no familyUserId prop is provided
+  useEffect(() => {
+    if (!familyUserIdProp) {
+      const fetchFamilies = async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, phone_number, address, care_types, special_needs, care_schedule, created_at')
+          .eq('role', 'family')
+          .not('full_name', 'is', null)
+          .order('full_name');
+        if (!error && data) setAllFamilies(data);
+      };
+      fetchFamilies();
+    }
+  }, [familyUserIdProp]);
 
   useEffect(() => {
     if (familyUserId) {
@@ -119,7 +139,7 @@ export const UnifiedMatchingInterface: React.FC<UnifiedMatchingInterfaceProps> =
 
   const handleAssignMatch = async () => {
     if (!familyUserId || !selectedCaregiver) {
-      toast.error('Please select a caregiver');
+      toast.error('Please select a family and a caregiver');
       return;
     }
 
@@ -167,6 +187,33 @@ export const UnifiedMatchingInterface: React.FC<UnifiedMatchingInterfaceProps> =
 
   return (
     <div className="space-y-6">
+      {/* Family Selector - shown when no familyUserId prop */}
+      {!familyUserIdProp && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Select Family
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Label htmlFor="familySelect">Assign caregiver to family *</Label>
+            <Select value={selectedFamilyId} onValueChange={setSelectedFamilyId}>
+              <SelectTrigger id="familySelect">
+                <SelectValue placeholder="Choose a family..." />
+              </SelectTrigger>
+              <SelectContent>
+                {allFamilies.map((family) => (
+                  <SelectItem key={family.id} value={family.id}>
+                    {family.full_name} — {family.address || 'No address'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Family Profile Section */}
       {familyProfile && (
         <Card>
