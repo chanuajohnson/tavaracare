@@ -285,7 +285,10 @@ function ChecklistTabContent({
                                         selected={storedDate ? new Date(storedDate) : undefined}
                                         onSelect={(date) => {
                                           if (date) {
-                                            onDateChange(dateKey, date.toISOString().split("T")[0]);
+                                            const yyyy = date.getFullYear();
+                                            const mm = String(date.getMonth() + 1).padStart(2, '0');
+                                            const dd = String(date.getDate()).padStart(2, '0');
+                                            onDateChange(dateKey, `${yyyy}-${mm}-${dd}`);
                                           }
                                         }}
                                         initialFocus
