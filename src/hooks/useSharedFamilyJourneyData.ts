@@ -94,9 +94,34 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       category: 'scheduling',
       accessible: false
     },
-    // Trial Steps (9-11)
+    // Care Coordination Steps (9-11)
+    {
+      id: 9,
+      title: "Caregiver Assigned",
+      description: "A caregiver has been matched and assigned to your family. View your care team.",
+      completed: false,
+      category: 'scheduling',
+      accessible: false
+    },
+    {
+      id: 10,
+      title: "Initial Family Meeting",
+      description: "Meet and greet with your assigned caregiver at your home.",
+      completed: false,
+      category: 'scheduling',
+      accessible: false
+    },
+    {
+      id: 11,
+      title: "Care Begins",
+      description: "Your caregiver starts providing care. View your care plan for schedules and details.",
+      completed: false,
+      category: 'scheduling',
+      accessible: false
+    },
+    // Trial Steps (12-14)
     { 
-      id: 9, 
+      id: 12, 
       title: "Schedule Trial Day (Optional)", 
       description: "Choose a trial date with your matched caregiver. This is an optional step before choosing your care model.", 
       completed: false, 
@@ -105,7 +130,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       accessible: false
     },
     { 
-      id: 10, 
+      id: 13, 
       title: "Pay for Trial Day (Optional)", 
       description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience.", 
       completed: false, 
@@ -114,7 +139,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       accessible: false
     },
     { 
-      id: 11, 
+      id: 14, 
       title: "Begin Your Trial (Optional)", 
       description: "Your caregiver begins the scheduled trial session.", 
       completed: false, 
@@ -122,9 +147,9 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       category: 'trial',
       accessible: false
     },
-    // Conversion Step (12)
+    // Conversion Step (15)
     { 
-      id: 12, 
+      id: 15, 
       title: "Rate & Choose Your Path", 
       description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr) for full support tools. Can skip trial and go directly here after visit confirmation.", 
       completed: false, 
@@ -242,13 +267,50 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
 
       const hasTrialPayment = trialPayments && trialPayments.length > 0;
 
+      // Check caregiver assignments (new steps 9-11)
+      const { data: caregiverAssignments } = await supabase
+        .from('caregiver_assignments')
+        .select('id, caregiver_id, status')
+        .eq('family_user_id', userId)
+        .eq('is_active', true);
+
+      const { data: manualAssignments } = await supabase
+        .from('admin_match_interventions')
+        .select('id, caregiver_id, status')
+        .eq('family_user_id', userId)
+        .eq('status', 'active');
+
+      const hasCaregiverAssigned = (caregiverAssignments && caregiverAssignments.length > 0) || 
+                                    (manualAssignments && manualAssignments.length > 0);
+
+      // Check family onboarding checklist for meeting/start dates
+      const { data: familyChecklist } = await supabase
+        .from('onboarding_checklists')
+        .select('checked_items')
+        .eq('family_id', userId)
+        .maybeSingle();
+
+      let introductionDate: string | null = null;
+      let startDate: string | null = null;
+      try {
+        if (familyChecklist?.checked_items) {
+          const items = typeof familyChecklist.checked_items === 'string' 
+            ? JSON.parse(familyChecklist.checked_items) 
+            : familyChecklist.checked_items;
+          introductionDate = items?.post_onboarding_1_date || null;
+          startDate = items?.post_onboarding_3_date || null;
+        }
+      } catch (e) {
+        console.error('Error parsing family checklist:', e);
+      }
+
       // Update step completion status with enhanced registration logic
       const updatedSteps = steps.map(step => {
         let completed = false;
         let accessible = step.accessible;
         
         switch (step.id) {
-          case 1: // Enhanced Profile completion - matches useEnhancedJourneyProgress logic
+          case 1: // Enhanced Profile completion
             completed = calculateRegistrationCompletion(profile);
             break;
           case 2: // Care assessment
@@ -257,7 +319,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
           case 3: // Legacy story
             completed = !!(careRecipient && careRecipient.full_name);
             break;
-          case 4: // Caregiver matches - aligned with FamilyReadinessChecker (registration + assessment)
+          case 4: // Caregiver matches
             completed = calculateRegistrationCompletion(profile) && !!careAssessment;
             accessible = calculateRegistrationCompletion(profile) && !!careAssessment;
             break;
@@ -274,25 +336,37 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
             completed = profile?.visit_scheduling_status === 'completed';
             accessible = profile?.visit_scheduling_status === 'scheduled';
             break;
-          case 9: // Schedule trial day
+          case 9: // Caregiver Assigned
+            completed = hasCaregiverAssigned;
+            accessible = profile?.visit_scheduling_status === 'completed' || hasCaregiverAssigned;
+            break;
+          case 10: // Initial Family Meeting
+            completed = !!introductionDate;
+            accessible = hasCaregiverAssigned;
+            break;
+          case 11: // Care Begins
+            completed = !!startDate;
+            accessible = !!introductionDate || !!startDate;
+            break;
+          case 12: // Schedule trial day
             completed = hasTrialPayment;
             accessible = profile?.visit_scheduling_status === 'completed';
             break;
-          case 10: // Pay for trial day
+          case 13: // Pay for trial day
             completed = hasTrialPayment;
             accessible = profile?.visit_scheduling_status === 'completed';
             break;
-          case 11: // Begin trial
+          case 14: // Begin trial
             completed = hasTrialPayment;
             accessible = hasTrialPayment;
             break;
-          case 12: // Rate & choose path
+          case 15: // Rate & choose path
             completed = !!visitNotes?.care_model;
             accessible = profile?.visit_scheduling_status === 'completed' || hasTrialPayment;
             break;
         }
         
-        // Add action functions for steps 1, 2, and 3 with consistent edit logic
+        // Add action functions for steps
         let action;
         switch (step.id) {
           case 1:
@@ -312,6 +386,15 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
               const isCompleted = !!(careRecipient && careRecipient.full_name);
               navigate(isCompleted ? '/family/story?edit=true' : '/family/story');
             };
+            break;
+          case 9:
+            action = () => navigate('/family/care-management');
+            break;
+          case 10:
+            action = () => navigate('/family/care-management');
+            break;
+          case 11:
+            action = () => navigate('/family/care-management');
             break;
           default:
             action = undefined;

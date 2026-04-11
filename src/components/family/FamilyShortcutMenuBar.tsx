@@ -41,23 +41,26 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareC
     );
   }
 
-  // Find key journey steps using correct family step IDs:
-  // 1=Profile, 2=Assessment, 3=Legacy Story, 4=Matches, 7=Scheduling
+  // Find key journey steps using step IDs:
+  // 1=Profile, 2=Assessment, 3=Legacy Story, 4=Matches, 7=Scheduling, 9=Caregiver Assigned
   const registrationStep = steps.find(step => step.step_number === 1);
   const careAssessmentStep = steps.find(step => step.step_number === 2);
   const storyStep = steps.find(step => step.step_number === 3);
   const caregiverMatchesStep = steps.find(step => step.step_number === 4);
+  const caregiverAssignedStep = steps.find(step => step.step_number === 9);
 
   // Determine which buttons to show based on journey progress
   const showMilestoneButton = caregiverMatchesStep?.accessible && !caregiverMatchesStep?.completed;
-  // Show story button if step 3 is incomplete OR not accessible yet (safety fallback)
   const showStoryButton = !careRecipient?.id || !careRecipient?.full_name;
   console.log("[FamilyShortcutMenuBar] Story button check:", { careRecipient, showStoryButton, loading });
   const showRegistrationEdit = registrationStep?.completed;
   const showAssessmentEdit = careAssessmentStep?.completed;
   
-  // Show schedule button when matches exist but visit not yet scheduled
-  const showScheduleButton = caregiverMatchesStep?.completed && !isVisitScheduled;
+  // Check if caregiver has been assigned
+  const hasCaregiverAssigned = caregiverAssignedStep?.completed;
+  
+  // Show schedule button when matches exist but visit not yet scheduled AND no caregiver assigned
+  const showScheduleButton = caregiverMatchesStep?.completed && !isVisitScheduled && !hasCaregiverAssigned;
 
   const handleCaregiverMatchesClick = () => {
     handleTrackButtonClick('milestone_achievement', 'view_caregiver_matches');
@@ -72,7 +75,24 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareC
         <div className="flex items-center overflow-x-auto whitespace-nowrap py-1 gap-2">
           <span className="text-sm font-medium text-muted-foreground mr-2">Quick Access:</span>
           
-          {/* Schedule Care - prominent amber button when in scheduling stage */}
+          {/* View Care Team - shown when caregiver is assigned */}
+          {hasCaregiverAssigned && (
+            <Link 
+              to="/family/care-management"
+              onClick={() => handleTrackButtonClick('navigation_click', 'view_care_team')}
+            >
+              <Button 
+                className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white shadow-lg font-semibold"
+                size="sm"
+              >
+                <Users className="h-4 w-4" />
+                <span>View Care Team</span>
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          )}
+
+          {/* Schedule Care - prominent amber button when in scheduling stage (hidden if caregiver assigned) */}
           {showScheduleButton && onScheduleCareClick && (
             <Button 
               onClick={() => {
