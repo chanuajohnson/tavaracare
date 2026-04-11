@@ -7,8 +7,7 @@ import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCarePlanData } from "@/hooks/useCarePlanData";
 import { CareTeamMemberWithProfile } from "@/types/careTypes";
-import { ChefHat, FileText, ClipboardList, Info } from "lucide-react";
-import DocumentGenerationMenu from "@/components/admin/care-plans/DocumentGenerationMenu";
+import { ChefHat, FileText, ClipboardList, Info, Receipt } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -25,6 +24,7 @@ import { RemoveTeamMemberDialog } from "@/components/care-plan/RemoveTeamMemberD
 import { MealPlanner } from "@/components/meal-planning/MealPlanner";
 import { ShiftReportGenerator } from "@/components/care-plan/ShiftReportGenerator";
 import { DailyCareLogsTab } from "@/components/care-plan/DailyCareLogsTab";
+import { DocumentsTab } from "@/components/care-plan/DocumentsTab";
 
 const CarePlanDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -139,19 +139,15 @@ const CarePlanDetailPage = () => {
           </Alert>
         )}
 
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <CarePlanHeader carePlan={carePlan} />
-          <DocumentGenerationMenu
-            familyName={user?.user_metadata?.full_name || familyName || 'Family'}
-            familyEmail={user?.email}
-            carePlanId={id}
-            carePlanTitle={carePlan.title}
-          />
-        </div>
+        <CarePlanHeader carePlan={carePlan} />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-6">
+          <TabsList className="mb-6 flex-wrap">
             <TabsTrigger value="details">Plan Details</TabsTrigger>
+            <TabsTrigger value="documents">
+              <Receipt className="mr-2 h-4 w-4" />
+              Documents
+            </TabsTrigger>
             <TabsTrigger value="team">Care Team</TabsTrigger>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
             <TabsTrigger value="payroll">Payroll & Hours</TabsTrigger>
@@ -173,6 +169,16 @@ const CarePlanDetailPage = () => {
           
           <TabsContent value="details">
             <PlanDetailsTab carePlan={carePlan} />
+          </TabsContent>
+
+          <TabsContent value="documents">
+            <DocumentsTab
+              carePlanId={id}
+              carePlanTitle={carePlan.title}
+              familyId={carePlan.familyId}
+              familyName={user?.user_metadata?.full_name || familyName || 'Family'}
+              familyEmail={user?.email}
+            />
           </TabsContent>
           
           <TabsContent value="team">

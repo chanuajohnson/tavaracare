@@ -64,14 +64,14 @@ export interface CareBillingData {
 
 // ─── Constants ───────────────────────────────────────────────────────
 
-const TAVARA_PURPLE = '#7E69AB';
+const TAVARA_BLUE = '#5B8DEF';
 const TAVARA_TEAL = '#0D9488';
 const PAGE_WIDTH = 816; // 8.5" at 96dpi
 const PAGE_HEIGHT = 1056; // 11" at 96dpi
 
 const COMPANY_INFO = {
   name: 'Tavara.Care',
-  tagline: 'Compassionate Care, Connected',
+  tagline: 'It takes a village to care',
   address: 'Trinidad & Tobago',
   phone: '+1 (868) 123-4567',
   email: 'support@tavara.care',
@@ -92,7 +92,7 @@ const TERMS_AND_CONDITIONS = [
 
 function buildHeader(docType: string, docNumber: string, docDate: string): string {
   return `
-    <div style="background: ${TAVARA_PURPLE}; color: white; padding: 24px 32px; display: flex; justify-content: space-between; align-items: flex-start;">
+    <div style="background: ${TAVARA_BLUE}; color: white; padding: 24px 32px; display: flex; justify-content: space-between; align-items: flex-start;">
       <div>
         <div style="font-size: 28px; font-weight: 700; letter-spacing: 1px;">TAVARA</div>
         <div style="font-size: 11px; opacity: 0.85; margin-top: 2px;">${COMPANY_INFO.tagline}</div>
@@ -160,7 +160,7 @@ function buildLineItemsTable(data: CareBillingData): string {
     <div style="padding: 0 32px; margin-top: 8px;">
       <table style="width: 100%; border-collapse: collapse;">
         <thead>
-          <tr style="background: ${TAVARA_PURPLE}; color: white;">
+          <tr style="background: ${TAVARA_BLUE}; color: white;">
             <th style="padding: 10px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Description</th>
             <th style="padding: 10px 12px; text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Hours</th>
             <th style="padding: 10px 12px; text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Rate</th>
@@ -177,7 +177,7 @@ function buildLineItemsTable(data: CareBillingData): string {
             <span>Subtotal</span>
             <span>$${data.subtotal.toFixed(2)}</span>
           </div>
-          <div style="display: flex; justify-content: space-between; padding: 12px; background: ${TAVARA_PURPLE}; color: white; font-weight: 700; font-size: 14px;">
+          <div style="display: flex; justify-content: space-between; padding: 12px; background: ${TAVARA_BLUE}; color: white; font-weight: 700; font-size: 14px;">
             <span>Total (TTD)</span>
             <span>$${data.total.toFixed(2)}</span>
           </div>
@@ -191,8 +191,8 @@ function buildSubscriptionSection(data: CareBillingData): string {
   if (!data.subscriptionTier) return '';
   return `
     <div style="padding: 16px 32px;">
-      <div style="background: #F0EDFA; border-left: 4px solid ${TAVARA_PURPLE}; padding: 14px 18px; border-radius: 0 6px 6px 0;">
-        <div style="font-size: 12px; font-weight: 700; color: ${TAVARA_PURPLE};">Subscription: ${data.subscriptionTier} — ${data.subscriptionRate || ''}</div>
+      <div style="background: #F0EDFA; border-left: 4px solid ${TAVARA_BLUE}; padding: 14px 18px; border-radius: 0 6px 6px 0;">
+        <div style="font-size: 12px; font-weight: 700; color: ${TAVARA_BLUE};">Subscription: ${data.subscriptionTier} — ${data.subscriptionRate || ''}</div>
         ${data.subscriptionIncludes && data.subscriptionIncludes.length > 0 ? `
           <div style="font-size: 11px; color: #555; margin-top: 6px;">
             <strong>Includes:</strong> ${data.subscriptionIncludes.join(' · ')}
@@ -220,7 +220,7 @@ function buildFooter(message: string): string {
       <div style="font-size: 10px; color: #888;">
         ${COMPANY_INFO.name} · ${COMPANY_INFO.email} · ${COMPANY_INFO.phone}
       </div>
-      <div style="font-size: 10px; color: ${TAVARA_PURPLE}; font-weight: 600;">
+      <div style="font-size: 10px; color: ${TAVARA_BLUE}; font-weight: 600;">
         ${message}
       </div>
     </div>
@@ -365,7 +365,7 @@ export async function generateReceiptPDF(data: CareBillingData): Promise<void> {
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
             <div style="font-size: 12px; color: #555;">Amount Paid</div>
-            <div style="font-size: 16px; font-weight: 700; color: ${TAVARA_PURPLE};">TTD $${amountPaid.toFixed(2)}</div>
+            <div style="font-size: 16px; font-weight: 700; color: ${TAVARA_BLUE};">TTD $${amountPaid.toFixed(2)}</div>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
             <div style="font-size: 12px; color: #555;">Amount in Words</div>
@@ -409,8 +409,9 @@ export async function generateReceiptPDF(data: CareBillingData): Promise<void> {
  */
 export function buildDefaultCareBillingData(overrides: Partial<CareBillingData> & { familyName: string }): CareBillingData {
   const nurseRate = 35;
-  const platformFee = 5;
   const hoursPerWeek = 40;
+  const nursingTotal = nurseRate * hoursPerWeek;
+  const subscriptionRate = 199.99; // Family Care weekly
 
   return {
     familyName: overrides.familyName,
@@ -425,22 +426,16 @@ export function buildDefaultCareBillingData(overrides: Partial<CareBillingData> 
         description: 'Nursing Care (Standard Tier)',
         hoursPerWeek,
         ratePerHour: nurseRate,
-        amount: nurseRate * hoursPerWeek,
+        amount: nursingTotal,
       },
       {
-        description: 'Tavara Platform Management Fee',
-        hoursPerWeek,
-        ratePerHour: platformFee,
-        amount: platformFee * hoursPerWeek,
-      },
-      {
-        description: 'NIS Coverage (National Insurance)',
-        amount: 0,
-        note: '(included)',
+        description: 'Family Care Plan — Care Management & Coordination',
+        amount: subscriptionRate,
+        note: '(weekly)',
       },
     ],
-    subtotal: overrides.subtotal ?? (nurseRate + platformFee) * hoursPerWeek,
-    total: overrides.total ?? (nurseRate + platformFee) * hoursPerWeek,
+    subtotal: overrides.subtotal ?? (nursingTotal + subscriptionRate),
+    total: overrides.total ?? (nursingTotal + subscriptionRate),
     subscriptionTier: overrides.subscriptionTier || 'Family Care',
     subscriptionRate: overrides.subscriptionRate || '$199.99/week',
     subscriptionIncludes: overrides.subscriptionIncludes || [
@@ -459,7 +454,7 @@ export function buildDefaultCareBillingData(overrides: Partial<CareBillingData> 
     paymentDate: overrides.paymentDate,
     amountPaid: overrides.amountPaid,
     additionalNotes: overrides.additionalNotes || [
-      'NIS (National Insurance) contributions for the assigned caregiver are covered by Tavara.',
+      'NIS (National Insurance) contributions for the assigned caregiver are included and covered by Tavara as required by Trinidad & Tobago law.',
       'Tavara provides continuity of care — if your assigned caregiver is unavailable, a qualified replacement will be provided at no extra charge.',
       'Rate adjustments may apply if care needs change (e.g., disease progression, additional services).',
     ],

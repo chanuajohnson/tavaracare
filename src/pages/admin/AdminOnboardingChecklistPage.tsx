@@ -71,7 +71,7 @@ function ChecklistTabContent({
   loadingProfiles: boolean;
   selectedId: string;
   setSelectedId: (id: string) => void;
-  checkedItems: Record<string, boolean>;
+  checkedItems: Record<string, boolean | string>;
   toggleItem: (sectionId: string, index: number) => void;
   notes: OnboardingNote[];
   handleAddNote: (note: OnboardingNote) => void;
@@ -288,7 +288,7 @@ export default function AdminOnboardingChecklistPage() {
   const [families, setFamilies] = useState<ProfileOption[]>([]);
   const [loadingFamilies, setLoadingFamilies] = useState(true);
   const [selectedFamilyId, setSelectedFamilyId] = useState("");
-  const [familyCheckedItems, setFamilyCheckedItems] = useState<Record<string, boolean>>({});
+  const [familyCheckedItems, setFamilyCheckedItems] = useState<Record<string, boolean | string>>({});
   const [familyNotes, setFamilyNotes] = useState<OnboardingNote[]>([]);
   const [familyOpenSections, setFamilyOpenSections] = useState<Record<string, boolean>>({});
   const familySaveTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -406,7 +406,7 @@ export default function AdminOnboardingChecklistPage() {
 
   // Family save
   const saveFamilyToSupabase = useCallback(
-    (items: Record<string, boolean>, notesList: OnboardingNote[]) => {
+    (items: Record<string, boolean | string>, notesList: OnboardingNote[]) => {
       if (!selectedFamilyId) return;
       if (familySaveTimerRef.current) clearTimeout(familySaveTimerRef.current);
       familySaveTimerRef.current = setTimeout(async () => {
@@ -516,6 +516,52 @@ export default function AdminOnboardingChecklistPage() {
         </TabsList>
 
         <TabsContent value="family">
+          {selectedFamilyId && (
+            <Card className="mb-4">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm font-semibold">Billing Configuration</h3>
+                    <p className="text-xs text-muted-foreground">Set the service start date and billing cadence for this family</p>
+                  </div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs whitespace-nowrap">Start Date</Label>
+                      <input
+                        type="date"
+                        className="border rounded px-2 py-1 text-sm"
+                        value={familyCheckedItems.billing_start_date as string || ''}
+                        onChange={(e) => {
+                          const next = { ...familyCheckedItems, billing_start_date: e.target.value };
+                          setFamilyCheckedItems(next);
+                          saveFamilyToSupabase(next, familyNotes);
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs whitespace-nowrap">Cadence</Label>
+                      <Select
+                        value={(familyCheckedItems.billing_cadence as string) || 'weekly'}
+                        onValueChange={(v) => {
+                          const next = { ...familyCheckedItems, billing_cadence: v };
+                          setFamilyCheckedItems(next);
+                          saveFamilyToSupabase(next, familyNotes);
+                        }}
+                      >
+                        <SelectTrigger className="w-[120px] h-8 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {selectedFamilyId && (
             <Card className="mb-4">
               <CardContent className="pt-4 pb-4">
