@@ -9,11 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { format } from "date-fns";
 import {
   ArrowLeft, ChevronDown, ClipboardCheck, Monitor, FileText,
   Pill, UtensilsCrossed, ListChecks, LayoutDashboard, MessageSquare,
   Heart, Users, CalendarCheck, Loader2, CheckCircle2, Circle, DollarSign,
-  ExternalLink
+  ExternalLink, CalendarIcon
 } from "lucide-react";
 import { ONBOARDING_SECTION_DEFS, getTotalItems } from "@/components/admin/onboarding/onboardingSections";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
