@@ -339,6 +339,7 @@ function ChecklistTabContent({
   idColumn,
   showFamilyData,
   showProfessionalData,
+  onDownloadReport,
 }: {
   profiles: ProfileOption[];
   loadingProfiles: boolean;
@@ -360,6 +361,7 @@ function ChecklistTabContent({
   idColumn: string;
   showFamilyData?: boolean;
   showProfessionalData?: boolean;
+  onDownloadReport?: () => void;
 }) {
   const publicGuideUrl = `${window.location.origin}/onboarding-guide`;
   const copyPublicLink = () => {
