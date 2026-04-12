@@ -114,8 +114,16 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
 
         // Also handle array-based times format (legacy support)
         if (med.schedule?.times && Array.isArray(med.schedule.times)) {
-          med.schedule.times.forEach((time: string) => {
+          med.schedule.times.forEach((timeEntry: any) => {
+            // Handle both string times ("08:00") and object times ({time: "08:00", withFood: true})
+            const time = typeof timeEntry === 'object' && timeEntry !== null
+              ? String(timeEntry.time || '08:00')
+              : String(timeEntry);
+            
             const doseDateTime = new Date(`${format(date, 'yyyy-MM-dd')}T${time}`);
+            
+            // Skip invalid dates
+            if (isNaN(doseDateTime.getTime())) return;
             
             const administered = med.recent_administrations?.some(admin => {
               const adminDate = new Date(admin.administered_at);
@@ -129,6 +137,19 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
                      Math.abs(adminDate.getTime() - doseDateTime.getTime()) < 2 * 60 * 60 * 1000;
             });
 
+            // Build enhanced instructions from object flags
+            let enhancedInstructions = med.instructions || '';
+            if (typeof timeEntry === 'object' && timeEntry !== null) {
+              const flags: string[] = [];
+              if (timeEntry.withFood) flags.push('Take with food');
+              if (timeEntry.beforeBed) flags.push('Take before bed');
+              if (flags.length > 0) {
+                enhancedInstructions = enhancedInstructions
+                  ? `${enhancedInstructions} — ${flags.join(', ')}`
+                  : flags.join(', ');
+              }
+            }
+
             doses.push({
               medicationId: med.id,
               medicationName: med.name,
@@ -138,7 +159,7 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
               administered: !!administered,
               administrationId: administrationRecord?.id,
               conflictDetected: false,
-              instructions: med.instructions
+              instructions: enhancedInstructions
             });
           });
         }

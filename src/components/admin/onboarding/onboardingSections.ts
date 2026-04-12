@@ -20,6 +20,31 @@ export interface OnboardingSectionDef {
 
 export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
   {
+    id: "medication_confirmation",
+    title: "Medication Confirmation",
+    iconName: "Pill",
+    description: "Review and confirm all medications, dosages, and instructions for the care recipient",
+    items: [
+      "Review all medications listed below — verify names, dosages, and schedules are correct",
+      "Confirm any special instructions (take with food, before bed, etc.)",
+      "Report any missing medications or changes to your care coordinator",
+    ],
+    showFamilyData: true,
+  },
+  {
+    id: "emergency_contacts",
+    title: "Emergency Contact Verification",
+    iconName: "Users",
+    description: "Verify emergency contact details are accurate and up to date",
+    items: [
+      "Confirm emergency contact name and relationship are correct",
+      "Verify emergency contact phone number is current and reachable",
+      "Confirm primary contact details are accurate",
+      "Report any changes to your care coordinator immediately",
+    ],
+    showFamilyData: true,
+  },
+  {
     id: "pre_call",
     title: "Pre-Call Preparation",
     iconName: "ClipboardCheck",

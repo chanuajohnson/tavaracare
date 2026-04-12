@@ -15,7 +15,7 @@ import {
   ArrowLeft, ChevronDown, ClipboardCheck, Monitor, FileText,
   Pill, UtensilsCrossed, ListChecks, LayoutDashboard, MessageSquare,
   Heart, Users, CalendarCheck, Loader2, CheckCircle2, Circle, DollarSign,
-  ExternalLink, CalendarIcon
+  ExternalLink, CalendarIcon, AlertCircle, FileCheck, Phone
 } from "lucide-react";
 import { ONBOARDING_SECTION_DEFS, getTotalItems } from "@/components/admin/onboarding/onboardingSections";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
@@ -188,6 +188,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Heart: <Heart className="h-5 w-5" />,
   Monitor: <Monitor className="h-5 w-5" />,
   FileText: <FileText className="h-5 w-5" />,
+  FileCheck: <FileCheck className="h-5 w-5" />,
   Pill: <Pill className="h-5 w-5" />,
   UtensilsCrossed: <UtensilsCrossed className="h-5 w-5" />,
   ListChecks: <ListChecks className="h-5 w-5" />,
@@ -207,21 +208,57 @@ export default function FamilyOnboardingChecklistPage() {
   const [loading, setLoading] = useState(true);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [hasChecklist, setHasChecklist] = useState(false);
+  const [medications, setMedications] = useState<any[]>([]);
+  const [emergencyContacts, setEmergencyContacts] = useState<{
+    emergency_contact_name?: string;
+    emergency_contact_phone?: string;
+    emergency_contact_relationship?: string;
+    primary_contact_name?: string;
+    primary_contact_phone?: string;
+  }>({});
 
   useEffect(() => {
     if (!user?.id) return;
     const load = async () => {
       try {
-        const { data, error } = await supabase
-          .from("onboarding_checklists")
-          .select("checked_items, notes")
-          .eq("family_id", user.id)
-          .maybeSingle();
-        if (error) throw error;
-        if (data) {
+        // Load checklist, medications, and emergency contacts in parallel
+        const [checklistRes, carePlansRes, careNeedsRes] = await Promise.all([
+          supabase
+            .from("onboarding_checklists")
+            .select("checked_items, notes")
+            .eq("family_id", user.id)
+            .maybeSingle(),
+          supabase
+            .from("care_plans")
+            .select("id, title")
+            .eq("family_id", user.id),
+          supabase
+            .from("care_needs_family")
+            .select("emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, primary_contact_name, primary_contact_phone")
+            .eq("profile_id", user.id)
+            .maybeSingle(),
+        ]);
+
+        if (checklistRes.error) throw checklistRes.error;
+        if (checklistRes.data) {
           setHasChecklist(true);
-          setCheckedItems((data.checked_items as unknown as Record<string, boolean | string>) || {});
-          setNotes((data.notes as unknown as OnboardingNote[]) || []);
+          setCheckedItems((checklistRes.data.checked_items as unknown as Record<string, boolean | string>) || {});
+          setNotes((checklistRes.data.notes as unknown as OnboardingNote[]) || []);
+        }
+
+        // Fetch medications for all care plans
+        if (carePlansRes.data && carePlansRes.data.length > 0) {
+          const carePlanIds = carePlansRes.data.map((cp: any) => cp.id);
+          const { data: medsData } = await supabase
+            .from("medications")
+            .select("id, name, dosage, frequency, instructions, schedule, care_plan_id")
+            .in("care_plan_id", carePlanIds);
+          if (medsData) setMedications(medsData);
+        }
+
+        // Set emergency contacts
+        if (careNeedsRes.data) {
+          setEmergencyContacts(careNeedsRes.data);
         }
       } catch (err) {
         console.error("Failed to load onboarding checklist:", err);
@@ -393,6 +430,93 @@ export default function FamilyOnboardingChecklistPage() {
                           );
                         })}
                 </div>
+
+                {section.id === "medication_confirmation" && medications.length > 0 && (
+                  <div className="mt-3 space-y-2 rounded-lg border border-blue-200 bg-blue-50/50 p-4">
+                    <h5 className="text-sm font-semibold flex items-center gap-2 text-blue-900 mb-3">
+                      <Pill className="h-4 w-4" /> Your Medications on File
+                    </h5>
+                    {medications.map((med) => {
+                      const schedule = med.schedule as any;
+                      const times = schedule?.times;
+                      const timeDisplay = Array.isArray(times)
+                        ? times.map((t: any) => typeof t === 'object' ? t.time : t).join(', ')
+                        : '';
+                      return (
+                        <div key={med.id} className="rounded-md border bg-card p-3 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-sm">{med.name}</span>
+                            {med.dosage && <Badge variant="secondary" className="text-xs">{med.dosage}</Badge>}
+                          </div>
+                          {med.frequency && (
+                            <p className="text-xs text-muted-foreground">Frequency: {med.frequency}</p>
+                          )}
+                          {timeDisplay && (
+                            <p className="text-xs text-muted-foreground">Schedule: {timeDisplay}</p>
+                          )}
+                          {med.instructions && (
+                            <p className="text-xs text-muted-foreground">Instructions: {med.instructions}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {medications.length === 0 && (
+                      <p className="text-sm text-muted-foreground italic">No medications have been added yet.</p>
+                    )}
+                  </div>
+                )}
+
+                {section.id === "medication_confirmation" && medications.length === 0 && (
+                  <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-amber-600" />
+                      <p className="text-sm text-amber-800">No medications have been added to your care plan yet. Your coordinator will set these up during onboarding.</p>
+                    </div>
+                  </div>
+                )}
+
+                {section.id === "emergency_contacts" && (
+                  <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50/50 p-4">
+                    <h5 className="text-sm font-semibold flex items-center gap-2 text-blue-900 mb-3">
+                      <Phone className="h-4 w-4" /> Emergency & Primary Contacts on File
+                    </h5>
+                    {(emergencyContacts.emergency_contact_name || emergencyContacts.primary_contact_name) ? (
+                      <div className="space-y-3">
+                        {emergencyContacts.emergency_contact_name && (
+                          <div className="rounded-md border bg-card p-3">
+                            <p className="text-sm font-medium">🚨 Emergency Contact</p>
+                            <p className="text-sm">{emergencyContacts.emergency_contact_name}
+                              {emergencyContacts.emergency_contact_relationship && (
+                                <span className="text-muted-foreground"> ({emergencyContacts.emergency_contact_relationship})</span>
+                              )}
+                            </p>
+                            {emergencyContacts.emergency_contact_phone && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                <Phone className="h-3 w-3" /> {emergencyContacts.emergency_contact_phone}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {emergencyContacts.primary_contact_name && (
+                          <div className="rounded-md border bg-card p-3">
+                            <p className="text-sm font-medium">📞 Primary Contact</p>
+                            <p className="text-sm">{emergencyContacts.primary_contact_name}</p>
+                            {emergencyContacts.primary_contact_phone && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                <Phone className="h-3 w-3" /> {emergencyContacts.primary_contact_phone}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-amber-600" />
+                        <p className="text-sm text-amber-800">No emergency contacts found. Please complete your care assessment to add emergency contacts.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {section.id === "rates_and_changes" && (
                   <RateTierReferenceCard />
