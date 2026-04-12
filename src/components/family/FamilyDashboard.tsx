@@ -174,6 +174,12 @@ const FamilyDashboard = () => {
           </div>
         )}
 
+        {/* Caregiver Readiness Card — shows onboarding progress of assigned professional */}
+        {user && (
+          <div className="mt-4">
+            <CaregiverReadinessCard />
+          </div>
+
         {user && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
