@@ -111,7 +111,7 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
       title: "Get Started with Care", 
       description: "Begin your care journey with a scheduled visit from our care coordinators", 
       completed: false, 
-      category: 'scheduling',
+      category: 'foundation',
       link: "/family/schedule-visit",
       accessible: true
     },
