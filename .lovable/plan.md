@@ -1,65 +1,88 @@
 
 
-## Plan: Multi-Family Professional Checklists + Note Edit/Delete
+## Plan: Note Acknowledgment & Response System for Professionals
 
-### Analysis
+### Context
+Currently, admin notes on the professional's onboarding checklist are read-only. The professional (e.g., Trisha) can see notes like "Test Note" but has no way to signal she's read them or respond. The user wants a respectful, lightweight acknowledgment system -- not a full chat thread.
 
-**Question 1: Multiple onboarding checklists per professional**
+### Research-Informed Design Decision
 
-Currently, the `professional_onboarding_checklists` table has a `UNIQUE (professional_id)` constraint -- meaning each professional gets exactly ONE checklist row. The "Assigned Family" dropdown stores a single `assigned_family_id` inside the `checked_items` JSON. So if Trisha Calm is assigned to two families, she can only have one checklist with one linked family.
+After considering common patterns for this kind of one-directional communication with acknowledgment:
 
-**To support per-family checklists**, we need to:
+1. **Read receipts only** (e.g., Slack "seen by") -- too passive, no way to ask a question
+2. **Full comment threads** -- too heavy, creates back-and-forth the user explicitly doesn't want
+3. **Acknowledge + single reply** (best fit) -- professional can mark "Acknowledged" and optionally leave one brief response. Admin sees the status change and response. No further threading.
 
-1. **Change the DB schema**: Replace the `UNIQUE (professional_id)` constraint with `UNIQUE (professional_id, family_id)`, adding a proper `family_id` column to `professional_onboarding_checklists`.
-2. **Update the admin UI**: When a professional is selected, show which families they're assigned to (from `care_team_members`), let the admin pick one, and load/save the checklist for that specific professional+family pair.
-3. **Update the upsert logic**: Change `onConflict: "professional_id"` to `onConflict: "professional_id,family_id"`.
+This mirrors patterns used in medical/care handoff systems: the sender posts an instruction, the receiver acknowledges and can add a brief clarifying note. It's respectful, bounded, and auditable.
 
-**Question 2: Edit/delete notes**
+### What changes
 
-The `OnboardingNotesCard` component currently only has an "Add Note" flow. Notes are stored as a JSON array. Adding edit and delete is straightforward:
+**1. Extend the `OnboardingNote` interface**
 
-- Add a pencil (edit) and trash (delete) icon button to each note row
-- Edit opens an inline editor or replaces the text with a textarea
-- Delete removes the note from the array after confirmation
-- Both trigger the save-to-Supabase debounce
+Add two new optional fields:
+- `acknowledged_at?: string` -- timestamp when professional marked it read
+- `acknowledged_by?: string` -- who acknowledged (user ID or name)
+- `response_text?: string` -- optional brief response from professional
+- `response_at?: string` -- timestamp of response
 
-### Changes
+**2. Update `OnboardingNotesCard` component**
+
+When `readOnly` is true (professional/family view), each note will show:
+- An "Acknowledge" button (checkmark icon) if not yet acknowledged
+- A green "Acknowledged" badge with timestamp if already acknowledged
+- A small "Add Response" text button that expands a single-line textarea (max 280 chars) for one brief reply
+- Once a response is submitted, it shows below the note as an indented reply with the professional's name and timestamp
+- Response is one-time only -- once submitted, it becomes read-only
+
+When `readOnly` is false (admin view), admin sees:
+- The acknowledgment status (pending/acknowledged) for each note
+- Any response the professional left, displayed below the note
+
+**3. Add callbacks for professional-side persistence**
+
+New props on `OnboardingNotesCard`:
+- `onAcknowledgeNote?: (index: number) => void`
+- `onRespondToNote?: (index: number, responseText: string) => void`
+
+**4. Update `ProfessionalOnboardingChecklistPage.tsx`**
+
+- Wire up `onAcknowledgeNote` and `onRespondToNote` to update the notes array in the checklist's `checked_items` JSON and save to Supabase
+- Professional can only acknowledge/respond to notes assigned to "caregiver"
+
+**5. Update `FamilyOnboardingChecklistPage.tsx`**
+
+- Same pattern: family members can acknowledge/respond to notes assigned to "family"
+
+### UI mockup (professional view)
+
+```text
+┌─────────────────────────────────────────────┐
+│ 📝 Notes & Action Items                    │
+├─────────────────────────────────────────────┤
+│ Please confirm podiatry needs with family   │
+│ 🏢 Admin · Apr 12, 2026 11:26 AM          │
+│                                             │
+│   [✓ Acknowledge]  [Reply]                  │
+├─────────────────────────────────────────────┤
+│ After acknowledgment:                       │
+│                                             │
+│ Please confirm podiatry needs with family   │
+│ 🏢 Admin · Apr 12, 2026 11:26 AM          │
+│ ✅ Acknowledged · Apr 12, 2026 11:30 AM    │
+│                                             │
+│   ↳ "Confirmed with Mrs. Chan, noted in     │
+│      care plan." — Trisha · 11:31 AM        │
+└─────────────────────────────────────────────┘
+```
+
+### Files to modify
 
 | File | Change |
 |------|--------|
-| **Migration** | Add `family_id` column to `professional_onboarding_checklists`, drop old unique constraint, add new composite unique on `(professional_id, family_id)`, update RLS |
-| **`AdminOnboardingChecklistPage.tsx`** | When professional is selected, fetch their assigned families from `care_team_members`, show a family selector, load/save checklist by `(professional_id, family_id)` pair instead of just `professional_id` |
-| **`OnboardingNotesCard.tsx`** | Add `onEditNote` and `onDeleteNote` callback props. Render edit (pencil) and delete (trash) buttons on each note. Inline editing via textarea. Confirmation dialog on delete |
-| **`AdminOnboardingChecklistPage.tsx`** | Add `handleFamilyEditNote`, `handleFamilyDeleteNote`, `handleProfEditNote`, `handleProfDeleteNote` functions that update the notes array and trigger save |
+| `src/components/admin/onboarding/OnboardingNotesCard.tsx` | Add acknowledge/response UI, new props, extended note rendering |
+| `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx` | Wire up acknowledge/respond handlers, save to Supabase |
+| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Same handlers for family-assigned notes |
 
-### Technical Details
-
-**Migration SQL (conceptual)**:
-```sql
-ALTER TABLE professional_onboarding_checklists 
-  ADD COLUMN family_id uuid REFERENCES profiles(id);
-
--- Migrate existing data: copy assigned_family_id from checked_items JSON
-UPDATE professional_onboarding_checklists 
-  SET family_id = (checked_items->>'assigned_family_id')::uuid
-  WHERE checked_items->>'assigned_family_id' IS NOT NULL;
-
-ALTER TABLE professional_onboarding_checklists 
-  DROP CONSTRAINT unique_professional_onboarding;
-
-ALTER TABLE professional_onboarding_checklists 
-  ADD CONSTRAINT unique_professional_family_onboarding 
-  UNIQUE (professional_id, family_id);
-```
-
-**Professional tab flow change**:
-- Select professional -> fetch their care_team_members assignments -> populate "Assigned Family" dropdown with only those families
-- Selecting a family loads the checklist for that specific (professional, family) pair
-- Each family gets its own independent checklist, notes, and progress
-
-**Notes edit/delete**:
-- Each note gets a small edit (Pencil) and delete (Trash2) icon
-- Edit: toggles inline textarea, save button commits change
-- Delete: `window.confirm()` then removes from array
-- Both call the parent's save function to persist to Supabase
+### No database migration needed
+The notes are stored as a JSON array inside `checked_items`. Adding `acknowledged_at`, `acknowledged_by`, `response_text`, and `response_at` fields to each note object in JSON requires no schema change.
 
