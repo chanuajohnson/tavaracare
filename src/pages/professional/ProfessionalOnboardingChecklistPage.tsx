@@ -398,6 +398,8 @@ export default function ProfessionalOnboardingChecklistPage() {
             notes={notes}
             onAddNote={() => {}}
             readOnly
+            onAcknowledgeNote={handleAcknowledgeNote}
+            onRespondToNote={handleRespondToNote}
           />
         </div>
       </div>
