@@ -431,6 +431,93 @@ export default function FamilyOnboardingChecklistPage() {
                         })}
                 </div>
 
+                {section.id === "medication_confirmation" && medications.length > 0 && (
+                  <div className="mt-3 space-y-2 rounded-lg border border-blue-200 bg-blue-50/50 p-4">
+                    <h5 className="text-sm font-semibold flex items-center gap-2 text-blue-900 mb-3">
+                      <Pill className="h-4 w-4" /> Your Medications on File
+                    </h5>
+                    {medications.map((med) => {
+                      const schedule = med.schedule as any;
+                      const times = schedule?.times;
+                      const timeDisplay = Array.isArray(times)
+                        ? times.map((t: any) => typeof t === 'object' ? t.time : t).join(', ')
+                        : '';
+                      return (
+                        <div key={med.id} className="rounded-md border bg-card p-3 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-sm">{med.name}</span>
+                            {med.dosage && <Badge variant="secondary" className="text-xs">{med.dosage}</Badge>}
+                          </div>
+                          {med.frequency && (
+                            <p className="text-xs text-muted-foreground">Frequency: {med.frequency}</p>
+                          )}
+                          {timeDisplay && (
+                            <p className="text-xs text-muted-foreground">Schedule: {timeDisplay}</p>
+                          )}
+                          {med.instructions && (
+                            <p className="text-xs text-muted-foreground">Instructions: {med.instructions}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {medications.length === 0 && (
+                      <p className="text-sm text-muted-foreground italic">No medications have been added yet.</p>
+                    )}
+                  </div>
+                )}
+
+                {section.id === "medication_confirmation" && medications.length === 0 && (
+                  <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-amber-600" />
+                      <p className="text-sm text-amber-800">No medications have been added to your care plan yet. Your coordinator will set these up during onboarding.</p>
+                    </div>
+                  </div>
+                )}
+
+                {section.id === "emergency_contacts" && (
+                  <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50/50 p-4">
+                    <h5 className="text-sm font-semibold flex items-center gap-2 text-blue-900 mb-3">
+                      <Phone className="h-4 w-4" /> Emergency & Primary Contacts on File
+                    </h5>
+                    {(emergencyContacts.emergency_contact_name || emergencyContacts.primary_contact_name) ? (
+                      <div className="space-y-3">
+                        {emergencyContacts.emergency_contact_name && (
+                          <div className="rounded-md border bg-card p-3">
+                            <p className="text-sm font-medium">🚨 Emergency Contact</p>
+                            <p className="text-sm">{emergencyContacts.emergency_contact_name}
+                              {emergencyContacts.emergency_contact_relationship && (
+                                <span className="text-muted-foreground"> ({emergencyContacts.emergency_contact_relationship})</span>
+                              )}
+                            </p>
+                            {emergencyContacts.emergency_contact_phone && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                <Phone className="h-3 w-3" /> {emergencyContacts.emergency_contact_phone}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {emergencyContacts.primary_contact_name && (
+                          <div className="rounded-md border bg-card p-3">
+                            <p className="text-sm font-medium">📞 Primary Contact</p>
+                            <p className="text-sm">{emergencyContacts.primary_contact_name}</p>
+                            {emergencyContacts.primary_contact_phone && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                <Phone className="h-3 w-3" /> {emergencyContacts.primary_contact_phone}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-amber-600" />
+                        <p className="text-sm text-amber-800">No emergency contacts found. Please complete your care assessment to add emergency contacts.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {section.id === "rates_and_changes" && (
                   <RateTierReferenceCard />
                 )}
