@@ -1,56 +1,31 @@
 
 
-## Plan: Categorize WhatsApp Nudge Templates by Role and Stage
+## Plan: Replace Hardcoded `tavaracare.lovable.app` URLs with Dynamic Production Domain
 
 ### Problem
-The WhatsApp Nudge System page (`/admin/whatsapp-nudge`) shows all templates in a flat, unsorted grid. With many templates now, it's hard to find the right one. The user needs templates grouped by **role** (Professional / Family / Community) and **stage** (e.g., registration, onboarding, post-onboarding, ready to commence).
+All WhatsApp nudge messages and "Copy Link" buttons hardcode `https://tavaracare.lovable.app` as the domain. When these links are shared to users (like Denise), they point to the Lovable preview domain instead of the live production domain `https://tavara.care`.
 
 ### Solution
-Reorganize the `WhatsAppTemplateManager` to display templates in collapsible sections grouped by role, then sub-grouped by stage within each role.
+Create a shared utility constant for the production base URL (`https://tavara.care`) and replace all hardcoded `tavaracare.lovable.app` references across WhatsApp message builders, copy-link buttons, and other user-facing URLs.
 
-### Changes to `src/components/admin/WhatsAppTemplateManager.tsx`
-
-**1. Fetch the `stage` field from the database**
-Currently `stage` is stored in `nudge_templates` but not mapped to the UI interface. Add `stage` to the `WhatsAppTemplate` interface and include it in the mapped data.
-
-**2. Add role filter tabs**
-Add filter buttons at the top: **All** | **Professional** | **Family** | **Community** so the admin can quickly narrow down.
-
-**3. Group templates by stage within the selected role**
-Within each role filter, group templates by their `stage` field (e.g., "Registration", "Screening", "Onboarding", "Post-Onboarding", "Ready to Commence", "Manual"). Each group gets a clear heading with a count badge.
-
-**4. Add a search input**
-A simple text search to filter templates by title or message content for quick lookup.
-
-**5. Sort order**
-Templates sorted by role, then by stage in a logical journey order (registration -> screening -> onboarding -> post-onboarding -> manual).
-
-### UI Layout
-```text
-[Search: _______________]  [All | Professional | Family | Community]  [+ Create Template]
-
-── Professional (8 templates) ──────────────────────────
-  📋 Registration (2)
-    [Card] [Card]
-  
-  📋 Post-Onboarding (3)
-    [Card] [Card] [Card]
-  
-  📋 Ready to Commence (1)
-    [Card]
-
-── Family (5 templates) ────────────────────────────────
-  📋 Registration (2)
-    [Card] [Card]
-  ...
-```
+For WhatsApp messages (which are composed in the admin panel but sent externally), we use the fixed production domain `https://tavara.care` — not `window.location.origin` — because the admin may be on a preview/dev URL but the links must always point to production for the end user.
 
 ### Files to modify
 
-| File | Change |
-|------|--------|
-| `src/components/admin/WhatsAppTemplateManager.tsx` | Add stage to interface, add role filter tabs, group by stage, add search, add stage to create/edit form |
+| File | What changes |
+|------|-------------|
+| `src/utils/urlConstants.ts` | **New file** — export `PRODUCTION_BASE_URL = "https://tavara.care"` |
+| `src/components/admin/UserNudgeTab.tsx` | Replace all `https://tavaracare.lovable.app` with `PRODUCTION_BASE_URL` (~12 occurrences across all nudge builders) |
+| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Replace `publishedBase = "https://tavaracare.lovable.app"` with `PRODUCTION_BASE_URL` for copy-link buttons |
+| `src/components/admin/UserMatchingActions.tsx` | Replace hardcoded URL in deactivation message |
+| `src/components/professional/DailyChecklist.tsx` | Replace hardcoded URL in daily log summary link |
+| `src/services/care-plans/invoiceService.ts` | Replace hardcoded website URL in invoice config |
+| `src/components/care-plan/ShareScheduleModal.tsx` | Already uses `window.location.origin` — no change needed |
+| `src/components/marketing/CaregiverShareCard.tsx` | Replace hardcoded URL in QR code |
+| `src/components/professional/profile/AdminAssistantCard.tsx` | Replace hardcoded PDF download URLs (these are static assets, may need separate handling) |
 
-### No migration needed
-The `stage` field already exists in `nudge_templates`. This is frontend-only.
+### Technical detail
+- A single `PRODUCTION_BASE_URL` constant ensures one place to update if the domain ever changes
+- WhatsApp messages and external-facing links always use the production domain regardless of where the admin is logged in
+- PDF document links (Nurse Handbook, Daily Checklist) in `AdminAssistantCard.tsx` and `DailyChecklist.tsx` point to `/documents/` — these will also use the production base URL
 
