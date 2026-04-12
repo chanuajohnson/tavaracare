@@ -1,57 +1,28 @@
 
 
-## Plan: Allow Caregivers to Undo/Delete Medication Administrations
+## Plan: Fix Family Dashboard Quick Access + Care Coordination UX
 
-### Problem
-Currently, there is no way for a caregiver to undo or delete a medication administration recorded in error. The database has no DELETE or UPDATE RLS policy on `medication_administrations`, and the service layer has no delete/undo method. The UI has no button for this action.
+### Issues Identified
 
-### Solution
-Add the ability for a caregiver to delete their own administration records (only records they personally created). This requires changes at three layers: database RLS, service, and UI.
+1. **"View Care Team" button is redundant** — The "Care Plans" button already links to `/family/care-management`, same destination. Remove it.
 
-### Changes
+2. **"Get Started with Care" step shown even when caregiver is already assigned** — This step (step 7) should be visually de-emphasized or hidden once the caregiver is assigned (step 9 completed), since the family has progressed past that point. However, the step is part of the journey timeline and removing it entirely would break the step count. Instead, the user's screenshot shows it in the Care Coordination stage card — the issue is that it still shows "View Care Giver Matches" as the action text even though a caregiver is already assigned. We should update the button text and behavior for step 7 when a caregiver is assigned.
 
-**1. Database Migration** -- Add DELETE RLS policy on `medication_administrations`
-- Allow users to delete only rows where `administered_by = auth.uid()` (you can only undo your own entries)
-- Admins can delete any administration record
+3. **"Initial Family Meeting" Complete button goes nowhere** — Step 10's action navigates to `/family/care-management`, but clicking "Complete" doesn't actually mark it complete. Completion is determined by `introductionDate` which comes from `familyChecklist.checked_items.post_onboarding_1_date` in the admin checklist. The family user has no way to mark this themselves — it must be done via the admin onboarding checklist. The "Complete" button text is misleading. We need to either:
+   - Change the button text to something like "Pending Admin Confirmation" or "View Details" 
+   - Or allow the family to mark the meeting as done (with admin override)
 
-```sql
-CREATE POLICY "Users can delete their own administrations"
-ON medication_administrations
-FOR DELETE
-TO authenticated
-USING (administered_by = auth.uid());
-
-CREATE POLICY "Admins can delete any administration"
-ON medication_administrations
-FOR DELETE
-TO authenticated
-USING (has_role(auth.uid(), 'admin'::app_role));
-```
-
-**2. Service Layer** -- `src/services/medicationService.ts`
-- Add a `deleteAdministration(administrationId: string)` method that calls `supabase.from('medication_administrations').delete().eq('id', administrationId)`
-
-**3. Professional UI** -- `src/components/professional/MedicationDashboard.tsx`
-- In the administration history / medication cards, add a small "Undo" or trash icon button next to each administration record that the current user created
-- Clicking it shows a confirmation dialog ("Are you sure you want to remove this administration record?")
-- On confirm, calls the delete method and refreshes the list
-
-**4. Family UI** -- `src/components/care-plan/MedicationsTab.tsx`
-- In the "Recent Administration Log" section, add the same undo button for entries where `administered_by` matches the current user
-- Same confirmation flow
-
-### Files Modified
+### Proposed Changes
 
 | File | Change |
 |------|--------|
-| **Database migration** | Add DELETE RLS policies for own records + admin |
-| `src/services/medicationService.ts` | Add `deleteAdministration()` method |
-| `src/components/care-plan/MedicationsTab.tsx` | Add undo button in Recent Administration Log for own entries |
-| `src/components/professional/MedicationDashboard.tsx` | Add undo button in medication views for own entries |
-| `src/components/medication/MedicationScheduleView.tsx` | Add undo capability in the schedule view where administrations are shown |
+| `src/components/family/FamilyShortcutMenuBar.tsx` | Remove the "View Care Team" button (lines 78-93). The "Care Plans" button at line 151 already links to the same `/family/care-management` route. |
+| `src/components/family/JourneyStageCard.tsx` | Update `getButtonText()` for step 7: when caregiver is assigned (step 9 completed), show "Caregiver Assigned" instead of "View Care Giver Matches". Update step 10: change "Complete" to "Awaiting Confirmation" when not completed, since the family cannot self-complete this step — it requires admin to set the introduction date via the onboarding checklist. |
+| `src/hooks/useEnhancedJourneyProgress.ts` | For step 10 action, instead of silently navigating to care management, show a toast explaining "This step is confirmed by your care coordinator after the initial meeting." |
 
-### Safety
-- Only the person who recorded the administration can delete it (RLS enforced)
-- Confirmation dialog prevents accidental deletion
-- Admins retain the ability to delete any record if needed
+### What the family user will experience after these changes
+
+- **Quick Access bar**: No more duplicate "View Care Team" button — the "Care Plans" shortcut covers that link
+- **Care Coordination section**: Step 7 ("Get Started with Care") shows "Caregiver Assigned" text when applicable instead of prompting them to view matches they've already moved past
+- **Initial Family Meeting**: Button says "Awaiting Confirmation" with a toast explaining it's confirmed by the care coordinator, so the family doesn't feel stuck clicking a button that does nothing
 
