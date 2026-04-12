@@ -81,7 +81,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
     { 
       id: 7, 
       title: "Get Started with Care", 
-      description: "Choose a Trial Day ($320 TTD) or Hire Immediately (from $40/hr) to begin your care journey.", 
+      description: "Begin your care journey with a scheduled visit from our care coordinators", 
       completed: false, 
       category: 'scheduling',
       accessible: true
@@ -132,7 +132,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
     { 
       id: 13, 
       title: "Pay for Trial Day (Optional)", 
-      description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience.", 
+      description: "Complete payment for an optional 8-hour caregiver trial experience.", 
       completed: false, 
       optional: true,
       category: 'trial',
@@ -151,7 +151,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
     { 
       id: 15, 
       title: "Rate & Choose Your Path", 
-      description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr) for full support tools. Can skip trial and go directly here after visit confirmation.", 
+      description: "Choose your care model — view subscription plans or hire directly.", 
       completed: false, 
       category: 'conversion',
       accessible: false
