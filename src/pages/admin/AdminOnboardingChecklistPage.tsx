@@ -1395,6 +1395,7 @@ export default function AdminOnboardingChecklistPage() {
             handleAddNote={handleFamilyAddNote}
             handleEditNote={handleFamilyEditNote}
             handleDeleteNote={handleFamilyDeleteNote}
+            handleCompleteNote={handleFamilyCompleteNote}
             openSections={familyOpenSections}
             toggleSection={(id) => setFamilyOpenSections((prev) => ({ ...prev, [id]: !prev[id] }))}
             handleReset={() => {
@@ -1470,6 +1471,7 @@ export default function AdminOnboardingChecklistPage() {
             handleAddNote={handleProfAddNote}
             handleEditNote={handleProfEditNote}
             handleDeleteNote={handleProfDeleteNote}
+            handleCompleteNote={handleProfCompleteNote}
             openSections={profOpenSections}
             toggleSection={(id) => setProfOpenSections((prev) => ({ ...prev, [id]: !prev[id] }))}
             handleReset={() => {
