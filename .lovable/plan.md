@@ -1,28 +1,20 @@
 
 
-## Plan: Session Persistence + WhatsApp Message with Deep Links
+## Plan: Add "Ready to Commence" Nudge Template
 
-### Part 1: Keeping Users Logged In
+### What's being done
+Adding a new WhatsApp nudge template specifically for the "Ready to Commence" scenario -- when a professional has completed onboarding and needs to review notes, post-onboarding summary, and check the Readiness Approval before service commencement.
 
-The Supabase client is already configured with `persistSession: true` and `autoRefreshToken: true`, which means sessions are stored in localStorage and auto-refresh before expiry. Users should stay logged in across browser sessions.
+### Key difference from existing template
+The existing `buildPostOnboardingProfessionalNudge` is a generic post-onboarding template. This new "Ready to Commence" template is specifically for the final stage before service starts -- it includes language about reviewing action items from a visit, checking the Readiness Approval as a digital confirmation, and awaiting final client confirmation before commencing.
 
-However, there's a 15-second loading timeout in `useAuthSession.ts` that may be prematurely clearing auth state. The auth config also has `detectSessionInUrl: false`, which is correct for preventing token conflicts but means we need to ensure the session restore on page load is reliable.
+### Changes to `src/components/admin/UserNudgeTab.tsx`
 
-**What we'll do:**
-- Verify the auth session restore flow doesn't time out prematurely on slow connections (increase timeout or make it smarter)
-- Ensure `autoRefreshToken` is working by checking that the refresh token cycle isn't broken by the `detectSessionInUrl: false` setting
-- No major changes needed -- the current config already supports persistent sessions. If users are being logged out, the most likely cause is the 15-second timeout or browser clearing localStorage.
-
-**Recommendation to user:** Users stay logged in as long as they don't clear browser data or use incognito mode. Supabase sessions last until the refresh token expires (typically 7 days of inactivity). This is already enabled in the current config. If specific users report being logged out, it's likely a browser/device setting.
-
-### Part 2: WhatsApp Message with Clickable Deep Links for Denise
-
-Create a ready-to-copy WhatsApp message that replaces the generic instructions ("Go to Quick Links...") with direct clickable URLs using the deep-link anchors we just implemented.
-
-**The formatted message:**
-
-```
-Hi Denise 💙
+**1. Add new builder function** (after `buildPostOnboardingProfessionalNudge`, ~line 369):
+```typescript
+const buildReadyToCommenceNudge = (userName: string): string => {
+  const firstName = userName?.split(' ')[0] || 'there';
+  return `Hi ${firstName} 💙
 
 Yes, the details you asked about are already documented — you can find everything in your dashboard.
 
@@ -43,17 +35,32 @@ https://tavaracare.lovable.app/dashboard/professional
 
 Once that's done, and once we receive final confirmation from the client regarding the podiatry service, I'll complete the information transfer and we'll prepare for a smooth start tomorrow. 💙
 
-— Chan
+— Chan, Tavara Care`;
+};
 ```
 
-**Implementation:** Add this as a new nudge template in `UserNudgeTab.tsx` called "Post-Onboarding Ready to Commence" so admins can quickly generate and copy this message for any professional.
+**2. Add handler function** (after `handleSendPostOnboardingProfessionalNudge`, ~line 643):
+```typescript
+const handleSendReadyToCommenceNudge = () => {
+  const message = buildReadyToCommenceNudge(user.full_name);
+  const url = user.phone_number
+    ? getWhatsAppUrl(user.phone_number, message)
+    : getTavaraWhatsAppUrl(message);
+  window.open(url, '_blank');
+  logNudgeSent();
+  toast.success('Ready to Commence nudge sent & logged');
+};
+```
 
-### Files to modify
+**3. Add UI card** in the professional section (after the Post-Onboarding card, ~line 1014):
+- Indigo-themed card with a rocket/star icon
+- Title: "🚀 Ready to Commence — Final Review"
+- Description: "Send the professional direct links to review notes, post-onboarding summary, and check the Readiness Approval before service starts."
+- Button: "Send Ready to Commence via WhatsApp"
 
-| File | Change |
-|------|--------|
-| `src/components/admin/UserNudgeTab.tsx` | Add new "Ready to Commence" nudge template with deep links |
+### No auth changes
+Per your instruction, no auth-related code will be touched.
 
 ### No migration needed
-This is a frontend-only addition -- a new WhatsApp nudge template.
+Frontend-only addition.
 
