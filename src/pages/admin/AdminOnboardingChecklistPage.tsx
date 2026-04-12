@@ -27,6 +27,7 @@ import { PROFESSIONAL_ONBOARDING_SECTION_DEFS, getProfessionalTotalItems } from 
 import FamilySubmissionReview from "@/components/admin/onboarding/FamilySubmissionReview";
 import ProfessionalSubmissionReview from "@/components/admin/onboarding/ProfessionalSubmissionReview";
 import RateTierReferenceCard from "@/components/admin/onboarding/RateTierReferenceCard";
+import CareSuppliesCard from "@/components/admin/onboarding/CareSuppliesCard";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
 import { toast } from "sonner";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -921,6 +922,10 @@ function ChecklistTabContent({
                           ))}
                         </div>
                       </div>
+                    )}
+
+                    {(section.id === "daily_checklist" || section.id === "daily_checklist_sop") && (
+                      <CareSuppliesCard />
                     )}
 
                     {(section.id === "rates_payment" || section.id === "rates_and_changes") && (
