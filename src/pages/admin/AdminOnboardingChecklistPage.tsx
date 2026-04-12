@@ -691,6 +691,7 @@ function ChecklistTabContent({
   handleAddNote: (note: OnboardingNote) => void;
   handleEditNote: (index: number, updatedNote: OnboardingNote) => void;
   handleDeleteNote: (index: number) => void;
+  handleCompleteNote?: (index: number) => void;
   openSections: Record<string, boolean>;
   toggleSection: (id: string) => void;
   handleReset: () => void;
