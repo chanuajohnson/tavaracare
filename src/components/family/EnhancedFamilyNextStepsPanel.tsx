@@ -139,7 +139,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
       stages.foundation.subscriptionCTA = {
         show: true,
         title: "Start Your Care Journey",
-        description: "Get matched with qualified caregivers for $7.99 one-time.",
+        description: "Complete your foundation steps to get matched with qualified caregivers.",
         buttonText: "Start Care Journey",
         action: "upgrade",
         featureType: "teaser_unlock",
