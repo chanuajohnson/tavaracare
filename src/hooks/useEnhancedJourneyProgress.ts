@@ -855,7 +855,7 @@ export const useEnhancedJourneyProgress = () => {
     ? steps_calculated.find(step => step.step_number === journeyProgress.current_step && !step.completed)
     : steps_calculated.find(step => !step.completed && step.accessible);
     
-  const currentStage = stepsData.currentStage || 'foundation';
+  const currentStage = sharedJourneyData.journeyStage || 'foundation';
 
   // Create paths with proper JourneyPath interface properties
   const paths = [
