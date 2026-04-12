@@ -96,15 +96,27 @@ export const hasRequiredReferences = (references: ProfessionalReference[]): bool
   return completed;
 };
 
-export const hasPassedScreening = (screenings: ProfessionalScreening[]): boolean => {
+export const hasPassedScreening = (screenings: ProfessionalScreening[], screeningSessions?: { status: string }[]): boolean => {
+  // Primary check: explicit 'passed' record in professional_screening
   const passed = screenings.some(
     s => s.screening_type === 'head_nurse_interview' && s.status === 'passed'
   );
-  console.log(`🩺 Step 6 (Screening): ${passed}`, {
+  
+  // Fallback: if all screening sessions are 'reviewed' or 'completed', treat as passed
+  const hasReviewedSessions = !passed && screeningSessions && screeningSessions.length > 0 &&
+    screeningSessions.every(s => s.status === 'reviewed' || s.status === 'completed');
+  
+  const result = passed || !!hasReviewedSessions;
+  
+  console.log(`🩺 Step 6 (Screening): ${result}`, {
     screeningCount: screenings.length,
-    statuses: screenings.map(s => ({ type: s.screening_type, status: s.status }))
+    statuses: screenings.map(s => ({ type: s.screening_type, status: s.status })),
+    screeningSessionCount: screeningSessions?.length || 0,
+    sessionStatuses: screeningSessions?.map(s => s.status),
+    passedViaScreening: passed,
+    passedViaSessions: !!hasReviewedSessions,
   });
-  return passed;
+  return result;
 };
 
 export const hasAssignments = (assignments: CareTeamAssignment[]): boolean => {
