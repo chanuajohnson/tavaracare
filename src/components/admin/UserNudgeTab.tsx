@@ -368,6 +368,32 @@ Questions? Just reply here!
 — Chan, Tavara Care 💙`;
 };
 
+const buildReadyToCommenceNudge = (userName: string): string => {
+  const firstName = userName?.split(' ')[0] || 'there';
+  return `Hi ${firstName} 💙
+
+Yes, the details you asked about are already documented — you can find everything in your dashboard.
+
+👉 View your notes & action items here:
+https://tavaracare.lovable.app/professional/onboarding-checklist#notes
+You'll see the notes and action items listed there from yesterday's visit.
+
+👉 Review your Post-Onboarding Summary:
+https://tavaracare.lovable.app/professional/onboarding-checklist#post_onboarding
+I have also listed for the Family the First Aid and items that the home should be stocked with over time — you can review that as well.
+
+✅ Check the Readiness Approval checkbox once everything looks good:
+https://tavaracare.lovable.app/professional/onboarding-checklist#post_onboarding
+This acts as your digital confirmation that you've reviewed everything and are ready to commence as planned.
+
+📱 Your full dashboard:
+https://tavaracare.lovable.app/dashboard/professional
+
+Once that's done, and once we receive final confirmation from the client regarding the podiatry service, I'll complete the information transfer and we'll prepare for a smooth start tomorrow. 💙
+
+— Chan, Tavara Care`;
+};
+
 const buildOnboardingNudge = (userName: string): string => {
   const firstName = userName?.split(' ')[0] || 'there';
   return `Hi ${firstName}! 💙 Chan from Tavara Care.
@@ -640,6 +666,16 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
     window.open(url, '_blank');
     logNudgeSent();
     toast.success('Professional post-onboarding nudge sent & logged');
+  };
+
+  const handleSendReadyToCommenceNudge = () => {
+    const message = buildReadyToCommenceNudge(user.full_name);
+    const url = user.phone_number
+      ? getWhatsAppUrl(user.phone_number, message)
+      : getTavaraWhatsAppUrl(message);
+    window.open(url, '_blank');
+    logNudgeSent();
+    toast.success('Ready to Commence nudge sent & logged');
   };
 
   const renderTemplateCard = (template: NudgeTemplate, isRecommended: boolean) => {
@@ -986,6 +1022,29 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
                   >
                     <Send className="h-3.5 w-3.5" />
                     Send Onboarding Package via WhatsApp
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Ready to Commence nudge */}
+              <Card className="border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/30">
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🚀</span>
+                    <span className="font-medium text-sm text-indigo-800 dark:text-indigo-300">
+                      Ready to Commence — Final Review
+                    </span>
+                  </div>
+                  <p className="text-xs text-indigo-700 dark:text-indigo-400">
+                    Send direct links to review notes, post-onboarding summary, and check the Readiness Approval before service starts.
+                  </p>
+                  <Button
+                    size="sm"
+                    className="w-full gap-2 bg-indigo-600 hover:bg-indigo-700 text-white"
+                    onClick={handleSendReadyToCommenceNudge}
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    Send Ready to Commence via WhatsApp
                   </Button>
                 </CardContent>
               </Card>
