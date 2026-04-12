@@ -312,6 +312,17 @@ export default function FamilyOnboardingChecklistPage() {
     saveNotesToSupabase(updatedNotes);
   }, [notes, saveNotesToSupabase]);
 
+  const handleCompleteNote = useCallback((index: number) => {
+    const updatedNotes = [...notes];
+    updatedNotes[index] = {
+      ...updatedNotes[index],
+      completed_at: new Date().toISOString(),
+      completed_by: user?.user_metadata?.full_name || user?.email || "Family",
+    };
+    setNotes(updatedNotes);
+    saveNotesToSupabase(updatedNotes);
+  }, [notes, user, saveNotesToSupabase]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
