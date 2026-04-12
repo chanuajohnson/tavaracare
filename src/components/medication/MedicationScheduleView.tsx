@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Clock, CheckCircle, AlertTriangle, Calendar, Pill } from "lucide-react";
+import { CalendarDays, Clock, CheckCircle, AlertTriangle, Calendar, Pill, Undo2 } from "lucide-react";
 import { format, isToday, startOfDay, endOfDay } from "date-fns";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { medicationService, MedicationWithAdministrations } from "@/services/medicationService";
@@ -46,6 +46,7 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [administeringDose, setAdministeringDose] = useState<string | null>(null);
+  const [undoingDose, setUndoingDose] = useState<string | null>(null);
   const [showConflictDialog, setShowConflictDialog] = useState(false);
   const [conflictInfo, setConflictInfo] = useState<any>(null);
 
@@ -418,6 +419,37 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
 
                       {dose.conflictDetected && (
                         <AlertTriangle className="h-5 w-5 text-orange-500" />
+                      )}
+
+                      {dose.administered && dose.administrationId && (
+                        <Button
+                          onClick={async () => {
+                            const doseKey = getDoseKey(dose);
+                            setUndoingDose(doseKey);
+                            const success = await medicationService.deleteAdministration(dose.administrationId!);
+                            if (success) {
+                              loadMedicationsAndSchedule();
+                              onAdministrationUpdate?.();
+                            }
+                            setUndoingDose(null);
+                          }}
+                          disabled={undoingDose === getDoseKey(dose)}
+                          variant="outline"
+                          size="sm"
+                          className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                        >
+                          {undoingDose === getDoseKey(dose) ? (
+                            <div className="flex items-center gap-1">
+                              <div className="animate-spin rounded-full h-3 w-3 border-b border-orange-600"></div>
+                              Undoing...
+                            </div>
+                          ) : (
+                            <>
+                              <Undo2 className="h-3 w-3 mr-1" />
+                              Undo
+                            </>
+                          )}
+                        </Button>
                       )}
 
                       {!dose.administered && (

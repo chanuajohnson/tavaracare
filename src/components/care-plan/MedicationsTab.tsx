@@ -3,19 +3,42 @@ import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pill, Plus, Calendar, Clock, ArrowRight, AlertTriangle, User, CheckCircle2 } from "lucide-react";
+import { Pill, Plus, Calendar, Clock, ArrowRight, AlertTriangle, User, CheckCircle2, Trash2 } from "lucide-react";
 import { MedicationWithAdministrations, medicationService } from "@/services/medicationService";
 import { ConflictAwareAdministrationForm } from "@/components/medication/ConflictAwareAdministrationForm";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/components/providers/AuthProvider";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface MedicationsTabProps {
   carePlanId: string;
 }
 
 export function MedicationsTab({ carePlanId }: MedicationsTabProps) {
+  const { user } = useAuth();
   const [medications, setMedications] = useState<MedicationWithAdministrations[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMedicationForAdmin, setSelectedMedicationForAdmin] = useState<string | null>(null);
+  const [deletingAdminId, setDeletingAdminId] = useState<string | null>(null);
+
+  const handleDeleteAdministration = async (administrationId: string) => {
+    setDeletingAdminId(administrationId);
+    const success = await medicationService.deleteAdministration(administrationId);
+    if (success) {
+      loadMedications();
+    }
+    setDeletingAdminId(null);
+  };
 
   useEffect(() => {
     loadMedications();
@@ -271,9 +294,42 @@ export function MedicationsTab({ carePlanId }: MedicationsTabProps) {
                           )}
                         </div>
                       </div>
-                      <div className="text-right text-xs text-muted-foreground whitespace-nowrap">
-                        <div>{new Date(entry.administered_at).toLocaleDateString()}</div>
-                        <div>{new Date(entry.administered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-right text-xs text-muted-foreground whitespace-nowrap">
+                          <div>{new Date(entry.administered_at).toLocaleDateString()}</div>
+                          <div>{new Date(entry.administered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>
+                        {user && entry.administered_by === user.id && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                                disabled={deletingAdminId === entry.id}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Undo Administration?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to remove this administration record for <strong>{entry.medicationName}</strong>? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteAdministration(entry.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Remove Record
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
                     </div>
                   );
