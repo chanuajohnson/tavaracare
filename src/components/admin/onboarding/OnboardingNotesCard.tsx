@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { StickyNote, Plus, User, Users, Briefcase } from "lucide-react";
+import { StickyNote, Plus, User, Users, Briefcase, Pencil, Trash2, Check, X } from "lucide-react";
 import { format } from "date-fns";
 
 export interface OnboardingNote {
@@ -18,8 +18,10 @@ export interface OnboardingNote {
 interface OnboardingNotesCardProps {
   notes: OnboardingNote[];
   onAddNote: (note: OnboardingNote) => void;
+  onEditNote?: (index: number, updatedNote: OnboardingNote) => void;
+  onDeleteNote?: (index: number) => void;
   readOnly?: boolean;
-  filterAssignee?: string; // only show notes for this assignee
+  filterAssignee?: string;
 }
 
 const ASSIGNEE_OPTIONS = [
@@ -28,9 +30,11 @@ const ASSIGNEE_OPTIONS = [
   { value: "caregiver", label: "Caregiver", icon: <Users className="h-3 w-3" /> },
 ];
 
-export default function OnboardingNotesCard({ notes, onAddNote, readOnly = false, filterAssignee }: OnboardingNotesCardProps) {
+export default function OnboardingNotesCard({ notes, onAddNote, onEditNote, onDeleteNote, readOnly = false, filterAssignee }: OnboardingNotesCardProps) {
   const [noteText, setNoteText] = useState("");
   const [assignTo, setAssignTo] = useState("admin");
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
 
   const filteredNotes = filterAssignee
     ? notes.filter((n) => n.assigned_to === filterAssignee)
@@ -45,6 +49,36 @@ export default function OnboardingNotesCard({ notes, onAddNote, readOnly = false
       created_at: new Date().toISOString(),
     });
     setNoteText("");
+  };
+
+  const handleStartEdit = (index: number, note: OnboardingNote) => {
+    setEditingIndex(index);
+    setEditText(note.text);
+  };
+
+  const handleSaveEdit = (index: number) => {
+    if (!editText.trim() || !onEditNote) return;
+    const note = filteredNotes[index];
+    // Find the real index in the unfiltered notes array
+    const realIndex = filterAssignee
+      ? notes.findIndex((n) => n === note)
+      : index;
+    if (realIndex === -1) return;
+    onEditNote(realIndex, { ...note, text: editText.trim() });
+    setEditingIndex(null);
+    setEditText("");
+  };
+
+  const handleDelete = (index: number) => {
+    if (!onDeleteNote) return;
+    const note = filteredNotes[index];
+    const realIndex = filterAssignee
+      ? notes.findIndex((n) => n === note)
+      : index;
+    if (realIndex === -1) return;
+    if (window.confirm("Delete this note? This cannot be undone.")) {
+      onDeleteNote(realIndex);
+    }
   };
 
   const getAssigneeBadge = (assignee: string) => {
@@ -109,14 +143,57 @@ export default function OnboardingNotesCard({ notes, onAddNote, readOnly = false
             {filteredNotes.map((note, i) => (
               <div key={i} className="flex items-start gap-3 p-3 border rounded-lg bg-background">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm">{note.text}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    {getAssigneeBadge(note.assigned_to)}
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(note.created_at), "MMM d, yyyy h:mm a")}
-                    </span>
-                  </div>
+                  {editingIndex === i && !readOnly ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        rows={2}
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="default" onClick={() => handleSaveEdit(i)} disabled={!editText.trim()} className="gap-1 h-7 text-xs">
+                          <Check className="h-3 w-3" /> Save
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setEditingIndex(null); setEditText(""); }} className="gap-1 h-7 text-xs">
+                          <X className="h-3 w-3" /> Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm">{note.text}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {getAssigneeBadge(note.assigned_to)}
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(note.created_at), "MMM d, yyyy h:mm a")}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
+                {!readOnly && editingIndex !== i && onEditNote && onDeleteNote && (
+                  <div className="flex gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handleStartEdit(i, note)}
+                      title="Edit note"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(i)}
+                      title="Delete note"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
