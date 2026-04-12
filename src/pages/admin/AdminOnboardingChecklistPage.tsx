@@ -963,6 +963,7 @@ function ChecklistTabContent({
           onAddNote={handleAddNote}
           onEditNote={handleEditNote}
           onDeleteNote={handleDeleteNote}
+          onCompleteNote={handleCompleteNote}
         />
       </div>
     </>
