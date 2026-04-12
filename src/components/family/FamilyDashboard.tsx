@@ -42,6 +42,11 @@ const FamilyDashboard = () => {
   const caregiverMatchesStep = steps.find(s => s.step_number === 7);
   const hasMatches = !!caregiverMatchesStep?.completed;
   
+  // Check if caregiver is already assigned (step 9) or care model chosen (step 15)
+  const caregiverAssignedStep = steps.find(s => s.step_number === 9);
+  const careModelStep = steps.find(s => s.step_number === 15);
+  const hasCaregiverAssigned = !!caregiverAssignedStep?.completed || !!careModelStep?.completed;
+  
   useEffect(() => {
     const scrollToTop = () => {
       window.scrollTo({ 
@@ -163,6 +168,7 @@ const FamilyDashboard = () => {
               hasMatches={hasMatches}
               visitDetails={visitDetails}
               onScheduleClick={() => setShowScheduleModal(true)}
+              hasCaregiverAssigned={hasCaregiverAssigned}
             />
           </div>
         )}

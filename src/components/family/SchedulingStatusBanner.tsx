@@ -6,10 +6,11 @@ interface SchedulingStatusBannerProps {
   hasMatches: boolean;
   visitDetails: any;
   onScheduleClick: () => void;
+  hasCaregiverAssigned?: boolean;
 }
 
-export function SchedulingStatusBanner({ hasMatches, visitDetails, onScheduleClick }: SchedulingStatusBannerProps) {
-  if (!hasMatches) return null;
+export function SchedulingStatusBanner({ hasMatches, visitDetails, onScheduleClick, hasCaregiverAssigned }: SchedulingStatusBannerProps) {
+  if (!hasMatches || hasCaregiverAssigned) return null;
 
   const isScheduled = visitDetails && visitDetails.status !== 'cancelled';
 
@@ -46,8 +47,7 @@ export function SchedulingStatusBanner({ hasMatches, visitDetails, onScheduleCli
             📅 Next Step: Schedule Your Care
           </h3>
           <p className="text-sm text-amber-800 mt-1">
-            You have matched caregivers ready! Choose a <strong>Trial Day ($320 TTD)</strong> or{" "}
-            <strong>Hire Immediately (from $40/hr)</strong> to get started.
+            You have matched caregivers ready! Schedule a visit with our care coordinators to get started.
           </p>
         </div>
         <Button
