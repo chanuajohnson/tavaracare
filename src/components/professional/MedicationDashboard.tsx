@@ -11,7 +11,11 @@ import { MedicationScheduleView } from "@/components/medication/MedicationSchedu
 import { MedicationWithAdministrations, medicationService } from "@/services/medicationService";
 import { useAuth } from "@/components/providers/AuthProvider";
 
-export const MedicationDashboard = () => {
+interface MedicationDashboardProps {
+  carePlanId?: string;
+}
+
+export const MedicationDashboard = ({ carePlanId }: MedicationDashboardProps) => {
   const { user } = useAuth();
   const [medicationsByCarePlan, setMedicationsByCarePlan] = useState<{[carePlanId: string]: MedicationWithAdministrations[]}>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -23,15 +27,22 @@ export const MedicationDashboard = () => {
     if (user) {
       loadAssignedMedications();
     }
-  }, [user]);
+  }, [user, carePlanId]);
 
   const loadAssignedMedications = async () => {
     if (!user) return;
     
     setIsLoading(true);
     try {
-      const medications = await medicationService.getMedicationsForAssignedCarePlans(user.id);
-      setMedicationsByCarePlan(medications);
+      if (carePlanId) {
+        // Load medications for the specific selected care plan only
+        const medications = await medicationService.getMedicationsForCarePlan(carePlanId);
+        setMedicationsByCarePlan({ [carePlanId]: medications });
+      } else {
+        // Fallback: load all assigned care plans' medications
+        const medications = await medicationService.getMedicationsForAssignedCarePlans(user.id);
+        setMedicationsByCarePlan(medications);
+      }
     } catch (error) {
       console.error("Error loading assigned medications:", error);
     } finally {

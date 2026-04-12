@@ -108,7 +108,7 @@ export const CarePlanTabs = ({
           </HorizontalTabsContent>
 
           <HorizontalTabsContent value="medications" className="space-y-6">
-            <MedicationDashboard />
+            <MedicationDashboard carePlanId={selectedCarePlanId} />
           </HorizontalTabsContent>
 
           <HorizontalTabsContent value="meals" className="space-y-6">
