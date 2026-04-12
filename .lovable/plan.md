@@ -1,37 +1,45 @@
 
 
-## Plan: Hide Scheduling Banner for Families with Active Care + Remove Old Pricing
+## Plan: Fix Journey Completion Percentages and Stage Accuracy
 
-### Problem
-The family dashboard for `chanuajohnson@gmail.com` shows:
-1. **An orange "Next Step: Schedule Your Care" banner** with outdated pricing ($320 TTD / $40/hr) — even though this family already has assigned caregivers, an active care plan, and a chosen care model
-2. The `SchedulingStatusBanner` only checks if `hasMatches` is true and if there's a `visitDetails` record. It does **not** check whether caregivers are already assigned or care has begun
+### Problems Identified
 
-### Root Cause
-In `FamilyDashboard.tsx` (line 42-43), `hasMatches` is derived from step 7 completion. The banner shows the amber CTA whenever `hasMatches=true` and `visitDetails` is null/cancelled. It never checks steps 9-11 (caregiver assigned, meeting, care begins).
+1. **Overall completion % counts all 15 steps equally** — Optional trial steps (12-14) dilute the percentage, making a family with active care appear less complete than they are
+2. **Care Coordination shows wrong count** — For this family, visit is confirmed (step 8), caregiver assigned (step 9), but steps 10 and 11 may not be marked complete even though care is active. The stage should reflect actual state (e.g., 4 of 4 if care has begun)
+3. **"Care Services" (conversion) stage is unclear** — Step 15 ("Rate & Choose Your Path") checks `visitNotes?.care_model` but this family already has a care model. This step's completion logic may not detect that correctly
+4. **The overall header % is misleading** — It calculates `completedSteps / totalSteps` including optional trial steps, so a family with full active care can never hit 100% without doing the trial
+
+### Solution
+
+**Exclude optional steps from the overall completion percentage** and fix step completion logic for families with active care.
 
 ### Changes
 
 | File | Change |
 |------|--------|
-| `src/components/family/FamilyDashboard.tsx` | Add a check for caregiver assignment (step 9) and care model chosen (step 15). If either is complete, hide the scheduling banner entirely by setting `hasMatches=false` or adding a `hasCaregiverAssigned` flag that suppresses the banner. |
-| `src/components/family/SchedulingStatusBanner.tsx` | Add `hasCaregiverAssigned` prop. Return `null` when true — the family is past the scheduling phase. Also update the amber banner text to remove the "$320 TTD" and "$40/hr" pricing references, replacing with subscription-aligned language. |
+| `src/hooks/useEnhancedJourneyProgress.ts` | **Lines 820-832**: Change `completedSteps` and `totalSteps` calculations to exclude steps where `is_optional === true`. The per-stage cards already calculate their own %, so this only affects the overall header display. |
+| `src/hooks/useSharedFamilyJourneyData.ts` | **Lines 437-438**: Same fix — exclude optional steps from overall `completionPercentage` calculation. |
+| `src/hooks/useEnhancedJourneyProgress.ts` | **Step 11 (Care Begins, line 735)**: Check if care plan exists with active assignments (`carePlans.length > 0` with active status) to mark as completed, not just rely on `sharedJourneyData`. |
+| `src/hooks/useSharedFamilyJourneyData.ts` | **Step 11 completion check**: Add logic to mark "Care Begins" as complete when there are active care assignments (query `care_team_members` for active status). |
+| `src/hooks/useEnhancedJourneyProgress.ts` | **Step 15 (line 802)**: Broaden the completion check — if a family has active care (step 11 complete), mark step 15 as complete since they've effectively chosen their care path. |
 
-### Updated Banner Logic
+### Per-Stage Expected Results (for this family)
+
+- **Foundation**: 7 of 7 (100%) — unchanged, correct
+- **Care Coordination**: 4 of 4 (100%) — steps 8-11 all marked complete since care is active
+- **Trial Experience**: 0 of 3 (0%) — optional, clearly labeled, does NOT affect overall %
+- **Care Services**: 1 of 1 (100%) — step 15 marked complete since care model is in operation
+
+### Overall % Calculation Change
+
 ```text
-SchedulingStatusBanner visibility:
-  - hasMatches=false → hidden
-  - hasCaregiverAssigned=true → hidden (NEW)
-  - visitDetails exists & not cancelled → green "scheduled" banner
-  - otherwise → amber CTA (with updated text, no old pricing)
+Before: completedSteps / 15 total steps (includes 3 optional trial steps)
+After:  completedSteps (non-optional) / 12 non-optional steps
 ```
 
-### Updated Amber Banner Text
-- Title: "Next Step: Schedule Your Care" (unchanged)
-- Description: "You have matched caregivers ready! Schedule a visit with our care coordinators to get started."
-- Button: "Get Started with Care" (unchanged)
+For this family: 12 of 12 non-optional steps completed = 100%
 
-### Result
-- Families with active care teams no longer see the misleading orange scheduling banner
-- The outdated $320 TTD / $40/hr pricing is removed from the last place it appears in the family-facing UI
+### Technical Detail
+
+The `JourneyStageCard` component already calculates per-stage percentages independently from its own `steps` array (line 78-80), so no changes needed there. The fix is in the hooks that calculate the overall header percentage and step completion states.
 
