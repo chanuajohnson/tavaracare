@@ -201,7 +201,7 @@ export class MedicationService {
 
       toast.success("Medication deleted successfully");
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error("[MedicationService] Exception in deleteMedication:", error);
       toast.error("Failed to delete medication");
       return false;
