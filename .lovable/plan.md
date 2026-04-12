@@ -1,24 +1,35 @@
 
 
-## Plan: Add Document View/Download to Admin Onboarding Checklist
+## Plan: Fix "Object not found" for Admin Document View/Download
 
 ### Problem
-The admin onboarding checklist shows Tricia's 3 uploaded documents but they are not clickable. Admins cannot view or download them, unlike the professional's own `DocumentManager` which has download via signed URLs.
+The toast error "Failed to access document: Object not found" occurs because the **Supabase Storage** bucket `professional-documents` has SELECT policies that only allow users to view files where their own `auth.uid()` matches the folder path. The database RLS was fixed, but the **storage-level RLS** still blocks admin access.
+
+### Root Cause
+Storage file paths follow the pattern: `{document_type}/{user_id}/filename.png` (e.g., `identification/56922ef7-.../Chan_ID.png`). The existing storage policies check `(storage.foldername(name))[2] = auth.uid()` or `(storage.foldername(name))[1] = auth.uid()`, which fails for admins since their UID doesn't match the professional's folder.
+
+### Solution
+Add a storage SELECT policy on `storage.objects` allowing admins to access files in the `professional-documents` bucket.
 
 ### Changes
 
-| File | Change |
-|------|--------|
-| **`src/components/admin/onboarding/ProfessionalSubmissionReview.tsx`** | Add `Eye` and `Download` icon buttons to each document row. On click, create a signed URL from the `professional-documents` storage bucket using `doc.file_path`, then either open in a new tab (view) or trigger a download. Add `Button` import and `Eye`/`Download` to icon imports. |
+| Change | Detail |
+|--------|--------|
+| **New migration** | Add a SELECT policy on `storage.objects` for the `professional-documents` bucket using `public.has_role(auth.uid(), 'admin')` |
 
-### Technical Detail
+### Migration SQL
 
-Each document row (lines 233-245) will get two small icon buttons:
+```sql
+CREATE POLICY "Admins can view all professional documents in storage"
+ON storage.objects
+FOR SELECT
+TO authenticated
+USING (
+  bucket_id = 'professional-documents'
+  AND public.has_role(auth.uid(), 'admin')
+);
+```
 
-1. **View** (Eye icon) — creates a signed URL and opens it in a new tab via `window.open()`
-2. **Download** (Download icon) — creates a signed URL and triggers download via a temporary `<a>` element
-
-Both use `supabase.storage.from('professional-documents').createSignedUrl(doc.file_path, 300)` (5-minute expiry). A toast will show on error.
-
-The `file_path` field already exists on each document record and points to the storage object path. The new admin RLS policy we just added ensures the admin can access the document metadata; storage access uses signed URLs which bypass storage RLS.
-
+### Result
+- Admin clicks Eye/Download icon on Tricia's documents and they open/download correctly
+- No code changes needed — the component logic is already correct, it's purely a storage access issue
