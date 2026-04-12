@@ -71,7 +71,85 @@ function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, bool
   );
 }
 
-const ICON_MAP: Record<string, React.ReactNode> = {
+/** Service Commencement Approval — digital signature for family */
+function ServiceCommencementApproval({
+  checkedItems,
+  familyId,
+  onApproved,
+}: {
+  checkedItems: Record<string, boolean | string>;
+  familyId?: string;
+  onApproved: (updated: Record<string, boolean | string>) => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const isApproved = !!checkedItems["family_approval_confirmed"];
+  const approvalDate = checkedItems["family_approval_date"] as string | undefined;
+
+  const handleApprove = async () => {
+    if (!familyId || isApproved) return;
+    setSaving(true);
+    try {
+      const now = new Date().toISOString();
+      const updated = {
+        ...checkedItems,
+        family_approval_confirmed: true,
+        family_approval_date: now,
+      };
+      const { error } = await supabase
+        .from("onboarding_checklists")
+        .update({ checked_items: updated as any })
+        .eq("family_id", familyId);
+      if (error) throw error;
+      onApproved(updated);
+    } catch (err) {
+      console.error("Failed to save approval:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startDateStr = checkedItems["post_onboarding_3_date"] as string | undefined;
+
+  return (
+    <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
+      <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+        ✅ Service Commencement Approval
+      </h4>
+      {startDateStr && (
+        <p className="text-sm text-muted-foreground mb-3">
+          Care start date: <span className="font-medium text-foreground">{format(parseLocalDate(startDateStr), "PPP")}</span>
+          {" "}— First billable week: April 13–17, 2026
+        </p>
+      )}
+      {isApproved ? (
+        <div className="flex items-center gap-2 text-green-700 bg-green-50 rounded-md p-3">
+          <CheckCircle2 className="h-5 w-5" />
+          <div>
+            <p className="font-medium text-sm">Approved — Digital signature recorded</p>
+            {approvalDate && (
+              <p className="text-xs text-green-600 mt-0.5">
+                {format(new Date(approvalDate), "PPP 'at' p")}
+              </p>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-start space-x-3">
+          <Checkbox
+            id="family-approval"
+            checked={false}
+            onCheckedChange={() => handleApprove()}
+            disabled={saving}
+          />
+          <label htmlFor="family-approval" className="text-sm cursor-pointer leading-snug">
+            I confirm the care start date above and authorize billing to commence as planned
+          </label>
+        </div>
+      )}
+    </div>
+  );
+}
+
   ClipboardCheck: <ClipboardCheck className="h-5 w-5" />,
   Heart: <Heart className="h-5 w-5" />,
   Monitor: <Monitor className="h-5 w-5" />,
