@@ -1,38 +1,28 @@
 
 
-## Plan: Fix Progress Counter Overcounting
+## Plan: Add Instructional Guidance to Service Commencement Approval Card
 
-### Problem
+### What
+Add a friendly instructional banner above the approval checkbox in the `ServiceCommencementApproval` component so the client clearly understands the purpose and action required.
 
-The "Overall Progress" counter shows **103/101** because:
-1. Checked items are stored with keys like `family_terms_4`, `post_onboarding_3`, etc.
-2. When items were recently removed (e.g., "3 business days" T&C item) or reordered, the old keys remain in the database
-3. The counter uses `Object.values(checkedItems).filter(Boolean).length` which counts ALL truthy values — including orphaned keys from deleted items AND date strings stored in the same object (e.g., `post_onboarding_1_date: "2026-04-13"`)
+### Change
 
-### Fix
+**File**: `src/pages/family/FamilyOnboardingChecklistPage.tsx`
 
-**Files**: `src/pages/admin/AdminOnboardingChecklistPage.tsx` and `src/pages/family/FamilyOnboardingChecklistPage.tsx`
+In the `ServiceCommencementApproval` component (around line 117), add an instructional note between the heading and the start date line:
 
-Replace the naive count with a function that only counts keys matching current valid item definitions:
-
-```typescript
-// Instead of:
-const familyTotalChecked = Object.values(familyCheckedItems).filter(Boolean).length;
-
-// Use:
-const familyTotalChecked = ONBOARDING_SECTION_DEFS.reduce((sum, section) => {
-  return sum + section.items.filter((_, i) => !!familyCheckedItems[`${section.id}_${i}`]).length;
-}, 0);
+```
+💙 At the bottom of your checklist, you'll find this Service Commencement Approval.
+Checking the box below acts as your digital approval for us to commence care
+starting Monday, April 13th. This confirms the first billable week (April 13–17, 2026)
+as outlined in your quotation.
 ```
 
-Same pattern for `profTotalChecked` and the family page's `totalChecked`.
-
-This ensures only currently-defined item keys are counted, ignoring orphaned database entries and date fields.
+This renders as a styled info paragraph (blue-toned, similar to the Care Summary style) only when the approval has NOT yet been given. Once approved, the green confirmation badge replaces it as it does today.
 
 ### Files Modified
 
 | File | Change |
 |------|--------|
-| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Fix `familyTotalChecked` and `profTotalChecked` calculations |
-| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Fix `totalChecked` calculation |
+| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Add instructional guidance text to `ServiceCommencementApproval` card |
 
