@@ -665,6 +665,7 @@ function ChecklistTabContent({
   handleAddNote,
   handleEditNote,
   handleDeleteNote,
+  handleCompleteNote,
   openSections,
   toggleSection,
   handleReset,
@@ -691,6 +692,7 @@ function ChecklistTabContent({
   handleAddNote: (note: OnboardingNote) => void;
   handleEditNote: (index: number, updatedNote: OnboardingNote) => void;
   handleDeleteNote: (index: number) => void;
+  handleCompleteNote?: (index: number) => void;
   openSections: Record<string, boolean>;
   toggleSection: (id: string) => void;
   handleReset: () => void;
@@ -961,6 +963,7 @@ function ChecklistTabContent({
           onAddNote={handleAddNote}
           onEditNote={handleEditNote}
           onDeleteNote={handleDeleteNote}
+          onCompleteNote={handleCompleteNote}
         />
       </div>
     </>
@@ -1241,6 +1244,15 @@ export default function AdminOnboardingChecklistPage() {
     });
   };
 
+  const handleFamilyCompleteNote = (index: number) => {
+    setFamilyNotes((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], completed_at: new Date().toISOString(), completed_by: "Admin" };
+      saveFamilyToSupabase(familyCheckedItems, next);
+      return next;
+    });
+  };
+
   const handleProfAddNote = (note: OnboardingNote) => {
     setProfNotes((prev) => {
       const next = [...prev, note];
@@ -1261,6 +1273,15 @@ export default function AdminOnboardingChecklistPage() {
   const handleProfDeleteNote = (index: number) => {
     setProfNotes((prev) => {
       const next = prev.filter((_, i) => i !== index);
+      saveProfToSupabase(profCheckedItems, next);
+      return next;
+    });
+  };
+
+  const handleProfCompleteNote = (index: number) => {
+    setProfNotes((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], completed_at: new Date().toISOString(), completed_by: "Admin" };
       saveProfToSupabase(profCheckedItems, next);
       return next;
     });
@@ -1374,6 +1395,7 @@ export default function AdminOnboardingChecklistPage() {
             handleAddNote={handleFamilyAddNote}
             handleEditNote={handleFamilyEditNote}
             handleDeleteNote={handleFamilyDeleteNote}
+            handleCompleteNote={handleFamilyCompleteNote}
             openSections={familyOpenSections}
             toggleSection={(id) => setFamilyOpenSections((prev) => ({ ...prev, [id]: !prev[id] }))}
             handleReset={() => {
@@ -1449,6 +1471,7 @@ export default function AdminOnboardingChecklistPage() {
             handleAddNote={handleProfAddNote}
             handleEditNote={handleProfEditNote}
             handleDeleteNote={handleProfDeleteNote}
+            handleCompleteNote={handleProfCompleteNote}
             openSections={profOpenSections}
             toggleSection={(id) => setProfOpenSections((prev) => ({ ...prev, [id]: !prev[id] }))}
             handleReset={() => {
