@@ -93,6 +93,7 @@ export default function ProfessionalSubmissionReview({ professionalId }: Profess
   // Document preview state
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
+  const [previewSignedUrl, setPreviewSignedUrl] = useState<string | null>(null);
   const [previewMime, setPreviewMime] = useState<string>("");
   const [previewFileName, setPreviewFileName] = useState<string>("");
   const [previewLoading, setPreviewLoading] = useState(false);
