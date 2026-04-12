@@ -908,17 +908,24 @@ function ChecklistTabContent({
                         </h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {CHECKLIST_SECTIONS.map((sopSection, idx) => (
-                            <div key={idx} className="bg-muted/50 rounded-lg p-3">
-                              <p className="font-medium text-sm mb-2">{sopSection.title}</p>
-                              <ul className="space-y-1">
-                                {sopSection.items.map((item, j) => (
-                                  <li key={j} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                                    <span className="text-primary mt-0.5">•</span>
-                                    {item}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
+                            <Collapsible key={idx}>
+                              <div className="bg-muted/50 rounded-lg p-3">
+                                <CollapsibleTrigger className="w-full text-left flex items-center justify-between">
+                                  <p className="font-medium text-sm">{sopSection.title}</p>
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                  <ul className="space-y-1 mt-2">
+                                    {sopSection.items.map((item, j) => (
+                                      <li key={j} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                        <span className="text-primary mt-0.5">•</span>
+                                        {item}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </CollapsibleContent>
+                              </div>
+                            </Collapsible>
                           ))}
                         </div>
                       </div>
