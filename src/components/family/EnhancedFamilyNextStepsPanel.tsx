@@ -293,7 +293,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <span>•</span>
-                    <span>{steps.filter(s => s.completed).length} of {steps.length} steps completed</span>
+                    <span>{steps.filter(s => s.completed && !s.is_optional).length} of {steps.filter(s => !s.is_optional).length} steps completed</span>
                   </div>
                 </div>
               </div>
