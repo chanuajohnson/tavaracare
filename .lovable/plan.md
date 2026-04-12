@@ -1,31 +1,25 @@
 
 
-## Plan: Add Administration History to Family Medications Tab + Fix Role Detection
+## Plan: Make Checklist SOP Sections Collapsible
 
 ### Problem
-The family's Medications tab shows medications with adherence percentages but **no administration history**. When Tricia Cumm (professional) marks a medication as administered, the family user has no way to see that record — no log of who gave what medication and when.
+The "Full Caregiver Daily Checklist (SOP Reference)" sections on the admin onboarding page are very long (especially with the new First Aid section), taking up excessive vertical space.
 
-Additionally, Tricia's administration was recorded with `administered_by_role: family` instead of `professional`, indicating a role detection bug.
+### Solution
+Wrap each SOP section card in a collapsible component (using the existing Radix `Collapsible` from `src/components/ui/collapsible.tsx`). Each section title becomes a clickable trigger that expands/collapses its item list. All sections start **collapsed by default** to save space.
+
+This applies to **both** the family and professional tabs on the admin onboarding checklist, as well as the professional's own onboarding checklist page — all three render the same `CHECKLIST_SECTIONS.map(...)` pattern.
 
 ### Changes
 
-**File 1: `src/components/care-plan/MedicationsTab.tsx`**
-- Add an expandable "Recent Activity" section below each medication showing the last 3-5 administrations
-- Each entry displays: medication name, date/time, administered by (name), role badge (Family/Professional), status
-- Alternatively, add a dedicated "Administration History" card at the bottom showing all recent administrations across all medications, sorted by date
-
-**File 2: `src/components/medication/ConflictAwareAdministrationForm.tsx`**
-- Fix the role detection: look up the current user's `role` from their profile instead of defaulting or guessing
-- Ensure professionals are recorded as `professional` and family members as `family`
-
-### What the family will see after this fix
-- Each medication card will have a small "Last administered" line showing the most recent administration (e.g., "Apr 11, 2026 at 8:00 AM by Tricia Cumm (Professional)")
-- A "Recent Administration Log" card showing a timeline of all recent medication administrations across the care plan, so the family can verify what was given and by whom
-
-### Files Modified
-
 | File | Change |
 |------|--------|
-| `src/components/care-plan/MedicationsTab.tsx` | Add administration history display showing who administered each medication and when |
-| `src/components/medication/ConflictAwareAdministrationForm.tsx` | Fix role detection to correctly record professional vs family role |
+| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Replace the static SOP section rendering (lines ~910-922) with `Collapsible` wrappers — title becomes a `CollapsibleTrigger` with a chevron icon, items go inside `CollapsibleContent`. Collapsed by default. |
+| `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx` | Same collapsible treatment for the SOP reference section (lines ~363-370). |
+
+### UI Behavior
+- Each section shows its title with a chevron arrow (right when collapsed, down when expanded)
+- Clicking the title toggles the item list open/closed
+- All sections start collapsed
+- No changes to the interactive `DailyChecklist` or `ChecklistSectionCard` components (those are working checklists, not reference lists)
 
