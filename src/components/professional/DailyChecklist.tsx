@@ -495,13 +495,13 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
       {/* Quick Links to PDFs */}
       <div className="flex flex-wrap gap-3">
         <Button variant="outline" size="sm" className="gap-2" asChild>
-          <a href="https://tavaracare.lovable.app/documents/Tavara_Nurse_Handbook.pdf" target="_blank" rel="noopener noreferrer" download="Tavara_Nurse_Handbook.pdf">
+          <a href={`${PRODUCTION_BASE_URL}/documents/Tavara_Nurse_Handbook.pdf`} target="_blank" rel="noopener noreferrer" download="Tavara_Nurse_Handbook.pdf">
             <BookOpen className="h-4 w-4" />
             View Nurse Handbook & SOP
           </a>
         </Button>
         <Button variant="outline" size="sm" className="gap-2" asChild>
-          <a href="https://tavaracare.lovable.app/documents/Tavara_Daily_Checklist.pdf" target="_blank" rel="noopener noreferrer" download="Tavara_Daily_Checklist.pdf">
+          <a href={`${PRODUCTION_BASE_URL}/documents/Tavara_Daily_Checklist.pdf`} target="_blank" rel="noopener noreferrer" download="Tavara_Daily_Checklist.pdf">
             <FileText className="h-4 w-4" />
             View Checklist PDF
           </a>
