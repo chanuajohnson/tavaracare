@@ -1,77 +1,75 @@
 
 
-## Plan: Note Acknowledgment & Response System for Professionals
+## Plan: Preserve Note Formatting + Add "Action By" with Completion Tracking
 
-### Context
-Currently, admin notes on the professional's onboarding checklist are read-only. The professional (e.g., Trisha) can see notes like "Test Note" but has no way to signal she's read them or respond. The user wants a respectful, lightweight acknowledgment system -- not a full chat thread.
+### Problem 1: Notes lose formatting
+Currently, note text is rendered with `<p className="text-sm">{note.text}</p>` (line 189). This collapses all whitespace, newlines, and indentation into a single blob of text. The fix is simple: add `whitespace-pre-wrap` to preserve the formatting exactly as the admin typed it.
 
-### Research-Informed Design Decision
+### Problem 2: No "Action By" accountability loop
+Admin wants to assign a specific person (e.g., "Chan", "Nurse Trisha") as the responsible party for each note/action item, and that person should be able to check it off as completed. This creates a full accountability loop: assign -> action -> completion -> visible to admin.
 
-After considering common patterns for this kind of one-directional communication with acknowledgment:
+### Changes
 
-1. **Read receipts only** (e.g., Slack "seen by") -- too passive, no way to ask a question
-2. **Full comment threads** -- too heavy, creates back-and-forth the user explicitly doesn't want
-3. **Acknowledge + single reply** (best fit) -- professional can mark "Acknowledged" and optionally leave one brief response. Admin sees the status change and response. No further threading.
+**1. Preserve note formatting (`OnboardingNotesCard.tsx`)**
+- Change `<p className="text-sm">` to `<p className="text-sm whitespace-pre-wrap">` for note text display
+- Same treatment for response text display
 
-This mirrors patterns used in medical/care handoff systems: the sender posts an instruction, the receiver acknowledges and can add a brief clarifying note. It's respectful, bounded, and auditable.
+**2. Extend `OnboardingNote` interface with action tracking fields**
+```typescript
+export interface OnboardingNote {
+  text: string;
+  assigned_to: string;
+  created_by: string;
+  created_at: string;
+  // Existing acknowledgment fields...
+  acknowledged_at?: string;
+  acknowledged_by?: string;
+  response_text?: string;
+  response_at?: string;
+  // NEW: Action assignment and completion
+  action_by?: string;        // Free-text name: "Chan", "Trisha", etc.
+  completed_at?: string;     // Timestamp when marked done
+  completed_by?: string;     // Who checked it off
+}
+```
 
-### What changes
+**3. Add "Action By" input when creating/editing notes (admin view)**
+- Add an optional text input field next to the "Assign to" dropdown: "Action By (person name)"
+- When set, the note displays a badge like "Action by: Chan"
+- The action_by field is saved into the note JSON
 
-**1. Extend the `OnboardingNote` interface**
+**4. Add completion checkbox for the assigned action person**
+- **Admin view**: Shows completion status -- green checkmark with timestamp if completed, or "Pending" label if not. Admin can also mark it complete.
+- **Professional/Family view (readOnly)**: If the note has an `action_by` value, show a checkbox labeled "Mark as completed". Once checked, it records `completed_at` and `completed_by` and becomes read-only.
+- This is separate from the existing "Acknowledge" flow. Acknowledge = "I've read this." Completed = "I've done this."
 
-Add two new optional fields:
-- `acknowledged_at?: string` -- timestamp when professional marked it read
-- `acknowledged_by?: string` -- who acknowledged (user ID or name)
-- `response_text?: string` -- optional brief response from professional
-- `response_at?: string` -- timestamp of response
+**5. Wire up completion handlers**
+- New prop: `onCompleteNote?: (index: number) => void`
+- In `AdminOnboardingChecklistPage.tsx`: add `handleCompleteNote` that sets `completed_at` and `completed_by` on the note and saves
+- In `ProfessionalOnboardingChecklistPage.tsx` and `FamilyOnboardingChecklistPage.tsx`: same handler for their respective views
 
-**2. Update `OnboardingNotesCard` component**
-
-When `readOnly` is true (professional/family view), each note will show:
-- An "Acknowledge" button (checkmark icon) if not yet acknowledged
-- A green "Acknowledged" badge with timestamp if already acknowledged
-- A small "Add Response" text button that expands a single-line textarea (max 280 chars) for one brief reply
-- Once a response is submitted, it shows below the note as an indented reply with the professional's name and timestamp
-- Response is one-time only -- once submitted, it becomes read-only
-
-When `readOnly` is false (admin view), admin sees:
-- The acknowledgment status (pending/acknowledged) for each note
-- Any response the professional left, displayed below the note
-
-**3. Add callbacks for professional-side persistence**
-
-New props on `OnboardingNotesCard`:
-- `onAcknowledgeNote?: (index: number) => void`
-- `onRespondToNote?: (index: number, responseText: string) => void`
-
-**4. Update `ProfessionalOnboardingChecklistPage.tsx`**
-
-- Wire up `onAcknowledgeNote` and `onRespondToNote` to update the notes array in the checklist's `checked_items` JSON and save to Supabase
-- Professional can only acknowledge/respond to notes assigned to "caregiver"
-
-**5. Update `FamilyOnboardingChecklistPage.tsx`**
-
-- Same pattern: family members can acknowledge/respond to notes assigned to "family"
-
-### UI mockup (professional view)
-
+### UI mockup (admin creating a note)
 ```text
 ┌─────────────────────────────────────────────┐
-│ 📝 Notes & Action Items                    │
-├─────────────────────────────────────────────┤
-│ Please confirm podiatry needs with family   │
-│ 🏢 Admin · Apr 12, 2026 11:26 AM          │
+│ [Textarea: Type a note or action item...]   │
 │                                             │
-│   [✓ Acknowledge]  [Reply]                  │
-├─────────────────────────────────────────────┤
-│ After acknowledgment:                       │
+│ Assign to: [Caregiver ▾]                    │
+│ Action by: [Chan____________]  (optional)   │
+│                              [+ Add Note]   │
+└─────────────────────────────────────────────┘
+```
+
+### UI mockup (note displayed)
+```text
+┌─────────────────────────────────────────────┐
+│ Please confirm podiatry needs               │
+│   with family and update care plan.         │
 │                                             │
-│ Please confirm podiatry needs with family   │
-│ 🏢 Admin · Apr 12, 2026 11:26 AM          │
-│ ✅ Acknowledged · Apr 12, 2026 11:30 AM    │
-│                                             │
-│   ↳ "Confirmed with Mrs. Chan, noted in     │
-│      care plan." — Trisha · 11:31 AM        │
+│ 👤 Family · Action by: Chan                │
+│ Apr 12, 2026 11:26 AM                       │
+│ ✅ Completed by Chan · Apr 12, 11:45 AM    │
+│  — or if pending —                          │
+│ ☐ Mark as completed                         │
 └─────────────────────────────────────────────┘
 ```
 
@@ -79,10 +77,11 @@ New props on `OnboardingNotesCard`:
 
 | File | Change |
 |------|--------|
-| `src/components/admin/onboarding/OnboardingNotesCard.tsx` | Add acknowledge/response UI, new props, extended note rendering |
-| `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx` | Wire up acknowledge/respond handlers, save to Supabase |
-| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Same handlers for family-assigned notes |
+| `OnboardingNotesCard.tsx` | `whitespace-pre-wrap` on note text, add `action_by` input, add completion checkbox/display, new `onCompleteNote` prop |
+| `AdminOnboardingChecklistPage.tsx` | Wire `handleCompleteNote` for both family and professional notes |
+| `ProfessionalOnboardingChecklistPage.tsx` | Wire `onCompleteNote` handler |
+| `FamilyOnboardingChecklistPage.tsx` | Wire `onCompleteNote` handler |
 
-### No database migration needed
-The notes are stored as a JSON array inside `checked_items`. Adding `acknowledged_at`, `acknowledged_by`, `response_text`, and `response_at` fields to each note object in JSON requires no schema change.
+### No migration needed
+All data is stored in the `checked_items` JSON column. Adding `action_by`, `completed_at`, and `completed_by` fields requires no schema change.
 
