@@ -306,7 +306,14 @@ export default function ProfessionalOnboardingChecklistPage() {
                   <CollapsibleContent>
                     <CardContent className="pt-0 pb-4">
                       {section.id === "post_onboarding" && (
-                        <CareSummaryHeader checkedItems={checkedItems} />
+                        <>
+                          <CareSummaryHeader checkedItems={checkedItems} />
+                          <ProfessionalReadinessApproval
+                            checkedItems={checkedItems}
+                            professionalId={user?.id}
+                            onApproved={(updated) => setCheckedItems(updated)}
+                          />
+                        </>
                       )}
                       <div className="space-y-2 pl-2">
                         {section.items.map((item, i) => {
