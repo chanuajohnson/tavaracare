@@ -48,8 +48,8 @@ export const FamilyMatchNotification = () => {
           .select('id, professional_type, available_for_matching')
           .in('id', caregiverIds);
 
-        // Filter to only available caregivers
-        const availableProfiles = (profiles || []).filter(p => p.available_for_matching !== false);
+        // Show all assigned caregivers — available_for_matching only controls the discovery pool
+        const allProfiles = profiles || [];
 
         const typeMap: Record<string, string> = {
           gapp: "GAPP Certified",
@@ -68,12 +68,10 @@ export const FamilyMatchNotification = () => {
           return typeMap[type.toLowerCase()] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         };
 
-        const availableIds = new Set(availableProfiles.map(p => p.id));
-        const profileMap = new Map(availableProfiles.map(p => [p.id, getLabel(p.professional_type)]));
+        const profileMap = new Map(allProfiles.map(p => [p.id, getLabel(p.professional_type)]));
 
-        // Only include matches where caregiver is available
-        const availableMatches = data.filter(m => availableIds.has(m.caregiver_id));
-        setMatches(availableMatches.map(m => ({
+        // Include all active assignments
+        setMatches(data.map(m => ({
           ...m,
           caregiver_name: profileMap.get(m.caregiver_id) || 'Professional Caregiver'
         })));
