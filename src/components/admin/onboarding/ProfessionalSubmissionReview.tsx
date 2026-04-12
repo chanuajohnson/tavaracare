@@ -103,6 +103,7 @@ export default function ProfessionalSubmissionReview({ professionalId }: Profess
       URL.revokeObjectURL(previewBlobUrl);
       setPreviewBlobUrl(null);
     }
+    setPreviewSignedUrl(null);
   }, [previewBlobUrl]);
 
   // Cleanup blob URL when dialog closes
@@ -147,7 +148,7 @@ export default function ProfessionalSubmissionReview({ professionalId }: Profess
   }, [professionalId]);
 
   /** Fetch file as blob via signed URL */
-  const fetchDocBlob = async (doc: DocumentData): Promise<{ blobUrl: string; mime: string } | null> => {
+  const fetchDocBlob = async (doc: DocumentData): Promise<{ blobUrl: string; mime: string; signedUrl: string } | null> => {
     if (!doc.file_path) {
       toast.error("No file path available for this document");
       return null;
@@ -159,13 +160,14 @@ export default function ProfessionalSubmissionReview({ professionalId }: Profess
       toast.error("Failed to access document: " + (error?.message || "Unknown error"));
       return null;
     }
+    const signedUrl = data.signedUrl;
     try {
-      const response = await fetch(data.signedUrl);
+      const response = await fetch(signedUrl);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const blob = await response.blob();
       const mime = blob.type && blob.type !== "application/octet-stream" ? blob.type : guessMimeType(doc.file_name);
       const blobUrl = URL.createObjectURL(blob);
-      return { blobUrl, mime };
+      return { blobUrl, mime, signedUrl };
     } catch (fetchErr: any) {
       toast.error("Failed to fetch document content: " + fetchErr.message);
       return null;
@@ -179,6 +181,7 @@ export default function ProfessionalSubmissionReview({ professionalId }: Profess
     const result = await fetchDocBlob(doc);
     if (result) {
       setPreviewBlobUrl(result.blobUrl);
+      setPreviewSignedUrl(result.signedUrl);
       setPreviewMime(result.mime);
     } else {
       setPreviewOpen(false);
@@ -291,13 +294,13 @@ export default function ProfessionalSubmissionReview({ professionalId }: Profess
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(previewBlobUrl!, '_blank')}
+                      onClick={() => window.open(previewSignedUrl || previewBlobUrl!, '_blank')}
                     >
                       <Eye className="h-4 w-4 mr-1" /> Open in New Tab
                     </Button>
                   </div>
                   <object
-                    data={previewBlobUrl}
+                    data={previewSignedUrl || previewBlobUrl!}
                     type="application/pdf"
                     className="w-full h-[70vh] border rounded"
                   >
@@ -308,7 +311,7 @@ export default function ProfessionalSubmissionReview({ professionalId }: Profess
                       </p>
                       <Button
                         size="sm"
-                        onClick={() => window.open(previewBlobUrl!, '_blank')}
+                        onClick={() => window.open(previewSignedUrl || previewBlobUrl!, '_blank')}
                       >
                         <Eye className="h-4 w-4 mr-1" /> Open in New Tab
                       </Button>
