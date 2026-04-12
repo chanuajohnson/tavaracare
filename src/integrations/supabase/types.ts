@@ -3365,6 +3365,7 @@ export type Database = {
       professional_onboarding_checklists: {
         Row: {
           checked_items: Json | null
+          family_id: string | null
           id: string
           notes: Json | null
           professional_id: string
@@ -3373,6 +3374,7 @@ export type Database = {
         }
         Insert: {
           checked_items?: Json | null
+          family_id?: string | null
           id?: string
           notes?: Json | null
           professional_id: string
@@ -3381,6 +3383,7 @@ export type Database = {
         }
         Update: {
           checked_items?: Json | null
+          family_id?: string | null
           id?: string
           notes?: Json | null
           professional_id?: string
@@ -3389,9 +3392,16 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "professional_onboarding_checklists_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "professional_onboarding_checklists_professional_id_fkey"
             columns: ["professional_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
