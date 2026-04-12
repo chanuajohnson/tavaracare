@@ -223,10 +223,10 @@ const buildSmartNudgeMessage = (
   message += `\nThese details are essential for us to source and match you with the best caregiver. The more complete your profile, the faster and more accurate your match will be!\n\n`;
 
   if (profileFields.length > 0) {
-    message += `🔗 Update your profile: https://tavaracare.lovable.app/dashboard/family\n`;
+    message += `🔗 Update your profile: ${PRODUCTION_BASE_URL}/dashboard/family\n`;
   }
   if (assessmentFields.length > 0) {
-    message += `🔗 Complete care assessment: https://tavaracare.lovable.app/family/care-assessment?mode=edit\n`;
+    message += `🔗 Complete care assessment: ${PRODUCTION_BASE_URL}/family/care-assessment?mode=edit\n`;
   }
 
   message += `\nQuestions? Just reply here!\n— Chan, Tavara Care 💙`;
@@ -332,10 +332,10 @@ So happy we were able to successfully complete your onboarding! 🎉
 
 Here's what to do next:
 
-📱 Visit your dashboard: https://tavaracare.lovable.app/dashboard/family
+📱 Visit your dashboard: ${PRODUCTION_BASE_URL}/dashboard/family
 Check your Quick Links for easy navigation to everything you need.
 
-📋 View your onboarding progress: https://tavaracare.lovable.app/family/onboarding-checklist
+📋 View your onboarding progress: ${PRODUCTION_BASE_URL}/family/onboarding-checklist
 Scroll down to the "Post-Onboarding Summary" section — you'll find all your care details, important dates, and helpful links there.
 
 We're truly excited to be part of your care village. 💙
@@ -353,13 +353,13 @@ Great job completing onboarding! 🎉
 
 Here's what to do next:
 
-📱 Visit your dashboard: https://tavaracare.lovable.app/dashboard/professional
+📱 Visit your dashboard: ${PRODUCTION_BASE_URL}/dashboard/professional
 Check your Quick Links for easy navigation.
 
-📋 View your onboarding checklist: https://tavaracare.lovable.app/professional/onboarding-checklist
+📋 View your onboarding checklist: ${PRODUCTION_BASE_URL}/professional/onboarding-checklist
 Review the Post-Onboarding Summary section and check off the ✅ Readiness Approval when you're ready to commence.
 
-📝 Check your notes & action items: https://tavaracare.lovable.app/professional/onboarding-checklist#notes
+📝 Check your notes & action items: ${PRODUCTION_BASE_URL}/professional/onboarding-checklist#notes
 Any notes or action items from your coordinator will appear here.
 
 Once your Readiness Approval is checked off and we receive final confirmation from the client, we'll complete the information transfer and prepare for a smooth start. 💙
@@ -375,19 +375,19 @@ const buildReadyToCommenceNudge = (userName: string): string => {
 Yes, the details you asked about are already documented — you can find everything in your dashboard.
 
 👉 View your notes & action items here:
-https://tavaracare.lovable.app/professional/onboarding-checklist#notes
+${PRODUCTION_BASE_URL}/professional/onboarding-checklist#notes
 You'll see the notes and action items listed there from yesterday's visit.
 
 👉 Review your Post-Onboarding Summary:
-https://tavaracare.lovable.app/professional/onboarding-checklist#post_onboarding
+${PRODUCTION_BASE_URL}/professional/onboarding-checklist#post_onboarding
 I have also listed for the Family the First Aid and items that the home should be stocked with over time — you can review that as well.
 
 ✅ Check the Readiness Approval checkbox once everything looks good:
-https://tavaracare.lovable.app/professional/onboarding-checklist#post_onboarding
+${PRODUCTION_BASE_URL}/professional/onboarding-checklist#post_onboarding
 This acts as your digital confirmation that you've reviewed everything and are ready to commence as planned.
 
 📱 Your full dashboard:
-https://tavaracare.lovable.app/dashboard/professional
+${PRODUCTION_BASE_URL}/dashboard/professional
 
 Once that's done, and once we receive final confirmation from the client regarding the podiatry service, I'll complete the information transfer and we'll prepare for a smooth start tomorrow. 💙
 

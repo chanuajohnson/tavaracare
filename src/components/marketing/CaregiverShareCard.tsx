@@ -111,7 +111,7 @@ export const CaregiverShareCard = forwardRef<HTMLDivElement, CaregiverShareCardP
           <div className="flex items-center gap-4">
             <div className="bg-white p-2 rounded-lg shadow-sm border">
               <QRCode 
-                url="https://tavaracare.lovable.app/urgent-caregivers?utm_source=caregiver_card"
+                url={`${PRODUCTION_BASE_URL}/urgent-caregivers?utm_source=caregiver_card`}
                 size={60}
               />
             </div>

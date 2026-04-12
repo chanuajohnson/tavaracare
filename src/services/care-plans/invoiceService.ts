@@ -75,7 +75,7 @@ const COMPANY_INFO = {
   address: 'Trinidad & Tobago',
   phone: '+1 (868) 123-4567',
   email: 'support@tavara.care',
-  website: 'https://tavaracare.lovable.app',
+  website: 'https://tavara.care',
 };
 
 const TERMS_AND_CONDITIONS = [

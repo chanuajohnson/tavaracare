@@ -423,7 +423,7 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
 
     // Deep link to care plan daily logs tab
     if (selectedCarePlanId) {
-      summary += `\n🔗 View full log & care plan:\nhttps://tavaracare.lovable.app/family/care-management/${selectedCarePlanId}?tab=daily-logs\n`;
+      summary += `\n🔗 View full log & care plan:\n${PRODUCTION_BASE_URL}/family/care-management/${selectedCarePlanId}?tab=daily-logs\n`;
     }
 
     summary += `\n— Tavara Care`;

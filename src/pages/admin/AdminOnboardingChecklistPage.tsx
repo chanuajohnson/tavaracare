@@ -714,7 +714,7 @@ function ChecklistTabContent({
     toast.success("Public onboarding guide link copied!");
   };
 
-  const publishedBase = "https://tavaracare.lovable.app";
+  const publishedBase = PRODUCTION_BASE_URL;
   const checklistPath = profileLabel === "Family"
     ? "/family/onboarding-checklist"
     : "/professional/onboarding-checklist";
