@@ -989,6 +989,29 @@ export const UserNudgeTab: React.FC<UserNudgeTabProps> = ({ user, journeyProgres
                   </Button>
                 </CardContent>
               </Card>
+
+              {/* Post-Onboarding Professional Nudge */}
+              <Card className="border-teal-500/50 bg-teal-50 dark:bg-teal-950/20">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-teal-600" />
+                    <span className="font-medium text-sm text-teal-800 dark:text-teal-300">
+                      ✅ Post-Onboarding — Send Summary & Links
+                    </span>
+                  </div>
+                  <p className="text-xs text-teal-700 dark:text-teal-400">
+                    Direct the professional to their dashboard, onboarding checklist, notes, and Readiness Approval checkbox with easy deep links.
+                  </p>
+                  <Button
+                    size="sm"
+                    className="w-full gap-2 bg-teal-600 hover:bg-teal-700 text-white"
+                    onClick={handleSendPostOnboardingProfessionalNudge}
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    Send Post-Onboarding Summary via WhatsApp
+                  </Button>
+                </CardContent>
+              </Card>
             </>
           )}
         </>
