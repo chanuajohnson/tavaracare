@@ -330,7 +330,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
             completed = !!(mealPlans && mealPlans.length > 0);
             break;
           case 7: // Schedule visit
-            completed = profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed';
+            completed = profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed' || hasCaregiverAssigned;
             break;
           case 8: // Confirm visit
             completed = profile?.visit_scheduling_status === 'completed';
