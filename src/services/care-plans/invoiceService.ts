@@ -407,11 +407,38 @@ export async function generateReceiptPDF(data: CareBillingData): Promise<void> {
  * Helper to build default billing data for a standard care arrangement
  * e.g., Anna Maria's case: $35/hr nurse + $5/hr platform = $40/hr, 40hrs/wk
  */
-export function buildDefaultCareBillingData(overrides: Partial<CareBillingData> & { familyName: string }): CareBillingData {
+export function buildDefaultCareBillingData(
+  overrides: Partial<CareBillingData> & { familyName: string; additionalLineItems?: BillingLineItem[] }
+): CareBillingData {
   const nurseRate = 35;
   const hoursPerWeek = 40;
   const nursingTotal = nurseRate * hoursPerWeek;
   const subscriptionRate = 199.99; // Family Care weekly
+
+  // Build base line items
+  const baseLineItems: BillingLineItem[] = overrides.lineItems || [
+    {
+      description: 'Standard Weekly Care — Nursing (40 hrs/wk)',
+      hoursPerWeek,
+      ratePerHour: nurseRate,
+      amount: nursingTotal,
+    },
+    {
+      description: 'Family Care Plan — Care Management & Coordination',
+      amount: subscriptionRate,
+      note: '(weekly)',
+    },
+  ];
+
+  // Merge additional line items if provided
+  const additionalItems = overrides.additionalLineItems || [];
+  const allLineItems = [...baseLineItems, ...additionalItems];
+
+  // Recalculate totals including additional items
+  const additionalTotal = additionalItems.reduce((sum, item) => sum + item.amount, 0);
+  const baseSubtotal = overrides.subtotal ?? (nursingTotal + subscriptionRate);
+  const finalSubtotal = baseSubtotal + additionalTotal;
+  const finalTotal = (overrides.total ?? baseSubtotal) + additionalTotal;
 
   return {
     familyName: overrides.familyName,
@@ -421,21 +448,9 @@ export function buildDefaultCareBillingData(overrides: Partial<CareBillingData> 
     careRecipientName: overrides.careRecipientName,
     caregiverName: overrides.caregiverName,
     caregiverRole: overrides.caregiverRole || 'Nurse',
-    lineItems: overrides.lineItems || [
-      {
-        description: 'Standard Weekly Care — Nursing (40 hrs/wk)',
-        hoursPerWeek,
-        ratePerHour: nurseRate,
-        amount: nursingTotal,
-      },
-      {
-        description: 'Family Care Plan — Care Management & Coordination',
-        amount: subscriptionRate,
-        note: '(weekly)',
-      },
-    ],
-    subtotal: overrides.subtotal ?? (nursingTotal + subscriptionRate),
-    total: overrides.total ?? (nursingTotal + subscriptionRate),
+    lineItems: allLineItems,
+    subtotal: finalSubtotal,
+    total: finalTotal,
     subscriptionTier: overrides.subscriptionTier || 'Family Care',
     subscriptionRate: overrides.subscriptionRate || '$199.99/week',
     subscriptionIncludes: overrides.subscriptionIncludes || [

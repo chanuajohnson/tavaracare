@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarIcon, FileText, Receipt, FileCheck, Loader2 } from "lucide-react";
@@ -16,6 +18,7 @@ import {
   generateReceiptPDF,
   buildDefaultCareBillingData,
   type CareBillingData,
+  type BillingLineItem,
 } from "@/services/care-plans/invoiceService";
 import { toast } from "sonner";
 
@@ -39,6 +42,7 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({
   const [selectedPeriodIndex, setSelectedPeriodIndex] = useState<number>(0);
   const [generating, setGenerating] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [includePodiatry, setIncludePodiatry] = useState(false);
 
   // Load billing config from onboarding_checklists
   useEffect(() => {
@@ -100,6 +104,20 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({
   const selectedPeriod = periods[selectedPeriodIndex] || null;
 
   const buildBillingData = (): CareBillingData => {
+    const additionalLineItems: BillingLineItem[] = [];
+    const additionalNotes: string[] = [];
+
+    if (includePodiatry) {
+      additionalLineItems.push({
+        description: 'Podiatric Care Support (Secondary Household Member)',
+        amount: 349.00,
+        note: 'Twice-daily antifungal treatment — full care cycle: preparation, hygiene protocol, application, and post-care handling',
+      });
+      additionalNotes.push(
+        'This service is limited to the defined podiatric care task only and does not extend to general caregiving for the secondary household member. Service continues weekly unless discontinued in writing with one (1) week\'s notice.'
+      );
+    }
+
     return buildDefaultCareBillingData({
       familyName,
       familyEmail,
@@ -110,6 +128,15 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({
       dueDate: selectedPeriod ? addDays(selectedPeriod.end, 3) : undefined,
       paymentDate: new Date(),
       amountPaid: undefined,
+      additionalLineItems,
+      ...(additionalNotes.length > 0 ? {
+        additionalNotes: [
+          'NIS (National Insurance) contributions for the assigned caregiver are included and covered by Tavara as required by Trinidad & Tobago law.',
+          'Tavara provides continuity of care — if your assigned caregiver is unavailable, a qualified replacement will be provided at no extra charge.',
+          'Rate adjustments may apply if care needs change (e.g., disease progression, additional services).',
+          ...additionalNotes,
+        ],
+      } : {}),
     });
   };
 
@@ -197,6 +224,31 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({
               )}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Optional Add-On Services */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">➕ Additional Services</CardTitle>
+          <CardDescription>Optional add-on line items to include in generated documents.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start space-x-3">
+            <Checkbox
+              id="podiatry-toggle"
+              checked={includePodiatry}
+              onCheckedChange={(checked) => setIncludePodiatry(!!checked)}
+            />
+            <div>
+              <Label htmlFor="podiatry-toggle" className="font-medium text-sm cursor-pointer">
+                Include Podiatric Care Support (Secondary Household Member) — $349.00/week
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Twice-daily antifungal treatment — full care cycle: preparation, hygiene protocol, application, and post-care handling.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

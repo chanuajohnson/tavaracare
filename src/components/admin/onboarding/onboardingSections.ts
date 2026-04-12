@@ -211,6 +211,11 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
       "Family understands rate adjustments may apply if care needs change, with prior notice",
       "Family agrees to provide Wi-Fi access (if available) to the caregiver for platform use — medication logging, care documentation, and shift tracking",
       "Family confirms they have reviewed the quotation and accepted all terms (digital approval)",
+      "Family understands that care is primarily provided for the identified care recipient and does not extend to other household members unless explicitly agreed and billed as an additional service",
+      "Family confirms approval of any additional care services requested (e.g. podiatric care for secondary household member), as outlined in the quotation",
+      "Family understands that approved secondary services are limited to the defined task only and do not extend to general caregiving for the secondary individual",
+      "Family acknowledges that additional services are billed weekly and will continue unless discontinued in writing with one (1) week's notice",
+      "Family confirms that caregiver support will be provided in a manner that respects existing household roles and routines, with the caregiver supporting — not replacing — family responsibilities where appropriate",
     ],
   },
   {
