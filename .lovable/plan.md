@@ -1,45 +1,40 @@
 
 
-## Plan: Fix Journey Completion Percentages and Stage Accuracy
+## Plan: Sync Family Journey Progress to `user_journey_progress` Table
 
-### Problems Identified
+### Problem
 
-1. **Overall completion % counts all 15 steps equally** — Optional trial steps (12-14) dilute the percentage, making a family with active care appear less complete than they are
-2. **Care Coordination shows wrong count** — For this family, visit is confirmed (step 8), caregiver assigned (step 9), but steps 10 and 11 may not be marked complete even though care is active. The stage should reflect actual state (e.g., 4 of 4 if care has begun)
-3. **"Care Services" (conversion) stage is unclear** — Step 15 ("Rate & Choose Your Path") checks `visitNotes?.care_model` but this family already has a care model. This step's completion logic may not detect that correctly
-4. **The overall header % is misleading** — It calculates `completedSteps / totalSteps` including optional trial steps, so a family with full active care can never hit 100% without doing the trial
+The admin dashboard Journey tab and TAV widget both show **stale** progress (67%, 10 of 15 steps) because they read from the `user_journey_progress` database table via `useStoredJourneyProgress`. This table is never updated for family users after our recent journey logic changes (optional step exclusion, active care detection).
 
-### Solution
+The family dashboard calculates progress dynamically in `useEnhancedJourneyProgress`, but the admin and TAV still read from the stored table, creating a mismatch.
 
-**Exclude optional steps from the overall completion percentage** and fix step completion logic for families with active care.
+Additionally, `useEnhancedJourneyProgress` itself prefers stored progress over calculated progress (lines 840-844), which can cause the family dashboard to also show stale data if the stored value is non-zero.
+
+### Root Cause
+
+- `calculate_and_update_journey_progress` RPC is only called from `ProfessionalRegistration.tsx` -- never for family users
+- No mechanism syncs the dynamically calculated family progress back to `user_journey_progress`
+- The family dashboard hook prefers stale stored data over fresh calculated data
 
 ### Changes
 
 | File | Change |
 |------|--------|
-| `src/hooks/useEnhancedJourneyProgress.ts` | **Lines 820-832**: Change `completedSteps` and `totalSteps` calculations to exclude steps where `is_optional === true`. The per-stage cards already calculate their own %, so this only affects the overall header display. |
-| `src/hooks/useSharedFamilyJourneyData.ts` | **Lines 437-438**: Same fix — exclude optional steps from overall `completionPercentage` calculation. |
-| `src/hooks/useEnhancedJourneyProgress.ts` | **Step 11 (Care Begins, line 735)**: Check if care plan exists with active assignments (`carePlans.length > 0` with active status) to mark as completed, not just rely on `sharedJourneyData`. |
-| `src/hooks/useSharedFamilyJourneyData.ts` | **Step 11 completion check**: Add logic to mark "Care Begins" as complete when there are active care assignments (query `care_team_members` for active status). |
-| `src/hooks/useEnhancedJourneyProgress.ts` | **Step 15 (line 802)**: Broaden the completion check — if a family has active care (step 11 complete), mark step 15 as complete since they've effectively chosen their care path. |
+| `src/hooks/useEnhancedJourneyProgress.ts` | **Lines 840-844**: Change priority so `calculatedPercentage` is always used as the primary source (it is the freshest). Remove the logic that defers to `storedProgress.completionPercentage`. |
+| `src/hooks/useEnhancedJourneyProgress.ts` | **After step calculation (~line 850)**: Add an effect that calls `calculate_and_update_journey_progress` RPC (or does an upsert to `user_journey_progress`) whenever `calculatedPercentage` changes, so the stored table stays in sync. This ensures the admin dashboard and TAV automatically get fresh data. |
+| `src/components/tav/hooks/useFamilyProgress.ts` | **Lines 257-259**: Same fix -- use `enhancedData.completionPercentage` as primary instead of deferring to `storedProgress.completionPercentage`. The stored value will now be kept in sync by the effect above, so both sources will agree. |
 
-### Per-Stage Expected Results (for this family)
+### Sync Mechanism Detail
 
-- **Foundation**: 7 of 7 (100%) — unchanged, correct
-- **Care Coordination**: 4 of 4 (100%) — steps 8-11 all marked complete since care is active
-- **Trial Experience**: 0 of 3 (0%) — optional, clearly labeled, does NOT affect overall %
-- **Care Services**: 1 of 1 (100%) — step 15 marked complete since care model is in operation
+After steps are calculated in `useEnhancedJourneyProgress`, add a `useEffect` that:
+1. Calls `supabase.rpc('calculate_and_update_journey_progress', { target_user_id: user.id })` when the calculated percentage differs from stored
+2. Debounces to avoid excessive calls (only sync once per mount or when completion changes)
+3. Only runs for authenticated, non-anonymous family users
 
-### Overall % Calculation Change
+### Result
 
-```text
-Before: completedSteps / 15 total steps (includes 3 optional trial steps)
-After:  completedSteps (non-optional) / 12 non-optional steps
-```
-
-For this family: 12 of 12 non-optional steps completed = 100%
-
-### Technical Detail
-
-The `JourneyStageCard` component already calculates per-stage percentages independently from its own `steps` array (line 78-80), so no changes needed there. The fix is in the hooks that calculate the overall header percentage and step completion states.
+- Admin Journey tab will show the same progress as the family dashboard (100% for families with active care)
+- TAV widget will show consistent progress
+- The `user_journey_progress` table stays current as families progress through their journey
+- All three surfaces (family dashboard, admin modal, TAV) will be consistent
 
