@@ -345,6 +345,29 @@ Questions? Just reply here!
 — Chan, Tavara Care 💙`;
 };
 
+const buildPostOnboardingProfessionalNudge = (userName: string): string => {
+  const firstName = userName?.split(' ')[0] || 'there';
+  return `Hi ${firstName}! 💙 Chan from Tavara Care.
+
+Great job completing onboarding! 🎉
+
+Here's what to do next:
+
+📱 Visit your dashboard: https://tavaracare.lovable.app/dashboard/professional
+Check your Quick Links for easy navigation.
+
+📋 View your onboarding checklist: https://tavaracare.lovable.app/professional/onboarding-checklist
+Review the Post-Onboarding Summary section and check off the ✅ Readiness Approval when you're ready to commence.
+
+📝 Check your notes & action items: https://tavaracare.lovable.app/professional/onboarding-checklist#notes
+Any notes or action items from your coordinator will appear here.
+
+Once your Readiness Approval is checked off and we receive final confirmation from the client, we'll complete the information transfer and prepare for a smooth start. 💙
+
+Questions? Just reply here!
+— Chan, Tavara Care 💙`;
+};
+
 const buildOnboardingNudge = (userName: string): string => {
   const firstName = userName?.split(' ')[0] || 'there';
   return `Hi ${firstName}! 💙 Chan from Tavara Care.

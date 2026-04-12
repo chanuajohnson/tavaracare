@@ -714,6 +714,21 @@ function ChecklistTabContent({
     toast.success("Public onboarding guide link copied!");
   };
 
+  const publishedBase = "https://tavaracare.lovable.app";
+  const checklistPath = profileLabel === "Family"
+    ? "/family/onboarding-checklist"
+    : "/professional/onboarding-checklist";
+
+  const copyNotesLink = () => {
+    navigator.clipboard.writeText(`${publishedBase}${checklistPath}#notes`);
+    toast.success(`${profileLabel} notes link copied!`);
+  };
+
+  const copyPostOnboardingLink = () => {
+    navigator.clipboard.writeText(`${publishedBase}${checklistPath}#post_onboarding`);
+    toast.success(`${profileLabel} post-onboarding link copied!`);
+  };
+
   return (
     <>
       <div className="flex justify-end gap-2 mb-4 flex-wrap">
@@ -957,6 +972,18 @@ function ChecklistTabContent({
             </Collapsible>
           );
         })}
+
+        {/* Copy link helpers for admin */}
+        <div className="flex flex-wrap gap-2 mb-2">
+          <Button variant="outline" size="sm" onClick={copyNotesLink} className="gap-1 text-xs">
+            <Copy className="h-3.5 w-3.5" />
+            Copy Notes Link
+          </Button>
+          <Button variant="outline" size="sm" onClick={copyPostOnboardingLink} className="gap-1 text-xs">
+            <Copy className="h-3.5 w-3.5" />
+            Copy Post-Onboarding Link
+          </Button>
+        </div>
 
         <OnboardingNotesCard
           notes={notes}
