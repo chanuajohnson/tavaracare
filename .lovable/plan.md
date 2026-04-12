@@ -1,89 +1,65 @@
 
-## Plan: Fix Denise Narcis Document Viewing in Admin Onboarding Checklist
 
-### What the issue actually is
-I reviewed the admin document flow and your latest screenshots. The failure for Denise Narcis is no longer a missing-path or storage-policy problem.
+## Plan: Multi-Family Professional Checklists + Note Edit/Delete
 
-The current problem is this:
+### Analysis
 
-- Denise’s profile is `24fe4121-89e6-4a3a-ba9c-c56e768afc05`
-- The admin checklist is generating a signed Supabase Storage URL for her document
-- Chrome then opens that signed URL in a new tab
-- That new tab is being blocked client-side with `ERR_BLOCKED_BY_CLIENT`
+**Question 1: Multiple onboarding checklists per professional**
 
-Your screenshot proves the signed URL is already pointing to Denise’s actual storage object path:
-```text
-.../object/sign/professional-documents/identification/24fe4121-89e6-4a3a-ba9c-c56e768afc05/1774840149728_...
+Currently, the `professional_onboarding_checklists` table has a `UNIQUE (professional_id)` constraint -- meaning each professional gets exactly ONE checklist row. The "Assigned Family" dropdown stores a single `assigned_family_id` inside the `checked_items` JSON. So if Trisha Calm is assigned to two families, she can only have one checklist with one linked family.
+
+**To support per-family checklists**, we need to:
+
+1. **Change the DB schema**: Replace the `UNIQUE (professional_id)` constraint with `UNIQUE (professional_id, family_id)`, adding a proper `family_id` column to `professional_onboarding_checklists`.
+2. **Update the admin UI**: When a professional is selected, show which families they're assigned to (from `care_team_members`), let the admin pick one, and load/save the checklist for that specific professional+family pair.
+3. **Update the upsert logic**: Change `onConflict: "professional_id"` to `onConflict: "professional_id,family_id"`.
+
+**Question 2: Edit/delete notes**
+
+The `OnboardingNotesCard` component currently only has an "Add Note" flow. Notes are stored as a JSON array. Adding edit and delete is straightforward:
+
+- Add a pencil (edit) and trash (delete) icon button to each note row
+- Edit opens an inline editor or replaces the text with a textarea
+- Delete removes the note from the array after confirmation
+- Both trigger the save-to-Supabase debounce
+
+### Changes
+
+| File | Change |
+|------|--------|
+| **Migration** | Add `family_id` column to `professional_onboarding_checklists`, drop old unique constraint, add new composite unique on `(professional_id, family_id)`, update RLS |
+| **`AdminOnboardingChecklistPage.tsx`** | When professional is selected, fetch their assigned families from `care_team_members`, show a family selector, load/save checklist by `(professional_id, family_id)` pair instead of just `professional_id` |
+| **`OnboardingNotesCard.tsx`** | Add `onEditNote` and `onDeleteNote` callback props. Render edit (pencil) and delete (trash) buttons on each note. Inline editing via textarea. Confirmation dialog on delete |
+| **`AdminOnboardingChecklistPage.tsx`** | Add `handleFamilyEditNote`, `handleFamilyDeleteNote`, `handleProfEditNote`, `handleProfDeleteNote` functions that update the notes array and trigger save |
+
+### Technical Details
+
+**Migration SQL (conceptual)**:
+```sql
+ALTER TABLE professional_onboarding_checklists 
+  ADD COLUMN family_id uuid REFERENCES profiles(id);
+
+-- Migrate existing data: copy assigned_family_id from checked_items JSON
+UPDATE professional_onboarding_checklists 
+  SET family_id = (checked_items->>'assigned_family_id')::uuid
+  WHERE checked_items->>'assigned_family_id' IS NOT NULL;
+
+ALTER TABLE professional_onboarding_checklists 
+  DROP CONSTRAINT unique_professional_onboarding;
+
+ALTER TABLE professional_onboarding_checklists 
+  ADD CONSTRAINT unique_professional_family_onboarding 
+  UNIQUE (professional_id, family_id);
 ```
 
-So this is not the old Tricia stale-path issue, and not the admin storage-RLS issue either.
+**Professional tab flow change**:
+- Select professional -> fetch their care_team_members assignments -> populate "Assigned Family" dropdown with only those families
+- Selecting a family loads the checklist for that specific (professional, family) pair
+- Each family gets its own independent checklist, notes, and progress
 
-### Root cause
-The admin UI in `src/components/admin/onboarding/ProfessionalSubmissionReview.tsx` currently does this for View:
+**Notes edit/delete**:
+- Each note gets a small edit (Pencil) and delete (Trash2) icon
+- Edit: toggles inline textarea, save button commits change
+- Delete: `window.confirm()` then removes from array
+- Both call the parent's save function to persist to Supabase
 
-- calls `createSignedUrl(doc.file_path, 300)`
-- then runs `window.open(data.signedUrl, '_blank')`
-
-That sends the browser directly to the Supabase signed URL domain. In your environment, Chrome/client tooling is blocking that navigation.
-
-### Fix to implement
-Update the admin document viewer so it does **not** rely on opening the signed Supabase URL in a separate browser tab.
-
-Instead:
-
-1. Keep using `createSignedUrl` to authorize access
-2. Fetch the file content in-app
-3. Create a local blob URL with `URL.createObjectURL(...)`
-4. Show the file inside a Tavara dialog/modal for viewing
-5. Keep Download as a blob-based download as well
-
-### Files to update
-- `src/components/admin/onboarding/ProfessionalSubmissionReview.tsx`
-
-### Implementation details
-#### 1. Add an in-app document preview flow
-For each document action:
-
-- Request signed URL from Supabase
-- `fetch()` the signed URL
-- Convert response to `Blob`
-- Build a local blob URL
-- Open a dialog instead of `window.open(...)`
-
-#### 2. Support both PDFs and images
-Use the document MIME type already stored on `professional_documents`:
-
-- If PDF: render with `<iframe src={blobUrl} />`
-- If image: render with `<img src={blobUrl} />`
-- If unsupported: show a clear message and offer download only
-
-#### 3. Replace direct-tab download with safer blob download
-For download:
-
-- fetch signed URL
-- convert to blob
-- create object URL
-- trigger `<a download>` using the object URL
-
-This avoids the blocked direct navigation to the Supabase domain.
-
-#### 4. Clean up object URLs
-When preview closes or changes:
-
-- revoke blob URLs with `URL.revokeObjectURL(...)`
-
-### Why this should solve Denise’s issue
-Your screenshot shows the app is already reaching the correct Denise storage object path. The break happens when the browser is asked to navigate directly to the Supabase signed URL in a new tab. Rendering the file inside the app from a fetched blob avoids that blocked navigation path.
-
-### Expected result after implementation
-For Denise Narcis on `/admin/onboarding-checklist`:
-
-- Eye button opens her ID/certificate/background-check inside a Tavara modal
-- Download button downloads the same file without sending the browser to the blocked Supabase URL tab
-- Admin can review documents the same way professionals effectively can after upload
-
-### Technical notes
-- Existing storage and DB policy work already done should remain in place
-- No route, auth provider, or registration flow changes are needed
-- No core protected files need to be touched
-- This is an isolated UI fix in the admin onboarding review component only
