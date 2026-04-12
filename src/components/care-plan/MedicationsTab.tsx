@@ -294,9 +294,42 @@ export function MedicationsTab({ carePlanId }: MedicationsTabProps) {
                           )}
                         </div>
                       </div>
-                      <div className="text-right text-xs text-muted-foreground whitespace-nowrap">
-                        <div>{new Date(entry.administered_at).toLocaleDateString()}</div>
-                        <div>{new Date(entry.administered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-right text-xs text-muted-foreground whitespace-nowrap">
+                          <div>{new Date(entry.administered_at).toLocaleDateString()}</div>
+                          <div>{new Date(entry.administered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>
+                        {user && entry.administered_by === user.id && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                                disabled={deletingAdminId === entry.id}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Undo Administration?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to remove this administration record for <strong>{entry.medicationName}</strong>? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteAdministration(entry.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Remove Record
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
                     </div>
                   );
