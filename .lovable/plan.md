@@ -1,37 +1,31 @@
 
 
-## Plan: Add First Aid & Emergency Support Section to Daily Checklist SOP
+## Plan: Add Administration History to Family Medications Tab + Fix Role Detection
 
-### What Changes
+### Problem
+The family's Medications tab shows medications with adherence percentages but **no administration history**. When Tricia Cumm (professional) marks a medication as administered, the family user has no way to see that record — no log of who gave what medication and when.
 
-Add a new section to the `CHECKLIST_SECTIONS` array in `src/components/professional/checklist/checklistSections.ts` titled **"🩺 First Aid & Emergency Support (Recommended)"** with all the items specified, organized into sub-groups within the flat items list.
+Additionally, Tricia's administration was recorded with `administered_by_role: family` instead of `professional`, indicating a role detection bug.
 
-### Why Only One File
+### Changes
 
-The `CHECKLIST_SECTIONS` constant is imported and rendered automatically by all consumers:
-- Admin onboarding checklist (family tab + professional tab)
-- Professional onboarding checklist (self-view)
-- Daily checklist (caregiver shift tool)
-- Daily care logs (review view)
+**File 1: `src/components/care-plan/MedicationsTab.tsx`**
+- Add an expandable "Recent Activity" section below each medication showing the last 3-5 administrations
+- Each entry displays: medication name, date/time, administered by (name), role badge (Family/Professional), status
+- Alternatively, add a dedicated "Administration History" card at the bottom showing all recent administrations across all medications, sorted by date
 
-Adding the section to the source array propagates it everywhere — no other files need changes.
+**File 2: `src/components/medication/ConflictAwareAdministrationForm.tsx`**
+- Fix the role detection: look up the current user's `role` from their profile instead of defaulting or guessing
+- Ensure professionals are recorded as `professional` and family members as `family`
 
-### Items to Add
+### What the family will see after this fix
+- Each medication card will have a small "Last administered" line showing the most recent administration (e.g., "Apr 11, 2026 at 8:00 AM by Tricia Cumm (Professional)")
+- A "Recent Administration Log" card showing a timeline of all recent medication administrations across the care plan, so the family can verify what was given and by whom
 
-The section will be inserted after the existing "📊 Monitoring" section (position 5) and will contain these items grouped with clear labels:
-
-- **Basic First Aid**: Adhesive bandages, sterile gauze pads, medical tape, antiseptic solution, rubbing alcohol, hydrogen peroxide, antibiotic ointment
-- **Wound & Skin Care**: Disposable medical gloves, cotton balls/pads, saline solution, barrier cream/zinc cream
-- **Pain & General Relief** (as approved by family): Panadol/Paracetamol, Advil/Ibuprofen, Aspirin (if prescribed), Milk of Magnesia
-- **Monitoring & Basic Tools**: Digital thermometer, blood pressure machine, pulse oximeter
-- **Emergency & Support Items**: Ice packs/cold compress, small flashlight, emergency contact list (printed and visible)
-- **Optional (Helpful Additions)**: Pill organizer, notepad for observations, extra disposable masks
-
-### Technical Details
+### Files Modified
 
 | File | Change |
 |------|--------|
-| `src/components/professional/checklist/checklistSections.ts` | Add new `ChecklistSection` entry with title "🩺 First Aid & Emergency Support (Recommended)" and 22 items |
-
-This is a single-file, data-only change. All UI rendering is already handled by existing components that map over `CHECKLIST_SECTIONS`.
+| `src/components/care-plan/MedicationsTab.tsx` | Add administration history display showing who administered each medication and when |
+| `src/components/medication/ConflictAwareAdministrationForm.tsx` | Fix role detection to correctly record professional vs family role |
 
