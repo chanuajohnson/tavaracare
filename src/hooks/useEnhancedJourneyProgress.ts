@@ -282,6 +282,18 @@ export const useEnhancedJourneyProgress = () => {
                     navigate('/dashboard/family');
                     toast.info('Check your visit status below.');
                     break;
+                  case 9:
+                    console.log('🚀 Navigating to care management for care team');
+                    navigate('/family/care-management');
+                    break;
+                  case 10:
+                    console.log('ℹ️ Step 10 - Initial Family Meeting awaiting admin confirmation');
+                    toast.info('This step is confirmed by your care coordinator after the initial meeting takes place.');
+                    break;
+                  case 11:
+                    console.log('🚀 Navigating to care management');
+                    navigate('/family/care-management');
+                    break;
                   default:
                     console.log(`No navigation defined for step ${step.id}`);
                     break;
@@ -365,8 +377,17 @@ export const useEnhancedJourneyProgress = () => {
                 navigate('/dashboard/family');
                 toast.info('Check your visit status below.');
                 break;
-              default:
-                console.log(`No navigation defined for step ${step.id}`);
+              case 9:
+                console.log('🚀 Navigating to care management for care team');
+                navigate('/family/care-management');
+                break;
+              case 10:
+                console.log('ℹ️ Step 10 - Initial Family Meeting awaiting admin confirmation');
+                toast.info('This step is confirmed by your care coordinator after the initial meeting takes place.');
+                break;
+              case 11:
+                console.log('🚀 Navigating to care management');
+                navigate('/family/care-management');
                 break;
             }
           } catch (error) {

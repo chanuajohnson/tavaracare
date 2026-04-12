@@ -75,22 +75,6 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareC
         <div className="flex items-center overflow-x-auto whitespace-nowrap py-1 gap-2">
           <span className="text-sm font-medium text-muted-foreground mr-2">Quick Access:</span>
           
-          {/* View Care Team - shown when caregiver is assigned */}
-          {hasCaregiverAssigned && (
-            <Link 
-              to="/family/care-management"
-              onClick={() => handleTrackButtonClick('navigation_click', 'view_care_team')}
-            >
-              <Button 
-                className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white shadow-lg font-semibold"
-                size="sm"
-              >
-                <Users className="h-4 w-4" />
-                <span>View Care Team</span>
-                <ArrowRight className="h-3 w-3" />
-              </Button>
-            </Link>
-          )}
 
           {/* Schedule Care - prominent amber button when in scheduling stage (hidden if caregiver assigned) */}
           {showScheduleButton && onScheduleCareClick && (

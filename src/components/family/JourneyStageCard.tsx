@@ -126,7 +126,24 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
       } else if (step.completed) {
         return "Visit Scheduled";
       }
+      // Check if caregiver is assigned (step 9 completed) — show appropriate text
+      const caregiverAssignedStep = steps.find(s => s.step_number === 9);
+      if (caregiverAssignedStep?.completed) {
+        return "Caregiver Assigned ✓";
+      }
       return "View Care Giver Matches";
+    }
+
+    if (step.step_number === 9) {
+      return step.completed ? "View Care Team" : "Awaiting Assignment";
+    }
+
+    if (step.step_number === 10) {
+      return step.completed ? "Meeting Complete ✓" : "Awaiting Confirmation";
+    }
+
+    if (step.step_number === 11) {
+      return step.completed ? "View Care Plan" : "Awaiting Care Start";
     }
     
     return step.completed ? "Edit" : "Complete";
