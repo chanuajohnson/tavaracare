@@ -811,6 +811,68 @@ function ChecklistTabContent({
         </CardContent>
       </Card>
 
+      {/* Professional Feedback Summary Card */}
+      {showProfessionalData && selectedId && (() => {
+        const approvalConfirmed = checkedItems["professional_approval_confirmed"] === true;
+        const approvalDate = checkedItems["professional_approval_date"] as string | undefined;
+        const notesList = notes || [];
+        const acknowledgedCount = notesList.filter((n: any) => n.acknowledged_at).length;
+        const respondedCount = notesList.filter((n: any) => n.response_text).length;
+        const completedCount = notesList.filter((n: any) => n.completed_at).length;
+        const hasAnyActivity = approvalConfirmed || acknowledgedCount > 0 || respondedCount > 0;
+
+        return (
+          <Card className={`mb-4 ${hasAnyActivity ? "border-green-200 bg-green-50/30" : "border-amber-200 bg-amber-50/30"}`}>
+            <CardContent className="pt-4 pb-4">
+              <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                {hasAnyActivity ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                ) : (
+                  <MessageSquare className="h-4 w-4 text-amber-600" />
+                )}
+                Professional Feedback Summary
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="text-center p-2 rounded bg-background border">
+                  <p className="text-lg font-bold">{totalChecked}/{totalItems}</p>
+                  <p className="text-xs text-muted-foreground">Items Covered</p>
+                </div>
+                <div className="text-center p-2 rounded bg-background border">
+                  <p className="text-lg font-bold">{acknowledgedCount}/{notesList.length}</p>
+                  <p className="text-xs text-muted-foreground">Notes Acknowledged</p>
+                </div>
+                <div className="text-center p-2 rounded bg-background border">
+                  <p className="text-lg font-bold">{respondedCount}</p>
+                  <p className="text-xs text-muted-foreground">Responses Sent</p>
+                </div>
+                <div className="text-center p-2 rounded bg-background border">
+                  {approvalConfirmed ? (
+                    <>
+                      <Badge variant="default" className="bg-green-600 text-xs">Approved</Badge>
+                      {approvalDate && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {format(new Date(approvalDate), "MMM d, yyyy")}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <Badge variant="secondary" className="text-xs">Pending</Badge>
+                      <p className="text-xs text-muted-foreground mt-1">Readiness Approval</p>
+                    </>
+                  )}
+                </div>
+              </div>
+              {completedCount > 0 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {completedCount} note action(s) marked complete by professional
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       <div className="space-y-3">
         {sectionDefs.map((section) => {
           let checked = 0;
