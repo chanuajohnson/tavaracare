@@ -3,10 +3,22 @@ import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pill, Plus, Calendar, Clock, ArrowRight, AlertTriangle, User, CheckCircle2 } from "lucide-react";
+import { Pill, Plus, Calendar, Clock, ArrowRight, AlertTriangle, User, CheckCircle2, Trash2 } from "lucide-react";
 import { MedicationWithAdministrations, medicationService } from "@/services/medicationService";
 import { ConflictAwareAdministrationForm } from "@/components/medication/ConflictAwareAdministrationForm";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/components/providers/AuthProvider";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface MedicationsTabProps {
   carePlanId: string;
