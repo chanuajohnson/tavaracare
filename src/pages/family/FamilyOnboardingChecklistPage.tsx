@@ -208,21 +208,57 @@ export default function FamilyOnboardingChecklistPage() {
   const [loading, setLoading] = useState(true);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [hasChecklist, setHasChecklist] = useState(false);
+  const [medications, setMedications] = useState<any[]>([]);
+  const [emergencyContacts, setEmergencyContacts] = useState<{
+    emergency_contact_name?: string;
+    emergency_contact_phone?: string;
+    emergency_contact_relationship?: string;
+    primary_contact_name?: string;
+    primary_contact_phone?: string;
+  }>({});
 
   useEffect(() => {
     if (!user?.id) return;
     const load = async () => {
       try {
-        const { data, error } = await supabase
-          .from("onboarding_checklists")
-          .select("checked_items, notes")
-          .eq("family_id", user.id)
-          .maybeSingle();
-        if (error) throw error;
-        if (data) {
+        // Load checklist, medications, and emergency contacts in parallel
+        const [checklistRes, carePlansRes, careNeedsRes] = await Promise.all([
+          supabase
+            .from("onboarding_checklists")
+            .select("checked_items, notes")
+            .eq("family_id", user.id)
+            .maybeSingle(),
+          supabase
+            .from("care_plans")
+            .select("id, title")
+            .eq("family_id", user.id),
+          supabase
+            .from("care_needs_family")
+            .select("emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, primary_contact_name, primary_contact_phone")
+            .eq("profile_id", user.id)
+            .maybeSingle(),
+        ]);
+
+        if (checklistRes.error) throw checklistRes.error;
+        if (checklistRes.data) {
           setHasChecklist(true);
-          setCheckedItems((data.checked_items as unknown as Record<string, boolean | string>) || {});
-          setNotes((data.notes as unknown as OnboardingNote[]) || []);
+          setCheckedItems((checklistRes.data.checked_items as unknown as Record<string, boolean | string>) || {});
+          setNotes((checklistRes.data.notes as unknown as OnboardingNote[]) || []);
+        }
+
+        // Fetch medications for all care plans
+        if (carePlansRes.data && carePlansRes.data.length > 0) {
+          const carePlanIds = carePlansRes.data.map((cp: any) => cp.id);
+          const { data: medsData } = await supabase
+            .from("medications")
+            .select("id, name, dosage, frequency, instructions, schedule, care_plan_id")
+            .in("care_plan_id", carePlanIds);
+          if (medsData) setMedications(medsData);
+        }
+
+        // Set emergency contacts
+        if (careNeedsRes.data) {
+          setEmergencyContacts(careNeedsRes.data);
         }
       } catch (err) {
         console.error("Failed to load onboarding checklist:", err);
