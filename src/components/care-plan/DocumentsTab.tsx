@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarIcon, FileText, Receipt, FileCheck, Loader2 } from "lucide-react";
@@ -16,6 +18,7 @@ import {
   generateReceiptPDF,
   buildDefaultCareBillingData,
   type CareBillingData,
+  type BillingLineItem,
 } from "@/services/care-plans/invoiceService";
 import { toast } from "sonner";
 
