@@ -1,30 +1,37 @@
 
 
-## Plan: Move "Get Started with Care" Out of Care Coordination + Verify Journey Progress Page
+## Plan: Hide Scheduling Banner for Families with Active Care + Remove Old Pricing
 
 ### Problem
-Step 7 ("Get Started with Care") is categorized as `scheduling`, placing it inside the "Care Coordination" card. For families who already have caregivers assigned and care in operation, this completed step clutters the Care Coordination section with irrelevant information. The Care Coordination card should only contain steps that relate to the actual coordination phase (Confirm Visit, Caregiver Assigned, Initial Family Meeting, Care Begins).
+The family dashboard for `chanuajohnson@gmail.com` shows:
+1. **An orange "Next Step: Schedule Your Care" banner** with outdated pricing ($320 TTD / $40/hr) — even though this family already has assigned caregivers, an active care plan, and a chosen care model
+2. The `SchedulingStatusBanner` only checks if `hasMatches` is true and if there's a `visitDetails` record. It does **not** check whether caregivers are already assigned or care has begun
 
-### Solution
-Move Step 7 from `scheduling` category to `foundation` category. This means:
-- The Foundation card gains Step 7 (making it 7 of 7 steps)
-- The Care Coordination card shows only Steps 8-11 (Confirm Visit, Caregiver Assigned, Initial Family Meeting, Care Begins)
-- The `/family/care-journey-progress` page uses the same `EnhancedFamilyNextStepsPanel` component with `showAllSteps=true`, so it will automatically reflect this change
+### Root Cause
+In `FamilyDashboard.tsx` (line 42-43), `hasMatches` is derived from step 7 completion. The banner shows the amber CTA whenever `hasMatches=true` and `visitDetails` is null/cancelled. It never checks steps 9-11 (caregiver assigned, meeting, care begins).
 
 ### Changes
 
 | File | Change |
 |------|--------|
-| `src/hooks/useEnhancedJourneyProgress.ts` | **Line 670**: Change Step 7 category from `'scheduling'` to `'foundation'`. Also update in the anonymous mock steps at **line 48**. |
-| `src/hooks/useSharedFamilyJourneyData.ts` | **Line ~85**: Change Step 7 category from `'scheduling'` to `'foundation'` |
-| `src/hooks/useFamilyJourneyProgress.ts` | **Line ~114**: Change Step 7 category from `'scheduling'` to `'foundation'` |
-| `src/hooks/useEnhancedJourneyProgress.ts` | Update the paths definition (~line 857-866) to include step 7 in the foundation path's step_ids |
+| `src/components/family/FamilyDashboard.tsx` | Add a check for caregiver assignment (step 9) and care model chosen (step 15). If either is complete, hide the scheduling banner entirely by setting `hasMatches=false` or adding a `hasCaregiverAssigned` flag that suppresses the banner. |
+| `src/components/family/SchedulingStatusBanner.tsx` | Add `hasCaregiverAssigned` prop. Return `null` when true — the family is past the scheduling phase. Also update the amber banner text to remove the "$320 TTD" and "$40/hr" pricing references, replacing with subscription-aligned language. |
+
+### Updated Banner Logic
+```text
+SchedulingStatusBanner visibility:
+  - hasMatches=false → hidden
+  - hasCaregiverAssigned=true → hidden (NEW)
+  - visitDetails exists & not cancelled → green "scheduled" banner
+  - otherwise → amber CTA (with updated text, no old pricing)
+```
+
+### Updated Amber Banner Text
+- Title: "Next Step: Schedule Your Care" (unchanged)
+- Description: "You have matched caregivers ready! Schedule a visit with our care coordinators to get started."
+- Button: "Get Started with Care" (unchanged)
 
 ### Result
-- **Foundation card**: Shows Steps 1-7, including "Get Started with Care" as the final foundation step
-- **Care Coordination card**: Shows only Steps 8-11 (Confirm Visit, Caregiver Assigned, Initial Family Meeting, Care Begins) — cleaner and more relevant
-- **`/family/care-journey-progress`**: Automatically updated since it uses the same hook and component
-
-### Verification
-The `/family/care-journey-progress` page renders `<EnhancedFamilyNextStepsPanel showAllSteps={true} />`, which calls `useEnhancedJourneyProgress` — the same hook being updated. Both the dashboard summary and full journey page will be consistent.
+- Families with active care teams no longer see the misleading orange scheduling banner
+- The outdated $320 TTD / $40/hr pricing is removed from the last place it appears in the family-facing UI
 
