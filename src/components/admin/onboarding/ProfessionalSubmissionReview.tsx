@@ -285,11 +285,35 @@ export default function ProfessionalSubmissionReview({ professionalId }: Profess
                   className="max-w-full h-auto mx-auto rounded"
                 />
               ) : isPreviewablePdf ? (
-                <iframe
-                  src={previewBlobUrl}
-                  title={previewFileName}
-                  className="w-full h-[70vh] border rounded"
-                />
+                <div className="space-y-2">
+                  <div className="flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(previewBlobUrl!, '_blank')}
+                    >
+                      <Eye className="h-4 w-4 mr-1" /> Open in New Tab
+                    </Button>
+                  </div>
+                  <object
+                    data={previewBlobUrl}
+                    type="application/pdf"
+                    className="w-full h-[70vh] border rounded"
+                  >
+                    <div className="text-center py-12 space-y-3">
+                      <FileText className="h-10 w-10 mx-auto text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        PDF preview not available in this browser.
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={() => window.open(previewBlobUrl!, '_blank')}
+                      >
+                        <Eye className="h-4 w-4 mr-1" /> Open in New Tab
+                      </Button>
+                    </div>
+                  </object>
+                </div>
               ) : (
                 <div className="text-center py-12 space-y-3">
                   <FileText className="h-10 w-10 mx-auto text-muted-foreground" />
@@ -370,6 +394,17 @@ export default function ProfessionalSubmissionReview({ professionalId }: Profess
           <CardTitle className="text-sm flex items-center gap-2">
             <FileText className="h-4 w-4 text-green-600" />
             Uploaded Documents ({documents.length})
+            <Badge
+              variant="outline"
+              className="ml-auto text-[10px] font-mono cursor-pointer select-all"
+              title="Professional ID — click to copy"
+              onClick={() => {
+                navigator.clipboard.writeText(professionalId);
+                toast.success("Professional ID copied");
+              }}
+            >
+              ID: {professionalId.slice(0, 8)}…
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0 pb-3">
