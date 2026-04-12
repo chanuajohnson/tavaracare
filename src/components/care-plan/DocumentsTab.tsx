@@ -42,6 +42,7 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({
   const [selectedPeriodIndex, setSelectedPeriodIndex] = useState<number>(0);
   const [generating, setGenerating] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [includePodiatry, setIncludePodiatry] = useState(false);
 
   // Load billing config from onboarding_checklists
   useEffect(() => {
@@ -103,6 +104,20 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({
   const selectedPeriod = periods[selectedPeriodIndex] || null;
 
   const buildBillingData = (): CareBillingData => {
+    const additionalLineItems: BillingLineItem[] = [];
+    const additionalNotes: string[] = [];
+
+    if (includePodiatry) {
+      additionalLineItems.push({
+        description: 'Podiatric Care Support (Secondary Household Member)',
+        amount: 349.00,
+        note: 'Twice-daily antifungal treatment — full care cycle: preparation, hygiene protocol, application, and post-care handling',
+      });
+      additionalNotes.push(
+        'This service is limited to the defined podiatric care task only and does not extend to general caregiving for the secondary household member. Service continues weekly unless discontinued in writing with one (1) week\'s notice.'
+      );
+    }
+
     return buildDefaultCareBillingData({
       familyName,
       familyEmail,
@@ -113,6 +128,15 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({
       dueDate: selectedPeriod ? addDays(selectedPeriod.end, 3) : undefined,
       paymentDate: new Date(),
       amountPaid: undefined,
+      additionalLineItems,
+      ...(additionalNotes.length > 0 ? {
+        additionalNotes: [
+          'NIS (National Insurance) contributions for the assigned caregiver are included and covered by Tavara as required by Trinidad & Tobago law.',
+          'Tavara provides continuity of care — if your assigned caregiver is unavailable, a qualified replacement will be provided at no extra charge.',
+          'Rate adjustments may apply if care needs change (e.g., disease progression, additional services).',
+          ...additionalNotes,
+        ],
+      } : {}),
     });
   };
 
