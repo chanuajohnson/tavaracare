@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { CHECKLIST_SECTIONS } from "@/components/professional/checklist/checklistSections";
@@ -19,6 +19,87 @@ import {
 } from "lucide-react";
 import { PROFESSIONAL_ONBOARDING_SECTION_DEFS, getProfessionalTotalItems } from "@/components/admin/onboarding/professionalOnboardingSections";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+
+/** Professional Readiness Approval – digital signature */
+function ProfessionalReadinessApproval({
+  checkedItems,
+  professionalId,
+  onApproved,
+}: {
+  checkedItems: Record<string, boolean | string>;
+  professionalId: string | undefined;
+  onApproved: (updated: Record<string, boolean | string>) => void;
+}) {
+  const isApproved = checkedItems["professional_approval_confirmed"] === true;
+  const approvalDate = checkedItems["professional_approval_date"] as string | undefined;
+  const [saving, setSaving] = useState(false);
+
+  const handleApprove = useCallback(async () => {
+    if (!professionalId || saving) return;
+    setSaving(true);
+    try {
+      const now = new Date().toISOString();
+      const updated = {
+        ...checkedItems,
+        professional_approval_confirmed: true,
+        professional_approval_date: now,
+      };
+      const { error } = await supabase
+        .from("professional_onboarding_checklists")
+        .update({ checked_items: updated as any })
+        .eq("professional_id", professionalId);
+      if (error) throw error;
+      onApproved(updated);
+      toast.success("Your digital approval has been recorded.");
+    } catch (err) {
+      console.error("Failed to save professional approval:", err);
+      toast.error("Could not save approval. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }, [professionalId, saving, checkedItems, onApproved]);
+
+  if (isApproved && approvalDate) {
+    return (
+      <div className="mb-4 rounded-lg border border-green-300 bg-green-50 p-4">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="h-5 w-5 text-green-600" />
+          <span className="text-sm font-semibold text-green-800">
+            Approved — Digital signature recorded on{" "}
+            {format(new Date(approvalDate), "PPP 'at' p")}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-4 space-y-3">
+      <div className="rounded-md border border-blue-200 bg-blue-50 p-3">
+        <p className="text-sm text-blue-800">
+          💙 At the bottom of your checklist, you'll find this Readiness Approval.
+          Checking the box below acts as your digital confirmation that you have reviewed
+          everything and are ready to commence care as planned.
+        </p>
+      </div>
+      <div className="flex items-start gap-3 rounded-lg border p-4">
+        <Checkbox
+          id="professional-approval"
+          checked={false}
+          onCheckedChange={(checked) => {
+            if (checked) handleApprove();
+          }}
+          disabled={saving}
+        />
+        <label htmlFor="professional-approval" className="text-sm cursor-pointer leading-snug">
+          I confirm I have reviewed my onboarding checklist and I am ready to commence care as planned.
+        </label>
+      </div>
+    </div>
+  );
+}
 
 /** Parse "YYYY-MM-DD" as local date (not UTC) */
 function parseLocalDate(dateStr: string): Date {
@@ -225,7 +306,14 @@ export default function ProfessionalOnboardingChecklistPage() {
                   <CollapsibleContent>
                     <CardContent className="pt-0 pb-4">
                       {section.id === "post_onboarding" && (
-                        <CareSummaryHeader checkedItems={checkedItems} />
+                        <>
+                          <CareSummaryHeader checkedItems={checkedItems} />
+                          <ProfessionalReadinessApproval
+                            checkedItems={checkedItems}
+                            professionalId={user?.id}
+                            onApproved={(updated) => setCheckedItems(updated)}
+                          />
+                        </>
                       )}
                       <div className="space-y-2 pl-2">
                         {section.items.map((item, i) => {
