@@ -179,6 +179,7 @@ const FamilyDashboard = () => {
           <div className="mt-4">
             <CaregiverReadinessCard />
           </div>
+        )}
 
         {user && (
           <motion.div
