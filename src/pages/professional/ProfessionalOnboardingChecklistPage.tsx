@@ -333,6 +333,47 @@ export default function ProfessionalOnboardingChecklistPage() {
           </div>
         </div>
 
+        {/* Section-by-section progress overview */}
+        <Card className="mb-6">
+          <CardContent className="pt-4 pb-4">
+            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4" />
+              Section Progress
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {PROFESSIONAL_ONBOARDING_SECTION_DEFS.map((section) => {
+                let checked = 0;
+                section.items.forEach((_, i) => {
+                  if (checkedItems[`${section.id}_${i}`] === true) checked++;
+                });
+                const total = section.items.length;
+                const isComplete = checked === total && total > 0;
+                return (
+                  <Badge
+                    key={section.id}
+                    variant={isComplete ? "default" : "secondary"}
+                    className="text-xs cursor-pointer"
+                    onClick={() => {
+                      setOpenSections(prev => ({ ...prev, [section.id]: true }));
+                      setTimeout(() => {
+                        document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }, 100);
+                    }}
+                  >
+                    {isComplete ? "✓ " : ""}{section.title} ({checked}/{total})
+                  </Badge>
+                );
+              })}
+            </div>
+            {checkedItems["professional_approval_confirmed"] === true && (
+              <div className="mt-3 flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <span className="text-xs font-medium text-green-800">Readiness Approved</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <div className="space-y-3">
           {PROFESSIONAL_ONBOARDING_SECTION_DEFS.map((section) => {
             let checked = 0;
