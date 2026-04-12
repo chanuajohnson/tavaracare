@@ -305,11 +305,18 @@ export const useEnhancedJourneyProgress = () => {
             }
         }));
         
+        // Use shared journey data completion (dynamically calculated) as primary source
+        const nonOptionalMerged = mergedSteps.filter(step => !step.is_optional);
+        const completedNonOptional = nonOptionalMerged.filter(step => step.completed).length;
+        const dynamicPercentage = nonOptionalMerged.length > 0 
+          ? Math.round((completedNonOptional / nonOptionalMerged.length) * 100) 
+          : sharedJourneyData.completionPercentage;
+        
         return {
           steps: mergedSteps,
-          completionPercentage: storedProgress.completionPercentage,
-          totalSteps: richSteps.length,
-          completedSteps: storedProgress.completedSteps,
+          completionPercentage: dynamicPercentage,
+          totalSteps: nonOptionalMerged.length,
+          completedSteps: completedNonOptional,
           nextStep: mergedSteps.find(step => !step.completed && step.accessible),
           currentStage: sharedJourneyData.journeyStage,
           loading: false
@@ -833,22 +840,14 @@ export const useEnhancedJourneyProgress = () => {
     incompleteSteps: steps_calculated.filter(step => !step.completed).map(step => ({ id: step.id, title: step.title, optional: step.is_optional }))
   });
   
-  // Use stored progress as primary source (like admin dashboard)
+  // Use dynamically calculated percentage as the primary source of truth
   const calculatedPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
-  
-  // Primary source: stored progress (matches admin dashboard logic)
-  const finalCompletionPercentage = storedProgress.loading 
-    ? 0 
-    : storedProgress.completionPercentage > 0 
-      ? storedProgress.completionPercentage 
-      : calculatedPercentage;
+  const finalCompletionPercentage = calculatedPercentage;
     
   console.log('📈 Family Dashboard Progress Calculation:', {
-    storedProgressLoading: storedProgress.loading,
-    storedCompletionPercentage: storedProgress.completionPercentage,
     calculatedPercentage,
     finalCompletionPercentage,
-    usingStoredProgress: !storedProgress.loading && storedProgress.completionPercentage > 0
+    storedCompletionPercentage: storedProgress.completionPercentage
   });
     
   // Use stored current step if available
