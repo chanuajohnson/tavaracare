@@ -13,7 +13,8 @@ export const CHECKLIST_SECTIONS: ChecklistSection[] = [
       'Check medication schedule',
       'Assess client mood and comfort',
       'Inspect home environment for safety',
-      'Confirm emergency contacts are accessible'
+      'Confirm emergency contacts are accessible',
+      'Caregivers are assigned to the primary client. Support to other household members is limited to approved, scoped services only'
     ]
   },
   {

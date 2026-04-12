@@ -121,6 +121,7 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
       "How family sees the completed daily logs",
       "Time-in / time-out tracking",
       "Shift notes and incident reporting",
+      "Caregivers are assigned to the primary client — support to other household members is limited to approved, scoped services only",
     ],
   },
   {
