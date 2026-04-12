@@ -1407,10 +1407,9 @@ export default function AdminOnboardingChecklistPage() {
                     <Select
                       value={profAssignedFamilyId}
                       onValueChange={(val) => {
+                        // Changing family will trigger the useEffect to load
+                        // the checklist for this professional+family pair
                         setProfAssignedFamilyId(val);
-                        const next = { ...profCheckedItems, assigned_family_id: val };
-                        setProfCheckedItems(next);
-                        saveProfToSupabase(next, profNotes);
                       }}
                     >
                       <SelectTrigger id="assignedFamilySelect">
