@@ -62,7 +62,7 @@ export const AdminAssistantCard = () => {
                     Open Checklist
                   </Button>
                   <Button variant="outline" size="sm" className="gap-2" asChild>
-                    <a href="https://tavaracare.lovable.app/documents/Tavara_Daily_Checklist.pdf" target="_blank" rel="noopener noreferrer" download="Tavara_Daily_Checklist.pdf">
+                    <a href={`${PRODUCTION_BASE_URL}/documents/Tavara_Daily_Checklist.pdf`} target="_blank" rel="noopener noreferrer" download="Tavara_Daily_Checklist.pdf">
                       <FileText className="h-3.5 w-3.5" />
                       PDF
                     </a>

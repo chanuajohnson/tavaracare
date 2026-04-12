@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { PRODUCTION_BASE_URL } from '@/utils/urlConstants';
 import DocumentGenerationMenu from "@/components/admin/care-plans/DocumentGenerationMenu";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
