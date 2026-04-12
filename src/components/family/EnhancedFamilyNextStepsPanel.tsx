@@ -139,7 +139,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
       stages.foundation.subscriptionCTA = {
         show: true,
         title: "Start Your Care Journey",
-        description: "Get matched with qualified caregivers for $7.99 one-time.",
+        description: "Complete your foundation steps to get matched with qualified caregivers.",
         buttonText: "Start Care Journey",
         action: "upgrade",
         featureType: "teaser_unlock",
@@ -149,9 +149,9 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
       if (foundationCompleted && !schedulingCompleted) {
         stages.foundation.subscriptionCTA = {
           show: true,
-          title: "Unlock Premium Match Features",
-          description: "Get unlimited caregiver matches and advanced filtering for $7.99 one-time.",
-          buttonText: "Unlock Matches",
+          title: "Upgrade Your Care Plan",
+          description: "Access dedicated care coordination starting at $199.99/week or $699.99/month.",
+          buttonText: "View Plans",
           action: "upgrade",
           featureType: "teaser_unlock",
           navigateTo: "/subscription/features"
