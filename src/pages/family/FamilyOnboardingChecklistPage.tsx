@@ -115,6 +115,16 @@ function ServiceCommencementApproval({
       <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
         ✅ Service Commencement Approval
       </h4>
+      {!isApproved && (
+        <div className="mb-3 rounded-md bg-blue-50 border border-blue-200 p-3">
+          <p className="text-sm text-blue-800 leading-relaxed">
+            💙 At the bottom of your checklist, you'll find this <span className="font-semibold">Service Commencement Approval</span>.
+            Checking the box below acts as your <span className="font-semibold">digital approval</span> for us to commence care
+            starting <span className="font-semibold">Monday, April 13th</span>. This confirms the first billable week (April 13–17, 2026)
+            as outlined in your quotation.
+          </p>
+        </div>
+      )}
       {startDateStr && (
         <p className="text-sm text-muted-foreground mb-3">
           Care start date: <span className="font-medium text-foreground">{format(parseLocalDate(startDateStr), "PPP")}</span>
