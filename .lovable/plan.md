@@ -1,47 +1,62 @@
 
 
-## Plan: Make Care Summary and Service Commencement Approval Dynamic
+## Plan: Fix 3 Admin Onboarding Checklist Issues
 
-### Problem
-Both the `CareSummaryHeader` and `ServiceCommencementApproval` components in the family onboarding checklist page contain hardcoded static text:
-- Rate: "$35/hr (Standard)" — hardcoded
-- Plan: "Tavara Family Care Plan (weekly)" — hardcoded  
-- Payment: "Weekly (due every Friday)" — hardcoded
-- Start date text: "Monday, April 13th" and "April 13–17, 2026" — hardcoded
-- These values should be derived per-family from the `checked_items` JSON stored by admin
+### Issue 1: Denise Narcis Shows 0 Documents Uploaded
 
-### Data Already Available
-The admin already stores these in `checked_items` per family:
-- `billing_start_date` — the care start date (YYYY-MM-DD)
-- `billing_cadence` — "weekly" or "monthly"
-- `post_onboarding_3_date` — the onboarding milestone start date
+**Root Cause**: The `professional_documents` table has RLS policies that only allow `auth.uid() = user_id`. When an admin queries this table for another professional's documents, the query returns empty because the admin's `auth.uid()` doesn't match the professional's `user_id`.
 
-### Changes
+**Fix**: Add a new RLS SELECT policy on `professional_documents` granting admin read access:
+```sql
+CREATE POLICY "Admins can view all professional documents"
+  ON public.professional_documents FOR SELECT
+  TO authenticated
+  USING (public.is_current_user_admin());
+```
 
-**File**: `src/pages/family/FamilyOnboardingChecklistPage.tsx`
+This is a **database migration only** — no code changes needed. The `ProfessionalSubmissionReview.tsx` component already queries this table correctly; it's just being blocked by RLS.
 
-1. **CareSummaryHeader** — make all fields dynamic:
-   - **Start Date**: read from `billing_start_date` or `post_onboarding_3_date`, show "Not set" if neither exists
-   - **Rate**: read from `checkedItems["care_rate"]` with fallback to "$35/hr (Standard)" — this keeps current default but allows admin to override later
-   - **Plan/Cadence**: derive from `billing_cadence` ("Weekly" or "Monthly") instead of hardcoded "weekly"
-   - **Payment**: adjust text based on cadence ("Weekly (due every Friday)" vs "Monthly")
+---
 
-2. **ServiceCommencementApproval** — make the instructional banner dynamic:
-   - Replace hardcoded "Monday, April 13th" with the formatted start date from `billing_start_date` or `post_onboarding_3_date`
-   - Replace hardcoded "April 13–17, 2026" with a dynamically calculated first billable week (start date to start date + 4 days)
-   - If no start date is set, show a message like "Your care start date has not been set yet. Please check back once your coordinator has finalized your schedule."
-   - **Hide the approval checkbox** when no start date exists — families without a defined start date should not be able to approve
+### Issue 2: Add "(WhatsApp)" Labels to Communication Items
 
-3. **Also update the static "First billable week" line** (line 131) to use the same dynamic calculation
+**File**: `src/components/admin/onboarding/professionalOnboardingSections.ts`
 
-### What This Fixes
-- Family user `chanuahjohnson@gmail` (who has no start date set) will no longer see Ana Maria's "April 13th" date
-- Each family sees only their own data from their own checklist record
-- Families without a start date see "Not set" and cannot prematurely approve
+Update three items in the `communication_support` section (lines 119-121) and one in `platform_walkthrough` (line 46):
+
+| Current Text | Updated Text |
+|---|---|
+| `"Message board and communication tools"` | `"Message board and communication tools (WhatsApp)"` |
+| `"Professional message board for peer support"` | `"Professional message board for peer support (WhatsApp)"` |
+| `"How to report concerns or request support through the platform"` | `"How to report concerns or request support through the platform (WhatsApp)"` |
+
+---
+
+### Issue 3: Allow Admin to Edit/Delete Notes & Action Items
+
+**File**: `src/components/admin/onboarding/OnboardingNotesCard.tsx`
+
+Currently, notes are rendered as read-only text with no edit or delete controls. Changes:
+
+1. Add `onDeleteNote` and `onEditNote` optional callback props to the component
+2. When not `readOnly`, show edit (pencil icon) and delete (trash icon) buttons on each note
+3. Edit: clicking edit puts the note text into an inline input; save updates via callback
+4. Delete: clicking delete triggers a confirmation and calls the delete callback
+
+**File**: `src/pages/admin/AdminOnboardingChecklistPage.tsx`
+
+1. Implement `handleDeleteNote` — removes the note from the notes array by index, persists updated array to Supabase (both family and professional checklist tables)
+2. Implement `handleEditNote` — updates the note text at the given index, persists to Supabase
+3. Pass these new handlers to `OnboardingNotesCard`
+
+---
 
 ### Files Modified
 
 | File | Change |
 |------|--------|
-| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Make `CareSummaryHeader` and `ServiceCommencementApproval` fully dynamic based on `checked_items` data |
+| **Migration** (new SQL) | Add admin SELECT policy on `professional_documents` |
+| `src/components/admin/onboarding/professionalOnboardingSections.ts` | Add "(WhatsApp)" to 3 checklist item labels |
+| `src/components/admin/onboarding/OnboardingNotesCard.tsx` | Add edit/delete UI and callback props |
+| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Implement edit/delete note handlers, pass to component |
 
