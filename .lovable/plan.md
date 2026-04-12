@@ -1,40 +1,53 @@
 
 
-## Plan: Sync Family Journey Progress to `user_journey_progress` Table
+## Plan: Fix Journey Progress Page — Correct %, Stage Label, and Add Active Care Card
 
-### Problem
+### Problems Identified
 
-The admin dashboard Journey tab and TAV widget both show **stale** progress (67%, 10 of 15 steps) because they read from the `user_journey_progress` database table via `useStoredJourneyProgress`. This table is never updated for family users after our recent journey logic changes (optional step exclusion, active care detection).
+1. **Overall shows 50% despite all non-optional stages being 100%** — The header at line 296 displays `steps.filter(s => s.completed).length of steps.length` which counts ALL 15 steps (including 3 optional trial steps), showing "12 of 15" = ~80%. But the `completionPercentage` from the hook correctly excludes optional steps. The "50%" visible in screenshots suggests the stored `user_journey_progress` table value is stale and being used somewhere, or the `getStepsData` merge is picking up wrong values.
 
-The family dashboard calculates progress dynamically in `useEnhancedJourneyProgress`, but the admin and TAV still read from the stored table, creating a mismatch.
+2. **Current stage shows "Trial"** — In `useSharedFamilyJourneyData.ts` line 418-419, when `schedulingSteps.length > 0` (which it is — 4 scheduling steps completed), the stage is set to `'trial'`. This is wrong for a family with active care. The stage should be `'conversion'` or better yet a new `'active'` stage.
 
-Additionally, `useEnhancedJourneyProgress` itself prefers stored progress over calculated progress (lines 840-844), which can cause the family dashboard to also show stale data if the stored value is non-zero.
-
-### Root Cause
-
-- `calculate_and_update_journey_progress` RPC is only called from `ProfessionalRegistration.tsx` -- never for family users
-- No mechanism syncs the dynamically calculated family progress back to `user_journey_progress`
-- The family dashboard hook prefers stale stored data over fresh calculated data
+3. **No "Care Plan Active" indicator** — After all stages complete, there's no final card showing the family that their care is active and operational.
 
 ### Changes
 
 | File | Change |
 |------|--------|
-| `src/hooks/useEnhancedJourneyProgress.ts` | **Lines 840-844**: Change priority so `calculatedPercentage` is always used as the primary source (it is the freshest). Remove the logic that defers to `storedProgress.completionPercentage`. |
-| `src/hooks/useEnhancedJourneyProgress.ts` | **After step calculation (~line 850)**: Add an effect that calls `calculate_and_update_journey_progress` RPC (or does an upsert to `user_journey_progress`) whenever `calculatedPercentage` changes, so the stored table stays in sync. This ensures the admin dashboard and TAV automatically get fresh data. |
-| `src/components/tav/hooks/useFamilyProgress.ts` | **Lines 257-259**: Same fix -- use `enhancedData.completionPercentage` as primary instead of deferring to `storedProgress.completionPercentage`. The stored value will now be kept in sync by the effect above, so both sources will agree. |
+| **`src/hooks/useSharedFamilyJourneyData.ts`** (lines 410-424) | Fix `journeyStage` logic: if scheduling steps are ALL complete (4/4) AND conversion step is complete, set stage to `'active'`. If scheduling steps exist but conversion is incomplete, set to `'conversion'`. Current logic incorrectly jumps to `'trial'` when any scheduling step is complete. |
+| **`src/hooks/useSharedFamilyJourneyData.ts`** (line 21, 27) | Add `'active'` to the `journeyStage` union type. |
+| **`src/components/family/EnhancedFamilyNextStepsPanel.tsx`** (line 296) | Change step count display from `steps.length` to count only non-optional steps: `steps.filter(s => !s.is_optional).length` and `steps.filter(s => s.completed && !s.is_optional).length`. This ensures "12 of 12" instead of "12 of 15". |
+| **`src/components/family/EnhancedFamilyNextStepsPanel.tsx`** (after line 363) | Add a new "Care Plan Active" card that renders when all non-optional stages are complete. This card shows a success state with links to care management, confirming the family's care is operational. |
+| **`src/hooks/useEnhancedJourneyProgress.ts`** (line 858) | Update `currentStage` to use `stepsData.currentStage` (which comes from `sharedJourneyData.journeyStage`) instead of hardcoded `'foundation'`. |
 
-### Sync Mechanism Detail
+### Updated Stage Logic
 
-After steps are calculated in `useEnhancedJourneyProgress`, add a `useEffect` that:
-1. Calls `supabase.rpc('calculate_and_update_journey_progress', { target_user_id: user.id })` when the calculated percentage differs from stored
-2. Debounces to avoid excessive calls (only sync once per mount or when completion changes)
-3. Only runs for authenticated, non-anonymous family users
+```text
+Current (broken):
+  trialSteps > 0 || care_model → 'conversion'
+  schedulingSteps > 0 → 'trial'        ← WRONG for active families
+  foundationSteps >= 4 → 'scheduling'
+
+Fixed:
+  allSchedulingComplete && conversionComplete → 'active'
+  trialSteps > 0 || care_model → 'conversion'
+  allSchedulingComplete → 'conversion'
+  schedulingSteps > 0 → 'scheduling'
+  foundationSteps >= 4 → 'scheduling'
+  else → 'foundation'
+```
+
+### Active Care Card Design
+
+A green-bordered card at the bottom of the journey page:
+- Title: "Care Plan Active" with a green checkmark
+- Description: "Your care team is set up and actively supporting your family"
+- Links to: Care Management dashboard, Care Team view
+- Only shows when all non-optional steps are complete
 
 ### Result
 
-- Admin Journey tab will show the same progress as the family dashboard (100% for families with active care)
-- TAV widget will show consistent progress
-- The `user_journey_progress` table stays current as families progress through their journey
-- All three surfaces (family dashboard, admin modal, TAV) will be consistent
+- Overall % will show 100% (12 of 12 non-optional steps) for families with active care
+- Current stage will show "Active" instead of "Trial"
+- A clear "Care Plan Active" card confirms the family's care status at the bottom of the journey
 
