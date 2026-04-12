@@ -330,11 +330,11 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
             completed = !!(mealPlans && mealPlans.length > 0);
             break;
           case 7: // Schedule visit
-            completed = profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed' || hasCaregiverAssigned;
+            completed = profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed' || profile?.visit_scheduling_status === 'ready_to_schedule' || hasCaregiverAssigned;
             break;
           case 8: // Confirm visit
-            completed = profile?.visit_scheduling_status === 'completed';
-            accessible = profile?.visit_scheduling_status === 'scheduled';
+            completed = profile?.visit_scheduling_status === 'completed' || hasCaregiverAssigned;
+            accessible = profile?.visit_scheduling_status === 'scheduled' || hasCaregiverAssigned;
             break;
           case 9: // Caregiver Assigned
             completed = hasCaregiverAssigned;
@@ -345,8 +345,9 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
             accessible = hasCaregiverAssigned;
             break;
           case 11: // Care Begins
-            completed = !!startDate;
-            accessible = !!introductionDate || !!startDate;
+            const hasActiveCareTeam = !!(carePlansData && carePlansData.length > 0 && hasCaregiverAssigned);
+            completed = !!startDate || hasActiveCareTeam;
+            accessible = !!introductionDate || !!startDate || hasActiveCareTeam;
             break;
           case 12: // Schedule trial day
             completed = hasTrialPayment;
@@ -361,8 +362,9 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
             accessible = hasTrialPayment;
             break;
           case 15: // Rate & choose path
-            completed = !!visitNotes?.care_model;
-            accessible = profile?.visit_scheduling_status === 'completed' || hasTrialPayment;
+            const careBegunCheck = !!startDate || !!(carePlansData && carePlansData.length > 0 && hasCaregiverAssigned);
+            completed = !!visitNotes?.care_model || !!visitNotes?.care_option || careBegunCheck;
+            accessible = profile?.visit_scheduling_status === 'completed' || hasTrialPayment || careBegunCheck;
             break;
         }
         
@@ -434,8 +436,9 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
     }
   }, [userId]);
 
-  const completedSteps = steps.filter(step => step.completed).length;
-  const completionPercentage = Math.round((completedSteps / steps.length) * 100);
+  const nonOptionalSteps = steps.filter(step => !step.optional);
+  const completedNonOptional = nonOptionalSteps.filter(step => step.completed).length;
+  const completionPercentage = Math.round((completedNonOptional / nonOptionalSteps.length) * 100);
   const nextStep = steps.find(step => !step.completed && step.accessible);
 
   return {
