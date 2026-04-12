@@ -537,6 +537,9 @@ export const useEnhancedJourneyProgress = () => {
     const isTrialAccessible = calculateTrialAccessible();
     const isVisitScheduled = !!visitDetails?.id;
     const isVisitConfirmed = visitDetails?.status === 'confirmed';
+    
+    // Check if caregiver is assigned via shared journey data (steps 9-11 are updated from sharedJourneyData)
+    const hasCaregiverAssigned = sharedJourneyData.steps.find(s => s.id === 9)?.completed || false;
 
     const steps = [
       {
