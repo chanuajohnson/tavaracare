@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { List, ArrowRight, Eye, Sparkles } from "lucide-react";
+import { List, ArrowRight, Eye, Sparkles, CheckCircle2, Users, ClipboardList } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ScheduleVisitModal } from "./ScheduleVisitModal";
 import { InternalSchedulingModal } from "./InternalSchedulingModal";
@@ -293,7 +293,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <span>•</span>
-                    <span>{steps.filter(s => s.completed).length} of {steps.length} steps completed</span>
+                    <span>{steps.filter(s => s.completed && !s.is_optional).length} of {steps.filter(s => !s.is_optional).length} steps completed</span>
                   </div>
                 </div>
               </div>
@@ -361,6 +361,49 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
               </div>
             )
           ))}
+
+          {/* Care Plan Active Card - shows when all non-optional steps are complete */}
+          {currentStage === 'active' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <Card className="border-2 border-green-500/30 bg-green-50/50 dark:bg-green-950/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                    <CheckCircle2 className="h-6 w-6" />
+                    Care Plan Active
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Your care team is set up and actively supporting your family. You can manage your care plan, view your care team, and track daily care logs from your care management dashboard.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => navigate('/family/care-management')}
+                      className="gap-2"
+                    >
+                      <ClipboardList className="h-4 w-4" />
+                      Care Management
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate('/family/care-management')}
+                      className="gap-2"
+                    >
+                      <Users className="h-4 w-4" />
+                      View Care Team
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
         </div>
             
         {/* Enhanced Action Section */}

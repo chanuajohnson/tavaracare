@@ -18,13 +18,13 @@ interface SharedFamilyJourneyData {
   completionPercentage: number;
   nextStep?: JourneyStep;
   loading: boolean;
-  journeyStage: 'foundation' | 'scheduling' | 'trial' | 'conversion';
+  journeyStage: 'foundation' | 'scheduling' | 'trial' | 'conversion' | 'active';
 }
 
 export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyData => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [journeyStage, setJourneyStage] = useState<'foundation' | 'scheduling' | 'trial' | 'conversion'>('foundation');
+  const [journeyStage, setJourneyStage] = useState<'foundation' | 'scheduling' | 'trial' | 'conversion' | 'active'>('foundation');
 
   const [steps, setSteps] = useState<JourneyStep[]>([
     // Foundation Steps (1-6)
@@ -413,10 +413,20 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       const schedulingSteps = completedSteps.filter(s => s.category === 'scheduling');
       const trialSteps = completedSteps.filter(s => s.category === 'trial');
       
-      if (trialSteps.length > 0 || visitNotes?.care_model) {
+      // Count total steps per category for "all complete" checks
+      const totalSchedulingSteps = updatedSteps.filter(s => s.category === 'scheduling');
+      const conversionStep = updatedSteps.find(s => s.category === 'conversion');
+      const allSchedulingComplete = totalSchedulingSteps.length > 0 && totalSchedulingSteps.every(s => s.completed);
+      const conversionComplete = conversionStep?.completed || false;
+      
+      if (allSchedulingComplete && conversionComplete) {
+        setJourneyStage('active');
+      } else if (trialSteps.length > 0 || visitNotes?.care_model) {
+        setJourneyStage('conversion');
+      } else if (allSchedulingComplete) {
         setJourneyStage('conversion');
       } else if (schedulingSteps.length > 0) {
-        setJourneyStage('trial');
+        setJourneyStage('scheduling');
       } else if (foundationSteps.length >= 4) {
         setJourneyStage('scheduling');
       } else {
