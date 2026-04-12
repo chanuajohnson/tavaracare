@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Checkbox } from "@/components/ui/checkbox";
 import RateTierReferenceCard from "@/components/admin/onboarding/RateTierReferenceCard";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -284,7 +285,14 @@ export default function FamilyOnboardingChecklistPage() {
                 )}
 
                 {section.id === "post_onboarding" && (
-                  <CareSummaryHeader checkedItems={checkedItems} />
+                  <>
+                    <CareSummaryHeader checkedItems={checkedItems} />
+                    <ServiceCommencementApproval
+                      checkedItems={checkedItems}
+                      familyId={user?.id}
+                      onApproved={(updatedItems) => setCheckedItems(updatedItems)}
+                    />
+                  </>
                 )}
                     </CardContent>
                   </CollapsibleContent>
