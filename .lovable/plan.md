@@ -1,35 +1,44 @@
 
 
-## Plan: Fix "Object not found" for Admin Document View/Download
-
-### Problem
-The toast error "Failed to access document: Object not found" occurs because the **Supabase Storage** bucket `professional-documents` has SELECT policies that only allow users to view files where their own `auth.uid()` matches the folder path. The database RLS was fixed, but the **storage-level RLS** still blocks admin access.
+## Plan: Fix Mismatched File Paths for Tricia's Documents
 
 ### Root Cause
-Storage file paths follow the pattern: `{document_type}/{user_id}/filename.png` (e.g., `identification/56922ef7-.../Chan_ID.png`). The existing storage policies check `(storage.foldername(name))[2] = auth.uid()` or `(storage.foldername(name))[1] = auth.uid()`, which fails for admins since their UID doesn't match the professional's folder.
+
+The "Object not found" error is **not an RLS issue** — the storage policy is working correctly. The actual problem is that the `file_path` values stored in the `professional_documents` table no longer match any files in the `professional-documents` storage bucket.
+
+**Evidence:**
+
+| DB `file_path` (old timestamp) | Actual storage object (new timestamp) |
+|---|---|
+| `background_check/56922ef7-.../1748972633689_Police Char Cert.png` | `background_check/56922ef7-.../1749573858897_Police Char Cert.png` |
+| `certificate/56922ef7-.../1748972625164_Chan Cert 1.png` | `certificate/56922ef7-.../1749573851561_Chan Cert 1.png` |
+| `identification/56922ef7-.../1748972572860_Chan ID.png` | `identification/56922ef7-.../1749573846182_Chan ID.png` |
+
+Tricia's files were re-uploaded at a later time (new timestamps), but the original DB records still point to the old paths. The old files no longer exist in storage.
 
 ### Solution
-Add a storage SELECT policy on `storage.objects` allowing admins to access files in the `professional-documents` bucket.
 
-### Changes
-
-| Change | Detail |
-|--------|--------|
-| **New migration** | Add a SELECT policy on `storage.objects` for the `professional-documents` bucket using `public.has_role(auth.uid(), 'admin')` |
+Run a migration to update the three stale `file_path` values in `professional_documents` to match the actual storage object paths.
 
 ### Migration SQL
 
 ```sql
-CREATE POLICY "Admins can view all professional documents in storage"
-ON storage.objects
-FOR SELECT
-TO authenticated
-USING (
-  bucket_id = 'professional-documents'
-  AND public.has_role(auth.uid(), 'admin')
-);
+UPDATE professional_documents 
+SET file_path = 'background_check/56922ef7-6278-4f3f-b48c-fe309cd80ec9/1749573858897_Police Char Cert.png'
+WHERE id = '1e3317e3-5ea8-427b-8062-ed4271558d14';
+
+UPDATE professional_documents 
+SET file_path = 'certificate/56922ef7-6278-4f3f-b48c-fe309cd80ec9/1749573851561_Chan Cert 1.png'
+WHERE id = 'c62e9f69-21b0-44b7-b288-25bb334c23b1';
+
+UPDATE professional_documents 
+SET file_path = 'identification/56922ef7-6278-4f3f-b48c-fe309cd80ec9/1749573846182_Chan ID.png'
+WHERE id = 'a07e8ee1-b505-4b7c-ae21-c07d2b90a62e';
 ```
 
 ### Result
-- Admin clicks Eye/Download icon on Tricia's documents and they open/download correctly
-- No code changes needed — the component logic is already correct, it's purely a storage access issue
+
+- Admin (and Tricia herself) will be able to view and download all 3 documents
+- The Eye and Download buttons on the onboarding checklist will work correctly
+- No code changes needed — the component logic is correct, only the data was stale
+
