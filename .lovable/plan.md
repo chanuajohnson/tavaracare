@@ -1,31 +1,37 @@
 
 
-## Plan: Replace Hardcoded `tavaracare.lovable.app` URLs with Dynamic Production Domain
+## Plan: Fix Document Preview by Using Signed URLs Directly
 
 ### Problem
-All WhatsApp nudge messages and "Copy Link" buttons hardcode `https://tavaracare.lovable.app` as the domain. When these links are shared to users (like Denise), they point to the Lovable preview domain instead of the live production domain `https://tavara.care`.
+The current implementation fetches document content via a Supabase signed URL, converts it to a `blob:` URL, then tries to render/open that blob URL. Chrome blocks `blob:` URLs opened in new tabs (`ERR_BLOCKED_BY_CLIENT`), and the `<object>` tag also fails to render PDFs from blob URLs in the Lovable preview sandbox.
 
 ### Solution
-Create a shared utility constant for the production base URL (`https://tavara.care`) and replace all hardcoded `tavaracare.lovable.app` references across WhatsApp message builders, copy-link buttons, and other user-facing URLs.
+Store the **signed URL directly** alongside the blob URL. Use the signed URL for:
+- The `<object data="...">` PDF embed (signed URLs work cross-origin)
+- The "Open in New Tab" buttons (signed URLs open normally in Chrome)
+- Keep blob URL only for image previews (which work fine inline)
 
-For WhatsApp messages (which are composed in the admin panel but sent externally), we use the fixed production domain `https://tavara.care` — not `window.location.origin` — because the admin may be on a preview/dev URL but the links must always point to production for the end user.
+### Changes to `src/components/admin/onboarding/ProfessionalSubmissionReview.tsx`
 
-### Files to modify
+**1. Add `previewSignedUrl` state** to store the direct Supabase signed URL.
 
-| File | What changes |
-|------|-------------|
-| `src/utils/urlConstants.ts` | **New file** — export `PRODUCTION_BASE_URL = "https://tavara.care"` |
-| `src/components/admin/UserNudgeTab.tsx` | Replace all `https://tavaracare.lovable.app` with `PRODUCTION_BASE_URL` (~12 occurrences across all nudge builders) |
-| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Replace `publishedBase = "https://tavaracare.lovable.app"` with `PRODUCTION_BASE_URL` for copy-link buttons |
-| `src/components/admin/UserMatchingActions.tsx` | Replace hardcoded URL in deactivation message |
-| `src/components/professional/DailyChecklist.tsx` | Replace hardcoded URL in daily log summary link |
-| `src/services/care-plans/invoiceService.ts` | Replace hardcoded website URL in invoice config |
-| `src/components/care-plan/ShareScheduleModal.tsx` | Already uses `window.location.origin` — no change needed |
-| `src/components/marketing/CaregiverShareCard.tsx` | Replace hardcoded URL in QR code |
-| `src/components/professional/profile/AdminAssistantCard.tsx` | Replace hardcoded PDF download URLs (these are static assets, may need separate handling) |
+**2. Update `fetchDocBlob`** to also return the `signedUrl` string.
 
-### Technical detail
-- A single `PRODUCTION_BASE_URL` constant ensures one place to update if the domain ever changes
-- WhatsApp messages and external-facing links always use the production domain regardless of where the admin is logged in
-- PDF document links (Nurse Handbook, Daily Checklist) in `AdminAssistantCard.tsx` and `DailyChecklist.tsx` point to `/documents/` — these will also use the production base URL
+**3. Update `handleView`** to store the signed URL in state.
+
+**4. Update the PDF preview section** (~line 288-316):
+- Use `previewSignedUrl` for the `<object data="...">` tag instead of `previewBlobUrl`
+- Use `previewSignedUrl` for all "Open in New Tab" buttons
+- Keep `previewBlobUrl` for inline image rendering only
+
+**5. Update cleanup** to also clear `previewSignedUrl` when dialog closes.
+
+### Result
+- PDFs will render directly in the `<object>` tag using the signed URL
+- "Open in New Tab" will open the actual Supabase file URL (not a blob)
+- No more `ERR_BLOCKED_BY_CLIENT` errors
+- Downloads continue working via blob URL (which is fine for programmatic downloads)
+
+### No migration needed
+Frontend-only fix.
 
