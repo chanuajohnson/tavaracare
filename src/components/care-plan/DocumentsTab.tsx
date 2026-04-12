@@ -227,6 +227,31 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({
         </CardContent>
       </Card>
 
+      {/* Optional Add-On Services */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">➕ Additional Services</CardTitle>
+          <CardDescription>Optional add-on line items to include in generated documents.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start space-x-3">
+            <Checkbox
+              id="podiatry-toggle"
+              checked={includePodiatry}
+              onCheckedChange={(checked) => setIncludePodiatry(!!checked)}
+            />
+            <div>
+              <Label htmlFor="podiatry-toggle" className="font-medium text-sm cursor-pointer">
+                Include Podiatric Care Support (Secondary Household Member) — $349.00/week
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Twice-daily antifungal treatment — full care cycle: preparation, hygiene protocol, application, and post-care handling.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Document Generation Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-primary/20 hover:border-primary/40 transition-colors">
