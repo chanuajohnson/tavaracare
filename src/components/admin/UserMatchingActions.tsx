@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { PRODUCTION_BASE_URL } from '@/utils/urlConstants';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

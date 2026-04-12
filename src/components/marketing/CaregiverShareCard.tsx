@@ -1,4 +1,5 @@
 import React, { forwardRef } from 'react';
+import { PRODUCTION_BASE_URL } from '@/utils/urlConstants';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { QRCode } from './QRCode';
 import { SpotlightCaregiver } from '@/services/spotlightService';
