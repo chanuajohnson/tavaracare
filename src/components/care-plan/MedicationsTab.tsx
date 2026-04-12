@@ -25,9 +25,20 @@ interface MedicationsTabProps {
 }
 
 export function MedicationsTab({ carePlanId }: MedicationsTabProps) {
+  const { user } = useAuth();
   const [medications, setMedications] = useState<MedicationWithAdministrations[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMedicationForAdmin, setSelectedMedicationForAdmin] = useState<string | null>(null);
+  const [deletingAdminId, setDeletingAdminId] = useState<string | null>(null);
+
+  const handleDeleteAdministration = async (administrationId: string) => {
+    setDeletingAdminId(administrationId);
+    const success = await medicationService.deleteAdministration(administrationId);
+    if (success) {
+      loadMedications();
+    }
+    setDeletingAdminId(null);
+  };
 
   useEffect(() => {
     loadMedications();
