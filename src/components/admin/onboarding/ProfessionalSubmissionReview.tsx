@@ -3,7 +3,9 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ClipboardCheck, FileText, Users, Stethoscope } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, ClipboardCheck, FileText, Users, Stethoscope, Eye, Download } from "lucide-react";
+import { toast } from "sonner";
 
 interface ProfessionalSubmissionReviewProps {
   professionalId: string;
@@ -38,6 +40,7 @@ interface DocumentData {
   document_type: string | null;
   document_subtype: string | null;
   file_name: string | null;
+  file_path: string | null;
   verification_status: string | null;
   created_at: string | null;
 }
@@ -84,7 +87,7 @@ export default function ProfessionalSubmissionReview({ professionalId }: Profess
           .single(),
         supabase
           .from("professional_documents")
-          .select("id, document_type, document_subtype, file_name, verification_status, created_at")
+          .select("id, document_type, document_subtype, file_name, file_path, verification_status, created_at")
           .eq("user_id", professionalId)
           .order("created_at", { ascending: false }),
         supabase
@@ -230,20 +233,54 @@ export default function ProfessionalSubmissionReview({ professionalId }: Profess
         <CardContent className="pt-0 pb-3">
           {documents.length > 0 ? (
             <div className="space-y-2">
-              {documents.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-2 bg-background rounded-md border">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{doc.file_name || "Unnamed document"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(doc.document_type || "unknown").replace(/_/g, " ")}
-                      {doc.document_subtype && ` — ${doc.document_subtype.replace(/_/g, " ")}`}
-                    </p>
+              {documents.map((doc) => {
+                const handleDocAction = async (mode: 'view' | 'download') => {
+                  if (!doc.file_path) {
+                    toast.error("No file path available for this document");
+                    return;
+                  }
+                  const { data, error } = await supabase.storage
+                    .from('professional-documents')
+                    .createSignedUrl(doc.file_path, 300);
+                  if (error || !data?.signedUrl) {
+                    toast.error("Failed to access document: " + (error?.message || "Unknown error"));
+                    return;
+                  }
+                  if (mode === 'view') {
+                    window.open(data.signedUrl, '_blank');
+                  } else {
+                    const a = document.createElement('a');
+                    a.href = data.signedUrl;
+                    a.download = doc.file_name || 'document';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  }
+                };
+
+                return (
+                  <div key={doc.id} className="flex items-center justify-between p-2 bg-background rounded-md border">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{doc.file_name || "Unnamed document"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(doc.document_type || "unknown").replace(/_/g, " ")}
+                        {doc.document_subtype && ` — ${doc.document_subtype.replace(/_/g, " ")}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 ml-2 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDocAction('view')} title="View document">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDocAction('download')} title="Download document">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Badge variant={getVerificationColor(doc.verification_status)} className="text-xs">
+                        {(doc.verification_status || "pending").replace(/_/g, " ")}
+                      </Badge>
+                    </div>
                   </div>
-                  <Badge variant={getVerificationColor(doc.verification_status)} className="text-xs ml-2 shrink-0">
-                    {(doc.verification_status || "pending").replace(/_/g, " ")}
-                  </Badge>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground italic">No documents uploaded yet.</p>
