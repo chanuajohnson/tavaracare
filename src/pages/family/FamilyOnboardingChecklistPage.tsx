@@ -28,7 +28,13 @@ function parseLocalDate(dateStr: string): Date {
 
 /** Read-only summary header for Post-Onboarding section */
 function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, boolean | string> }) {
-  const startDateStr = checkedItems["post_onboarding_3_date"] as string | undefined;
+  const startDateStr = (checkedItems["billing_start_date"] || checkedItems["post_onboarding_3_date"]) as string | undefined;
+  const careRate = (checkedItems["care_rate"] as string) || "$35/hr (Standard)";
+  const billingCadence = (checkedItems["billing_cadence"] as string) || "weekly";
+  const isWeekly = billingCadence.toLowerCase() === "weekly";
+  const planLabel = isWeekly ? "Tavara Family Care Plan (weekly)" : "Tavara Family Care Plan (monthly)";
+  const paymentLabel = isWeekly ? "Weekly (due every Friday)" : "Monthly";
+
   return (
     <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
       <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-blue-900">
@@ -37,11 +43,11 @@ function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, bool
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <div className="text-sm">
           <span className="text-muted-foreground">Rate:</span>{" "}
-          <span className="font-medium">$35/hr (Standard)</span>
+          <span className="font-medium">{careRate}</span>
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Plan:</span>{" "}
-          <span className="font-medium">Tavara Family Care Plan (weekly)</span>
+          <span className="font-medium">{planLabel}</span>
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Start Date:</span>{" "}
@@ -51,7 +57,7 @@ function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, bool
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Payment:</span>{" "}
-          <span className="font-medium">Weekly (due every Friday)</span>
+          <span className="font-medium">{paymentLabel}</span>
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Late Fee:</span>{" "}
@@ -108,53 +114,70 @@ function ServiceCommencementApproval({
     }
   };
 
-  const startDateStr = checkedItems["post_onboarding_3_date"] as string | undefined;
+  const startDateStr = (checkedItems["billing_start_date"] || checkedItems["post_onboarding_3_date"]) as string | undefined;
+  const hasStartDate = !!startDateStr;
+
+  const formattedStartDate = hasStartDate ? format(parseLocalDate(startDateStr!), "EEEE, MMMM do") : null;
+  const firstBillableWeekEnd = hasStartDate
+    ? format(new Date(parseLocalDate(startDateStr!).getTime() + 4 * 86400000), "MMMM do, yyyy")
+    : null;
+  const firstBillableWeekStart = hasStartDate
+    ? format(parseLocalDate(startDateStr!), "MMMM do")
+    : null;
 
   return (
     <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
       <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
         ✅ Service Commencement Approval
       </h4>
-      {!isApproved && (
-        <div className="mb-3 rounded-md bg-blue-50 border border-blue-200 p-3">
-          <p className="text-sm text-blue-800 leading-relaxed">
-            💙 At the bottom of your checklist, you'll find this <span className="font-semibold">Service Commencement Approval</span>.
-            Checking the box below acts as your <span className="font-semibold">digital approval</span> for us to commence care
-            starting <span className="font-semibold">Monday, April 13th</span>. This confirms the first billable week (April 13–17, 2026)
-            as outlined in your quotation.
+      {!hasStartDate ? (
+        <div className="rounded-md bg-amber-50 border border-amber-200 p-3">
+          <p className="text-sm text-amber-800 leading-relaxed">
+            Your care start date has not been set yet. Please check back once your coordinator has finalized your schedule.
           </p>
         </div>
-      )}
-      {startDateStr && (
-        <p className="text-sm text-muted-foreground mb-3">
-          Care start date: <span className="font-medium text-foreground">{format(parseLocalDate(startDateStr), "PPP")}</span>
-          {" "}— First billable week: April 13–17, 2026
-        </p>
-      )}
-      {isApproved ? (
-        <div className="flex items-center gap-2 text-green-700 bg-green-50 rounded-md p-3">
-          <CheckCircle2 className="h-5 w-5" />
-          <div>
-            <p className="font-medium text-sm">Approved — Digital signature recorded</p>
-            {approvalDate && (
-              <p className="text-xs text-green-600 mt-0.5">
-                {format(new Date(approvalDate), "PPP 'at' p")}
-              </p>
-            )}
-          </div>
-        </div>
       ) : (
-        <div className="flex items-start space-x-3">
-          <Checkbox
-            id="family-approval"
-            checked={false}
-            onCheckedChange={() => handleApprove()}
-            disabled={saving}
-          />
-          <label htmlFor="family-approval" className="text-sm cursor-pointer leading-snug">
-            I confirm the care start date above and authorize billing to commence as planned
-          </label>
-        </div>
+        <>
+          {!isApproved && (
+            <div className="mb-3 rounded-md bg-blue-50 border border-blue-200 p-3">
+              <p className="text-sm text-blue-800 leading-relaxed">
+                💙 At the bottom of your checklist, you'll find this <span className="font-semibold">Service Commencement Approval</span>.
+                Checking the box below acts as your <span className="font-semibold">digital approval</span> for us to commence care
+                starting <span className="font-semibold">{formattedStartDate}</span>. This confirms the first billable week ({firstBillableWeekStart}–{firstBillableWeekEnd})
+                as outlined in your quotation.
+              </p>
+            </div>
+          )}
+          <p className="text-sm text-muted-foreground mb-3">
+            Care start date: <span className="font-medium text-foreground">{format(parseLocalDate(startDateStr!), "PPP")}</span>
+            {" "}— First billable week: {firstBillableWeekStart}–{firstBillableWeekEnd}
+          </p>
+          {isApproved ? (
+            <div className="flex items-center gap-2 text-green-700 bg-green-50 rounded-md p-3">
+              <CheckCircle2 className="h-5 w-5" />
+              <div>
+                <p className="font-medium text-sm">Approved — Digital signature recorded</p>
+                {approvalDate && (
+                  <p className="text-xs text-green-600 mt-0.5">
+                    {format(new Date(approvalDate), "PPP 'at' p")}
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start space-x-3">
+              <Checkbox
+                id="family-approval"
+                checked={false}
+                onCheckedChange={() => handleApprove()}
+                disabled={saving}
+              />
+              <label htmlFor="family-approval" className="text-sm cursor-pointer leading-snug">
+                I confirm the care start date above and authorize billing to commence as planned
+              </label>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
