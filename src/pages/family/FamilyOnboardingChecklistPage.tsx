@@ -188,6 +188,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Heart: <Heart className="h-5 w-5" />,
   Monitor: <Monitor className="h-5 w-5" />,
   FileText: <FileText className="h-5 w-5" />,
+  FileCheck: <FileCheck className="h-5 w-5" />,
   Pill: <Pill className="h-5 w-5" />,
   UtensilsCrossed: <UtensilsCrossed className="h-5 w-5" />,
   ListChecks: <ListChecks className="h-5 w-5" />,
