@@ -103,7 +103,7 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
               medicationName: med.name,
               dosage: med.dosage || '',
               time: time,
-              timeLabel: timeLabel,
+              timeLabel: String(timeLabel),
               administered: !!administered,
               administrationId: administrationRecord?.id,
               conflictDetected: false,
@@ -134,7 +134,7 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
               medicationName: med.name,
               dosage: med.dosage || '',
               time: time,
-              timeLabel: time,
+              timeLabel: String(time),
               administered: !!administered,
               administrationId: administrationRecord?.id,
               conflictDetected: false,
@@ -288,7 +288,9 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
   };
 
   const formatTimeLabel = (timeLabel: string, time: string) => {
-    const capitalizedLabel = timeLabel.charAt(0).toUpperCase() + timeLabel.slice(1);
+    const label = String(timeLabel || '');
+    if (!label) return time;
+    const capitalizedLabel = label.charAt(0).toUpperCase() + label.slice(1);
     return `${capitalizedLabel} (${time})`;
   };
 
