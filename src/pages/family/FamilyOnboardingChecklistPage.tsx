@@ -544,6 +544,8 @@ export default function FamilyOnboardingChecklistPage() {
             notes={notes}
             onAddNote={() => {}}
             readOnly
+            onAcknowledgeNote={handleAcknowledgeNote}
+            onRespondToNote={handleRespondToNote}
           />
         </div>
       </div>

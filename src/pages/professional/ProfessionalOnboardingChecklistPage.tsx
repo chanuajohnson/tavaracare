@@ -204,6 +204,40 @@ export default function ProfessionalOnboardingChecklistPage() {
     return sum + section.items.filter((_, i) => !!checkedItems[`${section.id}_${i}`]).length;
   }, 0);
 
+  const saveNotesToSupabase = useCallback(async (updatedNotes: OnboardingNote[]) => {
+    if (!user?.id) return;
+    try {
+      await supabase
+        .from("professional_onboarding_checklists")
+        .update({ notes: updatedNotes as any })
+        .eq("professional_id", user.id);
+    } catch (err) {
+      console.error("Failed to save notes:", err);
+    }
+  }, [user?.id]);
+
+  const handleAcknowledgeNote = useCallback((index: number) => {
+    const updatedNotes = [...notes];
+    updatedNotes[index] = {
+      ...updatedNotes[index],
+      acknowledged_at: new Date().toISOString(),
+      acknowledged_by: user?.user_metadata?.full_name || user?.email || "Professional",
+    };
+    setNotes(updatedNotes);
+    saveNotesToSupabase(updatedNotes);
+  }, [notes, user, saveNotesToSupabase]);
+
+  const handleRespondToNote = useCallback((index: number, responseText: string) => {
+    const updatedNotes = [...notes];
+    updatedNotes[index] = {
+      ...updatedNotes[index],
+      response_text: responseText,
+      response_at: new Date().toISOString(),
+    };
+    setNotes(updatedNotes);
+    saveNotesToSupabase(updatedNotes);
+  }, [notes, saveNotesToSupabase]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
