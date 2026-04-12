@@ -1241,6 +1241,15 @@ export default function AdminOnboardingChecklistPage() {
     });
   };
 
+  const handleFamilyCompleteNote = (index: number) => {
+    setFamilyNotes((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], completed_at: new Date().toISOString(), completed_by: "Admin" };
+      saveFamilyToSupabase(familyCheckedItems, next);
+      return next;
+    });
+  };
+
   const handleProfAddNote = (note: OnboardingNote) => {
     setProfNotes((prev) => {
       const next = [...prev, note];
@@ -1261,6 +1270,15 @@ export default function AdminOnboardingChecklistPage() {
   const handleProfDeleteNote = (index: number) => {
     setProfNotes((prev) => {
       const next = prev.filter((_, i) => i !== index);
+      saveProfToSupabase(profCheckedItems, next);
+      return next;
+    });
+  };
+
+  const handleProfCompleteNote = (index: number) => {
+    setProfNotes((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], completed_at: new Date().toISOString(), completed_by: "Admin" };
       saveProfToSupabase(profCheckedItems, next);
       return next;
     });
