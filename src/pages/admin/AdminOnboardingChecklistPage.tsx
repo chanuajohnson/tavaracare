@@ -1171,10 +1171,10 @@ export default function AdminOnboardingChecklistPage() {
     [selectedFamilyId]
   );
 
-  // Professional save
+  // Professional save — now uses family_id for composite unique
   const saveProfToSupabase = useCallback(
     (items: Record<string, boolean | string>, notesList: OnboardingNote[]) => {
-      if (!selectedProfessionalId) return;
+      if (!selectedProfessionalId || !profAssignedFamilyId) return;
       if (profSaveTimerRef.current) clearTimeout(profSaveTimerRef.current);
       profSaveTimerRef.current = setTimeout(async () => {
         try {
@@ -1183,10 +1183,11 @@ export default function AdminOnboardingChecklistPage() {
             .upsert(
               {
                 professional_id: selectedProfessionalId,
+                family_id: profAssignedFamilyId,
                 checked_items: items as unknown as Record<string, never>,
                 notes: notesList as unknown as Record<string, never>[],
               },
-              { onConflict: "professional_id" }
+              { onConflict: "professional_id,family_id" }
             );
           if (error) throw error;
         } catch (err) {
@@ -1194,7 +1195,7 @@ export default function AdminOnboardingChecklistPage() {
         }
       }, 800);
     },
-    [selectedProfessionalId]
+    [selectedProfessionalId, profAssignedFamilyId]
   );
 
   const toggleFamilyItem = (sectionId: string, index: number) => {
@@ -1223,9 +1224,43 @@ export default function AdminOnboardingChecklistPage() {
     });
   };
 
+  const handleFamilyEditNote = (index: number, updatedNote: OnboardingNote) => {
+    setFamilyNotes((prev) => {
+      const next = [...prev];
+      next[index] = updatedNote;
+      saveFamilyToSupabase(familyCheckedItems, next);
+      return next;
+    });
+  };
+
+  const handleFamilyDeleteNote = (index: number) => {
+    setFamilyNotes((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      saveFamilyToSupabase(familyCheckedItems, next);
+      return next;
+    });
+  };
+
   const handleProfAddNote = (note: OnboardingNote) => {
     setProfNotes((prev) => {
       const next = [...prev, note];
+      saveProfToSupabase(profCheckedItems, next);
+      return next;
+    });
+  };
+
+  const handleProfEditNote = (index: number, updatedNote: OnboardingNote) => {
+    setProfNotes((prev) => {
+      const next = [...prev];
+      next[index] = updatedNote;
+      saveProfToSupabase(profCheckedItems, next);
+      return next;
+    });
+  };
+
+  const handleProfDeleteNote = (index: number) => {
+    setProfNotes((prev) => {
+      const next = prev.filter((_, i) => i !== index);
       saveProfToSupabase(profCheckedItems, next);
       return next;
     });
