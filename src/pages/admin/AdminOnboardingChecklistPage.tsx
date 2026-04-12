@@ -663,6 +663,8 @@ function ChecklistTabContent({
   onDateChange,
   notes,
   handleAddNote,
+  handleEditNote,
+  handleDeleteNote,
   openSections,
   toggleSection,
   handleReset,
@@ -687,6 +689,8 @@ function ChecklistTabContent({
   onDateChange?: (key: string, value: string) => void;
   notes: OnboardingNote[];
   handleAddNote: (note: OnboardingNote) => void;
+  handleEditNote: (index: number, updatedNote: OnboardingNote) => void;
+  handleDeleteNote: (index: number) => void;
   openSections: Record<string, boolean>;
   toggleSection: (id: string) => void;
   handleReset: () => void;
@@ -875,7 +879,6 @@ function ChecklistTabContent({
                                 </a>
                               )}
                               {dateFieldLabel && onDateChange && (() => {
-                                // If linked family has this date, show read-only
                                 const linkedDate = linkedCheckedItems?.[dateKey] as string | undefined;
                                 if (linkedDate && section.id === "post_onboarding") {
                                   return (
@@ -953,7 +956,12 @@ function ChecklistTabContent({
           );
         })}
 
-        <OnboardingNotesCard notes={notes} onAddNote={handleAddNote} />
+        <OnboardingNotesCard
+          notes={notes}
+          onAddNote={handleAddNote}
+          onEditNote={handleEditNote}
+          onDeleteNote={handleDeleteNote}
+        />
       </div>
     </>
   );
