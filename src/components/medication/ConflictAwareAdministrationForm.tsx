@@ -68,7 +68,7 @@ export function ConflictAwareAdministrationForm({
         medicationId,
         administeredAt,
         user.id,
-        'family', // This component is for family users
+        userRole,
         notes.trim() || undefined
       );
 
@@ -108,7 +108,7 @@ export function ConflictAwareAdministrationForm({
         medicationId,
         pendingAdministration.administeredAt,
         user.id,
-        'family',
+        userRole,
         pendingAdministration.notes || undefined,
         resolution
       );
