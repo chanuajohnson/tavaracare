@@ -1,32 +1,24 @@
 
 
-## Plan: Fix Admin Access to Professional Documents on Onboarding Checklist
+## Plan: Add Document View/Download to Admin Onboarding Checklist
 
 ### Problem
-The `professional_documents` table RLS policies only allow `auth.uid() = user_id` for SELECT. When an admin views Tricia's documents on `/admin/onboarding-checklist`, the query returns 0 rows because the admin's `auth.uid()` does not match Tricia's `user_id`.
-
-**Tricia has 3 documents in the database** (ID, certificate, background check) — they just can't be read by the admin due to RLS.
-
-### Solution
-Add an RLS policy allowing admins to read all professional documents.
+The admin onboarding checklist shows Tricia's 3 uploaded documents but they are not clickable. Admins cannot view or download them, unlike the professional's own `DocumentManager` which has download via signed URLs.
 
 ### Changes
 
-| Change | Detail |
-|--------|--------|
-| **New migration** | Add a SELECT policy on `professional_documents`: "Admins can view all documents" using the existing `public.has_role(auth.uid(), 'admin')` function |
+| File | Change |
+|------|--------|
+| **`src/components/admin/onboarding/ProfessionalSubmissionReview.tsx`** | Add `Eye` and `Download` icon buttons to each document row. On click, create a signed URL from the `professional-documents` storage bucket using `doc.file_path`, then either open in a new tab (view) or trigger a download. Add `Button` import and `Eye`/`Download` to icon imports. |
 
-### Migration SQL
+### Technical Detail
 
-```sql
-CREATE POLICY "Admins can view all professional documents"
-ON public.professional_documents
-FOR SELECT
-TO authenticated
-USING (public.has_role(auth.uid(), 'admin'));
-```
+Each document row (lines 233-245) will get two small icon buttons:
 
-### Result
-- Admin will see Tricia's 3 uploaded documents (Police Char Cert, Chan Cert 1, Chan ID) in the onboarding checklist
-- No code changes needed — the component query is already correct, it's purely an RLS access issue
+1. **View** (Eye icon) — creates a signed URL and opens it in a new tab via `window.open()`
+2. **Download** (Download icon) — creates a signed URL and triggers download via a temporary `<a>` element
+
+Both use `supabase.storage.from('professional-documents').createSignedUrl(doc.file_path, 300)` (5-minute expiry). A toast will show on error.
+
+The `file_path` field already exists on each document record and points to the storage object path. The new admin RLS policy we just added ensures the admin can access the document metadata; storage access uses signed URLs which bypass storage RLS.
 
