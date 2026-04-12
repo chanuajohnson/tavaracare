@@ -1061,7 +1061,7 @@ export default function AdminOnboardingChecklistPage() {
     load();
   }, [selectedFamilyId]);
 
-  // Load professional checklist
+  // Load professional checklist (now scoped by family_id)
   useEffect(() => {
     if (!selectedProfessionalId) {
       setProfCheckedItems({});
@@ -1069,33 +1069,57 @@ export default function AdminOnboardingChecklistPage() {
       setProfAssignedFamilyId("");
       return;
     }
+    // If no family selected yet, try to load the first checklist for this professional
     const load = async () => {
       try {
-        const { data, error } = await supabase
-          .from("professional_onboarding_checklists")
-          .select("checked_items, notes")
-          .eq("professional_id", selectedProfessionalId)
-          .maybeSingle();
-        if (error) throw error;
-        if (data) {
-          const items = (data.checked_items as unknown as Record<string, boolean | string>) || {};
-          setProfCheckedItems(items);
-          setProfNotes((data.notes as unknown as OnboardingNote[]) || []);
-          setProfAssignedFamilyId((items.assigned_family_id as string) || "");
+        if (profAssignedFamilyId) {
+          // Load checklist for specific professional+family pair
+          const { data, error } = await supabase
+            .from("professional_onboarding_checklists")
+            .select("checked_items, notes, family_id")
+            .eq("professional_id", selectedProfessionalId)
+            .eq("family_id", profAssignedFamilyId)
+            .maybeSingle();
+          if (error) throw error;
+          if (data) {
+            const items = (data.checked_items as unknown as Record<string, boolean | string>) || {};
+            setProfCheckedItems(items);
+            setProfNotes((data.notes as unknown as OnboardingNote[]) || []);
+          } else {
+            setProfCheckedItems({});
+            setProfNotes([]);
+          }
         } else {
-          setProfCheckedItems({});
-          setProfNotes([]);
-          setProfAssignedFamilyId("");
+          // No family selected — load first available checklist to get the assigned family
+          const { data, error } = await supabase
+            .from("professional_onboarding_checklists")
+            .select("checked_items, notes, family_id")
+            .eq("professional_id", selectedProfessionalId)
+            .limit(1)
+            .maybeSingle();
+          if (error) throw error;
+          if (data) {
+            const items = (data.checked_items as unknown as Record<string, boolean | string>) || {};
+            setProfCheckedItems(items);
+            setProfNotes((data.notes as unknown as OnboardingNote[]) || []);
+            // Set the family from the DB column or fallback to JSON
+            const familyFromDb = data.family_id as string | null;
+            const familyFromJson = (items.assigned_family_id as string) || "";
+            setProfAssignedFamilyId(familyFromDb || familyFromJson);
+          } else {
+            setProfCheckedItems({});
+            setProfNotes([]);
+            setProfAssignedFamilyId("");
+          }
         }
       } catch (err) {
         console.error("Failed to load professional checklist:", err);
         setProfCheckedItems({});
         setProfNotes([]);
-        setProfAssignedFamilyId("");
       }
     };
     load();
-  }, [selectedProfessionalId]);
+  }, [selectedProfessionalId, profAssignedFamilyId]);
 
   // Load linked family's checklist data when assigned family changes
   useEffect(() => {
