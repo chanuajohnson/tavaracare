@@ -204,7 +204,9 @@ export default function FamilyOnboardingChecklistPage() {
   };
 
   const totalItems = getTotalItems();
-  const totalChecked = Object.values(checkedItems).filter(Boolean).length;
+  const totalChecked = ONBOARDING_SECTION_DEFS.reduce((sum, section) => {
+    return sum + section.items.filter((_, i) => !!checkedItems[`${section.id}_${i}`]).length;
+  }, 0);
 
   if (loading) {
     return (
