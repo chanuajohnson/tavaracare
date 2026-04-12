@@ -72,6 +72,7 @@ export const PROFESSIONAL_ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
       "Shift notes and incident reporting procedures",
       "How the family sees completed daily logs",
       "Escalation protocol for urgent situations",
+      "Caregivers are assigned to the primary client — support to other household members is limited to approved, scoped services only",
     ],
   },
   {

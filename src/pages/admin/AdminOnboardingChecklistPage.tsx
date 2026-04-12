@@ -27,6 +27,7 @@ import { PROFESSIONAL_ONBOARDING_SECTION_DEFS, getProfessionalTotalItems } from 
 import FamilySubmissionReview from "@/components/admin/onboarding/FamilySubmissionReview";
 import ProfessionalSubmissionReview from "@/components/admin/onboarding/ProfessionalSubmissionReview";
 import RateTierReferenceCard from "@/components/admin/onboarding/RateTierReferenceCard";
+import CareSuppliesCard from "@/components/admin/onboarding/CareSuppliesCard";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
 import { toast } from "sonner";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -139,6 +140,11 @@ function CareSummaryHeader({ checkedItems, linkedCheckedItems, assignedFamilyNam
             <span className="font-medium">{assignedFamilyName}</span>
           </div>
         )}
+      </div>
+      <div className="mt-3 pt-3 border-t border-blue-200">
+        <p className="text-xs text-blue-800 font-medium">
+          👤 Caregivers are assigned to the primary client — support to other household members is limited to approved, scoped services only.
+        </p>
       </div>
     </div>
   );
@@ -916,6 +922,10 @@ function ChecklistTabContent({
                           ))}
                         </div>
                       </div>
+                    )}
+
+                    {(section.id === "daily_checklist" || section.id === "daily_checklist_sop") && (
+                      <CareSuppliesCard />
                     )}
 
                     {(section.id === "rates_payment" || section.id === "rates_and_changes") && (

@@ -61,6 +61,11 @@ function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, bool
           <span className="font-medium">1.5× (2× Christmas)</span>
         </div>
       </div>
+      <div className="mt-3 pt-3 border-t border-blue-200">
+        <p className="text-xs text-blue-800 font-medium">
+          👤 Caregivers are assigned to the primary client — support to other household members is limited to approved, scoped services only.
+        </p>
+      </div>
     </div>
   );
 }
