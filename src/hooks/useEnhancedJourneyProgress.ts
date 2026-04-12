@@ -928,6 +928,26 @@ export const useEnhancedJourneyProgress = () => {
   // Get the final steps data using prioritized logic
   const stepsData = getStepsData();
 
+  // Sync calculated progress back to user_journey_progress table for admin/TAV consistency
+  const syncedPercentageRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (isAnonymous || !user?.id || stepsData.loading) return;
+    const currentPercentage = stepsData.completionPercentage;
+    // Only sync when percentage actually changes and differs from last synced value
+    if (currentPercentage === syncedPercentageRef.current) return;
+    syncedPercentageRef.current = currentPercentage;
+    
+    console.log('🔄 Syncing journey progress to DB:', { userId: user.id, percentage: currentPercentage });
+    supabase
+      .rpc('calculate_and_update_journey_progress', { target_user_id: user.id })
+      .then(({ error }) => {
+        if (error) {
+          console.error('❌ Failed to sync journey progress:', error.message);
+        } else {
+          console.log('✅ Journey progress synced to DB successfully');
+        }
+      });
+  }, [isAnonymous, user?.id, stepsData.completionPercentage, stepsData.loading]);
   return {
     loading: isAnonymous ? false : (stepsData.loading || loading || sharedJourneyData.loading),
     steps: stepsData.steps,
