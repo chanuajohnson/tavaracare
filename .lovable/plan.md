@@ -1,28 +1,38 @@
 
 
-## Plan: Add Instructional Guidance to Service Commencement Approval Card
+## Plan: Add Professional Readiness Approval to Post-Onboarding Summary
 
 ### What
-Add a friendly instructional banner above the approval checkbox in the `ServiceCommencementApproval` component so the client clearly understands the purpose and action required.
+Add a digital approval/signature checkbox to the professional's onboarding checklist page, mirroring the `ServiceCommencementApproval` component already on the family side. This appears at the bottom of the "Post-Onboarding Summary" section.
 
-### Change
+### Single File Change
 
-**File**: `src/pages/family/FamilyOnboardingChecklistPage.tsx`
+**File**: `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx`
 
-In the `ServiceCommencementApproval` component (around line 117), add an instructional note between the heading and the start date line:
+1. **Import** `Checkbox` from `@/components/ui/checkbox`
+2. **Add** a `ProfessionalReadinessApproval` component (modeled on the family's `ServiceCommencementApproval`) that:
+   - Shows an instructional blue info box explaining the digital approval
+   - Contains a checkbox: *"I confirm I have reviewed my onboarding checklist and I am ready to commence care as planned"*
+   - On check, persists `professional_approval_confirmed: true` and `professional_approval_date: <ISO timestamp>` to `onboarding_checklists.checked_items` via Supabase update using `.eq("professional_id", user.id)`
+   - Once approved, replaces the checkbox with a green badge: "Approved — Digital signature recorded on [date]"
+3. **Render** the component inside the `post_onboarding` section block (after the existing Care Summary header), alongside the existing rate tier and SOP rendering pattern:
 
+```tsx
+{section.id === "post_onboarding" && (
+  <>
+    <CareSummaryHeader checkedItems={checkedItems} />
+    <ProfessionalReadinessApproval
+      checkedItems={checkedItems}
+      professionalId={user?.id}
+      onApproved={(updated) => setCheckedItems(updated)}
+    />
+  </>
+)}
 ```
-💙 At the bottom of your checklist, you'll find this Service Commencement Approval.
-Checking the box below acts as your digital approval for us to commence care
-starting Monday, April 13th. This confirms the first billable week (April 13–17, 2026)
-as outlined in your quotation.
-```
-
-This renders as a styled info paragraph (blue-toned, similar to the Care Summary style) only when the approval has NOT yet been given. Once approved, the green confirmation badge replaces it as it does today.
 
 ### Files Modified
 
 | File | Change |
 |------|--------|
-| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Add instructional guidance text to `ServiceCommencementApproval` card |
+| `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx` | Add `ProfessionalReadinessApproval` component with digital signature checkbox in post-onboarding section |
 
