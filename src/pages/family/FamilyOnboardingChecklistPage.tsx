@@ -109,6 +109,7 @@ function ServiceCommencementApproval({
       onApproved(updated);
     } catch (err) {
       console.error("Failed to save approval:", err);
+      toast.error("Failed to save your approval. Please try again.");
     } finally {
       setSaving(false);
     }
