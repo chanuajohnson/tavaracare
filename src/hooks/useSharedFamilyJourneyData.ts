@@ -83,7 +83,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       title: "Get Started with Care", 
       description: "Begin your care journey with a scheduled visit from our care coordinators", 
       completed: false, 
-      category: 'scheduling',
+      category: 'foundation',
       accessible: true
     },
     { 
