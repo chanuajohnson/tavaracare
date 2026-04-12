@@ -1193,9 +1193,13 @@ export default function AdminOnboardingChecklistPage() {
   };
 
   const familyTotalItems = getTotalItems();
-  const familyTotalChecked = Object.values(familyCheckedItems).filter(Boolean).length;
+  const familyTotalChecked = ONBOARDING_SECTION_DEFS.reduce((sum, section) => {
+    return sum + section.items.filter((_, i) => !!familyCheckedItems[`${section.id}_${i}`]).length;
+  }, 0);
   const profTotalItems = getProfessionalTotalItems();
-  const profTotalChecked = Object.values(profCheckedItems).filter(Boolean).length;
+  const profTotalChecked = PROFESSIONAL_ONBOARDING_SECTION_DEFS.reduce((sum, section) => {
+    return sum + section.items.filter((_, i) => !!profCheckedItems[`${section.id}_${i}`]).length;
+  }, 0);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">

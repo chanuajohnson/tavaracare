@@ -119,7 +119,9 @@ export default function ProfessionalOnboardingChecklistPage() {
   };
 
   const totalItems = getProfessionalTotalItems();
-  const totalChecked = Object.entries(checkedItems).filter(([key, val]) => val === true).length;
+  const totalChecked = PROFESSIONAL_ONBOARDING_SECTION_DEFS.reduce((sum, section) => {
+    return sum + section.items.filter((_, i) => !!checkedItems[`${section.id}_${i}`]).length;
+  }, 0);
 
   if (loading) {
     return (
