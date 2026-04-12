@@ -1,4 +1,5 @@
 import React, { forwardRef } from 'react';
+import { PRODUCTION_BASE_URL } from '@/utils/urlConstants';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { QRCode } from './QRCode';
 import { SpotlightCaregiver } from '@/services/spotlightService';
@@ -111,7 +112,7 @@ export const CaregiverShareCard = forwardRef<HTMLDivElement, CaregiverShareCardP
           <div className="flex items-center gap-4">
             <div className="bg-white p-2 rounded-lg shadow-sm border">
               <QRCode 
-                url="https://tavaracare.lovable.app/urgent-caregivers?utm_source=caregiver_card"
+                url={`${PRODUCTION_BASE_URL}/urgent-caregivers?utm_source=caregiver_card`}
                 size={60}
               />
             </div>

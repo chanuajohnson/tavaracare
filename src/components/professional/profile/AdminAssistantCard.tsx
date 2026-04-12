@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { PRODUCTION_BASE_URL } from '@/utils/urlConstants';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, FileText, CheckCircle, Settings, BookOpen, ClipboardCheck, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,7 @@ export const AdminAssistantCard = () => {
                   </div>
                 </div>
                 <Button variant="outline" size="sm" className="w-full mt-3 gap-2" asChild>
-                  <a href="https://tavaracare.lovable.app/documents/Tavara_Nurse_Handbook.pdf" target="_blank" rel="noopener noreferrer" download="Tavara_Nurse_Handbook.pdf">
+                  <a href={`${PRODUCTION_BASE_URL}/documents/Tavara_Nurse_Handbook.pdf`} target="_blank" rel="noopener noreferrer" download="Tavara_Nurse_Handbook.pdf">
                     <ExternalLink className="h-3.5 w-3.5" />
                     View Handbook
                   </a>
@@ -61,7 +62,7 @@ export const AdminAssistantCard = () => {
                     Open Checklist
                   </Button>
                   <Button variant="outline" size="sm" className="gap-2" asChild>
-                    <a href="https://tavaracare.lovable.app/documents/Tavara_Daily_Checklist.pdf" target="_blank" rel="noopener noreferrer" download="Tavara_Daily_Checklist.pdf">
+                    <a href={`${PRODUCTION_BASE_URL}/documents/Tavara_Daily_Checklist.pdf`} target="_blank" rel="noopener noreferrer" download="Tavara_Daily_Checklist.pdf">
                       <FileText className="h-3.5 w-3.5" />
                       PDF
                     </a>

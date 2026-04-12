@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { PRODUCTION_BASE_URL } from '@/utils/urlConstants';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -227,7 +228,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
       if (sendUnavailabilityNudge) {
         const familyName = user.full_name || 'there';
         const caregiverName = deactivatingAssignment.caregiver_name;
-        const message = `Hi ${familyName}! 💙 Chan from Tavara Care.\n\nWe wanted to let you know that ${caregiverName} is temporarily unavailable. Don't worry — we've already identified your next best match and are working to get them assigned.\n\nOur admin team will be in touch shortly with your updated care team details.\n\n🔗 View your matches: https://tavaracare.lovable.app/family/matching\n\nNeed to talk? Just reply here and we'll help right away!\n- Chan, Tavara Care 💙`;
+        const message = `Hi ${familyName}! 💙 Chan from Tavara Care.\n\nWe wanted to let you know that ${caregiverName} is temporarily unavailable. Don't worry — we've already identified your next best match and are working to get them assigned.\n\nOur admin team will be in touch shortly with your updated care team details.\n\n🔗 View your matches: ${PRODUCTION_BASE_URL}/family/matching\n\nNeed to talk? Just reply here and we'll help right away!\n- Chan, Tavara Care 💙`;
         
         const phone = user.phone_number?.replace(/[^0-9]/g, '') || '18687865357';
         const url = `https://api.whatsapp.com/send/?phone=${phone}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;

@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { PRODUCTION_BASE_URL } from '@/utils/urlConstants';
 import DocumentGenerationMenu from "@/components/admin/care-plans/DocumentGenerationMenu";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -714,7 +715,7 @@ function ChecklistTabContent({
     toast.success("Public onboarding guide link copied!");
   };
 
-  const publishedBase = "https://tavaracare.lovable.app";
+  const publishedBase = PRODUCTION_BASE_URL;
   const checklistPath = profileLabel === "Family"
     ? "/family/onboarding-checklist"
     : "/professional/onboarding-checklist";
