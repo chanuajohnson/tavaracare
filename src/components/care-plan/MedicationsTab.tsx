@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pill, Plus, Calendar, Clock, ArrowRight, AlertTriangle } from "lucide-react";
+import { Pill, Plus, Calendar, Clock, ArrowRight, AlertTriangle, User, CheckCircle2 } from "lucide-react";
 import { MedicationWithAdministrations, medicationService } from "@/services/medicationService";
 import { ConflictAwareAdministrationForm } from "@/components/medication/ConflictAwareAdministrationForm";
 import { Badge } from "@/components/ui/badge";
@@ -214,7 +214,76 @@ export function MedicationsTab({ carePlanId }: MedicationsTabProps) {
         </CardContent>
       </Card>
 
-      {/* Upcoming Doses */}
+      {/* Recent Administration Log */}
+      {medications.some(m => m.recent_administrations && m.recent_administrations.length > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              Recent Administration Log
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {medications
+                .flatMap(med =>
+                  (med.recent_administrations || []).map(admin => ({
+                    ...admin,
+                    medicationName: med.name,
+                    medicationDosage: med.dosage
+                  }))
+                )
+                .sort((a, b) => new Date(b.administered_at).getTime() - new Date(a.administered_at).getTime())
+                .slice(0, 10)
+                .map((entry) => {
+                  const profile = entry.administered_by_profile || (entry as any).profiles;
+                  const adminName = profile?.full_name ||
+                    [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') ||
+                    (entry.administered_by_role === 'professional' ? 'Professional Caregiver' : 'Family Member');
+                  const roleLabel = entry.administered_by_role === 'professional' ? 'Professional' : 'Family';
+
+                  return (
+                    <div key={entry.id} className="flex items-start justify-between p-3 border rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className={`mt-1 rounded-full p-1 ${entry.status === 'administered' ? 'bg-green-100' : 'bg-red-100'}`}>
+                          <CheckCircle2 className={`h-3.5 w-3.5 ${entry.status === 'administered' ? 'text-green-600' : 'text-red-600'}`} />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{entry.medicationName}</p>
+                          {entry.medicationDosage && (
+                            <p className="text-xs text-muted-foreground">{entry.medicationDosage}</p>
+                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              {adminName}
+                            </span>
+                            <Badge className={
+                              entry.administered_by_role === 'professional'
+                                ? 'bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0'
+                                : 'bg-purple-100 text-purple-700 text-[10px] px-1.5 py-0'
+                            }>
+                              {roleLabel}
+                            </Badge>
+                          </div>
+                          {entry.notes && (
+                            <p className="text-xs text-muted-foreground mt-1 italic">"{entry.notes}"</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right text-xs text-muted-foreground whitespace-nowrap">
+                        <div>{new Date(entry.administered_at).toLocaleDateString()}</div>
+                        <div>{new Date(entry.administered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
       {upcomingDoses.length > 0 && (
         <Card>
           <CardHeader>
