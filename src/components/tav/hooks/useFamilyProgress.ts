@@ -253,10 +253,8 @@ export const useFamilyProgress = () => {
     }
   };
 
-  // Use stored completion percentage if available, otherwise use enhanced data
-  const completionPercentage = storedProgress.completionPercentage > 0 
-    ? storedProgress.completionPercentage 
-    : enhancedData.completionPercentage;
+  // Always use dynamically calculated percentage as primary source of truth
+  const completionPercentage = enhancedData.completionPercentage;
 
   // Add proper action handlers and button text to the steps
   const enhancedSteps = enhancedData.steps.map(step => ({

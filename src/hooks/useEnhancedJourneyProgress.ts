@@ -305,11 +305,18 @@ export const useEnhancedJourneyProgress = () => {
             }
         }));
         
+        // Use shared journey data completion (dynamically calculated) as primary source
+        const nonOptionalMerged = mergedSteps.filter(step => !step.is_optional);
+        const completedNonOptional = nonOptionalMerged.filter(step => step.completed).length;
+        const dynamicPercentage = nonOptionalMerged.length > 0 
+          ? Math.round((completedNonOptional / nonOptionalMerged.length) * 100) 
+          : sharedJourneyData.completionPercentage;
+        
         return {
           steps: mergedSteps,
-          completionPercentage: storedProgress.completionPercentage,
-          totalSteps: richSteps.length,
-          completedSteps: storedProgress.completedSteps,
+          completionPercentage: dynamicPercentage,
+          totalSteps: nonOptionalMerged.length,
+          completedSteps: completedNonOptional,
           nextStep: mergedSteps.find(step => !step.completed && step.accessible),
           currentStage: sharedJourneyData.journeyStage,
           loading: false
@@ -833,22 +840,14 @@ export const useEnhancedJourneyProgress = () => {
     incompleteSteps: steps_calculated.filter(step => !step.completed).map(step => ({ id: step.id, title: step.title, optional: step.is_optional }))
   });
   
-  // Use stored progress as primary source (like admin dashboard)
+  // Use dynamically calculated percentage as the primary source of truth
   const calculatedPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
-  
-  // Primary source: stored progress (matches admin dashboard logic)
-  const finalCompletionPercentage = storedProgress.loading 
-    ? 0 
-    : storedProgress.completionPercentage > 0 
-      ? storedProgress.completionPercentage 
-      : calculatedPercentage;
+  const finalCompletionPercentage = calculatedPercentage;
     
   console.log('📈 Family Dashboard Progress Calculation:', {
-    storedProgressLoading: storedProgress.loading,
-    storedCompletionPercentage: storedProgress.completionPercentage,
     calculatedPercentage,
     finalCompletionPercentage,
-    usingStoredProgress: !storedProgress.loading && storedProgress.completionPercentage > 0
+    storedCompletionPercentage: storedProgress.completionPercentage
   });
     
   // Use stored current step if available
@@ -929,6 +928,26 @@ export const useEnhancedJourneyProgress = () => {
   // Get the final steps data using prioritized logic
   const stepsData = getStepsData();
 
+  // Sync calculated progress back to user_journey_progress table for admin/TAV consistency
+  const syncedPercentageRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (isAnonymous || !user?.id || stepsData.loading) return;
+    const currentPercentage = stepsData.completionPercentage;
+    // Only sync when percentage actually changes and differs from last synced value
+    if (currentPercentage === syncedPercentageRef.current) return;
+    syncedPercentageRef.current = currentPercentage;
+    
+    console.log('🔄 Syncing journey progress to DB:', { userId: user.id, percentage: currentPercentage });
+    supabase
+      .rpc('calculate_and_update_journey_progress', { target_user_id: user.id })
+      .then(({ error }) => {
+        if (error) {
+          console.error('❌ Failed to sync journey progress:', error.message);
+        } else {
+          console.log('✅ Journey progress synced to DB successfully');
+        }
+      });
+  }, [isAnonymous, user?.id, stepsData.completionPercentage, stepsData.loading]);
   return {
     loading: isAnonymous ? false : (stepsData.loading || loading || sharedJourneyData.loading),
     steps: stepsData.steps,
