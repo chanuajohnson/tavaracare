@@ -1,10 +1,11 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, ClipboardCheck, FileText, Users, Stethoscope, Eye, Download } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Loader2, ClipboardCheck, FileText, Users, Stethoscope, Eye, Download, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface ProfessionalSubmissionReviewProps {
@@ -67,12 +68,46 @@ interface ScreeningData {
   notes: string | null;
 }
 
+// Helper to guess MIME from file name
+function guessMimeType(fileName: string | null): string {
+  if (!fileName) return "application/octet-stream";
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  switch (ext) {
+    case "pdf": return "application/pdf";
+    case "png": return "image/png";
+    case "jpg": case "jpeg": return "image/jpeg";
+    case "gif": return "image/gif";
+    case "webp": return "image/webp";
+    case "svg": return "image/svg+xml";
+    default: return "application/octet-stream";
+  }
+}
+
 export default function ProfessionalSubmissionReview({ professionalId }: ProfessionalSubmissionReviewProps) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [documents, setDocuments] = useState<DocumentData[]>([]);
   const [references, setReferences] = useState<ReferenceData[]>([]);
   const [screenings, setScreenings] = useState<ScreeningData[]>([]);
+
+  // Document preview state
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
+  const [previewMime, setPreviewMime] = useState<string>("");
+  const [previewFileName, setPreviewFileName] = useState<string>("");
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const cleanupPreview = useCallback(() => {
+    if (previewBlobUrl) {
+      URL.revokeObjectURL(previewBlobUrl);
+      setPreviewBlobUrl(null);
+    }
+  }, [previewBlobUrl]);
+
+  // Cleanup blob URL when dialog closes
+  useEffect(() => {
+    if (!previewOpen) cleanupPreview();
+  }, [previewOpen, cleanupPreview]);
 
   useEffect(() => {
     if (!professionalId) return;
@@ -109,6 +144,59 @@ export default function ProfessionalSubmissionReview({ professionalId }: Profess
 
     fetchAll();
   }, [professionalId]);
+
+  /** Fetch file as blob via signed URL */
+  const fetchDocBlob = async (doc: DocumentData): Promise<{ blobUrl: string; mime: string } | null> => {
+    if (!doc.file_path) {
+      toast.error("No file path available for this document");
+      return null;
+    }
+    const { data, error } = await supabase.storage
+      .from("professional-documents")
+      .createSignedUrl(doc.file_path, 300);
+    if (error || !data?.signedUrl) {
+      toast.error("Failed to access document: " + (error?.message || "Unknown error"));
+      return null;
+    }
+    try {
+      const response = await fetch(data.signedUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      const mime = blob.type && blob.type !== "application/octet-stream" ? blob.type : guessMimeType(doc.file_name);
+      const blobUrl = URL.createObjectURL(blob);
+      return { blobUrl, mime };
+    } catch (fetchErr: any) {
+      toast.error("Failed to fetch document content: " + fetchErr.message);
+      return null;
+    }
+  };
+
+  const handleView = async (doc: DocumentData) => {
+    setPreviewLoading(true);
+    setPreviewFileName(doc.file_name || "Document");
+    setPreviewOpen(true);
+    const result = await fetchDocBlob(doc);
+    if (result) {
+      setPreviewBlobUrl(result.blobUrl);
+      setPreviewMime(result.mime);
+    } else {
+      setPreviewOpen(false);
+    }
+    setPreviewLoading(false);
+  };
+
+  const handleDownload = async (doc: DocumentData) => {
+    const result = await fetchDocBlob(doc);
+    if (!result) return;
+    const a = document.createElement("a");
+    a.href = result.blobUrl;
+    a.download = doc.file_name || "document";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // Small delay before revoking so download can start
+    setTimeout(() => URL.revokeObjectURL(result.blobUrl), 1000);
+  };
 
   if (loading) {
     return (
@@ -172,8 +260,62 @@ export default function ProfessionalSubmissionReview({ professionalId }: Profess
     }
   };
 
+  const isPreviewableImage = previewMime.startsWith("image/");
+  const isPreviewablePdf = previewMime === "application/pdf";
+
   return (
     <div className="space-y-4">
+      {/* Document Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-sm truncate">{previewFileName}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-auto">
+            {previewLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading document…</span>
+              </div>
+            ) : previewBlobUrl ? (
+              isPreviewableImage ? (
+                <img
+                  src={previewBlobUrl}
+                  alt={previewFileName}
+                  className="max-w-full h-auto mx-auto rounded"
+                />
+              ) : isPreviewablePdf ? (
+                <iframe
+                  src={previewBlobUrl}
+                  title={previewFileName}
+                  className="w-full h-[70vh] border rounded"
+                />
+              ) : (
+                <div className="text-center py-12 space-y-3">
+                  <FileText className="h-10 w-10 mx-auto text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    This file type cannot be previewed in the browser.
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (previewBlobUrl) {
+                        const a = document.createElement("a");
+                        a.href = previewBlobUrl;
+                        a.download = previewFileName;
+                        a.click();
+                      }
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-1" /> Download File
+                  </Button>
+                </div>
+              )
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Registration / Profile Data */}
       <Card className="border-blue-200 bg-blue-50/30">
         <CardHeader className="py-3">
@@ -233,54 +375,28 @@ export default function ProfessionalSubmissionReview({ professionalId }: Profess
         <CardContent className="pt-0 pb-3">
           {documents.length > 0 ? (
             <div className="space-y-2">
-              {documents.map((doc) => {
-                const handleDocAction = async (mode: 'view' | 'download') => {
-                  if (!doc.file_path) {
-                    toast.error("No file path available for this document");
-                    return;
-                  }
-                  const { data, error } = await supabase.storage
-                    .from('professional-documents')
-                    .createSignedUrl(doc.file_path, 300);
-                  if (error || !data?.signedUrl) {
-                    toast.error("Failed to access document: " + (error?.message || "Unknown error"));
-                    return;
-                  }
-                  if (mode === 'view') {
-                    window.open(data.signedUrl, '_blank');
-                  } else {
-                    const a = document.createElement('a');
-                    a.href = data.signedUrl;
-                    a.download = doc.file_name || 'document';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                  }
-                };
-
-                return (
-                  <div key={doc.id} className="flex items-center justify-between p-2 bg-background rounded-md border">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{doc.file_name || "Unnamed document"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {(doc.document_type || "unknown").replace(/_/g, " ")}
-                        {doc.document_subtype && ` — ${doc.document_subtype.replace(/_/g, " ")}`}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 ml-2 shrink-0">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDocAction('view')} title="View document">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDocAction('download')} title="Download document">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Badge variant={getVerificationColor(doc.verification_status)} className="text-xs">
-                        {(doc.verification_status || "pending").replace(/_/g, " ")}
-                      </Badge>
-                    </div>
+              {documents.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between p-2 bg-background rounded-md border">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{doc.file_name || "Unnamed document"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(doc.document_type || "unknown").replace(/_/g, " ")}
+                      {doc.document_subtype && ` — ${doc.document_subtype.replace(/_/g, " ")}`}
+                    </p>
                   </div>
-                );
-              })}
+                  <div className="flex items-center gap-1 ml-2 shrink-0">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleView(doc)} title="View document">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(doc)} title="Download document">
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Badge variant={getVerificationColor(doc.verification_status)} className="text-xs">
+                      {(doc.verification_status || "pending").replace(/_/g, " ")}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground italic">No documents uploaded yet.</p>
