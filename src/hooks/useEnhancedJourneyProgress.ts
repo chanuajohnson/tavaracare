@@ -45,15 +45,15 @@ export const useEnhancedJourneyProgress = () => {
       { id: "4", step_number: 4, title: "See Your Instant Caregiver Matches", description: "Unlock personalized caregiver recommendations", completed: false, accessible: false, category: 'foundation', icon_name: 'Users', tooltip_content: 'Browse matched caregivers', detailed_explanation: 'View and connect with potential caregivers', time_estimate_minutes: 30, is_optional: false, action: () => {} },
       { id: "5", step_number: 5, title: "Set Up Medication Management", description: "Add medications and set up schedules", completed: false, accessible: true, category: 'foundation', icon_name: 'Pill', tooltip_content: 'Manage medications for your care plan', detailed_explanation: 'Set up medication schedules and tracking', time_estimate_minutes: 15, is_optional: false, action: () => {} },
       { id: "6", step_number: 6, title: "Set Up Meal Management", description: "Plan meals and create grocery lists", completed: false, accessible: true, category: 'foundation', icon_name: 'Utensils', tooltip_content: 'Plan meals for your care plan', detailed_explanation: 'Set up meal planning and grocery management', time_estimate_minutes: 15, is_optional: false, action: () => {} },
-      { id: "7", step_number: 7, title: "Get Started with Care", description: "Choose a Trial Day ($320 TTD) or Hire Immediately (from $40/hr)", completed: false, accessible: true, category: 'scheduling', icon_name: 'Calendar', tooltip_content: 'Schedule your care assessment visit', detailed_explanation: 'Book a visit from our care coordinators', time_estimate_minutes: 10, is_optional: false, action: () => {} },
+      { id: "7", step_number: 7, title: "Get Started with Care", description: "Begin your care journey with a scheduled visit from our care coordinators", completed: false, accessible: true, category: 'scheduling', icon_name: 'Calendar', tooltip_content: 'Schedule your care assessment visit', detailed_explanation: 'Book a visit from our care coordinators', time_estimate_minutes: 10, is_optional: false, action: () => {} },
       { id: "8", step_number: 8, title: "Confirm Your Visit", description: "Your visit has been scheduled and confirmed", completed: false, accessible: false, category: 'scheduling', icon_name: 'CheckCircle', tooltip_content: 'Visit confirmation completed', detailed_explanation: 'Your care coordinator visit is confirmed', time_estimate_minutes: 0, is_optional: false, action: () => {} },
       { id: "9", step_number: 9, title: "Caregiver Assigned", description: "A caregiver has been matched and assigned to your family", completed: false, accessible: false, category: 'scheduling', icon_name: 'UserCheck', tooltip_content: 'View your assigned caregiver', detailed_explanation: 'Your caregiver has been assigned. View your care team.', time_estimate_minutes: 0, is_optional: false, action: () => {} },
       { id: "10", step_number: 10, title: "Initial Family Meeting", description: "Meet and greet with your assigned caregiver at your home", completed: false, accessible: false, category: 'scheduling', icon_name: 'Home', tooltip_content: 'Family meeting scheduled', detailed_explanation: 'Introduction visit at your home', time_estimate_minutes: 60, is_optional: false, action: () => {} },
       { id: "11", step_number: 11, title: "Care Begins", description: "Your caregiver starts providing care", completed: false, accessible: false, category: 'scheduling', icon_name: 'Play', tooltip_content: 'Care has started', detailed_explanation: 'View your care plan for schedules and details', time_estimate_minutes: 0, is_optional: false, action: () => {} },
       { id: "12", step_number: 12, title: "Schedule Trial Day (Optional)", description: "Choose a trial date with your matched caregiver", completed: false, accessible: false, category: 'trial', icon_name: 'Calendar', tooltip_content: 'Schedule optional trial with caregiver', detailed_explanation: 'Optional step before choosing your care model', time_estimate_minutes: 15, is_optional: true, action: () => {} },
-      { id: "13", step_number: 13, title: "Pay for Trial Day (Optional)", description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience", completed: false, accessible: false, category: 'trial', icon_name: 'CreditCard', tooltip_content: 'Complete trial payment', detailed_explanation: 'Pay for your optional trial day', time_estimate_minutes: 5, is_optional: true, action: () => {} },
+      { id: "13", step_number: 13, title: "Pay for Trial Day (Optional)", description: "Complete payment for an optional 8-hour caregiver trial experience", completed: false, accessible: false, category: 'trial', icon_name: 'CreditCard', tooltip_content: 'Complete trial payment', detailed_explanation: 'Pay for your optional trial day', time_estimate_minutes: 5, is_optional: true, action: () => {} },
       { id: "14", step_number: 14, title: "Begin Your Trial (Optional)", description: "Your caregiver begins the scheduled trial session", completed: false, accessible: false, category: 'trial', icon_name: 'Play', tooltip_content: 'Start your trial experience', detailed_explanation: 'Begin your trial with the matched caregiver', time_estimate_minutes: 480, is_optional: true, action: () => {} },
-      { id: "15", step_number: 15, title: "Rate & Choose Your Path", description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr)", completed: false, accessible: false, category: 'conversion', icon_name: 'Star', tooltip_content: 'Choose your care model', detailed_explanation: 'Select your preferred care arrangement', time_estimate_minutes: 10, is_optional: false, action: () => {} }
+      { id: "15", step_number: 15, title: "Rate & Choose Your Path", description: "Choose your care model — view subscription plans or hire directly", completed: false, accessible: false, category: 'conversion', icon_name: 'Star', tooltip_content: 'Choose your care model', detailed_explanation: 'Select your preferred care arrangement', time_estimate_minutes: 10, is_optional: false, action: () => {} }
     ];
   };
 
@@ -664,8 +664,8 @@ export const useEnhancedJourneyProgress = () => {
         id: "7",
         step_number: 7,
         title: "Get Started with Care",
-        description: "Choose a Trial Day ($320 TTD) or Hire Immediately (from $40/hr)",
-        completed: isVisitScheduled,
+        description: isVisitConfirmed ? "Your care team is set up and active" : "Begin your care journey with a scheduled visit from our care coordinators",
+        completed: isVisitScheduled || isVisitConfirmed,
         accessible: true,
         category: 'scheduling',
         icon_name: 'Calendar',
@@ -764,7 +764,7 @@ export const useEnhancedJourneyProgress = () => {
         id: "13",
         step_number: 13,
         title: "Pay for Trial Day (Optional)",
-        description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience",
+        description: "Complete payment for an optional 8-hour caregiver trial experience",
         completed: hasTrialPayment,
         accessible: isVisitConfirmed,
         category: 'trial',
@@ -798,7 +798,7 @@ export const useEnhancedJourneyProgress = () => {
         id: "15",
         step_number: 15,
         title: "Rate & Choose Your Path",
-        description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr)",
+        description: "Choose your care model — view subscription plans or hire directly",
         completed: !!visitNotes?.care_model,
         accessible: isVisitConfirmed || hasTrialPayment,
         category: 'conversion',
