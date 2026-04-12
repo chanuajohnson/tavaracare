@@ -665,6 +665,7 @@ function ChecklistTabContent({
   handleAddNote,
   handleEditNote,
   handleDeleteNote,
+  handleCompleteNote,
   openSections,
   toggleSection,
   handleReset,
