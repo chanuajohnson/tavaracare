@@ -150,6 +150,7 @@ function ServiceCommencementApproval({
   );
 }
 
+const ICON_MAP: Record<string, React.ReactNode> = {
   ClipboardCheck: <ClipboardCheck className="h-5 w-5" />,
   Heart: <Heart className="h-5 w-5" />,
   Monitor: <Monitor className="h-5 w-5" />,
