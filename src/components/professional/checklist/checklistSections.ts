@@ -55,6 +55,41 @@ export const CHECKLIST_SECTIONS: ChecklistSection[] = [
     ]
   },
   {
+    title: '🩺 First Aid & Emergency Support (Recommended)',
+    items: [
+      '— Basic First Aid —',
+      'Adhesive bandages (plasters – assorted sizes)',
+      'Sterile gauze pads',
+      'Medical tape',
+      'Antiseptic solution (Dettol or similar)',
+      'Rubbing alcohol',
+      'Hydrogen peroxide',
+      'Antibiotic ointment (e.g. Polysporin)',
+      '— Wound & Skin Care —',
+      'Disposable medical gloves',
+      'Cotton balls / cotton pads',
+      'Saline solution (for gentle cleaning)',
+      'Barrier cream / zinc cream (for skin protection)',
+      '— Pain & General Relief (as approved by family) —',
+      'Panadol / Paracetamol',
+      'Advil / Ibuprofen',
+      'Aspirin (if already prescribed/used)',
+      'Milk of Magnesia (digestive support)',
+      '— Monitoring & Basic Tools —',
+      'Digital thermometer',
+      'Blood pressure machine (if available)',
+      'Pulse oximeter (optional but helpful)',
+      '— Emergency & Support Items —',
+      'Ice packs / cold compress',
+      'Small flashlight',
+      'Emergency contact list (printed and visible)',
+      '— Optional (Helpful Additions) —',
+      'Pill organizer',
+      'Notepad for quick observations',
+      'Extra disposable masks'
+    ]
+  },
+  {
     title: '📞 Communication',
     items: [
       'Update WhatsApp care group',
