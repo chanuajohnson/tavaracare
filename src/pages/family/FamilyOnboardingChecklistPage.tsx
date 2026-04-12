@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -277,6 +277,40 @@ export default function FamilyOnboardingChecklistPage() {
   const totalChecked = ONBOARDING_SECTION_DEFS.reduce((sum, section) => {
     return sum + section.items.filter((_, i) => !!checkedItems[`${section.id}_${i}`]).length;
   }, 0);
+
+  const saveNotesToSupabase = useCallback(async (updatedNotes: OnboardingNote[]) => {
+    if (!user?.id) return;
+    try {
+      await supabase
+        .from("onboarding_checklists")
+        .update({ notes: updatedNotes as any })
+        .eq("family_id", user.id);
+    } catch (err) {
+      console.error("Failed to save notes:", err);
+    }
+  }, [user?.id]);
+
+  const handleAcknowledgeNote = useCallback((index: number) => {
+    const updatedNotes = [...notes];
+    updatedNotes[index] = {
+      ...updatedNotes[index],
+      acknowledged_at: new Date().toISOString(),
+      acknowledged_by: user?.user_metadata?.full_name || user?.email || "Family",
+    };
+    setNotes(updatedNotes);
+    saveNotesToSupabase(updatedNotes);
+  }, [notes, user, saveNotesToSupabase]);
+
+  const handleRespondToNote = useCallback((index: number, responseText: string) => {
+    const updatedNotes = [...notes];
+    updatedNotes[index] = {
+      ...updatedNotes[index],
+      response_text: responseText,
+      response_at: new Date().toISOString(),
+    };
+    setNotes(updatedNotes);
+    saveNotesToSupabase(updatedNotes);
+  }, [notes, saveNotesToSupabase]);
 
   if (loading) {
     return (
