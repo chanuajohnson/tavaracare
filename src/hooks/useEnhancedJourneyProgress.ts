@@ -799,8 +799,8 @@ export const useEnhancedJourneyProgress = () => {
         step_number: 15,
         title: "Rate & Choose Your Path",
         description: "Choose your care model — view subscription plans or hire directly",
-        completed: !!visitNotes?.care_model,
-        accessible: isVisitConfirmed || hasTrialPayment,
+        completed: !!visitNotes?.care_model || !!visitNotes?.care_option || (hasCaregiverAssigned && carePlans.length > 0),
+        accessible: isVisitConfirmed || hasTrialPayment || (hasCaregiverAssigned && carePlans.length > 0),
         category: 'conversion',
         icon_name: 'Star',
         tooltip_content: 'Choose your care model',
@@ -817,15 +817,17 @@ export const useEnhancedJourneyProgress = () => {
   };
 
   const steps_calculated = calculateSteps();
-  const completedSteps = steps_calculated.filter(step => step.completed).length;
-  const totalSteps = steps_calculated.length;
+  const nonOptionalSteps = steps_calculated.filter(step => !step.is_optional);
+  const completedSteps = nonOptionalSteps.filter(step => step.completed).length;
+  const totalSteps = nonOptionalSteps.length;
   
   // Log detailed step completion info
   console.log('📊 Step Completion Analysis:', {
     totalSteps,
     completedSteps,
+    optionalStepsExcluded: steps_calculated.length - nonOptionalSteps.length,
     completedStepIds: steps_calculated.filter(step => step.completed).map(step => ({ id: step.id, title: step.title })),
-    incompleteSteps: steps_calculated.filter(step => !step.completed).map(step => ({ id: step.id, title: step.title }))
+    incompleteSteps: steps_calculated.filter(step => !step.completed).map(step => ({ id: step.id, title: step.title, optional: step.is_optional }))
   });
   
   // Use stored progress as primary source (like admin dashboard)
