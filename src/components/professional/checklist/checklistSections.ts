@@ -38,10 +38,11 @@ export const CHECKLIST_SECTIONS: ChecklistSection[] = [
   {
     title: '🏠 Home Tasks',
     items: [
-      'Prepare nutritious meals',
+      'Light cooking of pre-prepared meals (family provides meal prep and ingredients)',
       'Assist with feeding if needed',
       'Light housekeeping / tidy patient areas',
-      'Laundry support'
+      'Laundry support',
+      'Take out trash'
     ]
   },
   {
