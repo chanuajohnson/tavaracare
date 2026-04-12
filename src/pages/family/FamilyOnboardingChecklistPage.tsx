@@ -273,6 +273,21 @@ export default function FamilyOnboardingChecklistPage() {
     setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  // Deep-link: scroll to hash target and auto-open section on mount
+  useEffect(() => {
+    if (!loading && hasChecklist && window.location.hash) {
+      const hash = window.location.hash.substring(1);
+      const matchingSection = ONBOARDING_SECTION_DEFS.find(s => s.id === hash);
+      if (matchingSection) {
+        setOpenSections(prev => ({ ...prev, [hash]: true }));
+      }
+      setTimeout(() => {
+        const el = document.getElementById(hash);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+    }
+  }, [loading, hasChecklist]);
+
   const totalItems = getTotalItems();
   const totalChecked = ONBOARDING_SECTION_DEFS.reduce((sum, section) => {
     return sum + section.items.filter((_, i) => !!checkedItems[`${section.id}_${i}`]).length;
@@ -403,7 +418,7 @@ export default function FamilyOnboardingChecklistPage() {
 
             return (
               <Collapsible key={section.id} open={isOpen} onOpenChange={() => toggleSection(section.id)}>
-                <Card className={isComplete ? "border-green-300 bg-green-50/50" : ""}>
+                <Card id={section.id} className={isComplete ? "border-green-300 bg-green-50/50" : ""}>
                   <CollapsibleTrigger className="w-full text-left">
                     <CardHeader className="py-4">
                       <div className="flex items-center gap-3">
@@ -585,14 +600,16 @@ export default function FamilyOnboardingChecklistPage() {
           })}
 
           {/* Notes assigned to this family */}
-          <OnboardingNotesCard
-            notes={notes}
-            onAddNote={() => {}}
-            readOnly
-            onAcknowledgeNote={handleAcknowledgeNote}
-            onRespondToNote={handleRespondToNote}
-            onCompleteNote={handleCompleteNote}
-          />
+          <div id="notes">
+            <OnboardingNotesCard
+              notes={notes}
+              onAddNote={() => {}}
+              readOnly
+              onAcknowledgeNote={handleAcknowledgeNote}
+              onRespondToNote={handleRespondToNote}
+              onCompleteNote={handleCompleteNote}
+            />
+          </div>
         </div>
       </div>
     </div>
