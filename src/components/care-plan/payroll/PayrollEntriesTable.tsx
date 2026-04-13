@@ -310,7 +310,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                               variant="outline"
                               size="sm"
                               disabled={isRecalculating}
-                              className="h-7 gap-1 text-xs border-yellow-500 bg-yellow-50 hover:bg-yellow-100 text-yellow-800"
+                              className="h-7 gap-1 text-xs border-warning bg-warning/10 hover:bg-warning/20 text-warning-foreground"
                               onClick={() => handleRecalcNIS(week.entries[0].id)}
                             >
                               <RefreshCw className={`h-3 w-3 ${isRecalculating ? 'animate-spin' : ''}`} />
