@@ -39,6 +39,8 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [currentReceiptUrl, setCurrentReceiptUrl] = useState<string | null>(null);
   const [currentEntry, setCurrentEntry] = useState<PayrollEntry | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSelectEntry = (entryId: string) => {
     setSelectedEntries(prev => 
