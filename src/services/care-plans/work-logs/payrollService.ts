@@ -273,3 +273,58 @@ export const processWeeklyPayrollPayment = async (
 export const processPayrollPayment = async (payrollId: string, paymentDate = new Date()): Promise<boolean> => {
   return processWeeklyPayrollPayment(payrollId, paymentDate);
 };
+
+/**
+ * Delete pending payroll entries and reset their linked work logs to 'pending'.
+ * Only operates on entries with payment_status = 'pending'.
+ */
+export const deletePayrollEntries = async (ids: string[]): Promise<{ deleted: number; failed: number }> => {
+  let deleted = 0;
+  let failed = 0;
+
+  for (const id of ids) {
+    try {
+      // Fetch the entry to get work_log_id and verify it's pending
+      const { data: entry, error: fetchError } = await supabase
+        .from('payroll_entries')
+        .select('id, work_log_id, payment_status')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (entry.payment_status !== 'pending') {
+        console.warn(`Skipping non-pending payroll entry ${id} (status: ${entry.payment_status})`);
+        failed++;
+        continue;
+      }
+
+      // Delete the payroll entry
+      const { error: deleteError } = await supabase
+        .from('payroll_entries')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
+
+      // Reset the linked work log back to pending
+      if (entry.work_log_id) {
+        const { error: resetError } = await supabase
+          .from('work_logs')
+          .update({ status: 'pending' })
+          .eq('id', entry.work_log_id);
+
+        if (resetError) {
+          console.error(`Payroll entry ${id} deleted but failed to reset work log ${entry.work_log_id}:`, resetError);
+        }
+      }
+
+      deleted++;
+    } catch (error) {
+      console.error(`Error deleting payroll entry ${id}:`, error);
+      failed++;
+    }
+  }
+
+  return { deleted, failed };
+};

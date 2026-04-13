@@ -9,6 +9,7 @@ import {
   WorkLog,
   PayrollEntry 
 } from "@/services/care-plans/workLogService";
+import { deletePayrollEntries } from "@/services/care-plans/work-logs/payrollService";
 import { fetchCareTeamMembers } from "@/services/care-plans/careTeamService";
 import { CareTeamMemberWithProfile } from "@/types/careTypes";
 
@@ -78,6 +79,18 @@ export const usePayrollData = (carePlanId: string) => {
     return false;
   };
 
+  const handleDeletePayrollEntries = async (ids: string[]) => {
+    const result = await deletePayrollEntries(ids);
+    if (result.deleted > 0) {
+      await loadData();
+      toast.success(`${result.deleted} payroll ${result.deleted === 1 ? 'entry' : 'entries'} deleted and work logs reset to pending`);
+    }
+    if (result.failed > 0) {
+      toast.error(`${result.failed} ${result.failed === 1 ? 'entry' : 'entries'} could not be deleted`);
+    }
+    return result;
+  };
+
   return {
     workLogs,
     payrollEntries,
@@ -85,6 +98,7 @@ export const usePayrollData = (carePlanId: string) => {
     loading,
     handleApproveWorkLog,
     handleRejectWorkLog,
-    handleProcessPayment
+    handleProcessPayment,
+    handleDeletePayrollEntries
   };
 };
