@@ -517,7 +517,22 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
               </DialogContent>
             </Dialog>
 
-            {/* Emergency WhatsApp Modal - Only render when we have valid shift data */}
+            {/* Bulk Work Log Dialog */}
+            <Dialog open={bulkLogDialogOpen} onOpenChange={setBulkLogDialogOpen}>
+              <DialogContent className="sm:max-w-lg">
+                <BulkWorkLogForm
+                  carePlanId={carePlanId}
+                  careShifts={careShifts}
+                  careTeamMembers={careTeamMembers}
+                  onSuccess={() => {
+                    setBulkLogDialogOpen(false);
+                    onShiftUpdated();
+                  }}
+                  onCancel={() => setBulkLogDialogOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
+
             {emergencyShiftData.shift && (
               <EmergencyShiftWhatsAppModal
                 open={emergencyWhatsAppModalOpen}
