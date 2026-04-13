@@ -118,7 +118,92 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
 /**
  * Fetches all care team members across all care plans a professional is assigned to
  */
+/**
+ * Fetches care team members for a specific care plan using the SECURITY DEFINER RPC.
+ * This allows professionals to see their teammates even when RLS blocks the direct join.
+ */
+export const fetchCareTeamMembersViaRPC = async (planId: string): Promise<CareTeamMemberWithProfile[]> => {
+  try {
+    console.log(`Fetching care team members via RPC for plan ID: ${planId}`);
+    
+    const { data, error } = await supabase
+      .rpc('get_professional_care_plan_team_members', { plan_id: planId });
+
+    if (error) {
+      console.error("RPC error fetching care team members:", error);
+      throw error;
+    }
+
+    console.log(`RPC returned ${data?.length || 0} care team members for plan ID ${planId}`);
+
+    return (data || []).map((member: any) => ({
+      id: member.id,
+      carePlanId: planId,
+      familyId: '',
+      caregiverId: member.caregiver_id,
+      role: member.role || 'caregiver',
+      status: member.status || 'active',
+      createdAt: '',
+      updatedAt: '',
+      professionalDetails: {
+        full_name: member.full_name || 'Unknown Professional',
+        professional_type: member.professional_type || 'Care Professional',
+        avatar_url: member.avatar_url || null,
+        phone_number: member.phone_number || null,
+      }
+    })) as CareTeamMemberWithProfile[];
+  } catch (error) {
+    console.error("Error fetching care team members via RPC:", error);
+    // Fall back to normal fetch
+    return fetchCareTeamMembers(planId);
+  }
+};
+
 export const fetchAllCareTeamMembersForProfessional = async (professionalId: string): Promise<CareTeamMemberWithProfile[]> => {
+  try {
+    console.log(`Fetching all care team members for professional ID: ${professionalId}`);
+    
+    // First, get all care plans this professional is a member of
+    const { data: userAssignments, error: assignmentError } = await supabase
+      .from('care_team_members')
+      .select('care_plan_id')
+      .eq('caregiver_id', professionalId)
+      .not('care_plan_id', 'is', null);
+    
+    if (assignmentError) {
+      console.error("Error fetching professional's care plan assignments:", assignmentError);
+      throw assignmentError;
+    }
+    
+    console.log(`Professional is assigned to ${userAssignments?.length || 0} care plans:`, userAssignments);
+    
+    if (!userAssignments || userAssignments.length === 0) {
+      return [];
+    }
+    
+    // Extract care plan IDs
+    const carePlanIds = userAssignments
+      .map(assignment => assignment.care_plan_id)
+      .filter(id => id !== null && id !== undefined);
+    
+    if (carePlanIds.length === 0) {
+      return [];
+    }
+    
+    // Use RPC for each plan to get full teammate visibility
+    const allMembers: CareTeamMemberWithProfile[] = [];
+    for (const planId of carePlanIds) {
+      const members = await fetchCareTeamMembersViaRPC(planId);
+      allMembers.push(...members);
+    }
+    
+    return allMembers;
+  } catch (error) {
+    console.error("Error fetching all care team members:", error);
+    toast.error("Failed to load care team members");
+    return [];
+  }
+};
   try {
     console.log(`Fetching all care team members for professional ID: ${professionalId}`);
     
