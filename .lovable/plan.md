@@ -1,43 +1,35 @@
 
 
-## Plan: Fix Professional Schedule - Show Caregiver Names and Add Action Buttons
+## Plan: Add Quick "Mark as Passed" Button and Fix Screening Progress Display
+
+### Problem Summary
+
+1. **"Unassigned" still showing** — The RLS migration was just applied. The data is correct (both shifts have valid caregiver IDs, both are active team members). This should resolve on page refresh. No code change needed.
+
+2. **Screening shows "Not Started" despite all voice sessions being "Reviewed"** — The voice screening sessions (`screening_sessions` table) and the formal screening record (`professional_screening` table) are separate systems. Completing all voice sessions does not auto-create a `professional_screening` record with `status = 'passed'`. The admin must manually mark the screening as passed, but currently the only way to do this is through the "Schedule" button which opens a full interview form — not intuitive.
 
 ### Changes
 
-#### 1. Database Migration
-Add RLS policy so professionals can view profiles of teammates on the same care plan:
-
-```sql
-CREATE POLICY "professionals_can_view_care_plan_teammates"
-  ON public.profiles FOR SELECT TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM care_team_members ctm1
-      JOIN care_team_members ctm2 ON ctm2.care_plan_id = ctm1.care_plan_id
-      WHERE ctm1.caregiver_id = auth.uid()
-        AND ctm1.status = 'active'
-        AND ctm2.caregiver_id = profiles.id
-        AND ctm2.status = 'active'
-    )
-  );
-```
-
-This resolves the "Unassigned" fallback by letting professionals read teammate profiles.
-
-#### 2. Update `ProfessionalCalendar.tsx` — Add action buttons to shift detail dialog
-
-Add Log Hours, Edit, and Delete buttons to the dialog at lines 412-463, matching `ShiftCalendar.tsx` pattern:
-
-- **Log Hours** button on all shifts assigned to the current user — opens the `WorkLogForm` in a dialog
-- **Edit** button on the user's own shifts only
-- **Delete** button on the user's own shifts only
-- Import `WorkLogForm` and add state for work log dialog (selected shift, open/close)
-- Wire the Log Hours button to open the work log form pre-filled with the shift's date, caregiver, and care plan info
-
-### Files to modify
+#### 1. Add "Mark as Passed" quick action to ProfessionalScreeningPanel
 
 | File | Change |
 |------|--------|
-| **Migration** | Add `professionals_can_view_care_plan_teammates` SELECT policy on `profiles` |
-| `src/components/professional/ProfessionalCalendar.tsx` | Add action buttons (Log Hours, Edit, Delete) to shift detail dialog; import WorkLogForm; add work log dialog state |
+| `src/components/admin/ProfessionalScreeningPanel.tsx` | Add a green "Mark as Passed" button next to each professional in the Pending Screenings list. Clicking it will: (a) insert/update a `professional_screening` record with `status: 'passed'`, `screening_type: 'head_nurse_interview'`; (b) update the profile with `screening_cleared: true` and `onboarding_stage: 'cleared'`; (c) show a success toast and refresh the list. This reuses the existing `handleSaveScreening` logic but skips the dialog. |
+
+#### 2. Auto-sync: When all screening sessions are "reviewed", show accurate status
+
+| File | Change |
+|------|--------|
+| `src/components/admin/ProfessionalScreeningPanel.tsx` | In `fetchProfessionals`, cross-check `screening_sessions` table. If a professional has no `professional_screening` record but all their screening sessions are `reviewed` or `completed`, display their status as "Sessions Reviewed" (amber badge) instead of "Not Started", and show a prominent "Approve & Mark Passed" button. |
+
+### How it will work for the admin
+
+In the Pending Screenings section, each professional will show:
+- Current status badge (e.g., "Sessions Reviewed" or "Not Started")
+- A green **"Mark as Passed"** button — one click to approve
+- The existing "Schedule" button for the full interview form (if needed)
+
+### No changes needed for "Unassigned"
+
+The database confirms both shifts have valid caregiver assignments and both professionals are active team members. The RLS policy `professionals_can_view_care_plan_teammates` was successfully applied. Refreshing the professional calendar page should now show the correct caregiver names.
 
