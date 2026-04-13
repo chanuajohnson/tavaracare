@@ -250,7 +250,16 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                   className="flex items-center gap-2"
                 >
                   <MessageSquare className="h-4 w-4" />
-                  Share via WhatsApp
+                  <span className="hidden sm:inline">Share via WhatsApp</span>
+                </Button>
+
+                <Button
+                  onClick={() => setBulkLogDialogOpen(true)}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <ClipboardList className="h-4 w-4" />
+                  <span className="hidden sm:inline">Bulk Log Hours</span>
                 </Button>
                 
                 <Dialog open={shiftDialogOpen} onOpenChange={setShiftDialogOpen}>
