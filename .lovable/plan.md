@@ -1,75 +1,33 @@
 
 
-## Plan: Bulk Work Log Entry for Professionals and Admins
+## Plan: Fix Off-by-One Date Range in Bulk Work Log Entry
 
-### Problem
-Currently, logging work hours requires clicking on each individual shift in the calendar, one day at a time. For a full month like Angela's March schedule, this means ~20+ individual form submissions — tedious and error-prone.
+### Root Cause
 
-### Solution
-Add a **"Bulk Log Hours"** button to the Schedule tab that opens a dialog where the user selects:
-1. A **date range** (start date → end date)
-2. A **caregiver** (from the care team)
-3. A **rate type** and **base rate** (applied uniformly)
-4. Optional **notes**
+When the user picks a start date (e.g., Mar 1) and end date (e.g., Mar 5), the `startDate` and `endDate` from the Calendar component are set to **midnight (00:00:00)** of those days. A shift on March 5 might have a `startTime` like `2026-03-05T08:00:00` (8 AM). The `isWithinInterval` check from date-fns treats the end boundary as `2026-03-05T00:00:00`, so the 8 AM shift on March 5 falls **after** the end boundary and is excluded.
 
-The system then finds all shifts for that caregiver within the date range, filters out shifts that already have work logs, and creates work logs for all remaining shifts in one batch.
+This is why selecting 5 days always produces only 4 matches — the last day is effectively cut off.
 
-### UI Flow
+### Fix
 
-```text
-[Schedule Tab header]
-  [+ New Shift]  [📋 Bulk Log Hours]  [Share Schedule]
+In `BulkWorkLogForm.tsx`, adjust the `endDate` used in the interval check to be the **end of that day** (23:59:59.999) instead of midnight. This ensures all shifts on the selected end date are included.
 
-Click "Bulk Log Hours" →
-┌─────────────────────────────────────────┐
-│ Bulk Log Work Hours                     │
-│                                         │
-│ Caregiver:  [Angela ▾]                  │
-│ From:       [Mar 1, 2026]               │
-│ To:         [Mar 31, 2026]              │
-│                                         │
-│ Rate Type:  [Regular ▾]                 │
-│ Base Rate:  [$25.00]                    │
-│ Notes:      [________________]          │
-│                                         │
-│ Preview: 18 shifts found, 3 already     │
-│ logged. Will create 15 work logs.       │
-│                                         │
-│           [Cancel]  [Submit 15 Logs]    │
-└─────────────────────────────────────────┘
-```
+### Technical Change
 
-### Technical Details
+**File: `src/components/care-plan/work-logs/BulkWorkLogForm.tsx`**
 
-**New file: `src/components/care-plan/work-logs/BulkWorkLogForm.tsx`**
-- Date range picker (two date inputs using Shadcn Calendar/Popover)
-- Caregiver selector dropdown (from `careTeamMembers`)
-- Rate type selector (reuses existing `RateTypeSelector`)
-- Preview section: queries shifts in range for selected caregiver, checks which already have work logs, shows count
-- Submit button calls `createWorkLogFromShift` for each unlogged shift
-- Progress indicator during bulk submission
-- Summary toast on completion ("Created 15 of 15 work logs")
+1. Add `import { endOfDay } from "date-fns"` to the existing date-fns import
+2. Change line 54 from:
+   ```ts
+   return isWithinInterval(shiftDate, { start: startDate, end: endDate });
+   ```
+   to:
+   ```ts
+   return isWithinInterval(shiftDate, { start: startDate, end: endOfDay(endDate) });
+   ```
 
-**Modified file: `src/components/care-plan/ScheduleTab.tsx`**
-- Add "Bulk Log Hours" button next to existing buttons in the header
-- Add state for bulk log dialog open/close
-- Add Dialog wrapping `BulkWorkLogForm`
-- Pass `carePlanId`, `careShifts`, `careTeamMembers` as props
+This is a one-line fix. No other files need to change.
 
-**New service function in `src/services/care-plans/work-logs/shiftService.ts`**
-- `bulkCreateWorkLogsForShifts(shifts, notes, options)` — iterates over an array of shifts, skips duplicates, calls `createWorkLogFromShift` for each, returns summary `{ created: number, skipped: number, failed: number }`
-
-### Files to Create/Modify
-
-| File | Change |
-|------|--------|
-| `src/components/care-plan/work-logs/BulkWorkLogForm.tsx` | **New** — bulk entry form component |
-| `src/components/care-plan/ScheduleTab.tsx` | Add "Bulk Log Hours" button + dialog |
-| `src/services/care-plans/work-logs/shiftService.ts` | Add `bulkCreateWorkLogsForShifts()` |
-
-### Safety
-- Each shift is individually checked for existing work logs before creation (reuses existing `checkDuplicateWorkLog`)
-- Preview step shows exactly what will be created before submission
-- Already-logged shifts are clearly indicated and skipped
-- Uses existing `createWorkLogFromShift` per shift — same validation, same payroll entry creation
+### Expected Result
+Selecting March 1–5 will now correctly match all 5 days of shifts instead of only 4.
 
