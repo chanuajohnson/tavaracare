@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Shield, Users, CheckCircle2, Circle, Calendar, Star, MessageCircle } from 'lucide-react';
+import { Shield, Users, CheckCircle2, Calendar, Star, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProfessionalForScreening {
@@ -21,6 +21,7 @@ interface ProfessionalForScreening {
   references_count: number;
   screening_status: string;
   screening_id?: string;
+  sessions_status?: 'all_reviewed' | 'some_pending' | 'none';
 }
 
 export const ProfessionalScreeningPanel = () => {
@@ -28,6 +29,7 @@ export const ProfessionalScreeningPanel = () => {
   const [loading, setLoading] = useState(true);
   const [selectedProfessional, setSelectedProfessional] = useState<ProfessionalForScreening | null>(null);
   const [showInterviewDialog, setShowInterviewDialog] = useState(false);
+  const [markingPassed, setMarkingPassed] = useState<string | null>(null);
   const [interviewForm, setInterviewForm] = useState({
     status: 'pending' as string,
     notes: '',
@@ -44,40 +46,55 @@ export const ProfessionalScreeningPanel = () => {
     try {
       setLoading(true);
       
-      // Use admin RPC to bypass RLS and get ALL professionals
       const { data: allProfiles, error: profileError } = await supabase
         .rpc('admin_get_all_profiles_secure');
 
       if (profileError) throw profileError;
 
-      // Filter to professionals client-side
       const profiles = (allProfiles || [])
         .filter((p: any) => p.role === 'professional');
 
-      // Get references counts and screening statuses
       const enrichedProfessionals: ProfessionalForScreening[] = await Promise.all(
         (profiles || []).map(async (profile) => {
-          const { count: refsCount } = await supabase
-            .from('professional_references')
-            .select('*', { count: 'exact', head: true })
-            .eq('professional_id', profile.id);
+          const [refsResult, screeningResult, sessionsResult] = await Promise.all([
+            supabase
+              .from('professional_references')
+              .select('*', { count: 'exact', head: true })
+              .eq('professional_id', profile.id),
+            supabase
+              .from('professional_screening')
+              .select('id, status')
+              .eq('professional_id', profile.id)
+              .eq('screening_type', 'head_nurse_interview')
+              .order('created_at', { ascending: false })
+              .limit(1),
+            supabase
+              .from('screening_sessions')
+              .select('id, status')
+              .eq('professional_id', profile.id)
+          ]);
 
-          const { data: screening } = await supabase
-            .from('professional_screening')
-            .select('id, status')
-            .eq('professional_id', profile.id)
-            .eq('screening_type', 'head_nurse_interview')
-            .order('created_at', { ascending: false })
-            .limit(1);
+          // Determine sessions status
+          const sessions = sessionsResult.data || [];
+          let sessionsStatus: 'all_reviewed' | 'some_pending' | 'none' = 'none';
+          if (sessions.length > 0) {
+            const allReviewed = sessions.every(
+              (s: any) => s.status === 'reviewed' || s.status === 'completed'
+            );
+            sessionsStatus = allReviewed ? 'all_reviewed' : 'some_pending';
+          }
+
+          const formalStatus = screeningResult.data?.[0]?.status || 'not_started';
 
           return {
             id: profile.id,
             full_name: profile.full_name || 'Unknown',
             professional_type: profile.professional_type || 'Not specified',
             phone_number: profile.phone_number || '',
-            references_count: refsCount || 0,
-            screening_status: screening?.[0]?.status || 'not_started',
-            screening_id: screening?.[0]?.id
+            references_count: refsResult.count || 0,
+            screening_status: formalStatus,
+            screening_id: screeningResult.data?.[0]?.id,
+            sessions_status: sessionsStatus
           };
         })
       );
@@ -95,12 +112,63 @@ export const ProfessionalScreeningPanel = () => {
     setShowInterviewDialog(true);
   };
 
+  const handleMarkAsPassed = async (professional: ProfessionalForScreening) => {
+    setMarkingPassed(professional.id);
+    try {
+      if (professional.screening_id) {
+        const { error } = await supabase
+          .from('professional_screening')
+          .update({
+            status: 'passed',
+            notes: 'Approved via quick action — all screening sessions reviewed.',
+            completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', professional.screening_id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('professional_screening')
+          .insert({
+            professional_id: professional.id,
+            screening_type: 'head_nurse_interview',
+            status: 'passed',
+            notes: 'Approved via quick action — all screening sessions reviewed.',
+            completed_at: new Date().toISOString()
+          });
+        if (error) throw error;
+      }
+
+      // Update profile
+      await supabase
+        .from('profiles')
+        .update({
+          screening_cleared: true,
+          onboarding_stage: 'cleared',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', professional.id);
+
+      // Recalculate journey progress
+      await supabase.rpc('calculate_and_update_journey_progress', {
+        target_user_id: professional.id
+      });
+
+      toast.success(`${professional.full_name} marked as passed ✓`);
+      fetchProfessionals();
+    } catch (error: any) {
+      console.error('Error marking as passed:', error);
+      toast.error(error.message || 'Failed to mark as passed');
+    } finally {
+      setMarkingPassed(null);
+    }
+  };
+
   const handleSaveScreening = async () => {
     if (!selectedProfessional) return;
 
     try {
       if (selectedProfessional.screening_id) {
-        // Update existing
         const { error } = await supabase
           .from('professional_screening')
           .update({
@@ -116,7 +184,6 @@ export const ProfessionalScreeningPanel = () => {
 
         if (error) throw error;
       } else {
-        // Create new
         const { error } = await supabase
           .from('professional_screening')
           .insert({
@@ -134,7 +201,6 @@ export const ProfessionalScreeningPanel = () => {
         if (error) throw error;
       }
 
-      // If passed, update screening_cleared on profile
       if (interviewForm.status === 'passed') {
         await supabase
           .from('profiles')
@@ -156,14 +222,23 @@ export const ProfessionalScreeningPanel = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (prof: ProfessionalForScreening) => {
+    const status = prof.screening_status;
     switch (status) {
       case 'passed': return <Badge className="bg-green-100 text-green-700">✓ Passed</Badge>;
       case 'failed': return <Badge className="bg-red-100 text-red-700">✗ Failed</Badge>;
       case 'scheduled': return <Badge className="bg-blue-100 text-blue-700">📅 Scheduled</Badge>;
       case 'needs_followup': return <Badge className="bg-amber-100 text-amber-700">⚠ Follow-up</Badge>;
       case 'pending': return <Badge variant="secondary">Pending</Badge>;
-      default: return <Badge variant="outline">Not Started</Badge>;
+      default:
+        // If formal screening is not_started but sessions are all reviewed
+        if (prof.sessions_status === 'all_reviewed') {
+          return <Badge className="bg-amber-100 text-amber-700">📋 Sessions Reviewed</Badge>;
+        }
+        if (prof.sessions_status === 'some_pending') {
+          return <Badge className="bg-blue-100 text-blue-700">🔄 Sessions In Progress</Badge>;
+        }
+        return <Badge variant="outline">Not Started</Badge>;
     }
   };
 
@@ -208,8 +283,17 @@ export const ProfessionalScreeningPanel = () => {
                     <p className="font-medium">{prof.full_name}</p>
                     <p className="text-sm text-muted-foreground">{prof.professional_type} • {prof.references_count} references</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(prof.screening_status)}
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {getStatusBadge(prof)}
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => handleMarkAsPassed(prof)}
+                      disabled={markingPassed === prof.id}
+                    >
+                      <CheckCircle2 className="h-4 w-4 mr-1" />
+                      {markingPassed === prof.id ? 'Saving...' : 'Mark as Passed'}
+                    </Button>
                     {prof.phone_number && (
                       <Button variant="outline" size="sm" asChild>
                         <a href={getWhatsAppLink(prof)} target="_blank" rel="noopener noreferrer">
@@ -218,7 +302,7 @@ export const ProfessionalScreeningPanel = () => {
                         </a>
                       </Button>
                     )}
-                    <Button size="sm" onClick={() => handleScheduleInterview(prof)}>
+                    <Button size="sm" variant="outline" onClick={() => handleScheduleInterview(prof)}>
                       <Calendar className="h-4 w-4 mr-1" />
                       {prof.screening_status === 'not_started' ? 'Schedule' : 'Update'}
                     </Button>
@@ -252,7 +336,19 @@ export const ProfessionalScreeningPanel = () => {
                   <Badge variant="outline" className="text-xs">
                     {prof.references_count} refs
                   </Badge>
-                  {getStatusBadge(prof.screening_status)}
+                  {getStatusBadge(prof)}
+                  {prof.screening_status !== 'passed' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-green-700 border-green-300 hover:bg-green-50"
+                      onClick={() => handleMarkAsPassed(prof)}
+                      disabled={markingPassed === prof.id}
+                    >
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Pass
+                    </Button>
+                  )}
                   <Button variant="ghost" size="sm" onClick={() => handleScheduleInterview(prof)}>
                     Details
                   </Button>
