@@ -10,7 +10,7 @@ import {
   PayrollEntry 
 } from "@/services/care-plans/workLogService";
 import { deletePayrollEntries, undoPayrollPayment, recalculateWeeklyNIS } from "@/services/care-plans/work-logs/payrollService";
-import { deleteWorkLog } from "@/services/care-plans/work-logs/approvalService";
+import { deleteWorkLog, bulkApproveWorkLogs, bulkRejectWorkLogs, bulkDeleteWorkLogs } from "@/services/care-plans/work-logs/approvalService";
 import { fetchCareTeamMembers } from "@/services/care-plans/careTeamService";
 import { CareTeamMemberWithProfile } from "@/types/careTypes";
 
@@ -118,6 +118,42 @@ export const usePayrollData = (carePlanId: string) => {
     return success;
   };
 
+  const handleBulkApproveWorkLogs = async (ids: string[]) => {
+    const result = await bulkApproveWorkLogs(ids);
+    await loadData();
+    if (result.approved > 0) {
+      toast.success(`Approved ${result.approved} of ${ids.length} work logs`);
+    }
+    if (result.failed > 0) {
+      toast.error(`${result.failed} work log(s) failed to approve`);
+    }
+    return result;
+  };
+
+  const handleBulkRejectWorkLogs = async (ids: string[], reason: string) => {
+    const result = await bulkRejectWorkLogs(ids, reason);
+    await loadData();
+    if (result.rejected > 0) {
+      toast.success(`Rejected ${result.rejected} of ${ids.length} work logs`);
+    }
+    if (result.failed > 0) {
+      toast.error(`${result.failed} work log(s) failed to reject`);
+    }
+    return result;
+  };
+
+  const handleBulkDeleteWorkLogs = async (ids: string[]) => {
+    const result = await bulkDeleteWorkLogs(ids);
+    await loadData();
+    if (result.deleted > 0) {
+      toast.success(`Deleted ${result.deleted} of ${ids.length} work logs`);
+    }
+    if (result.failed > 0) {
+      toast.error(`${result.failed} work log(s) failed to delete`);
+    }
+    return result;
+  };
+
   return {
     workLogs,
     payrollEntries,
@@ -129,6 +165,9 @@ export const usePayrollData = (carePlanId: string) => {
     handleDeletePayrollEntries,
     handleDeleteWorkLog,
     handleUndoPayment,
-    handleRecalculateNIS
+    handleRecalculateNIS,
+    handleBulkApproveWorkLogs,
+    handleBulkRejectWorkLogs,
+    handleBulkDeleteWorkLogs
   };
 };

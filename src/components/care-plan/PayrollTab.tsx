@@ -36,6 +36,9 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId, isProfession
     handleDeleteWorkLog,
     handleUndoPayment,
     handleRecalculateNIS,
+    handleBulkApproveWorkLogs,
+    handleBulkRejectWorkLogs,
+    handleBulkDeleteWorkLogs,
     careTeamMembers
   } = usePayrollData(carePlanId);
 
@@ -149,6 +152,9 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId, isProfession
                   onApprove={handleApproveWorkLog}
                   onReject={openRejectDialog}
                   onDelete={handleDeleteWorkLog}
+                  onBulkApprove={handleBulkApproveWorkLogs}
+                  onBulkReject={handleBulkRejectWorkLogs}
+                  onBulkDelete={handleBulkDeleteWorkLogs}
                   isProfessionalView={isProfessionalView}
                 />
               )}
