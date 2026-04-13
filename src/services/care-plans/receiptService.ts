@@ -53,7 +53,17 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
         .single();
 
       if (fetchError) throw fetchError;
-      caregiverName = workLogWithTeamMember?.care_team_members?.profiles?.full_name || 'Unknown Caregiver';
+      
+      // Try joined name first, then RPC fallback
+      const joinedName = workLogWithTeamMember?.care_team_members?.profiles?.full_name || null;
+      const cid = workLogWithTeamMember?.care_team_members?.caregiver_id || null;
+      
+      if (joinedName) {
+        caregiverName = joinedName;
+      } else if (cid) {
+        const nameMap = await resolveCaregiverNames([{ caregiverId: cid, joinedName: null }]);
+        caregiverName = nameMap.get(cid) || 'Unknown Caregiver';
+      }
     } else {
       workLogId = entry.work_log_id;
 
