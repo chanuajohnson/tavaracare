@@ -501,6 +501,46 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               />
             )}
 
+            {/* Manage Care Plans for Family Users */}
+            {user.role === 'family' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Manage Care Plans
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {userCarePlans.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No care plans found for this family.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {userCarePlans.map(plan => (
+                        <div key={plan.id} className="flex items-center justify-between p-3 border rounded-md">
+                          <div>
+                            <p className="font-medium text-sm">{plan.title}</p>
+                            <Badge variant="outline" className="mt-1">{plan.status || 'active'}</Badge>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              onClose();
+                              navigate(`/family/care-management/${plan.id}`);
+                            }}
+                            className="gap-1"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Manage
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Admin Actions */}
             <Card className="border-red-200 bg-red-50">
               <CardHeader>
