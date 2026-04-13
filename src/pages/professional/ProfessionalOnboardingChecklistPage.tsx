@@ -26,18 +26,21 @@ import { toast } from "sonner";
 function ProfessionalReadinessApproval({
   checkedItems,
   professionalId,
+  familyId,
   onApproved,
 }: {
   checkedItems: Record<string, boolean | string>;
   professionalId: string | undefined;
+  familyId: string | null;
   onApproved: (updated: Record<string, boolean | string>) => void;
 }) {
   const isApproved = checkedItems["professional_approval_confirmed"] === true;
   const approvalDate = checkedItems["professional_approval_date"] as string | undefined;
+  const approvalBy = checkedItems["professional_approval_by"] as string | undefined;
   const [saving, setSaving] = useState(false);
 
   const handleApprove = useCallback(async () => {
-    if (!professionalId || saving) return;
+    if (!professionalId || !familyId || saving) return;
     setSaving(true);
     try {
       const now = new Date().toISOString();
@@ -49,7 +52,8 @@ function ProfessionalReadinessApproval({
       const { error } = await supabase
         .from("professional_onboarding_checklists")
         .update({ checked_items: updated as any })
-        .eq("professional_id", professionalId);
+        .eq("professional_id", professionalId)
+        .eq("family_id", familyId);
       if (error) throw error;
       onApproved(updated);
       toast.success("Your digital approval has been recorded.");
@@ -59,17 +63,22 @@ function ProfessionalReadinessApproval({
     } finally {
       setSaving(false);
     }
-  }, [professionalId, saving, checkedItems, onApproved]);
+  }, [professionalId, familyId, saving, checkedItems, onApproved]);
 
   if (isApproved && approvalDate) {
     return (
       <div className="mb-4 rounded-lg border border-green-300 bg-green-50 p-4">
         <div className="flex items-center gap-2">
           <CheckCircle2 className="h-5 w-5 text-green-600" />
-          <span className="text-sm font-semibold text-green-800">
-            Approved — Digital signature recorded on{" "}
-            {format(new Date(approvalDate), "PPP 'at' p")}
-          </span>
+          <div>
+            <span className="text-sm font-semibold text-green-800">
+              Approved — Digital signature recorded on{" "}
+              {format(new Date(approvalDate), "PPP 'at' p")}
+            </span>
+            {approvalBy === "admin" && (
+              <p className="text-xs text-green-700 mt-0.5 italic">Recorded by admin on behalf of professional</p>
+            )}
+          </div>
         </div>
       </div>
     );
