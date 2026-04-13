@@ -1,37 +1,71 @@
 
 
-## Plan: Fix Three Professional Schedule Issues
+## Plan: Enable Professional Work Hour Logging from Schedule + Fix Missing RLS
 
-### Issue 1: "Unassigned" Still Showing for Denise's Shifts
-The RLS policy `professionals_can_view_care_plan_teammates` is correctly created. Both Tricia (56922ef7) and Denise (24fe4121) are active on the same care plan (3d634783). The DB confirms Denise's name is properly stored.
+### What's Wrong
 
-**Root cause**: The Supabase PostgREST schema cache may not have refreshed after the RLS policy was added. Additionally, the current approach relies on a foreign key join (`profiles!care_shifts_caregiver_id_fkey`) which can silently return NULL when RLS blocks access.
+1. **No "Log Hours" button on inline shift cards** — The professional's Schedule tab shows shift cards inline, but the "Log Hours" button only appears inside the detail dialog (when clicking a shift date). Professionals don't realize they need to click into the dialog first.
 
-**Fix**: Add a fallback in `useCarePlanShifts.tsx` — when the joined `profiles` data is NULL but `caregiver_id` exists, make a secondary RPC call to fetch teammate names. This ensures names always resolve even if the FK join fails due to RLS timing.
+2. **No SELECT policy on `work_logs` for professionals** — Even if a professional logs hours, they can't see their own work logs in the Payroll tab because there's no RLS SELECT policy allowing it. Only admins have ALL access.
 
-Alternatively (simpler): modify the hook to fetch caregiver profiles separately using a direct query after getting shifts, which avoids the FK join RLS issue entirely.
+3. **No DELETE policy on `work_logs` for professionals** — You mentioned professionals should be able to edit and delete (but not approve) their own pending work logs. There's no DELETE policy.
 
-### Issue 2: Update Family Name from "User1 Family Family Family" to Correct Name
-**Data fix** using the Supabase insert tool (UPDATE):
-- Profile ID: `7d850934-a44f-4348-944b-ae7182dca237`
-- Update `full_name` from "User1 Family Family Family" to "Chanua Johnson" (or "Peltier Family" — need to confirm which name format)
+### Changes
 
-### Issue 3: Tricia's Shifts Don't Show Which Care Plan/Family
-Currently `ProfessionalCalendar.tsx` displays shift title, time, and caregiver name but NOT the care plan or family name. Since Tricia is on multiple care plans, she needs to know which family/plan each shift belongs to.
+#### 1. Add "Log Hours" button to inline shift cards (ProfessionalCalendar.tsx)
 
-**Fix in `ProfessionalCalendar.tsx`**: 
-- Fetch the care plan title and family name alongside shifts (the `care_shifts` table has `care_plan_id` and `family_id`)
-- Display a small label like "Peltier's Care Plan 2025" or the family name above each shift card
-- Add this info to both the inline shift list and the detail dialog
+Currently the inline shift list (lines 342-397) only shows shift info with no action buttons. Add a "Log Hours" button on each shift where `isUserShift === true`, matching the existing button in the dialog (lines 481-510). This lets professionals click directly on their shift card to log hours without opening the dialog first.
 
-### Files to Modify
+#### 2. Add SELECT and DELETE RLS policies for professionals on `work_logs` (new migration)
+
+```sql
+-- Professionals can view their own work logs
+CREATE POLICY "Professionals can view their own work logs"
+  ON public.work_logs FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM care_team_members
+      WHERE care_team_members.id = care_team_member_id
+        AND care_team_members.caregiver_id = auth.uid()
+    )
+  );
+
+-- Family can view work logs on their care plans
+CREATE POLICY "Family can view work logs for their care plans"
+  ON public.work_logs FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM care_plans
+      WHERE care_plans.id = care_plan_id
+        AND care_plans.family_id = auth.uid()
+    )
+  );
+
+-- Professionals can delete their own pending work logs
+CREATE POLICY "Professionals can delete their own pending work logs"
+  ON public.work_logs FOR DELETE TO authenticated
+  USING (
+    status = 'pending'
+    AND EXISTS (
+      SELECT 1 FROM care_team_members
+      WHERE care_team_members.id = care_team_member_id
+        AND care_team_members.caregiver_id = auth.uid()
+    )
+  );
+```
+
+#### 3. No approve button for professionals
+
+The existing `WorkLogForm` submits with `status: 'pending'`. The approve/reject actions in `PayrollTab` are only available to admin/family via the care management page. Professionals can only submit, edit, and delete — never approve. No code change needed here; this is already correct by design.
+
+### Files Modified
 
 | File | Change |
 |------|--------|
-| **Data update (Supabase)** | Update `profiles.full_name` for `7d850934` to the correct family name |
-| `src/hooks/useCarePlanShifts.tsx` | Add care plan title + family profile join to the shift query; add fallback for caregiver name resolution |
-| `src/components/professional/ProfessionalCalendar.tsx` | Display care plan title and family name on each shift card |
+| `src/components/professional/ProfessionalCalendar.tsx` | Add "Log Hours" button to inline shift cards (not just in dialog) |
+| New migration SQL | Add SELECT, DELETE policies for professionals on `work_logs`; add SELECT for family |
 
-### Question: Family Name
-The family profile currently says "User1 Family Family Family." You mentioned both "Peltier Family" and "Chanua Johnson." Should the `full_name` be set to "Chanua Johnson" (the person's real name) or "Peltier Family" (the family label)?
+### Summary for the User
+
+After this change, when a professional (like Denise or Tricia) views their Schedule tab and sees their assigned shift, they'll see a **"Log Hours"** button right on the shift card. Clicking it opens the work log form. Once submitted, the hours appear in the Payroll & Hours tab as a pending entry that only admin or family can approve or deny. Professionals can edit or delete their own pending logs but cannot approve them.
 
