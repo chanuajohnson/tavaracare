@@ -26,18 +26,21 @@ import { toast } from "sonner";
 function ProfessionalReadinessApproval({
   checkedItems,
   professionalId,
+  familyId,
   onApproved,
 }: {
   checkedItems: Record<string, boolean | string>;
   professionalId: string | undefined;
+  familyId: string | null;
   onApproved: (updated: Record<string, boolean | string>) => void;
 }) {
   const isApproved = checkedItems["professional_approval_confirmed"] === true;
   const approvalDate = checkedItems["professional_approval_date"] as string | undefined;
+  const approvalBy = checkedItems["professional_approval_by"] as string | undefined;
   const [saving, setSaving] = useState(false);
 
   const handleApprove = useCallback(async () => {
-    if (!professionalId || saving) return;
+    if (!professionalId || !familyId || saving) return;
     setSaving(true);
     try {
       const now = new Date().toISOString();
@@ -49,7 +52,8 @@ function ProfessionalReadinessApproval({
       const { error } = await supabase
         .from("professional_onboarding_checklists")
         .update({ checked_items: updated as any })
-        .eq("professional_id", professionalId);
+        .eq("professional_id", professionalId)
+        .eq("family_id", familyId);
       if (error) throw error;
       onApproved(updated);
       toast.success("Your digital approval has been recorded.");
@@ -59,17 +63,22 @@ function ProfessionalReadinessApproval({
     } finally {
       setSaving(false);
     }
-  }, [professionalId, saving, checkedItems, onApproved]);
+  }, [professionalId, familyId, saving, checkedItems, onApproved]);
 
   if (isApproved && approvalDate) {
     return (
       <div className="mb-4 rounded-lg border border-green-300 bg-green-50 p-4">
         <div className="flex items-center gap-2">
           <CheckCircle2 className="h-5 w-5 text-green-600" />
-          <span className="text-sm font-semibold text-green-800">
-            Approved — Digital signature recorded on{" "}
-            {format(new Date(approvalDate), "PPP 'at' p")}
-          </span>
+          <div>
+            <span className="text-sm font-semibold text-green-800">
+              Approved — Digital signature recorded on{" "}
+              {format(new Date(approvalDate), "PPP 'at' p")}
+            </span>
+            {approvalBy === "admin" && (
+              <p className="text-xs text-green-700 mt-0.5 italic">Recorded by admin on behalf of professional</p>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -170,21 +179,25 @@ export default function ProfessionalOnboardingChecklistPage() {
   const [loading, setLoading] = useState(true);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [hasChecklist, setHasChecklist] = useState(false);
+  const [assignedFamilyId, setAssignedFamilyId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
     const load = async () => {
       try {
+        // Load the first available checklist row for this professional (family-specific)
         const { data, error } = await supabase
           .from("professional_onboarding_checklists")
-          .select("checked_items, notes")
+          .select("checked_items, notes, family_id")
           .eq("professional_id", user.id)
+          .limit(1)
           .maybeSingle();
         if (error) throw error;
         if (data) {
           setHasChecklist(true);
           setCheckedItems((data.checked_items as unknown as Record<string, boolean | string>) || {});
           setNotes((data.notes as unknown as OnboardingNote[]) || []);
+          setAssignedFamilyId(data.family_id || null);
         }
       } catch (err) {
         console.error("Failed to load professional onboarding checklist:", err);
@@ -222,16 +235,17 @@ export default function ProfessionalOnboardingChecklistPage() {
   }, 0);
 
   const saveNotesToSupabase = useCallback(async (updatedNotes: OnboardingNote[]) => {
-    if (!user?.id) return;
+    if (!user?.id || !assignedFamilyId) return;
     try {
       await supabase
         .from("professional_onboarding_checklists")
         .update({ notes: updatedNotes as any })
-        .eq("professional_id", user.id);
+        .eq("professional_id", user.id)
+        .eq("family_id", assignedFamilyId);
     } catch (err) {
       console.error("Failed to save notes:", err);
     }
-  }, [user?.id]);
+  }, [user?.id, assignedFamilyId]);
 
   const handleAcknowledgeNote = useCallback((index: number) => {
     const updatedNotes = [...notes];
@@ -414,6 +428,7 @@ export default function ProfessionalOnboardingChecklistPage() {
                           <ProfessionalReadinessApproval
                             checkedItems={checkedItems}
                             professionalId={user?.id}
+                            familyId={assignedFamilyId}
                             onApproved={(updated) => setCheckedItems(updated)}
                           />
                         </>

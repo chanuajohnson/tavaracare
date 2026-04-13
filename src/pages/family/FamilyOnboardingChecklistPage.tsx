@@ -164,6 +164,9 @@ function ServiceCommencementApproval({
                     {format(new Date(approvalDate), "PPP 'at' p")}
                   </p>
                 )}
+                {(checkedItems["family_approval_by"] as string) === "admin" && (
+                  <p className="text-xs text-green-600 mt-0.5 italic">Recorded by admin on behalf of family</p>
+                )}
               </div>
             </div>
           ) : (
