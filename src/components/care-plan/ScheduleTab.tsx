@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { CalendarRange, Calendar, ChevronDown, Plus, Users, AlertTriangle, MessageSquare } from "lucide-react";
+import { CalendarRange, Calendar, ChevronDown, Plus, Users, AlertTriangle, MessageSquare, ClipboardList } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { ShiftCalendar } from "./ShiftCalendar";
 import { CareShift, CareShiftInput, CareTeamMemberWithProfile } from "@/types/careTypes";

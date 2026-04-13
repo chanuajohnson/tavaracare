@@ -39,7 +39,88 @@ const checkDuplicateWorkLog = async (
   }
 };
 
+export const bulkCreateWorkLogsForShifts = async (
+  shifts: CareShift[],
+  notes: string = '',
+  options: CreateWorkLogOptions = {},
+  onProgress?: (current: number, total: number) => void
+): Promise<{ created: number; skipped: number; failed: number }> => {
+  let created = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  for (let i = 0; i < shifts.length; i++) {
+    const shift = shifts[i];
+    onProgress?.(i + 1, shifts.length);
+
+    const result = await createWorkLogFromShift(shift, notes, options);
+    if (result.success) {
+      created++;
+    } else if (result.error?.includes('already exists')) {
+      skipped++;
+    } else {
+      failed++;
+    }
+  }
+
+  return { created, skipped, failed };
+};
+
 export const createWorkLogFromShift = async (
+  shift: CareShift, 
+  notes: string = '',
+  options: CreateWorkLogOptions = {}
+): Promise<{ success: boolean; workLog?: WorkLog; error?: string }> => {
+  try {
+    if (!shift.caregiverId) {
+      return { success: false, error: "Shift has no assigned caregiver" };
+    }
+
+    const { data: teamMember, error: teamError } = await supabase
+      .from('care_team_members')
+      .select('id')
+      .eq('care_plan_id', shift.carePlanId)
+      .eq('caregiver_id', shift.caregiverId)
+      .single();
+
+    if (teamError) throw teamError;
+    
+    if (!teamMember) {
+      return { success: false, error: "Caregiver is not a team member" };
+    }
+
+    const isDuplicate = await checkDuplicateWorkLog(
+      teamMember.id,
+      shift.startTime,
+      shift.endTime,
+      shift.id
+    );
+
+    if (isDuplicate) {
+      return { 
+        success: false, 
+        error: "A work log already exists for this shift and caregiver" 
+      };
+    }
+
+    const workLogInput: WorkLogInput = {
+      care_team_member_id: teamMember.id,
+      care_plan_id: shift.carePlanId,
+      shift_id: shift.id,
+      start_time: shift.startTime,
+      end_time: shift.endTime,
+      notes,
+      rate_type: options.rate_type,
+      base_rate: options.base_rate,
+      rate_multiplier: options.rate_multiplier
+    };
+
+    return await createWorkLog(workLogInput);
+  } catch (error: any) {
+    console.error("Error creating work log from shift:", error);
+    return { success: false, error: error.message };
+  }
+};
   shift: CareShift, 
   notes: string = '',
   options: CreateWorkLogOptions = {}
