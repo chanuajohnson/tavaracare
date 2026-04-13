@@ -51,6 +51,14 @@ export interface PayrollEntry {
   caregiver_name?: string;
   pay_period_start?: string;
   pay_period_end?: string;
+  // NIS fields
+  nis_applicable?: boolean;
+  nis_class?: string | null;
+  employee_contribution?: number;
+  employer_contribution?: number;
+  gross_pay?: number;
+  net_pay_after_nis?: number;
+  nis_response?: any;
 }
 
 export interface WorkLogInput {

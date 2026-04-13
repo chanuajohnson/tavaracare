@@ -150,19 +150,33 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
       }
     }
 
+    // Determine NIS data (only available on PayrollEntry)
+    const nisApplicable = !isWorkLog(entry) && (entry as any).nis_applicable;
+    const employeeContribution = !isWorkLog(entry) ? ((entry as any).employee_contribution || 0) : 0;
+    const employerContribution = !isWorkLog(entry) ? ((entry as any).employer_contribution || 0) : 0;
+    const nisClass = !isWorkLog(entry) ? ((entry as any).nis_class || null) : null;
+    const netPayAfterNis = !isWorkLog(entry) ? ((entry as any).net_pay_after_nis || total) : total;
+
+    // Build footer rows
+    const footRows: string[][] = [
+      ['Gross Pay', '', '', '', `$${total.toFixed(2)}`]
+    ];
+
+    if (nisApplicable) {
+      footRows.push([
+        `NIS Employee Deduction${nisClass ? ` (${nisClass})` : ''}`,
+        '', '', '', `-$${employeeContribution.toFixed(2)}`
+      ]);
+      footRows.push([
+        'Net Pay After NIS', '', '', '', `$${netPayAfterNis.toFixed(2)}`
+      ]);
+    }
+
     autoTable(doc, {
       startY: 65,
       head: [['Type', 'Date', 'Hours', 'Rate', 'Amount']],
       body: tableBody,
-      foot: [
-        [
-          'Total',
-          '',
-          '',
-          '',
-          `$${total.toFixed(2)}`
-        ]
-      ],
+      foot: footRows,
       styles: {
         cellPadding: 5,
         fontSize: 10
@@ -183,6 +197,19 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
         doc.text(footerStr, data.settings.margin.left, doc.internal.pageSize.height - 10);
       }
     });
+
+    // NIS employer liability note
+    const tableEndY = (doc as any).lastAutoTable?.finalY || 160;
+    if (nisApplicable) {
+      doc.setFontSize(9);
+      doc.text(
+        `Employer NIS Liability: $${employerContribution.toFixed(2)} (not deducted from worker pay)`,
+        20, tableEndY + 10
+      );
+    } else if (!isWorkLog(entry)) {
+      doc.setFontSize(9);
+      doc.text('NIS: Not applicable (weekly earnings ≤ $200)', 20, tableEndY + 10);
+    }
 
     const footerY = doc.internal.pageSize.height - 20;
     doc.setFontSize(8);

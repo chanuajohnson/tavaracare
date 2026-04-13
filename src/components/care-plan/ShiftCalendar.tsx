@@ -87,7 +87,7 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
     if (!caregiverId) return "Unassigned";
     
     const member = careTeamMembers.find(m => m.caregiverId === caregiverId);
-    return member?.professionalDetails?.full_name || "Unknown";
+    return member?.professionalDetails?.full_name || member?.profile?.fullName || "Unknown";
   };
 
   const getTimeDisplay = (dateString: string) => {
