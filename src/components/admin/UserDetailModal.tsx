@@ -207,6 +207,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
     loadCarePlans();
   }, [user, isOpen]);
 
+  const fetchUserDetails = async () => {
     if (!user) return;
 
     try {
