@@ -189,7 +189,7 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
     setAdministeringDose(doseKey);
 
     try {
-      const administeredAt = new Date(`${format(selectedDate, 'yyyy-MM-dd')}T${dose.time}`).toISOString();
+      const administeredAt = new Date().toISOString();
       
       const result = await medicationService.recordAdministrationWithConflictDetection(
         dose.medicationId,
@@ -226,7 +226,7 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
         const dose = scheduledDoses.find(d => getDoseKey(d) === doseKey);
         if (!dose || dose.administered) continue;
 
-        const administeredAt = new Date(`${format(selectedDate, 'yyyy-MM-dd')}T${dose.time}`).toISOString();
+        const administeredAt = new Date().toISOString();
         
         const result = await medicationService.recordAdministrationWithConflictDetection(
           dose.medicationId,
@@ -264,7 +264,7 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
 
     try {
       const { dose, result } = conflictInfo;
-      const administeredAt = new Date(`${format(selectedDate, 'yyyy-MM-dd')}T${dose.time}`).toISOString();
+      const administeredAt = new Date().toISOString();
       
       const finalResult = await medicationService.recordAdministrationWithConflictDetection(
         dose.medicationId,
