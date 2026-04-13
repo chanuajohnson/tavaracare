@@ -278,6 +278,54 @@ export const processPayrollPayment = async (payrollId: string, paymentDate = new
  * Delete pending payroll entries and reset their linked work logs to 'pending'.
  * Only operates on entries with payment_status = 'pending'.
  */
+/**
+ * Undo a paid payroll entry — resets it back to pending and clears NIS fields.
+ */
+export const undoPayrollPayment = async (payrollId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('payroll_entries')
+      .update({
+        payment_status: 'pending',
+        payment_date: null,
+        nis_applicable: false,
+        nis_class: null,
+        employee_contribution: 0,
+        employer_contribution: 0,
+        net_pay_after_nis: null,
+      })
+      .eq('id', payrollId);
+
+    if (error) throw error;
+
+    // Also reset the linked work log back to approved (not pending)
+    const { data: entry } = await supabase
+      .from('payroll_entries')
+      .select('work_log_id, gross_pay')
+      .eq('id', payrollId)
+      .single();
+
+    if (entry?.work_log_id) {
+      // Set net_pay_after_nis to gross_pay since NIS was cleared
+      await supabase
+        .from('payroll_entries')
+        .update({ net_pay_after_nis: entry.gross_pay })
+        .eq('id', payrollId);
+    }
+
+    toast.success("Payment undone — entry reverted to pending");
+    return true;
+  } catch (error) {
+    console.error("Error undoing payroll payment:", error);
+    toast.error("Failed to undo payment");
+    return false;
+  }
+};
+
+/**
+ * Delete pending payroll entries and reset their linked work logs to 'pending'.
+ * Only operates on entries with payment_status = 'pending'.
+ */
 export const deletePayrollEntries = async (ids: string[]): Promise<{ deleted: number; failed: number }> => {
   let deleted = 0;
   let failed = 0;

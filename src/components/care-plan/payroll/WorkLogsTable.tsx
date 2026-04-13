@@ -17,6 +17,7 @@ interface WorkLogsTableProps {
   workLogs: WorkLog[];
   onApprove: (id: string) => void;
   onReject: (id: string, reason: string) => Promise<boolean>;
+  onDelete?: (id: string) => Promise<boolean>;
   isProfessionalView?: boolean;
 }
 
@@ -24,6 +25,7 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
   workLogs,
   onApprove,
   onReject,
+  onDelete,
   isProfessionalView = false
 }) => {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -69,6 +71,7 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
               onApprove={onApprove}
               onReject={onReject}
               onGenerateReceipt={handleGenerateReceipt}
+              onDelete={onDelete}
               isProfessionalView={isProfessionalView}
             />
           ))}

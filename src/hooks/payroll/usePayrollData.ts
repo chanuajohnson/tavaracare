@@ -9,7 +9,8 @@ import {
   WorkLog,
   PayrollEntry 
 } from "@/services/care-plans/workLogService";
-import { deletePayrollEntries } from "@/services/care-plans/work-logs/payrollService";
+import { deletePayrollEntries, undoPayrollPayment } from "@/services/care-plans/work-logs/payrollService";
+import { deleteWorkLog } from "@/services/care-plans/work-logs/approvalService";
 import { fetchCareTeamMembers } from "@/services/care-plans/careTeamService";
 import { CareTeamMemberWithProfile } from "@/types/careTypes";
 
@@ -91,6 +92,24 @@ export const usePayrollData = (carePlanId: string) => {
     return result;
   };
 
+  const handleDeleteWorkLog = async (workLogId: string) => {
+    const success = await deleteWorkLog(workLogId);
+    if (success) {
+      await loadData();
+    }
+    return success;
+  };
+
+  const handleUndoPayment = async (payrollId: string) => {
+    const success = await undoPayrollPayment(payrollId);
+    if (success) {
+      const updatedEntries = await fetchPayrollEntries(carePlanId);
+      setPayrollEntries(updatedEntries);
+      return true;
+    }
+    return false;
+  };
+
   return {
     workLogs,
     payrollEntries,
@@ -99,6 +118,8 @@ export const usePayrollData = (carePlanId: string) => {
     handleApproveWorkLog,
     handleRejectWorkLog,
     handleProcessPayment,
-    handleDeletePayrollEntries
+    handleDeletePayrollEntries,
+    handleDeleteWorkLog,
+    handleUndoPayment
   };
 };

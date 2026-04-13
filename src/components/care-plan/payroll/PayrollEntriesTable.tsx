@@ -6,7 +6,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { PayrollStatusBadge } from "./PayrollStatusBadge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Receipt, Check, Calendar, Download, Trash2 } from "lucide-react";
+import { Receipt, Check, Calendar, Download, Trash2, Undo2, ChevronDown, ChevronUp } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ShareReceiptDialog } from "./ShareReceiptDialog";
 import { generatePayReceipt, generateConsolidatedReceipt } from "@/services/care-plans/receiptService";
@@ -27,12 +27,14 @@ interface PayrollEntriesTableProps {
   entries: PayrollEntry[];
   onProcessPayment: (id: string) => void;
   onDeleteEntries?: (ids: string[]) => Promise<{ deleted: number; failed: number }>;
+  onUndoPayment?: (id: string) => Promise<boolean>;
 }
 
 export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   entries,
   onProcessPayment,
-  onDeleteEntries
+  onDeleteEntries,
+  onUndoPayment
 }) => {
   const isMobile = useIsMobile();
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
@@ -41,6 +43,10 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   const [currentEntry, setCurrentEntry] = useState<PayrollEntry | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [undoDialogOpen, setUndoDialogOpen] = useState(false);
+  const [undoTargetId, setUndoTargetId] = useState<string | null>(null);
+  const [isUndoing, setIsUndoing] = useState(false);
+  const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
 
   const handleSelectEntry = (entryId: string) => {
     setSelectedEntries(prev => 
@@ -226,7 +232,8 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
           </TableHeader>
           <TableBody>
             {entries.map((entry) => (
-              <TableRow key={entry.id}>
+              <React.Fragment key={entry.id}>
+              <TableRow>
                 <TableCell>
                   <Checkbox 
                     checked={selectedEntries.includes(entry.id)}
@@ -329,9 +336,76 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                         Process Payment
                       </Button>
                     )}
+                    {entry.payment_status === 'paid' && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-1"
+                          onClick={() => {
+                            setExpandedEntries(prev => {
+                              const next = new Set(prev);
+                              if (next.has(entry.id)) next.delete(entry.id);
+                              else next.add(entry.id);
+                              return next;
+                            });
+                          }}
+                        >
+                          {expandedEntries.has(entry.id) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          Details
+                        </Button>
+                        {onUndoPayment && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1 border-amber-200 hover:bg-amber-50 hover:text-amber-700"
+                            onClick={() => {
+                              setUndoTargetId(entry.id);
+                              setUndoDialogOpen(true);
+                            }}
+                          >
+                            <Undo2 className="h-4 w-4" /> Undo
+                          </Button>
+                        )}
+                      </>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
+              {/* Expanded details row for paid entries */}
+              {entry.payment_status === 'paid' && expandedEntries.has(entry.id) && (
+                <TableRow className="bg-muted/30">
+                  <TableCell colSpan={isMobile ? 8 : 13} className="py-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm px-2">
+                      <div>
+                        <span className="text-muted-foreground block">Payment Date</span>
+                        <span className="font-medium">{entry.payment_date ? format(new Date(entry.payment_date), 'MMM d, yyyy h:mm a') : 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block">NIS Class</span>
+                        <span className="font-medium">{entry.nis_class || (entry.nis_applicable ? 'Applied' : 'Not Applicable')}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block">Employee NIS</span>
+                        <span className="font-medium">${(entry.employee_contribution || 0).toFixed(2)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block">Employer NIS</span>
+                        <span className="font-medium">${(entry.employer_contribution || 0).toFixed(2)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block">Gross Pay</span>
+                        <span className="font-medium">${(entry.gross_pay || entry.total_amount || 0).toFixed(2)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block">Net Pay (After NIS)</span>
+                        <span className="font-medium">${(entry.net_pay_after_nis || entry.total_amount || 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+              </React.Fragment>
             ))}
           </TableBody>
         </Table>
@@ -375,6 +449,33 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
               }}
             >
               {isDeleting ? 'Deleting...' : 'Delete & Reset'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={undoDialogOpen} onOpenChange={setUndoDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Undo Payment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will revert this payroll entry back to pending status and clear all NIS calculations. You can then re-process payment with updated rates if needed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isUndoing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isUndoing}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!onUndoPayment || !undoTargetId) return;
+                setIsUndoing(true);
+                await onUndoPayment(undoTargetId);
+                setUndoDialogOpen(false);
+                setUndoTargetId(null);
+                setIsUndoing(false);
+              }}
+            >
+              {isUndoing ? 'Undoing...' : 'Undo Payment'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

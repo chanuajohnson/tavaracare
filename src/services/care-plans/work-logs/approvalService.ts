@@ -85,3 +85,33 @@ export const rejectWorkLog = async (workLogId: string, reason?: string): Promise
     return false;
   }
 };
+
+export const deleteWorkLog = async (workLogId: string): Promise<boolean> => {
+  try {
+    // First delete any linked pending payroll entries
+    const { error: payrollDeleteError } = await supabase
+      .from('payroll_entries')
+      .delete()
+      .eq('work_log_id', workLogId)
+      .eq('payment_status', 'pending');
+
+    if (payrollDeleteError) {
+      console.error("Error deleting linked payroll entries:", payrollDeleteError);
+    }
+
+    // Delete the work log itself
+    const { error } = await supabase
+      .from('work_logs')
+      .delete()
+      .eq('id', workLogId)
+      .eq('status', 'pending');
+
+    if (error) throw error;
+    toast.success("Work log deleted successfully");
+    return true;
+  } catch (error) {
+    console.error("Error deleting work log:", error);
+    toast.error("Failed to delete work log");
+    return false;
+  }
+};
