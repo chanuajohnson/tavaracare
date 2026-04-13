@@ -1,55 +1,50 @@
 
 
-## Plan: Fix Family Approval Visibility on Admin Checklist
+## Plan: Show Family Medications on Admin Onboarding Checklist and Admin Dashboard
 
-### Root Cause
+### Problem
+The admin onboarding checklist at `/admin/onboarding-checklist` shows "Medication Confirmation 0/3" with generic checklist items, but does NOT display the actual medication records for the selected family (e.g., "Coveram 10/5mg"). The family's own onboarding page does fetch and display these inline. Additionally, `/dashboard/admin` has no medication visibility at all.
 
-Two issues found:
-
-**1. RLS blocks family from saving their approval**
-The `onboarding_checklists` table has these RLS policies:
-- `Admins can manage all onboarding checklists` (ALL for admins)
-- `Families can view their own onboarding checklist` (SELECT only)
-
-There is **no UPDATE policy** for families. When User1 Family checks the Service Commencement Approval box, the `supabase.update()` call is silently blocked by RLS. The error is caught but only logged to console — no toast feedback to the user.
-
-**2. No Family Feedback Summary on admin page**
-The admin checklist page has a "Professional Feedback Summary" card (showing approval status, notes acknowledged, etc.) but there is **no equivalent card for the Family tab**. Even once the approval saves correctly, the admin would have no visual indicator of it.
+Ana Maria Aimey has 1 medication ("Coveram 10/5mg, prescription") under her care plan "Care plan for Mum" — but admin can't see it anywhere.
 
 ### Changes
 
-#### 1. Add RLS UPDATE policy for families (Migration)
-Create an UPDATE policy allowing families to update their own checklist row's `checked_items`:
-
-```sql
-CREATE POLICY "Families can update their own onboarding checklist"
-ON public.onboarding_checklists
-FOR UPDATE
-TO authenticated
-USING (family_id = auth.uid())
-WITH CHECK (family_id = auth.uid());
-```
-
-#### 2. Add Family Feedback Summary card on admin page
+#### 1. Fetch and display actual medications on admin onboarding checklist
 **File: `src/pages/admin/AdminOnboardingChecklistPage.tsx`**
 
-Add a "Family Feedback Summary" card (similar to the Professional one) on the Family tab showing:
-- Service Commencement Approval status (Approved with date, or Pending)
-- Notes acknowledged count
-- Overall items checked count
+When a family is selected on the Family tab:
+- Look up their care plan(s) from `care_plans` where `family_id = selectedId`
+- Fetch medications from `medications` where `care_plan_id` matches
+- Display the medication list inline under the "Medication Confirmation" section (same blue card style used on the family page), showing name, dosage, type, frequency, and schedule
+- Show "No medications found" amber warning if none exist
 
-This reads `family_approval_confirmed` and `family_approval_date` from the already-loaded `checkedItems`.
+This mirrors exactly what `FamilyOnboardingChecklistPage.tsx` does at lines 496-540.
 
-#### 3. Add error toast on family page
-**File: `src/pages/family/FamilyOnboardingChecklistPage.tsx`**
+#### 2. Add medication summary to admin dashboard
+**File: `src/pages/dashboard/AdminDashboard.tsx`** (or wherever the admin user report modal lives)
 
-Add a `toast.error()` in the catch block of `handleApprove` so the family user gets feedback if the save fails, rather than silent failure.
+In the admin user report/profile modal (visible in screenshot as "Ana Maria Aimey" modal with Profile/Journey/Reports tabs):
+- Add a "Medications" data row in the Reports tab showing the count and names of medications for the family's care plan(s)
+- This gives admin quick visibility without navigating to the onboarding checklist
+
+### Technical Details
+
+Medication fetch query (used in both places):
+```sql
+SELECT m.* FROM medications m
+JOIN care_plans cp ON cp.id = m.care_plan_id
+WHERE cp.family_id = :selectedFamilyId
+```
+
+No RLS issues — admin already has full access to both `care_plans` and `medications` tables.
 
 ### Files to modify
 
 | File | Change |
 |------|--------|
-| **Migration** | Add UPDATE RLS policy on `onboarding_checklists` for families |
-| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Add "Family Feedback Summary" card showing approval status on Family tab |
-| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Add toast.error on approval save failure |
+| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Add medication data fetch when family selected; render medication cards under "Medication Confirmation" section |
+| Admin user report modal component (needs identification) | Add medication count/names to family report data |
+
+### No migration needed
+Admin already has full table access. Frontend-only changes.
 
