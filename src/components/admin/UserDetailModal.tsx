@@ -153,6 +153,35 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
     }
   }, [user, isOpen]);
 
+  // Fetch medications for family users
+  useEffect(() => {
+    if (!user || !isOpen || user.role !== 'family') {
+      setUserMedications([]);
+      return;
+    }
+    const loadMeds = async () => {
+      try {
+        const { data: carePlans } = await supabase
+          .from("care_plans")
+          .select("id")
+          .eq("family_id", user.id);
+        if (!carePlans || carePlans.length === 0) {
+          setUserMedications([]);
+          return;
+        }
+        const { data: meds } = await supabase
+          .from("medications")
+          .select("id, name, dosage, medication_type")
+          .in("care_plan_id", carePlans.map(cp => cp.id))
+          .order("name");
+        setUserMedications(meds || []);
+      } catch {
+        setUserMedications([]);
+      }
+    };
+    loadMeds();
+  }, [user, isOpen]);
+
   const fetchUserDetails = async () => {
     if (!user) return;
 
