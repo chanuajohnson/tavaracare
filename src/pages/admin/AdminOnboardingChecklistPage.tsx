@@ -927,21 +927,36 @@ function ChecklistTabContent({
                   <p className="text-xs text-muted-foreground">Responses Sent</p>
                 </div>
                 <div className="text-center p-2 rounded bg-background border">
-                  {approvalConfirmed ? (
-                    <>
-                      <Badge variant="default" className="bg-green-600 text-xs">Approved</Badge>
-                      {approvalDate && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {format(new Date(approvalDate), "MMM d, yyyy")}
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <Badge variant="secondary" className="text-xs">Pending</Badge>
-                      <p className="text-xs text-muted-foreground mt-1">Service Approval</p>
-                    </>
-                  )}
+                  <div className="flex flex-col items-center gap-1">
+                    {approvalConfirmed ? (
+                      <>
+                        <Badge variant="default" className="bg-green-600 text-xs">Approved</Badge>
+                        {approvalDate && (
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(approvalDate), "MMM d, yyyy")}
+                          </p>
+                        )}
+                        {(checkedItems["family_approval_by"] as string) === "admin" && (
+                          <p className="text-xs text-muted-foreground italic">by Admin</p>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Badge variant="secondary" className="text-xs">Pending</Badge>
+                        <p className="text-xs text-muted-foreground mt-1">Service Approval</p>
+                      </>
+                    )}
+                    {onToggleApproval && (
+                      <label className="flex items-center gap-1.5 mt-1 cursor-pointer">
+                        <Checkbox
+                          checked={!!approvalConfirmed}
+                          onCheckedChange={() => onToggleApproval("family_approval_confirmed")}
+                          className="h-3.5 w-3.5"
+                        />
+                        <span className="text-xs text-muted-foreground">Admin toggle</span>
+                      </label>
+                    )}
+                  </div>
                 </div>
               </div>
               {completedCount > 0 && (
