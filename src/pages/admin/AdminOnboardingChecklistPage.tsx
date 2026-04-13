@@ -681,6 +681,7 @@ function ChecklistTabContent({
   onDownloadReport,
   linkedCheckedItems,
   assignedFamilyName,
+  familyMedications,
 }: {
   profiles: ProfileOption[];
   loadingProfiles: boolean;
