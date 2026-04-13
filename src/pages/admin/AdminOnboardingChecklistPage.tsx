@@ -1150,11 +1150,113 @@ function ChecklistTabContent({
                     )}
 
                     {section.id === "post_onboarding" && (
-                      <CareSummaryHeader
-                        checkedItems={checkedItems}
-                        linkedCheckedItems={linkedCheckedItems}
-                        assignedFamilyName={assignedFamilyName}
-                      />
+                      <>
+                        <CareSummaryHeader
+                          checkedItems={checkedItems}
+                          linkedCheckedItems={linkedCheckedItems}
+                          assignedFamilyName={assignedFamilyName}
+                        />
+
+                        {/* Family: Service Commencement Approval block */}
+                        {showFamilyData && (() => {
+                          const famApproved = checkedItems["family_approval_confirmed"] === true;
+                          const famApprovalDate = checkedItems["family_approval_date"] as string | undefined;
+                          const famApprovalBy = checkedItems["family_approval_by"] as string | undefined;
+                          const startDateStr = (checkedItems["billing_start_date"] || checkedItems["post_onboarding_3_date"]) as string | undefined;
+
+                          return (
+                            <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
+                              <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                                ✅ Service Commencement Approval
+                              </h4>
+                              {startDateStr && (
+                                <p className="text-sm text-muted-foreground mb-3">
+                                  Care start date: <span className="font-medium text-foreground">{format(parseLocalDate(startDateStr), "PPP")}</span>
+                                </p>
+                              )}
+                              {famApproved ? (
+                                <div className="flex items-center gap-2 text-green-700 bg-green-50 rounded-md p-3">
+                                  <CheckCircle2 className="h-5 w-5" />
+                                  <div>
+                                    <p className="font-medium text-sm">Approved — Digital signature recorded</p>
+                                    {famApprovalDate && (
+                                      <p className="text-xs text-green-600 mt-0.5">
+                                        {format(new Date(famApprovalDate), "PPP 'at' p")}
+                                      </p>
+                                    )}
+                                    {famApprovalBy === "admin" && (
+                                      <p className="text-xs text-green-600 mt-0.5 italic">Recorded by admin on behalf of family</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 rounded-md bg-amber-50 border border-amber-200 p-3">
+                                  <Badge variant="secondary" className="text-xs">Pending</Badge>
+                                  <span className="text-sm text-amber-800">Family has not yet approved service commencement</span>
+                                </div>
+                              )}
+                              {onToggleApproval && (
+                                <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                                  <Checkbox
+                                    checked={!!famApproved}
+                                    onCheckedChange={() => onToggleApproval("family_approval_confirmed")}
+                                    className="h-4 w-4"
+                                  />
+                                  <span className="text-xs text-muted-foreground">Admin toggle — approve on behalf of family</span>
+                                </label>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* Professional: Readiness Approval block */}
+                        {showProfessionalData && (() => {
+                          const profApproved = checkedItems["professional_approval_confirmed"] === true;
+                          const profApprovalDate = checkedItems["professional_approval_date"] as string | undefined;
+                          const profApprovalBy = checkedItems["professional_approval_by"] as string | undefined;
+
+                          return (
+                            <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
+                              <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                                ✅ Readiness Approval
+                              </h4>
+                              {profApproved ? (
+                                <div className="flex items-center gap-2 text-green-700 bg-green-50 rounded-md p-3">
+                                  <CheckCircle2 className="h-5 w-5" />
+                                  <div>
+                                    <p className="font-medium text-sm">Approved — Digital signature recorded</p>
+                                    {profApprovalDate && (
+                                      <p className="text-xs text-green-600 mt-0.5">
+                                        {format(new Date(profApprovalDate), "PPP 'at' p")}
+                                      </p>
+                                    )}
+                                    {profApprovalBy === "admin" ? (
+                                      <p className="text-xs text-green-600 mt-0.5 italic">Recorded by admin on behalf of professional</p>
+                                    ) : (
+                                      <p className="text-xs text-green-600 mt-0.5 italic">Self-approved by professional</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 rounded-md bg-amber-50 border border-amber-200 p-3">
+                                  <Badge variant="secondary" className="text-xs">Pending</Badge>
+                                  <span className="text-sm text-amber-800">Professional has not yet confirmed readiness</span>
+                                </div>
+                              )}
+                              {onToggleApproval && (
+                                <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                                  <Checkbox
+                                    checked={!!profApproved}
+                                    onCheckedChange={() => onToggleApproval("professional_approval_confirmed")}
+                                    className="h-4 w-4"
+                                  />
+                                  <span className="text-xs text-muted-foreground">Admin toggle — approve on behalf of professional</span>
+                                </label>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </>
                     )}
                   </CardContent>
                 </CollapsibleContent>
