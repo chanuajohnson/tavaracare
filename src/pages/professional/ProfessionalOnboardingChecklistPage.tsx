@@ -428,6 +428,7 @@ export default function ProfessionalOnboardingChecklistPage() {
                           <ProfessionalReadinessApproval
                             checkedItems={checkedItems}
                             professionalId={user?.id}
+                            familyId={assignedFamilyId}
                             onApproved={(updated) => setCheckedItems(updated)}
                           />
                         </>
