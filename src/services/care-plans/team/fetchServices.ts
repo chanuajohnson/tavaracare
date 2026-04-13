@@ -82,7 +82,9 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
       }
       
       // Safely access profile data with fallbacks, then RPC fallback
-      const profileData = member.profiles || (member.caregiver_id ? rpcFallbackMap[member.caregiver_id] : null) || {};
+      const rawProfile = member.profiles;
+      const hasValidProfile = rawProfile && typeof rawProfile === 'object' && (rawProfile as any).full_name;
+      const profileData = hasValidProfile ? rawProfile : (member.caregiver_id ? rpcFallbackMap[member.caregiver_id] : null) || {};
       const fullName = typeof profileData === 'object' && profileData !== null 
         ? (profileData as any).full_name || 'Unknown Professional' 
         : 'Unknown Professional';
@@ -220,7 +222,9 @@ export const fetchAllCareTeamMembersForProfessional = async (professionalId: str
       }
       
       // Safely access profile data with fallbacks, then RPC fallback
-      const profileData = member.profiles || (member.caregiver_id ? rpcFallback2[member.caregiver_id] : null) || {};
+      const rawProfile = member.profiles;
+      const hasValidProfile = rawProfile && typeof rawProfile === 'object' && (rawProfile as any).full_name;
+      const profileData = hasValidProfile ? rawProfile : (member.caregiver_id ? rpcFallback2[member.caregiver_id] : null) || {};
       const fullName = typeof profileData === 'object' && profileData !== null 
         ? (profileData as any).full_name || 'Unknown Professional' 
         : 'Unknown Professional';
