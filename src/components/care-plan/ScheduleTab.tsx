@@ -15,6 +15,7 @@ import { ShiftCalendar } from "./ShiftCalendar";
 import { CareShift, CareShiftInput, CareTeamMemberWithProfile } from "@/types/careTypes";
 import { createCareShift, updateCareShift } from "@/services/care-plans";
 import { WorkLogForm } from './WorkLogForm';
+import { BulkWorkLogForm } from './work-logs/BulkWorkLogForm';
 import { EmergencyShiftWhatsAppModal } from './EmergencyShiftWhatsAppModal';
 import { ShareScheduleModal } from './ShareScheduleModal';
 import { toast } from "sonner";
@@ -64,6 +65,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
   const [workLogFormOpen, setWorkLogFormOpen] = useState(false);
   const [selectedShift, setSelectedShift] = useState<CareShift | null>(null);
   const [emergencyWhatsAppModalOpen, setEmergencyWhatsAppModalOpen] = useState(false);
+  const [bulkLogDialogOpen, setBulkLogDialogOpen] = useState(false);
   const [emergencyShiftData, setEmergencyShiftData] = useState<{
     shift: CareShift | null;
     reason: string;
