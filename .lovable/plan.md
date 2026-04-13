@@ -1,66 +1,35 @@
 
 
-## Plan: Fix Admin Care Plan Management (Shifts, Edit, Payroll)
+## Plan: Fix "Unknown Family" on Professional Dashboard
 
-### Problems Found
+### Root Cause
+The `profiles` table RLS has no SELECT policy allowing professionals to view the family profiles they are assigned to via `care_team_members`. The professional can only see their own profile (`users_own_profile_select`), so the family profile query returns empty, resulting in "Unknown Family".
 
-1. **Care shift creation fails for admin** — The `care_shifts` table has NO admin RLS policy. INSERT/UPDATE/DELETE policies only allow `family_id = auth.uid()`. When admin creates shifts, `family_id` is the family's ID (not admin's), so RLS blocks it.
-
-2. **404 on "Edit" care plan details** — `PlanDetailsTab.tsx` navigates to `/family/care-management/create/${carePlan.id}` but the route is defined as `/family/care-management/create` (no `:id` param). The `useParams()` in CreateCarePlanPage reads `id` but never receives it because no route matches.
-
-3. **Work logs / payroll inaccessible to admin** — The `work_logs` table has no admin RLS policy, so admin can't view or manage payroll/hours.
-
-4. **Care team member management blocked for admin** — INSERT/UPDATE/DELETE on `care_team_members` only allows `family_id = auth.uid()`, blocking admin from assigning caregivers to shifts.
-
-5. **Daily care logs INSERT blocked for admin** — Only professionals can create logs; admin has SELECT only.
-
----
-
-### Changes
-
-#### 1. Database Migration — Add admin RLS policies
-
-Add admin ALL policies to these tables that are missing them:
-- `care_shifts` — admin can manage all shifts
-- `work_logs` — admin can manage all work logs
-- `care_team_members` — admin can manage all team members
-- `daily_care_logs` — admin can manage all logs
+### Fix
+Add one RLS policy to the `profiles` table:
 
 ```sql
-CREATE POLICY "Admins can manage all care shifts"
-  ON public.care_shifts FOR ALL TO authenticated
-  USING (has_role(auth.uid(), 'admin')) WITH CHECK (has_role(auth.uid(), 'admin'));
-
-CREATE POLICY "Admins can manage all work logs"
-  ON public.work_logs FOR ALL TO authenticated
-  USING (has_role(auth.uid(), 'admin')) WITH CHECK (has_role(auth.uid(), 'admin'));
-
-CREATE POLICY "Admins can manage all care team members"
-  ON public.care_team_members FOR ALL TO authenticated
-  USING (has_role(auth.uid(), 'admin')) WITH CHECK (has_role(auth.uid(), 'admin'));
-
-CREATE POLICY "Admins can manage all daily care logs"
-  ON public.daily_care_logs FOR ALL TO authenticated
-  USING (has_role(auth.uid(), 'admin')) WITH CHECK (has_role(auth.uid(), 'admin'));
+CREATE POLICY "professionals_can_view_assigned_families"
+  ON public.profiles FOR SELECT TO authenticated
+  USING (
+    role = 'family'
+    AND EXISTS (
+      SELECT 1 FROM care_team_members ctm
+      JOIN care_plans cp ON cp.id = ctm.care_plan_id
+      WHERE ctm.caregiver_id = auth.uid()
+        AND ctm.status = 'active'
+        AND cp.family_id = profiles.id
+    )
+  );
 ```
 
-#### 2. Fix Edit route — Add `:id` param to create route
-
-**File: `src/components/routing/AppRoutes.tsx`**
-
-Add a second route for editing:
-```
-<Route path="/family/care-management/create/:id" element={<CreateCarePlanPage />} />
-```
-This allows `PlanDetailsTab` to navigate to `/family/care-management/create/{planId}` and have `useParams().id` resolve correctly for edit mode.
-
-#### 3. No other frontend changes needed
-
-`CreateCarePlanPage` already reads `useParams().id`, detects edit mode, and loads existing plan data. `CarePlanDetailPage` already has `isAdminViewing` support. The only missing pieces were the route and the RLS policies.
+This mirrors the existing `family_can_view_assigned_professionals` policy but in reverse: professionals can see the family profile for any care plan they are actively assigned to.
 
 ### Files to modify
 | File | Change |
 |------|--------|
-| **Migration** | Add admin ALL policies on `care_shifts`, `work_logs`, `care_team_members`, `daily_care_logs` |
-| `src/components/routing/AppRoutes.tsx` | Add `/family/care-management/create/:id` route for edit mode |
+| **Migration** | Add `professionals_can_view_assigned_families` SELECT policy on `profiles` |
+
+### No frontend changes needed
+The `ProfessionalProfileHub.tsx` already queries profiles correctly (line 258-261). Once the RLS policy permits the SELECT, `familyProfile.full_name` will resolve and "Unknown Family" will show the actual family name (Ana).
 
