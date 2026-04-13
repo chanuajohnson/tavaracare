@@ -49,12 +49,18 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
     const startDate = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().split('T')[0];
     const endDate = new Date(new Date().getFullYear(), new Date().getMonth() + 2, 0).toISOString().split('T')[0];
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('daily_care_logs')
       .select('id, shift_date, client_name, created_at')
       .eq('professional_id', user.id)
       .gte('shift_date', startDate)
       .lte('shift_date', endDate);
+
+    if (carePlanId) {
+      query = query.eq('care_plan_id', carePlanId);
+    }
+
+    const { data, error } = await query;
 
     if (!error && data) {
       const grouped: Record<string, any[]> = {};
@@ -68,7 +74,7 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
 
   useEffect(() => {
     fetchLogs();
-  }, [user?.id, checklistDialogOpen]);
+  }, [user?.id, carePlanId, checklistDialogOpen]);
   
   const getShiftsForDate = (date?: Date) => {
     if (!date || !shifts.length) return [];
