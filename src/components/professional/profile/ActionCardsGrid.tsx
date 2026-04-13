@@ -15,7 +15,7 @@ export const ActionCardsGrid = ({ isTrainingExpanded, onToggleTraining, carePlan
 
   const handleWorkLogsClick = () => {
     if (carePlanId) {
-      navigate(`/family/care-management/${carePlanId}?tab=payroll`);
+      navigate(`/family/care-management/${carePlanId}?tab=payroll&from=professional`);
     } else {
       navigate('/professional/profile');
     }
