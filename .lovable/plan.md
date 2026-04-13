@@ -1,40 +1,40 @@
 
 
-## Plan: Fix "Unknown" Caregiver Names in Family Care Plan Schedule
-
-### Problem
-The `ShiftCalendar.tsx` component (family-side care plan view at `/family/care-management/...`) shows "Unknown" for caregiver names like Denise Narcis. The professional profile hub schedule shows names correctly because `useCarePlanShifts.tsx` already has an RPC fallback. But the family-side schedule gets names from `careTeamMembers`, which are fetched by `fetchCareTeamMembers()` in `src/services/care-plans/team/fetchServices.ts`. That function joins `profiles:caregiver_id` directly — when RLS blocks the join, `profiles` returns null, and the fallback is "Unknown Professional".
+## Plan: Fix RPC Fallback Not Being Applied Due to Truthy Empty Object
 
 ### Root Cause
-`fetchServices.ts` has two functions (`fetchCareTeamMembers` and `fetchAllCareTeamMembersForProfessional`) that both do:
-```
-profiles:caregiver_id (full_name, ...)
-```
-When RLS blocks this, `member.profiles` is null. The code falls back to `'Unknown Professional'` without trying any RPC resolution.
+When RLS blocks a profile join, Supabase returns `{}` (empty object) instead of `null`. The code correctly detects these missing profiles and calls the RPC, but when building the final result, the `||` operator treats `{}` as truthy, so the RPC-resolved data is never used.
 
-### Fix: Add RPC Fallback to `fetchServices.ts`
+**Line 85** (fetchCareTeamMembers):
+```js
+const profileData = member.profiles || rpcFallbackMap[member.caregiver_id] || {};
+//                  ^^^^^^^^^^^^^^^ {} is truthy, so RPC result is skipped
+```
 
+**Line 223** (fetchAllCareTeamMembersForProfessional): Same issue.
+
+### Fix
 **File**: `src/services/care-plans/team/fetchServices.ts`
 
-In both `fetchCareTeamMembers` and `fetchAllCareTeamMembersForProfessional`:
+Change both lines to check whether `member.profiles` actually has a `full_name` before preferring it over the RPC fallback:
 
-1. After the initial query, collect `caregiver_id` values where `member.profiles` is null or has no `full_name`
-2. Call `get_public_professional_profiles` RPC with those IDs (same pattern already used in `useCarePlanShifts.tsx` and `resolveCaregiveNames.ts`)
-3. Use the RPC results to populate `professionalDetails` before returning
+```js
+// Instead of: member.profiles || rpcFallbackMap[...] || {}
+// Use:
+const rawProfile = member.profiles;
+const hasValidProfile = rawProfile && typeof rawProfile === 'object' && (rawProfile as any).full_name;
+const profileData = hasValidProfile ? rawProfile : (member.caregiver_id ? rpcFallbackMap[member.caregiver_id] : null) || {};
+```
 
-This is a single-file change. No new files, no database changes, no schema modifications.
-
-### Why This Fixes It
-- Denise Narcis's profile is blocked by RLS for the current user's direct query
-- The `get_public_professional_profiles` RPC is a `SECURITY DEFINER` function that bypasses RLS and returns name/avatar/type for any professional ID
-- After this fix, `careTeamMembers` passed to `ShiftCalendar.tsx` will have correct names, fixing the family care management schedule view
+Apply this pattern to both `fetchCareTeamMembers` (line 85) and `fetchAllCareTeamMembersForProfessional` (line 223).
 
 ### Files to Update
 | File | Change |
 |------|--------|
-| `src/services/care-plans/team/fetchServices.ts` | Add RPC fallback for missing profiles in both fetch functions |
+| `src/services/care-plans/team/fetchServices.ts` | Fix lines 85 and 223 to prefer RPC result when joined profile lacks `full_name` |
 
 ### Expected Result
-- Family care plan schedule at `/family/care-management/...` shows "Denise Narcis" instead of "Unknown"
-- All other components consuming `careTeamMembers` (filter dropdowns, WhatsApp sharing, emergency shift modal) also get correct names
-- Professional profile hub schedule continues working as before
+- Denise Narcis will show correctly in the care schedule instead of "Unknown"
+- All other care team members blocked by RLS will resolve via RPC
+- No other files need changes -- the detection and RPC call already work
+
