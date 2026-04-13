@@ -170,6 +170,9 @@ export const useWorkLogRate = (
 
       console.log('Rates saved successfully:', { baseRate, rateMultiplier });
       
+      // Sync any linked pending payroll entries with the new rates
+      await syncPayrollEntryWithWorkLog(workLogId);
+      
       // Update timestamp to trigger UI updates
       const timestamp = Date.now();
       setLastSaveTime(timestamp);
