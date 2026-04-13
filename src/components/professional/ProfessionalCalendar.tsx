@@ -4,7 +4,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp, Clock, Calendar as CalendarIcon, ClipboardCheck, Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, Calendar as CalendarIcon, ClipboardCheck, Pencil, Trash2, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -13,7 +13,9 @@ import { useCarePlanShifts } from "@/hooks/useCarePlanShifts";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { DailyChecklist } from "./DailyChecklist";
+import { WorkLogForm } from "@/components/care-plan/WorkLogForm";
 import { toast } from "sonner";
+import type { CareShift } from "@/types/careTypes";
 
 interface ProfessionalCalendarProps {
   carePlanId?: string;
