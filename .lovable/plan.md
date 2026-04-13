@@ -1,87 +1,75 @@
 
-## Plan: Fix the real NIS failure now
 
-### What the issue actually is
-This is not a Nuacha problem and not a payroll math problem.
+## Plan: Bulk Work Log Entry for Professionals and Admins
 
-The browser is blocking the request before `nis-payroll-proxy` can run.
+### Problem
+Currently, logging work hours requires clicking on each individual shift in the calendar, one day at a time. For a full month like Angela's March schedule, this means ~20+ individual form submissions — tedious and error-prone.
 
-From your screenshot, the exact error is:
-```text
-Request header field x-app-version is not allowed by Access-Control-Allow-Headers in preflight response
-```
+### Solution
+Add a **"Bulk Log Hours"** button to the Schedule tab that opens a dialog where the user selects:
+1. A **date range** (start date → end date)
+2. A **caregiver** (from the care team)
+3. A **rate type** and **base rate** (applied uniformly)
+4. Optional **notes**
 
-I checked the code and found the mismatch:
+The system then finds all shifts for that caregiver within the date range, filters out shifts that already have work logs, and creates work logs for all remaining shifts in one batch.
 
-- `src/integrations/supabase/client.ts` sends these global headers on function calls:
-  - `x-app-version`
-  - `x-client-env`
-
-- `supabase/functions/nis-payroll-proxy/index.ts` currently allows only:
-  - `authorization, x-client-info, apikey, content-type`
-
-So the preflight CORS check fails in the browser, and that is why you still get:
-```text
-Failed to send a request to the Edge Function
-```
-
-### What I will change
-
-#### 1. Fix CORS in the NIS edge function
-**File:** `supabase/functions/nis-payroll-proxy/index.ts`
-
-Update the function’s CORS headers so they allow the headers the Tavara app is actually sending.
-
-I will add:
-- `x-app-version`
-- `x-client-env`
-
-And I’ll make the function consistent with the other working edge functions by also including:
-- `Access-Control-Allow-Methods: POST, OPTIONS`
-- proper CORS headers on every response path
-
-Recommended allowed headers:
-```text
-authorization, x-client-info, apikey, content-type, x-app-version, x-client-env
-```
-
-If needed, I may also include the Supabase runtime headers used by newer clients for extra safety:
-```text
-x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version
-```
-
-#### 2. Redeploy the edge function
-After updating the CORS headers, I will redeploy:
-- `nis-payroll-proxy`
-
-This is required because the current deployed version is the one rejecting the browser preflight.
-
-#### 3. Verify the recalculation flow end to end
-I will verify that:
-- clicking **Recalculate NIS** no longer throws the browser CORS error
-- the edge function actually receives the request
-- the weekly NIS recalculation succeeds
-- the affected week updates from `$0.00 / $0.00` to the proper weekly NIS values
-- the monthly summary rolls those corrected weekly values up properly
-
-### Expected result after the fix
-For the affected paid week, the flow should become:
+### UI Flow
 
 ```text
-Browser preflight passes
--> nis-payroll-proxy receives request
--> proxy calls Nuacha
--> weekly NIS returns successfully
--> payroll_entries are updated
--> weekly summary shows non-zero Employee NIS / Employer NIS
--> monthly summary totals update correctly
+[Schedule Tab header]
+  [+ New Shift]  [📋 Bulk Log Hours]  [Share Schedule]
+
+Click "Bulk Log Hours" →
+┌─────────────────────────────────────────┐
+│ Bulk Log Work Hours                     │
+│                                         │
+│ Caregiver:  [Angela ▾]                  │
+│ From:       [Mar 1, 2026]               │
+│ To:         [Mar 31, 2026]              │
+│                                         │
+│ Rate Type:  [Regular ▾]                 │
+│ Base Rate:  [$25.00]                    │
+│ Notes:      [________________]          │
+│                                         │
+│ Preview: 18 shifts found, 3 already     │
+│ logged. Will create 15 work logs.       │
+│                                         │
+│           [Cancel]  [Submit 15 Logs]    │
+└─────────────────────────────────────────┘
 ```
 
-### Files involved
-- `supabase/functions/nis-payroll-proxy/index.ts` — fix CORS headers and redeploy
-- `src/integrations/supabase/client.ts` — read-only confirmation only; this is where `x-app-version` and `x-client-env` are being sent
-- `src/services/care-plans/work-logs/payrollService.ts` — read-only confirmation only; recalculation logic is already calling the NIS service correctly
+### Technical Details
 
-### Important note
-The weekly grouping and monthly rollup are not the cause of this failure.  
-The blocker is specifically the CORS mismatch on the edge function.
+**New file: `src/components/care-plan/work-logs/BulkWorkLogForm.tsx`**
+- Date range picker (two date inputs using Shadcn Calendar/Popover)
+- Caregiver selector dropdown (from `careTeamMembers`)
+- Rate type selector (reuses existing `RateTypeSelector`)
+- Preview section: queries shifts in range for selected caregiver, checks which already have work logs, shows count
+- Submit button calls `createWorkLogFromShift` for each unlogged shift
+- Progress indicator during bulk submission
+- Summary toast on completion ("Created 15 of 15 work logs")
+
+**Modified file: `src/components/care-plan/ScheduleTab.tsx`**
+- Add "Bulk Log Hours" button next to existing buttons in the header
+- Add state for bulk log dialog open/close
+- Add Dialog wrapping `BulkWorkLogForm`
+- Pass `carePlanId`, `careShifts`, `careTeamMembers` as props
+
+**New service function in `src/services/care-plans/work-logs/shiftService.ts`**
+- `bulkCreateWorkLogsForShifts(shifts, notes, options)` — iterates over an array of shifts, skips duplicates, calls `createWorkLogFromShift` for each, returns summary `{ created: number, skipped: number, failed: number }`
+
+### Files to Create/Modify
+
+| File | Change |
+|------|--------|
+| `src/components/care-plan/work-logs/BulkWorkLogForm.tsx` | **New** — bulk entry form component |
+| `src/components/care-plan/ScheduleTab.tsx` | Add "Bulk Log Hours" button + dialog |
+| `src/services/care-plans/work-logs/shiftService.ts` | Add `bulkCreateWorkLogsForShifts()` |
+
+### Safety
+- Each shift is individually checked for existing work logs before creation (reuses existing `checkDuplicateWorkLog`)
+- Preview step shows exactly what will be created before submission
+- Already-logged shifts are clearly indicated and skipped
+- Uses existing `createWorkLogFromShift` per shift — same validation, same payroll entry creation
+
