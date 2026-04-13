@@ -14,5 +14,3 @@ export type {
   PayrollEntry,
   Holiday 
 } from '../types/workLogTypes';
-
-export { getWorkLogForShift } from './workLogCore';
