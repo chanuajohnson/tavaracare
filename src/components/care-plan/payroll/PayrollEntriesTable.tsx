@@ -303,6 +303,24 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                             </div>
                           </div>
                         )}
+                        {/* Recalculate NIS button for weeks with $0 NIS but gross > 200 */}
+                        {isDetailsOpen && week.allPaid && week.weeklyGross > 200 && week.employeeContribution === 0 && onRecalculateNIS && (
+                          <div className="pb-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={isRecalculating}
+                              className="h-7 gap-1 text-xs border-yellow-500 bg-yellow-50 hover:bg-yellow-100 text-yellow-800"
+                              onClick={() => handleRecalcNIS(week.entries[0].id)}
+                            >
+                              <RefreshCw className={`h-3 w-3 ${isRecalculating ? 'animate-spin' : ''}`} />
+                              {isRecalculating ? 'Recalculating...' : 'Recalculate NIS'}
+                            </Button>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              NIS was not applied when this week was processed (API was unavailable). Click to recalculate.
+                            </p>
+                          </div>
+                        )}
                         {/* Undo payment for the whole week */}
                         {isDetailsOpen && onUndoPayment && (
                           <div className="flex gap-2 pb-2">
