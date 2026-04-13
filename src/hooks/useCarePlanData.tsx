@@ -12,6 +12,7 @@ import {
   type CareTeamMemberWithProfile,
   type CareShift,
 } from "@/services/care-plans";
+import { fetchCareTeamMembersViaRPC } from "@/services/care-plans/team/fetchServices";
 
 // Define the Professional type
 interface Professional {
@@ -24,6 +25,7 @@ interface Professional {
 interface UseCarePlanDataProps {
   carePlanId: string;
   userId: string;
+  isProfessionalView?: boolean;
 }
 
 export const useCarePlanData = ({ carePlanId, userId }: UseCarePlanDataProps) => {
