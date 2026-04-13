@@ -752,6 +752,30 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                         </Card>
                       )}
 
+                      {/* Family Medications Summary */}
+                      {comprehensiveData.profile.role === 'family' && (
+                        <Card className="p-4">
+                          <h5 className="font-medium mb-2 flex items-center gap-2">
+                            <Pill className="h-4 w-4" />
+                            Medications ({userMedications.length})
+                          </h5>
+                          {userMedications.length > 0 ? (
+                            <div className="text-sm space-y-1">
+                              {userMedications.map(med => (
+                                <div key={med.id} className="flex items-center gap-2">
+                                  <span className="text-primary">•</span>
+                                  <span className="font-medium">{med.name}</span>
+                                  {med.dosage && <span className="text-muted-foreground">— {med.dosage}</span>}
+                                  {med.medication_type && <Badge variant="outline" className="text-xs ml-1">{med.medication_type}</Badge>}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No medications on file</p>
+                          )}
+                        </Card>
+                      )}
+
                       {/* Professional Capabilities & Services */}
                       {comprehensiveData.profile.role === 'professional' && (
                         <Card className="p-4">
