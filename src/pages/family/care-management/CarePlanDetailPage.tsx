@@ -40,6 +40,8 @@ const CarePlanDetailPage = () => {
   const initialTab = searchParams.get('tab') || 'details';
   const [activeTab, setActiveTab] = useState(initialTab);
 
+  const isProfessionalView = searchParams.get('from') === 'professional';
+
   // ALL hooks must be called before any conditional returns
   const {
     loading,
@@ -55,6 +57,7 @@ const CarePlanDetailPage = () => {
   } = useCarePlanData({
     carePlanId: id || '',
     userId: user?.id || '',
+    isProfessionalView,
   });
 
   // Redirect if not authenticated
