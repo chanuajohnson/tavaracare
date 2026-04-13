@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import type { RateType } from '@/services/care-plans/types/workLogTypes';
+import { syncPayrollEntryWithWorkLog } from '@/services/care-plans/payrollService';
 
 interface RateState {
   baseRate: number | null;
