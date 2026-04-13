@@ -61,3 +61,53 @@ export const updateWorkLogBaseRateAndMultiplier = async (
     return false;
   }
 };
+
+// Sync a pending payroll entry with the current work log rates
+// Called after saveRates() for immediate UI feedback (the DB trigger handles the actual sync)
+export const syncPayrollEntryWithWorkLog = async (workLogId: string): Promise<boolean> => {
+  try {
+    // Fetch the work log's current rates and hours
+    const { data: workLog, error: wlError } = await supabase
+      .from('work_logs')
+      .select('base_rate, rate_multiplier, rate_type')
+      .eq('id', workLogId)
+      .single();
+
+    if (wlError) throw wlError;
+
+    const effectiveRate = (workLog.base_rate || 25) * (workLog.rate_multiplier || 1);
+
+    // Fetch and update any pending payroll entries linked to this work log
+    const { data: entries, error: peError } = await supabase
+      .from('payroll_entries')
+      .select('id, regular_hours, expense_total')
+      .eq('work_log_id', workLogId)
+      .eq('payment_status', 'pending');
+
+    if (peError) throw peError;
+    if (!entries || entries.length === 0) return true;
+
+    for (const entry of entries) {
+      const newGross = Math.round((entry.regular_hours || 0) * effectiveRate * 100) / 100;
+      const newTotal = Math.round((newGross + (entry.expense_total || 0)) * 100) / 100;
+
+      const { error: updateError } = await supabase
+        .from('payroll_entries')
+        .update({
+          regular_rate: effectiveRate,
+          gross_pay: newGross,
+          total_amount: newTotal,
+          net_pay_after_nis: newTotal,
+        })
+        .eq('id', entry.id);
+
+      if (updateError) throw updateError;
+    }
+
+    console.log(`Synced ${entries.length} pending payroll entries for work_log ${workLogId}`);
+    return true;
+  } catch (error) {
+    console.error('Error syncing payroll entry with work log:', error);
+    return false;
+  }
+};
