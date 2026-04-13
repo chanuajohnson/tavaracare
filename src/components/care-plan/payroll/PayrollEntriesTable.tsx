@@ -6,21 +6,33 @@ import { format, formatDistanceToNow } from "date-fns";
 import { PayrollStatusBadge } from "./PayrollStatusBadge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Receipt, Check, Calendar, Download } from "lucide-react";
+import { Receipt, Check, Calendar, Download, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ShareReceiptDialog } from "./ShareReceiptDialog";
 import { generatePayReceipt, generateConsolidatedReceipt } from "@/services/care-plans/receiptService";
 import { toast } from "sonner";
 import type { PayrollEntry } from "@/services/care-plans/types/workLogTypes";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface PayrollEntriesTableProps {
   entries: PayrollEntry[];
   onProcessPayment: (id: string) => void;
+  onDeleteEntries?: (ids: string[]) => Promise<{ deleted: number; failed: number }>;
 }
 
 export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   entries,
-  onProcessPayment
+  onProcessPayment,
+  onDeleteEntries
 }) => {
   const isMobile = useIsMobile();
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
