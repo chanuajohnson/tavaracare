@@ -242,7 +242,12 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
                         key={shift.id} 
                         className={`text-xs p-1.5 rounded ${caregiverColorClass} border flex flex-col`}
                       >
-                        <div className="font-medium truncate">{shift.title}</div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium truncate flex-1">{shift.title}</span>
+                          {loggedShiftIds.has(shift.id) && (
+                            <CheckCircle2 className="h-3 w-3 text-green-600 flex-shrink-0" />
+                          )}
+                        </div>
                         <div className="text-muted-foreground truncate">
                           {getTimeDisplay(shift.startTime)} - {getTimeDisplay(shift.endTime)}
                         </div>
