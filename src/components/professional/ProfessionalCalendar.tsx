@@ -391,6 +391,36 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
                             {shift.location && (
                               <p className="text-xs text-gray-500 mt-1">Location: {shift.location}</p>
                             )}
+                            {isUserShift && (
+                              <div className="mt-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-1"
+                                  onClick={() => {
+                                    const careShift: CareShift = {
+                                      id: shift.id,
+                                      carePlanId: shift.carePlanId || carePlanId || '',
+                                      familyId: shift.familyId || '',
+                                      caregiverId: shift.caregiverId,
+                                      title: shift.title,
+                                      description: shift.description,
+                                      location: shift.location,
+                                      status: shift.status,
+                                      startTime: shift.startTime,
+                                      endTime: shift.endTime,
+                                      createdAt: shift.createdAt || '',
+                                      updatedAt: shift.updatedAt || '',
+                                    };
+                                    setSelectedShiftForLog(careShift);
+                                    setWorkLogFormOpen(true);
+                                  }}
+                                >
+                                  <FileText className="h-3.5 w-3.5" />
+                                  Log Hours
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
