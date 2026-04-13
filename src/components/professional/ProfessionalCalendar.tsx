@@ -31,6 +31,8 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
   const [checklistDialogOpen, setChecklistDialogOpen] = useState(false);
   const [checklistPreload, setChecklistPreload] = useState<{ logId?: string; clientName?: string; date?: string }>({});
   const [deletingLogId, setDeletingLogId] = useState<string | null>(null);
+  const [workLogFormOpen, setWorkLogFormOpen] = useState(false);
+  const [selectedShiftForLog, setSelectedShiftForLog] = useState<CareShift | null>(null);
   
   const { 
     shifts, 
