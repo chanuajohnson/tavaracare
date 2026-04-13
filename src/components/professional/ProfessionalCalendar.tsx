@@ -24,6 +24,18 @@ interface ProfessionalCalendarProps {
 
 export function ProfessionalCalendar({ carePlanId, loading = false }: ProfessionalCalendarProps) {
   const { user } = useAuth();
+
+  // Resolve log client_name: if it looks like bad data, prefer shift-level family name
+  const resolveLogClientName = (clientName?: string | null): string => {
+    if (!clientName) return 'Care Log';
+    // Detect suspicious patterns like "Family Family" or "User1 Family"
+    if (/family\s+family/i.test(clientName) || /^user\d/i.test(clientName)) {
+      // Try to find a good family name from the loaded shifts
+      const shiftWithFamily = shifts.find(s => s.familyName);
+      return shiftWithFamily?.familyName || 'Care Log';
+    }
+    return clientName;
+  };
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
   const [selectedDateDetails, setSelectedDateDetails] = useState<{date: Date, shifts: any[]} | null>(null);
@@ -289,7 +301,7 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
                         <div className="flex items-center gap-2 min-w-0">
                           <ClipboardCheck className="h-4 w-4 text-emerald-600 flex-shrink-0" />
                           <div className="min-w-0">
-                            <span className="text-sm font-medium truncate block">{log.client_name || 'Care Log'}</span>
+                            <span className="text-sm font-medium truncate block">{resolveLogClientName(log.client_name)}</span>
                             <span className="text-xs text-muted-foreground">
                               {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
                             </span>
@@ -321,7 +333,7 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Daily Care Log?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will permanently delete the care log for "{log.client_name}" on {selectedDateStr}. This action cannot be undone.
+                                  This will permanently delete the care log for "{resolveLogClientName(log.client_name)}" on {selectedDateStr}. This action cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { CareShift } from "@/types/careTypes";
@@ -46,6 +46,21 @@ export function useCarePlanShifts(initialFilters?: UseCarePlanShiftsFilters) {
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<UseCarePlanShiftsFilters>(initialFilters || {});
   const { user } = useAuth();
+
+  // Sync filters when initialFilters props change (e.g. care plan switch)
+  const prevCarePlanIdRef = useRef(initialFilters?.carePlanId);
+  useEffect(() => {
+    if (initialFilters?.carePlanId !== prevCarePlanIdRef.current) {
+      console.log("Care plan changed from", prevCarePlanIdRef.current, "to", initialFilters?.carePlanId);
+      prevCarePlanIdRef.current = initialFilters?.carePlanId;
+      setFilters(prev => ({
+        ...prev,
+        carePlanId: initialFilters?.carePlanId,
+        startDate: initialFilters?.startDate ?? prev.startDate,
+        endDate: initialFilters?.endDate ?? prev.endDate,
+      }));
+    }
+  }, [initialFilters?.carePlanId, initialFilters?.startDate, initialFilters?.endDate]);
   
   useEffect(() => {
     if (user && filters.carePlanId) {
@@ -124,9 +139,13 @@ export function useCarePlanShifts(initialFilters?: UseCarePlanShiftsFilters) {
       
       // Collect caregiver IDs where the FK join returned NULL (RLS issue)
       const missingCaregiverIds = new Set<string>();
+      const missingFamilyIds = new Set<string>();
       (data || []).forEach((item: any) => {
         if (item.caregiver_id && !item.profiles) {
           missingCaregiverIds.add(item.caregiver_id);
+        }
+        if (item.family_id && !item.family_profile) {
+          missingFamilyIds.add(item.family_id);
         }
       });
 
@@ -149,6 +168,24 @@ export function useCarePlanShifts(initialFilters?: UseCarePlanShiftsFilters) {
           });
         }
       }
+
+      // Fallback: fetch family profiles separately if FK join failed (RLS)
+      let familyFallbackMap: Record<string, string> = {};
+      if (missingFamilyIds.size > 0) {
+        console.log("FK join returned NULL for family profiles, fetching via RPC fallback:", [...missingFamilyIds]);
+        const { data: fallbackFamilies } = await supabase
+          .rpc('get_professional_accessible_family_profiles', { 
+            professional_id: user.id 
+          });
+        
+        if (fallbackFamilies) {
+          fallbackFamilies.forEach((f: any) => {
+            if (missingFamilyIds.has(f.id)) {
+              familyFallbackMap[f.id] = f.full_name || 'Unknown Family';
+            }
+          });
+        }
+      }
       
       // Transform the data with caregiver details
       const careShifts: CareShiftWithCaregiverDetails[] = [];
@@ -158,6 +195,11 @@ export function useCarePlanShifts(initialFilters?: UseCarePlanShiftsFilters) {
           
           // Resolve caregiver details: prefer FK join, fallback to RPC
           const profileData = item.profiles || (item.caregiver_id ? caregiverFallbackMap[item.caregiver_id] : undefined);
+
+          // Resolve family name: prefer FK join, fallback to RPC
+          const familyName = item.family_profile?.full_name 
+            || (item.family_id ? familyFallbackMap[item.family_id] : undefined)
+            || undefined;
           
           const shiftWithDetails: CareShiftWithCaregiverDetails = {
             ...shift,
@@ -167,7 +209,7 @@ export function useCarePlanShifts(initialFilters?: UseCarePlanShiftsFilters) {
               avatar_url: profileData.avatar_url
             } : undefined,
             carePlanTitle: item.care_plans?.title || undefined,
-            familyName: item.family_profile?.full_name || undefined
+            familyName
           };
           careShifts.push(shiftWithDetails);
         } catch (err) {
