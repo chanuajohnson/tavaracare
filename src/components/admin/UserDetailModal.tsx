@@ -186,7 +186,27 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
     loadMeds();
   }, [user, isOpen]);
 
-  const fetchUserDetails = async () => {
+  // Fetch care plans for family users
+  useEffect(() => {
+    if (!user || !isOpen || user.role !== 'family') {
+      setUserCarePlans([]);
+      return;
+    }
+    const loadCarePlans = async () => {
+      try {
+        const { data } = await supabase
+          .from('care_plans')
+          .select('id, title, status')
+          .eq('family_id', user.id)
+          .order('created_at', { ascending: false });
+        setUserCarePlans(data || []);
+      } catch {
+        setUserCarePlans([]);
+      }
+    };
+    loadCarePlans();
+  }, [user, isOpen]);
+
     if (!user) return;
 
     try {
