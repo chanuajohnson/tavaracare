@@ -9,7 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { RateTypeSelector } from './RateTypeSelector';
 import { Progress } from "@/components/ui/progress";
-import { format, isWithinInterval, parseISO } from "date-fns";
+import { format, isWithinInterval, parseISO, endOfDay } from "date-fns";
 import { CalendarIcon, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CareShift, CareTeamMemberWithProfile } from "@/types/careTypes";
@@ -51,7 +51,7 @@ export const BulkWorkLogForm: React.FC<BulkWorkLogFormProps> = ({
     return careShifts.filter(shift => {
       if (shift.caregiverId !== selectedCaregiverId) return false;
       const shiftDate = parseISO(shift.startTime);
-      return isWithinInterval(shiftDate, { start: startDate, end: endDate });
+      return isWithinInterval(shiftDate, { start: startDate, end: endOfDay(endDate) });
     });
   }, [selectedCaregiverId, startDate, endDate, careShifts]);
 
