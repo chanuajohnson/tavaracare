@@ -1,79 +1,60 @@
+## Plan: Fix NIS $0 Values and Enhance Monthly Summary with Weekly Breakdown
+
+### Root Cause of $0 NIS
+
+The database confirms all 5 paid entries (Mar 30 – Apr 3) have `nis_applicable: false`, `employee_contribution: 0`, `employer_contribution: 0`. This happened because the NIS edge function was failing when these entries were originally processed. The code processed them anyway with a warning: "NIS calculation failed — not applied." The edge function is now working, but the data was never backfilled. **What to tell the Tavara project to debug:**
+
+> ***Check your calculate-nis proxy edge function. The Nuacha API at [https://fjrxqeyexlusjwzzecal.supabase.co/functions/v1/payroll-api](https://fjrxqeyexlusjwzzecal.supabase.co/functions/v1/payroll-api) is confirmed working -- calling it with {"action":"calculate-nis","weekly_earnings":1400} returns NIS Class 10, employee $19.80, employer $41.25. The issue is on our side. Please verify:***
+>
+> 1. ***The NUACHA_API_KEY secret is set in Supabase edge function secrets***
+> 2. ***The proxy edge function is deployed and calling the correct URL***
+> 3. ***The response is being parsed correctly and not silently swallowed on error***
+> 4. ***Check edge function logs for the actual error***
+
+### Changes
+
+**1. Add "Recalculate NIS" action for paid weeks with missing NIS**
 
 
-## Plan: Weekly Grouped Payroll View + Fix NIS Edge Function
+| File                                                       | Change                                                                                                                                                                             |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/services/care-plans/work-logs/payrollService.ts`      | Add `recalculateWeeklyNIS(entryId)` — fetches all entries in the same week, calls NIS API on weekly total, distributes contributions proportionally, and updates entries in the DB |
+| `src/components/care-plan/payroll/PayrollEntriesTable.tsx` | When a paid week has `employeeContribution === 0 && weeklyGross > 200`, show a "Recalculate NIS" button in the weekly summary area                                                 |
+| `src/hooks/payroll/usePayrollData.ts`                      | Add `handleRecalculateNIS` handler, pass to table                                                                                                                                  |
 
-### Problem
 
-1. **NIS details shown per daily entry** — Each payroll entry row shows its own NIS breakdown (class, employee/employer contributions). But NIS in T&T is a **weekly** contribution, not daily. Showing NIS per-day is misleading.
+**2. Enhance Monthly Summary to show per-week rows**
 
-2. **Payroll entries listed individually by day** — The table shows one row per daily work log. There's no weekly grouping. Per T&T law, NIS is calculated on the weekly total and paid monthly (sum of 4-5 weeks).
 
-3. **NIS API call failing** — The Process Payment dialog shows "Failed to send a request to the Edge Function." The `nis-payroll-proxy` edge function needs to be redeployed (it boots but may not be properly deployed to the current project).
+| File                                                       | Change                                                                                                                                                                                                      |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/components/care-plan/payroll/PayrollEntriesTable.tsx` | Expand the Monthly Summary section: each month row becomes collapsible, revealing its constituent weeks with individual gross, employee NIS, employer NIS, and net pay. The month row shows the sum totals. |
 
-### Solution
 
-#### 1. Group Payroll Entries by ISO Week (Mon-Sun) in the Table
+### UI Result
 
-**File: `src/components/care-plan/payroll/PayrollEntriesTable.tsx`**
+**Weekly NIS Summary (when expanded):**
 
-- Group entries by caregiver + ISO week (weeks start Monday)
-- Render a **week header row** showing: caregiver name, week range (e.g., "Mon Mar 30 – Sun Apr 5, 2026"), weekly gross total, weekly NIS summary
-- Under each week header, show the individual daily entries (collapsed by default, expandable)
-- The NIS details (class, employee/employer contributions, net pay) appear **only on the week header row**, not on individual daily entries
-- Remove per-entry NIS display from individual rows
+- Shows NIS Class, Weekly Gross, Employee NIS, Employer NIS, Weekly Net Pay
+- If NIS is $0 on a paid week with gross > $200: shows a yellow "Recalculate NIS" button
+- After recalculation, values update to the correct NIS class amounts
 
-#### 2. Weekly NIS Summary in Details
+**Monthly Summary (expanded):**
 
-The expanded "Details" view for paid entries currently shows NIS per entry. Change this to:
-
-- Show NIS details **at the weekly group level** only
-- Weekly detail shows: NIS Class, total weekly gross, employee NIS (weekly), employer NIS (weekly), net pay (weekly)
-- Individual entry details show only: payment date, gross pay, hours breakdown
-
-#### 3. Monthly Summary Section
-
-Add a collapsible monthly summary below the table:
-- Group weeks into months (4 or 5 weeks per month)
-- Show: month name, total gross, total NIS employee, total NIS employer, total net pay
-- This gives the "paid monthly as a sum of each week" view
-
-#### 4. Fix NIS Edge Function
-
-**File: `supabase/functions/nis-payroll-proxy/index.ts`**
-
-- Redeploy the edge function (it's booting but the API call fails — likely needs fresh deployment)
-- Add better error logging to capture the actual failure reason
-
-### Technical Details
-
-**Grouping logic** (new utility function):
 ```text
-groupEntriesByWeek(entries) → Map<string, { weekStart, weekEnd, caregiver, entries[], weeklyGross, nisDetails }>
-```
-- Key: `{caregiverId}_{weekStartISO}`
-- Uses `startOfWeek(date, { weekStartsOn: 1 })` (already imported in payrollService)
+March 2026                    1 week   $1,400.00   $19.80   $41.25   $1,380.20
+  └─ Week: Mar 30 – Apr 5    5 entries $1,400.00   $19.80   $41.25   $1,380.20
 
-**Table structure change:**
-```text
-Week: Mon Mar 30 – Sun Apr 5 | Angela Newton | $1,400.00 gross | NIS Class X | Net $X,XXX
-  ├─ Mar 30  8h @ $35/hr  $280.00  paid
-  ├─ Mar 31  8h @ $35/hr  $280.00  paid
-  ├─ Apr 1   8h @ $35/hr  $280.00  paid
-  ├─ Apr 2   8h @ $35/hr  $280.00  paid
-  └─ Apr 3   8h @ $35/hr  $280.00  paid
+April 2026                    2 weeks  $2,800.00   $39.60   $82.50   $2,760.40
+  └─ Week: Apr 6 – Apr 12    5 entries $1,400.00   $19.80   $41.25   $1,380.20
+  └─ Week: Apr 13 – Apr 19   5 entries $1,400.00   $19.80   $41.25   $1,380.20
 ```
 
 ### Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/components/care-plan/payroll/PayrollEntriesTable.tsx` | Group entries by week, render week headers with NIS summary, remove per-entry NIS display |
-| `src/utils/payroll/groupByWeek.ts` (new) | Utility to group entries by caregiver + ISO week |
-| `supabase/functions/nis-payroll-proxy/index.ts` | Redeploy edge function to fix API connectivity |
 
-### Safety
-- Individual entry data remains accessible (expandable under week groups)
-- No database changes needed — this is purely a UI presentation change
-- Paid entry NIS data already stored correctly at weekly level in the DB (distributed proportionally across entries)
-- Weekly grouping uses same ISO week logic already in `payrollService.ts`
-
+| File                                                       | Change                                                                                    |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `src/services/care-plans/work-logs/payrollService.ts`      | Add `recalculateWeeklyNIS()` function                                                     |
+| `src/components/care-plan/payroll/PayrollEntriesTable.tsx` | Add recalculate button for missing NIS + expand monthly summary with per-week detail rows |
+| `src/hooks/payroll/usePayrollData.ts`                      | Add `handleRecalculateNIS` handler                                                        |
