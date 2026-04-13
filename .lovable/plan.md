@@ -1,43 +1,44 @@
 
 
-## Plan: Add "Delete Selected" for Pending Payroll Entries
+## Plan: Auto-Update Payroll Entries When Work Log Rates Change
 
 ### Problem
-Family users have no way to delete duplicate or incorrect pending payroll entries. The UI has checkboxes and selection, but no delete action. Additionally, RLS only grants admin users DELETE access to `payroll_entries`.
+When you edit a work log's base rate (e.g., changing from $25/hr to $35/hr) and save, the linked payroll entry keeps the old rate ($25/hr, $200 total). The payroll entry is a one-time snapshot created at approval time and never syncs back.
 
-### What Will Change
+### Root Cause
+In `approvalService.ts`, when a work log is approved, `calculatePayrollEntry()` reads the current rates and inserts a payroll entry. After that, no mechanism exists to propagate rate changes from `work_logs` to `payroll_entries`.
 
-**1. Database Migration — RLS policy for family DELETE on pending payroll entries**
-- Add a policy: family can DELETE from `payroll_entries` WHERE `payment_status = 'pending'` AND the `care_plan_id` belongs to a care plan owned by the family (`care_plans.family_id = auth.uid()`)
-- Add a policy: family can UPDATE `work_logs` status back to `pending` for work logs on their care plans (needed to reset the linked work log)
+### Solution: Database Trigger + Application-Level Sync
 
-**2. Service function — `deletePayrollEntries` in `src/services/care-plans/work-logs/payrollService.ts`**
-- Accepts an array of payroll entry IDs
-- For each entry: fetch `work_log_id`, delete the payroll entry, then update the linked work log status back to `'pending'`
-- Only operates on entries with `payment_status = 'pending'`
-- Returns success/failure count
+**1. Database trigger (migration)** — Create a PostgreSQL trigger on `work_logs` that fires `AFTER UPDATE` and automatically recalculates the linked pending payroll entry whenever `base_rate`, `rate_multiplier`, or `rate_type` changes on the work log.
 
-**3. UI — "Delete Selected" button in `PayrollEntriesTable.tsx`**
-- When entries are selected AND at least one is `pending`, show a red "Delete Selected (N)" button in the bulk action bar (alongside existing Receipt/Download buttons)
-- Clicking it opens an `AlertDialog` confirmation: "Delete N pending payroll entries? The linked work logs will be reset to pending so you can re-approve them."
-- On confirm, calls `deletePayrollEntries`, shows toast, and triggers data refresh
+The trigger function will:
+- Only fire when rate-related columns actually change (`base_rate`, `rate_multiplier`, `rate_type`)
+- Only update payroll entries with `payment_status = 'pending'` (never touch paid entries)
+- Recalculate `regular_rate`, `gross_pay`, `total_amount`, and `net_pay_after_nis` using the new rates
+- Leave hours, expenses, and other fields unchanged
 
-**4. Hook update — `usePayrollData.ts`**
-- Add `handleDeletePayrollEntries` function that calls the service and reloads data
-- Pass it down through `PayrollTab` → `PayrollEntriesTable`
+```text
+work_logs UPDATE (base_rate/rate_multiplier changed)
+  → trigger: update_payroll_on_rate_change()
+    → UPDATE payroll_entries SET regular_rate, gross_pay, total_amount, net_pay_after_nis
+       WHERE work_log_id = NEW.id AND payment_status = 'pending'
+```
+
+**2. Application-level sync in `useWorkLogRate.ts`** — After `saveRates()` successfully updates the work log, also call a service function to refresh any pending payroll entry linked to that work log. This provides immediate UI feedback without waiting for a page reload.
+
+**3. Service function in `payrollService.ts`** — Add `syncPayrollEntryWithWorkLog(workLogId)` that fetches the work log's current rates and updates the linked pending payroll entry. Called from `saveRates()` and also usable standalone.
 
 ### Files to Change
 
 | File | Change |
 |------|--------|
-| New migration | RLS: family DELETE on pending payroll_entries; family UPDATE work_logs for reset |
-| `src/services/care-plans/work-logs/payrollService.ts` | Add `deletePayrollEntries(ids: string[])` |
-| `src/hooks/payroll/usePayrollData.ts` | Add `handleDeletePayrollEntries` |
-| `src/components/care-plan/PayrollTab.tsx` | Pass delete handler to PayrollEntriesTable |
-| `src/components/care-plan/payroll/PayrollEntriesTable.tsx` | Add Delete Selected button with AlertDialog confirmation |
+| New migration | Trigger `update_payroll_on_rate_change` on `work_logs` table |
+| `src/services/care-plans/payrollService.ts` | Add `syncPayrollEntryWithWorkLog(workLogId)` |
+| `src/hooks/payroll/useWorkLogRate.ts` | Call sync after `saveRates()` succeeds |
 
 ### Safety
-- Only pending entries can be deleted (enforced both in code and RLS)
-- Confirmation dialog required before deletion
-- Work logs are reset to pending (not deleted), so they can be re-approved with correct data
+- Trigger only affects `pending` payroll entries — paid entries are never modified
+- If no payroll entry exists for the work log, the trigger does nothing
+- The trigger handles the case where rates are updated outside the app (e.g., direct DB edit)
 
