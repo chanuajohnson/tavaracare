@@ -519,6 +519,33 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Work Log Dialog */}
+      <Dialog open={workLogFormOpen} onOpenChange={setWorkLogFormOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Log Work Hours
+            </DialogTitle>
+          </DialogHeader>
+          {selectedShiftForLog && (
+            <WorkLogForm
+              carePlanId={selectedShiftForLog.carePlanId}
+              shift={selectedShiftForLog}
+              onSuccess={() => {
+                setWorkLogFormOpen(false);
+                setSelectedShiftForLog(null);
+                toast.success('Work hours logged successfully');
+              }}
+              onCancel={() => {
+                setWorkLogFormOpen(false);
+                setSelectedShiftForLog(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
