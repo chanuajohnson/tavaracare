@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Edit, Plus, Trash2, Clock, User, Receipt, Calendar } from "lucide-react";
+import { ArrowLeft, ArrowRight, Edit, Plus, Trash2, Clock, User, Receipt, Calendar, CheckCircle2 } from "lucide-react";
 import { format, addDays, isSameDay, addWeeks, subWeeks } from 'date-fns';
 import { CareShift, CareTeamMemberWithProfile } from "@/types/careTypes";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 interface ShiftCalendarProps {
   selectedWeek: Date;
@@ -35,6 +36,25 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedDateShifts, setSelectedDateShifts] = useState<CareShift[]>([]);
   const [filterByCaregiver, setFilterByCaregiver] = useState<string | 'all'>('all');
+  const [loggedShiftIds, setLoggedShiftIds] = useState<Set<string>>(new Set());
+
+  // Fetch which shifts already have work logs
+  useEffect(() => {
+    const fetchLoggedShifts = async () => {
+      const shiftIds = careShifts.map(s => s.id).filter(Boolean);
+      if (shiftIds.length === 0) return;
+      
+      const { data, error } = await supabase
+        .from('work_logs')
+        .select('shift_id')
+        .in('shift_id', shiftIds);
+      
+      if (!error && data) {
+        setLoggedShiftIds(new Set(data.map(d => d.shift_id).filter(Boolean)));
+      }
+    };
+    fetchLoggedShifts();
+  }, [careShifts]);
 
   const navigateWeek = (direction: 'prev' | 'next') => {
     setSelectedWeek(prev => {
