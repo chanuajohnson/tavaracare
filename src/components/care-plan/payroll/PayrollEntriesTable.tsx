@@ -5,7 +5,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { PayrollStatusBadge } from "./PayrollStatusBadge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Receipt, Check, Calendar, Download, Trash2, Undo2, ChevronDown, ChevronUp } from "lucide-react";
+import { Receipt, Check, Calendar, Download, Trash2, Undo2, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ShareReceiptDialog } from "./ShareReceiptDialog";
 import { generatePayReceipt, generateConsolidatedReceipt } from "@/services/care-plans/receiptService";
@@ -29,13 +29,15 @@ interface PayrollEntriesTableProps {
   onProcessPayment: (id: string) => void;
   onDeleteEntries?: (ids: string[]) => Promise<{ deleted: number; failed: number }>;
   onUndoPayment?: (id: string) => Promise<boolean>;
+  onRecalculateNIS?: (entryId: string) => Promise<boolean>;
 }
 
 export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   entries,
   onProcessPayment,
   onDeleteEntries,
-  onUndoPayment
+  onUndoPayment,
+  onRecalculateNIS
 }) => {
   const isMobile = useIsMobile();
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
@@ -50,6 +52,8 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
   const [expandedWeekDetails, setExpandedWeekDetails] = useState<Set<string>>(new Set());
   const [showMonthlySummary, setShowMonthlySummary] = useState(false);
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
+  const [isRecalculating, setIsRecalculating] = useState(false);
 
   const weekGroups = useMemo(() => groupEntriesByWeek(entries), [entries]);
   const monthGroups = useMemo(() => groupWeeksByMonth(weekGroups), [weekGroups]);
