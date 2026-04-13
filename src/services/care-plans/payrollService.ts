@@ -80,7 +80,7 @@ export const syncPayrollEntryWithWorkLog = async (workLogId: string): Promise<bo
     // Fetch and update any pending payroll entries linked to this work log
     const { data: entries, error: peError } = await supabase
       .from('payroll_entries')
-      .select('id, hours_worked, expense_amount')
+      .select('id, regular_hours, expense_total')
       .eq('work_log_id', workLogId)
       .eq('payment_status', 'pending');
 
@@ -88,8 +88,8 @@ export const syncPayrollEntryWithWorkLog = async (workLogId: string): Promise<bo
     if (!entries || entries.length === 0) return true;
 
     for (const entry of entries) {
-      const newGross = Math.round((entry.hours_worked || 0) * effectiveRate * 100) / 100;
-      const newTotal = Math.round((newGross + (entry.expense_amount || 0)) * 100) / 100;
+      const newGross = Math.round((entry.regular_hours || 0) * effectiveRate * 100) / 100;
+      const newTotal = Math.round((newGross + (entry.expense_total || 0)) * 100) / 100;
 
       const { error: updateError } = await supabase
         .from('payroll_entries')
