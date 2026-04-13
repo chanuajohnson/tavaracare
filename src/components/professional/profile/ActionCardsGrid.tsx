@@ -2,16 +2,31 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Award, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface ActionCardsGridProps {
   isTrainingExpanded: boolean;
   onToggleTraining: () => void;
+  carePlanId?: string;
 }
 
-export const ActionCardsGrid = ({ isTrainingExpanded, onToggleTraining }: ActionCardsGridProps) => {
+export const ActionCardsGrid = ({ isTrainingExpanded, onToggleTraining, carePlanId }: ActionCardsGridProps) => {
+  const navigate = useNavigate();
+
+  const handleWorkLogsClick = () => {
+    if (carePlanId) {
+      navigate(`/family/care-management/${carePlanId}?tab=payroll`);
+    } else {
+      navigate('/professional/profile');
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <Card>
+      <Card 
+        className="cursor-pointer hover:shadow-md transition-shadow"
+        onClick={handleWorkLogsClick}
+      >
         <CardContent className="pt-6">
           <div className="flex items-center gap-3">
             <div className="bg-primary/10 p-3 rounded-full">
