@@ -4,6 +4,7 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, FileText, UserCog, Building, Users, ChevronDown, ChevronUp, Heart, Calendar, User, MessageCircle, DollarSign, X } from "lucide-react";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { EnhancedFamilyNextStepsPanel } from "@/components/family/EnhancedFamilyNextStepsPanel";
@@ -128,35 +129,47 @@ const FamilyDashboard = () => {
         {/* Rate Information Blurb */}
         {showRateInfo && (
           <div className="mt-4">
-            <Card className="bg-blue-50 border-blue-200 relative">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute top-2 right-2 h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  setShowRateInfo(false);
-                  localStorage.setItem('tavara_rate_info_dismissed', 'true');
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-1.5 bg-blue-100 rounded-lg shrink-0 mt-0.5">
-                    <DollarSign className="h-5 w-5 text-blue-700" />
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-blue-900">Tavara Care Rates</h4>
-                    <div className="space-y-1 text-sm">
+            <Collapsible defaultOpen={false}>
+              <Card className="bg-blue-50 border-blue-200 relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-2 right-2 h-6 w-6 p-0 text-muted-foreground hover:text-foreground z-10"
+                  onClick={() => {
+                    setShowRateInfo(false);
+                    localStorage.setItem('tavara_rate_info_dismissed', 'true');
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <CollapsibleTrigger asChild>
+                  <button className="w-full text-left">
+                    <CardContent className="p-4 pr-10">
+                      <div className="flex items-center gap-3">
+                        <div className="p-1.5 bg-blue-100 rounded-lg shrink-0">
+                          <DollarSign className="h-5 w-5 text-blue-700" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-blue-900">Tavara Care Rates</h4>
+                          <p className="text-sm text-blue-600">$35–$45+/hr · Click to view tier details</p>
+                        </div>
+                        <ChevronDown className="h-4 w-4 text-blue-600 shrink-0 transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
+                      </div>
+                    </CardContent>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-0 px-4 pb-4">
+                    <div className="space-y-1 text-sm border-t border-blue-200 pt-3 ml-10">
                       <p><span className="font-medium text-blue-800">$35/hr — Standard:</span> <span className="text-blue-700">GAPP-certified personal care, medication admin &amp; logging, vitals monitoring, basic daily dietary meal prep, daily care documentation, specialized care (dementia, palliative, post-surgical)</span></p>
                       <p><span className="font-medium text-blue-800">$40/hr — Full Service (Recommended):</span> <span className="text-blue-700">Everything in Standard + specialist-directed meal prep (holidays &amp; special occasions), complex medical needs (wound/catheter/oxygen care), overnight/live-in shifts, advanced certifications (RN, LPN)</span></p>
                       <p><span className="font-medium text-blue-800">$45+/hr — Premium:</span> <span className="text-blue-700">Everything in Full Service + care plan change management, disease progression support, multi-specialist coordination, 24/7 on-call, advanced palliative/end-of-life care, family training &amp; transition planning</span></p>
+                      <p className="text-xs text-blue-600 pt-1">These rates reflect the professional standards of certified caregivers in Trinidad &amp; Tobago.</p>
                     </div>
-                    <p className="text-xs text-blue-600">These rates reflect the professional standards of certified caregivers in Trinidad &amp; Tobago.</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
           </div>
         )}
 
