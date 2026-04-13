@@ -74,12 +74,14 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   onClose,
   onUserUpdate
 }) => {
+  const navigate = useNavigate();
   const [careNeeds, setCareNeeds] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
   const [anonymousReport, setAnonymousReport] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [userMedications, setUserMedications] = useState<Array<{ id: string; name: string; dosage?: string; medication_type?: string }>>([]);
+  const [userCarePlans, setUserCarePlans] = useState<Array<{ id: string; title: string; status: string | null }>>([]);
 
   // Only call hooks when user and role are valid
   const shouldCallFamilyHook = user?.role === 'family' && user?.id;
