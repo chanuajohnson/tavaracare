@@ -292,7 +292,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                                 key={entry.id}
                                 variant="outline"
                                 size="sm"
-                                className="h-7 gap-1 text-xs border-amber-200 hover:bg-amber-50 hover:text-amber-700"
+                                className="h-7 gap-1 text-xs border-warning hover:bg-warning/10 hover:text-warning-foreground"
                                 onClick={() => {
                                   setUndoTargetId(entry.id);
                                   setUndoDialogOpen(true);
