@@ -11,7 +11,7 @@ export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEn
         *,
         care_team_members:care_team_member_id (
           caregiver_id,
-          profiles:caregiver_id (
+          profiles!caregiver_id (
             full_name
           )
         )

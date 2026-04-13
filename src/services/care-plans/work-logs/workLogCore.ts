@@ -12,7 +12,7 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
         *,
         care_team_members:care_team_member_id (
           caregiver_id,
-          profiles:caregiver_id (
+          profiles!caregiver_id (
             full_name
           )
         )
