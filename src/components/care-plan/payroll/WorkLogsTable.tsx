@@ -17,12 +17,14 @@ interface WorkLogsTableProps {
   workLogs: WorkLog[];
   onApprove: (id: string) => void;
   onReject: (id: string, reason: string) => Promise<boolean>;
+  isProfessionalView?: boolean;
 }
 
 export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({ 
   workLogs,
   onApprove,
-  onReject
+  onReject,
+  isProfessionalView = false
 }) => {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [currentWorkLog, setCurrentWorkLog] = useState<WorkLog | null>(null);
@@ -67,6 +69,7 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
               onApprove={onApprove}
               onReject={onReject}
               onGenerateReceipt={handleGenerateReceipt}
+              isProfessionalView={isProfessionalView}
             />
           ))}
         </TableBody>
