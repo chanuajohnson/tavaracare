@@ -3157,11 +3157,18 @@ export type Database = {
           care_plan_id: string
           care_team_member_id: string
           created_at: string | null
+          employee_contribution: number | null
+          employer_contribution: number | null
           entered_at: string | null
           expense_total: number | null
+          gross_pay: number | null
           holiday_hours: number | null
           holiday_rate: number | null
           id: string
+          net_pay_after_nis: number | null
+          nis_applicable: boolean | null
+          nis_class: string | null
+          nis_response: Json | null
           overtime_hours: number | null
           overtime_rate: number | null
           pay_period_end: string | null
@@ -3178,11 +3185,18 @@ export type Database = {
           care_plan_id: string
           care_team_member_id: string
           created_at?: string | null
+          employee_contribution?: number | null
+          employer_contribution?: number | null
           entered_at?: string | null
           expense_total?: number | null
+          gross_pay?: number | null
           holiday_hours?: number | null
           holiday_rate?: number | null
           id?: string
+          net_pay_after_nis?: number | null
+          nis_applicable?: boolean | null
+          nis_class?: string | null
+          nis_response?: Json | null
           overtime_hours?: number | null
           overtime_rate?: number | null
           pay_period_end?: string | null
@@ -3199,11 +3213,18 @@ export type Database = {
           care_plan_id?: string
           care_team_member_id?: string
           created_at?: string | null
+          employee_contribution?: number | null
+          employer_contribution?: number | null
           entered_at?: string | null
           expense_total?: number | null
+          gross_pay?: number | null
           holiday_hours?: number | null
           holiday_rate?: number | null
           id?: string
+          net_pay_after_nis?: number | null
+          nis_applicable?: boolean | null
+          nis_class?: string | null
+          nis_response?: Json | null
           overtime_hours?: number | null
           overtime_rate?: number | null
           pay_period_end?: string | null
@@ -5787,6 +5808,20 @@ export type Database = {
           full_name: string
           id: string
           role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
+      get_professional_care_plan_team_members: {
+        Args: { plan_id: string }
+        Returns: {
+          avatar_url: string
+          care_plan_id: string
+          caregiver_id: string
+          full_name: string
+          id: string
+          phone_number: string
+          professional_type: string
+          role: string
+          status: string
         }[]
       }
       get_public_family_profiles: {
