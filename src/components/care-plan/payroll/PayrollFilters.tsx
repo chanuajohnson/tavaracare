@@ -45,6 +45,8 @@ export const PayrollFilters: React.FC<PayrollFiltersProps> = ({
         <SelectContent>
           <SelectItem value="last7">Last 7 days</SelectItem>
           <SelectItem value="last30">Last 30 days</SelectItem>
+          <SelectItem value="last60">Last 60 days</SelectItem>
+          <SelectItem value="last90">Last 90 days</SelectItem>
           <SelectItem value="thisMonth">This month</SelectItem>
           <SelectItem value="all">All time</SelectItem>
         </SelectContent>
