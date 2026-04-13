@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, ClipboardCheck, MessageSquare, Send, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, ClipboardCheck, MessageSquare, Send, Loader2, Pill } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -36,9 +36,19 @@ interface LogFeedback {
   created_at: string;
 }
 
+interface MedAdmin {
+  id: string;
+  medication_name: string;
+  dosage: string | null;
+  administered_at: string;
+  administered_by_name: string;
+  administered_by_role: string | null;
+}
+
 export const DailyCareLogsTab = ({ carePlanId }: DailyCareLogsTabProps) => {
   const { user } = useAuth();
   const [logs, setLogs] = useState<CareLog[]>([]);
+  const [medAdmins, setMedAdmins] = useState<MedAdmin[]>([]);
   const [feedback, setFeedback] = useState<Record<string, LogFeedback[]>>({});
   const [nurseNames, setNurseNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -98,17 +108,78 @@ export const DailyCareLogsTab = ({ carePlanId }: DailyCareLogsTabProps) => {
       setLogs(typedLogs);
 
       // Fetch nurse names
-      const professionalIds = [...new Set(typedLogs.map(l => l.professional_id))];
-      if (professionalIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .in('id', professionalIds);
-        if (profiles) {
+      const allProfIds = [...new Set(typedLogs.map(l => l.professional_id))];
+
+      // Fetch medication administrations for this care plan
+      const { data: meds } = await supabase
+        .from('medications')
+        .select('id, name, dosage')
+        .eq('care_plan_id', carePlanId);
+
+      if (meds && meds.length > 0) {
+        const medIds = meds.map(m => m.id);
+        const { data: admins } = await supabase
+          .from('medication_administrations')
+          .select('id, medication_id, administered_at, administered_by, administered_by_role')
+          .in('medication_id', medIds)
+          .eq('status', 'administered')
+          .order('administered_at', { ascending: false })
+          .limit(30);
+
+        if (admins && admins.length > 0) {
+          const adminByIds = [...new Set(admins.map(a => a.administered_by))];
+          const allIds = [...new Set([...allProfIds, ...adminByIds])];
+          
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', allIds);
+          
           const nameMap: Record<string, string> = {};
-          profiles.forEach(p => { nameMap[p.id] = p.full_name || 'Unknown'; });
+          profiles?.forEach(p => { nameMap[p.id] = p.full_name || 'Unknown'; });
           setNurseNames(nameMap);
+
+          const medMap: Record<string, { name: string; dosage: string | null }> = {};
+          meds.forEach(m => { medMap[m.id] = { name: m.name, dosage: m.dosage }; });
+
+          const mapped: MedAdmin[] = admins.map(a => ({
+            id: a.id,
+            medication_name: medMap[a.medication_id]?.name || 'Unknown',
+            dosage: medMap[a.medication_id]?.dosage || null,
+            administered_at: a.administered_at,
+            administered_by_name: nameMap[a.administered_by] || 'Unknown',
+            administered_by_role: a.administered_by_role,
+          }));
+          setMedAdmins(mapped);
+        } else {
+          // Still fetch nurse names even if no med admins
+          if (allProfIds.length > 0) {
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('id, full_name')
+              .in('id', allProfIds);
+            if (profiles) {
+              const nameMap: Record<string, string> = {};
+              profiles.forEach(p => { nameMap[p.id] = p.full_name || 'Unknown'; });
+              setNurseNames(nameMap);
+            }
+          }
+          setMedAdmins([]);
         }
+      } else {
+        // No medications, just fetch nurse names
+        if (allProfIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', allProfIds);
+          if (profiles) {
+            const nameMap: Record<string, string> = {};
+            profiles.forEach(p => { nameMap[p.id] = p.full_name || 'Unknown'; });
+            setNurseNames(nameMap);
+          }
+        }
+        setMedAdmins([]);
       }
 
       // Fetch feedback for all logs
@@ -196,7 +267,7 @@ export const DailyCareLogsTab = ({ carePlanId }: DailyCareLogsTabProps) => {
     );
   }
 
-  if (logs.length === 0) {
+  if (logs.length === 0 && medAdmins.length === 0) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
@@ -217,6 +288,38 @@ export const DailyCareLogsTab = ({ carePlanId }: DailyCareLogsTabProps) => {
         <h2 className="text-lg font-semibold">Daily Care Logs</h2>
         <Badge variant="secondary">{logs.length} log{logs.length !== 1 ? 's' : ''}</Badge>
       </div>
+
+      {/* Medication Administration History */}
+      {medAdmins.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Pill className="h-4 w-4 text-primary" />
+              Recent Medication Administrations
+              <Badge variant="outline">{medAdmins.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-2">
+              {medAdmins.map(admin => (
+                <div key={admin.id} className="flex items-center justify-between p-2 rounded-md bg-muted/30 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{admin.medication_name}</span>
+                    {admin.dosage && <span className="text-muted-foreground">({admin.dosage})</span>}
+                  </div>
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <span>{admin.administered_by_name}</span>
+                    {admin.administered_by_role && (
+                      <Badge variant="outline" className="text-xs">{admin.administered_by_role}</Badge>
+                    )}
+                    <span>{new Date(admin.administered_at).toLocaleString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {logs.map(log => {
         const stats = getCompletionStats(log.checklist_data);

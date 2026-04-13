@@ -9,7 +9,8 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle, FileText, Download, Share, Shield, Eye, Trash2, Pill } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle, FileText, Download, Share, Shield, Eye, Trash2, Pill, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { UserMatchingActions } from './UserMatchingActions';
 import { MatchingStatusToggle } from './MatchingStatusToggle';
 import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
@@ -73,12 +74,14 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   onClose,
   onUserUpdate
 }) => {
+  const navigate = useNavigate();
   const [careNeeds, setCareNeeds] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
   const [anonymousReport, setAnonymousReport] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [userMedications, setUserMedications] = useState<Array<{ id: string; name: string; dosage?: string; medication_type?: string }>>([]);
+  const [userCarePlans, setUserCarePlans] = useState<Array<{ id: string; title: string; status: string | null }>>([]);
 
   // Only call hooks when user and role are valid
   const shouldCallFamilyHook = user?.role === 'family' && user?.id;
@@ -181,6 +184,27 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
       }
     };
     loadMeds();
+  }, [user, isOpen]);
+
+  // Fetch care plans for family users
+  useEffect(() => {
+    if (!user || !isOpen || user.role !== 'family') {
+      setUserCarePlans([]);
+      return;
+    }
+    const loadCarePlans = async () => {
+      try {
+        const { data } = await supabase
+          .from('care_plans')
+          .select('id, title, status')
+          .eq('family_id', user.id)
+          .order('created_at', { ascending: false });
+        setUserCarePlans(data || []);
+      } catch {
+        setUserCarePlans([]);
+      }
+    };
+    loadCarePlans();
   }, [user, isOpen]);
 
   const fetchUserDetails = async () => {
@@ -475,6 +499,46 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 userFullName={user.full_name || 'Unknown User'}
                 onStatusChange={onUserUpdate}
               />
+            )}
+
+            {/* Manage Care Plans for Family Users */}
+            {user.role === 'family' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Manage Care Plans
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {userCarePlans.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No care plans found for this family.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {userCarePlans.map(plan => (
+                        <div key={plan.id} className="flex items-center justify-between p-3 border rounded-md">
+                          <div>
+                            <p className="font-medium text-sm">{plan.title}</p>
+                            <Badge variant="outline" className="mt-1">{plan.status || 'active'}</Badge>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              onClose();
+                              navigate(`/family/care-management/${plan.id}`);
+                            }}
+                            className="gap-1"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Manage
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             )}
 
             {/* Admin Actions */}
