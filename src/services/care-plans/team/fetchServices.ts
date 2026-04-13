@@ -115,9 +115,7 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
   }
 };
 
-/**
- * Fetches all care team members across all care plans a professional is assigned to
- */
+
 /**
  * Fetches care team members for a specific care plan using the SECURITY DEFINER RPC.
  * This allows professionals to see their teammates even when RLS blocks the direct join.
@@ -154,8 +152,55 @@ export const fetchCareTeamMembersViaRPC = async (planId: string): Promise<CareTe
     })) as CareTeamMemberWithProfile[];
   } catch (error) {
     console.error("Error fetching care team members via RPC:", error);
-    // Fall back to normal fetch
     return fetchCareTeamMembers(planId);
+  }
+};
+
+/**
+ * Fetches all care team members across all care plans a professional is assigned to.
+ * Uses the RPC for full teammate visibility.
+ */
+export const fetchAllCareTeamMembersForProfessional = async (professionalId: string): Promise<CareTeamMemberWithProfile[]> => {
+  try {
+    console.log(`Fetching all care team members for professional ID: ${professionalId}`);
+    
+    const { data: userAssignments, error: assignmentError } = await supabase
+      .from('care_team_members')
+      .select('care_plan_id')
+      .eq('caregiver_id', professionalId)
+      .not('care_plan_id', 'is', null);
+    
+    if (assignmentError) {
+      console.error("Error fetching professional's care plan assignments:", assignmentError);
+      throw assignmentError;
+    }
+    
+    if (!userAssignments || userAssignments.length === 0) {
+      return [];
+    }
+    
+    const carePlanIds = [...new Set(
+      userAssignments
+        .map(a => a.care_plan_id)
+        .filter((id): id is string => id !== null && id !== undefined)
+    )];
+    
+    if (carePlanIds.length === 0) {
+      return [];
+    }
+    
+    // Use RPC for each plan to get full teammate visibility
+    const allMembers: CareTeamMemberWithProfile[] = [];
+    for (const planId of carePlanIds) {
+      const members = await fetchCareTeamMembersViaRPC(planId);
+      allMembers.push(...members);
+    }
+    
+    return allMembers;
+  } catch (error) {
+    console.error("Error fetching all care team members:", error);
+    toast.error("Failed to load care team members");
+    return [];
   }
 };
 
