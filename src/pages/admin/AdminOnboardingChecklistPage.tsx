@@ -1218,7 +1218,39 @@ export default function AdminOnboardingChecklistPage() {
     load();
   }, [selectedFamilyId]);
 
-  // Load professional checklist (now scoped by family_id)
+  // Load family medications
+  useEffect(() => {
+    if (!selectedFamilyId) {
+      setFamilyMedications([]);
+      return;
+    }
+    const loadMeds = async () => {
+      try {
+        const { data: carePlans } = await supabase
+          .from("care_plans")
+          .select("id")
+          .eq("family_id", selectedFamilyId);
+        if (!carePlans || carePlans.length === 0) {
+          setFamilyMedications([]);
+          return;
+        }
+        const carePlanIds = carePlans.map(cp => cp.id);
+        const { data: meds, error } = await supabase
+          .from("medications")
+          .select("id, name, dosage, medication_type, instructions, schedule")
+          .in("care_plan_id", carePlanIds)
+          .order("name");
+        if (error) throw error;
+        setFamilyMedications(meds || []);
+      } catch (err) {
+        console.error("Failed to load family medications:", err);
+        setFamilyMedications([]);
+      }
+    };
+    loadMeds();
+  }, [selectedFamilyId]);
+
+
   useEffect(() => {
     if (!selectedProfessionalId) {
       setProfCheckedItems({});
