@@ -408,25 +408,49 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Month</TableHead>
-                      <TableHead>Weeks</TableHead>
-                      <TableHead>Total Gross</TableHead>
+                      <TableHead className="w-8"></TableHead>
+                      <TableHead>Month / Week</TableHead>
+                      <TableHead>Entries</TableHead>
+                      <TableHead>Gross Pay</TableHead>
                       <TableHead>Employee NIS</TableHead>
                       <TableHead>Employer NIS</TableHead>
-                      <TableHead>Total Net Pay</TableHead>
+                      <TableHead>Net Pay</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {monthGroups.map((month) => (
-                      <TableRow key={month.key}>
-                        <TableCell className="font-medium">{month.monthLabel}</TableCell>
-                        <TableCell>{month.weeks.length} {month.weeks.length === 1 ? 'week' : 'weeks'}</TableCell>
-                        <TableCell>${month.totalGross.toFixed(2)}</TableCell>
-                        <TableCell>${month.totalEmployeeNIS.toFixed(2)}</TableCell>
-                        <TableCell>${month.totalEmployerNIS.toFixed(2)}</TableCell>
-                        <TableCell className="font-semibold">${month.totalNetPay.toFixed(2)}</TableCell>
-                      </TableRow>
-                    ))}
+                    {monthGroups.map((month) => {
+                      const isMonthExpanded = expandedMonths.has(month.key);
+                      return (
+                        <React.Fragment key={month.key}>
+                          <TableRow className="bg-muted/30 font-medium">
+                            <TableCell>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleMonthExpand(month.key)}>
+                                {isMonthExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              </Button>
+                            </TableCell>
+                            <TableCell className="font-semibold">{month.monthLabel}</TableCell>
+                            <TableCell>{month.weeks.length} {month.weeks.length === 1 ? 'week' : 'weeks'}</TableCell>
+                            <TableCell>${month.totalGross.toFixed(2)}</TableCell>
+                            <TableCell>${month.totalEmployeeNIS.toFixed(2)}</TableCell>
+                            <TableCell>${month.totalEmployerNIS.toFixed(2)}</TableCell>
+                            <TableCell className="font-semibold">${month.totalNetPay.toFixed(2)}</TableCell>
+                          </TableRow>
+                          {isMonthExpanded && month.weeks.map((week) => (
+                            <TableRow key={week.key} className="text-sm">
+                              <TableCell></TableCell>
+                              <TableCell className="pl-8 text-muted-foreground">
+                                {format(week.weekStart, 'MMM d')} – {format(week.weekEnd, 'MMM d')}
+                              </TableCell>
+                              <TableCell>{week.entries.length} entries</TableCell>
+                              <TableCell>${week.weeklyGross.toFixed(2)}</TableCell>
+                              <TableCell>${week.employeeContribution.toFixed(2)}</TableCell>
+                              <TableCell>${week.employerContribution.toFixed(2)}</TableCell>
+                              <TableCell>${week.weeklyNetPay.toFixed(2)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </React.Fragment>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
