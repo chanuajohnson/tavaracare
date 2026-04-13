@@ -1663,6 +1663,23 @@ export default function AdminOnboardingChecklistPage() {
             idColumn="family_id"
             showFamilyData
             familyMedications={familyMedications}
+            onToggleApproval={(approvalKey) => {
+              setFamilyCheckedItems((prev) => {
+                const isCurrentlyApproved = prev[approvalKey] === true;
+                const next = {
+                  ...prev,
+                  [approvalKey]: !isCurrentlyApproved,
+                  family_approval_date: !isCurrentlyApproved ? new Date().toISOString() : undefined,
+                  family_approval_by: !isCurrentlyApproved ? "admin" : undefined,
+                };
+                if (isCurrentlyApproved) {
+                  delete next.family_approval_date;
+                  delete next.family_approval_by;
+                }
+                saveFamilyToSupabase(next, familyNotes);
+                return next;
+              });
+            }}
             onDownloadReport={selectedFamilyId ? () => {
               const familyName = families.find(f => f.id === selectedFamilyId)?.full_name || "Family";
               generateFamilyReport(familyName, familyCheckedItems, familyNotes, ONBOARDING_SECTION_DEFS);
@@ -1742,6 +1759,23 @@ export default function AdminOnboardingChecklistPage() {
             showProfessionalData
             linkedCheckedItems={linkedFamilyCheckedItems}
             assignedFamilyName={families.find(f => f.id === profAssignedFamilyId)?.full_name}
+            onToggleApproval={(approvalKey) => {
+              setProfCheckedItems((prev) => {
+                const isCurrentlyApproved = prev[approvalKey] === true;
+                const next = {
+                  ...prev,
+                  [approvalKey]: !isCurrentlyApproved,
+                  professional_approval_date: !isCurrentlyApproved ? new Date().toISOString() : undefined,
+                  professional_approval_by: !isCurrentlyApproved ? "admin" : undefined,
+                };
+                if (isCurrentlyApproved) {
+                  delete next.professional_approval_date;
+                  delete next.professional_approval_by;
+                }
+                saveProfToSupabase(next, profNotes);
+                return next;
+              });
+            }}
             onDownloadReport={selectedProfessionalId ? () => {
               const profName = professionals.find(p => p.id === selectedProfessionalId)?.full_name || "Professional";
               const familyName = families.find(f => f.id === profAssignedFamilyId)?.full_name || "";
