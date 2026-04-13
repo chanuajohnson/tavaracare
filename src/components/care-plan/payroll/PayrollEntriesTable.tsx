@@ -92,6 +92,21 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
     });
   };
 
+  const toggleMonthExpand = (monthKey: string) => {
+    setExpandedMonths(prev => {
+      const next = new Set(prev);
+      if (next.has(monthKey)) next.delete(monthKey); else next.add(monthKey);
+      return next;
+    });
+  };
+
+  const handleRecalcNIS = async (entryId: string) => {
+    if (!onRecalculateNIS) return;
+    setIsRecalculating(true);
+    await onRecalculateNIS(entryId);
+    setIsRecalculating(false);
+  };
+
   const handleGenerateReceipt = async (entry: PayrollEntry) => {
     try {
       const receiptUrl = await generatePayReceipt(entry);
