@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle, FileText, Download, Share, Shield, Eye, Trash2 } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle, FileText, Download, Share, Shield, Eye, Trash2, Pill } from 'lucide-react';
 import { UserMatchingActions } from './UserMatchingActions';
 import { MatchingStatusToggle } from './MatchingStatusToggle';
 import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
