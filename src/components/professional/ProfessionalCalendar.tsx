@@ -461,6 +461,38 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
                         <p className="text-xs text-muted-foreground">Location: {shift.location}</p>
                       )}
                     </div>
+                    {/* Action buttons for the professional's own shifts */}
+                    {isUserShift && (
+                      <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          onClick={() => {
+                            const careShift: CareShift = {
+                              id: shift.id,
+                              carePlanId: shift.carePlanId || carePlanId || '',
+                              familyId: shift.familyId || '',
+                              caregiverId: shift.caregiverId,
+                              title: shift.title,
+                              description: shift.description,
+                              location: shift.location,
+                              status: shift.status,
+                              startTime: shift.startTime,
+                              endTime: shift.endTime,
+                              createdAt: shift.createdAt || '',
+                              updatedAt: shift.updatedAt || '',
+                            };
+                            setSelectedShiftForLog(careShift);
+                            setWorkLogFormOpen(true);
+                            setSelectedDateDetails(null);
+                          }}
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          Log Hours
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
