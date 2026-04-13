@@ -682,6 +682,7 @@ function ChecklistTabContent({
   linkedCheckedItems,
   assignedFamilyName,
   familyMedications,
+  onToggleApproval,
 }: {
   profiles: ProfileOption[];
   loadingProfiles: boolean;
@@ -710,6 +711,7 @@ function ChecklistTabContent({
   linkedCheckedItems?: Record<string, boolean | string>;
   assignedFamilyName?: string;
   familyMedications?: Array<{ id: string; name: string; dosage?: string; medication_type?: string; instructions?: string; schedule?: any }>;
+  onToggleApproval?: (approvalKey: string) => void;
 }) {
   const publicGuideUrl = `${window.location.origin}/onboarding-guide`;
   const copyPublicLink = () => {
@@ -848,21 +850,36 @@ function ChecklistTabContent({
                   <p className="text-xs text-muted-foreground">Responses Sent</p>
                 </div>
                 <div className="text-center p-2 rounded bg-background border">
-                  {approvalConfirmed ? (
-                    <>
-                      <Badge variant="default" className="bg-green-600 text-xs">Approved</Badge>
-                      {approvalDate && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {format(new Date(approvalDate), "MMM d, yyyy")}
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <Badge variant="secondary" className="text-xs">Pending</Badge>
-                      <p className="text-xs text-muted-foreground mt-1">Readiness Approval</p>
-                    </>
-                  )}
+                  <div className="flex flex-col items-center gap-1">
+                    {approvalConfirmed ? (
+                      <>
+                        <Badge variant="default" className="bg-green-600 text-xs">Approved</Badge>
+                        {approvalDate && (
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(approvalDate), "MMM d, yyyy")}
+                          </p>
+                        )}
+                        {(checkedItems["professional_approval_by"] as string) === "admin" && (
+                          <p className="text-xs text-muted-foreground italic">by Admin</p>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Badge variant="secondary" className="text-xs">Pending</Badge>
+                        <p className="text-xs text-muted-foreground mt-1">Readiness Approval</p>
+                      </>
+                    )}
+                    {onToggleApproval && (
+                      <label className="flex items-center gap-1.5 mt-1 cursor-pointer">
+                        <Checkbox
+                          checked={!!approvalConfirmed}
+                          onCheckedChange={() => onToggleApproval("professional_approval_confirmed")}
+                          className="h-3.5 w-3.5"
+                        />
+                        <span className="text-xs text-muted-foreground">Admin toggle</span>
+                      </label>
+                    )}
+                  </div>
                 </div>
               </div>
               {completedCount > 0 && (
@@ -910,21 +927,36 @@ function ChecklistTabContent({
                   <p className="text-xs text-muted-foreground">Responses Sent</p>
                 </div>
                 <div className="text-center p-2 rounded bg-background border">
-                  {approvalConfirmed ? (
-                    <>
-                      <Badge variant="default" className="bg-green-600 text-xs">Approved</Badge>
-                      {approvalDate && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {format(new Date(approvalDate), "MMM d, yyyy")}
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <Badge variant="secondary" className="text-xs">Pending</Badge>
-                      <p className="text-xs text-muted-foreground mt-1">Service Approval</p>
-                    </>
-                  )}
+                  <div className="flex flex-col items-center gap-1">
+                    {approvalConfirmed ? (
+                      <>
+                        <Badge variant="default" className="bg-green-600 text-xs">Approved</Badge>
+                        {approvalDate && (
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(approvalDate), "MMM d, yyyy")}
+                          </p>
+                        )}
+                        {(checkedItems["family_approval_by"] as string) === "admin" && (
+                          <p className="text-xs text-muted-foreground italic">by Admin</p>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Badge variant="secondary" className="text-xs">Pending</Badge>
+                        <p className="text-xs text-muted-foreground mt-1">Service Approval</p>
+                      </>
+                    )}
+                    {onToggleApproval && (
+                      <label className="flex items-center gap-1.5 mt-1 cursor-pointer">
+                        <Checkbox
+                          checked={!!approvalConfirmed}
+                          onCheckedChange={() => onToggleApproval("family_approval_confirmed")}
+                          className="h-3.5 w-3.5"
+                        />
+                        <span className="text-xs text-muted-foreground">Admin toggle</span>
+                      </label>
+                    )}
+                  </div>
                 </div>
               </div>
               {completedCount > 0 && (
@@ -1631,6 +1663,23 @@ export default function AdminOnboardingChecklistPage() {
             idColumn="family_id"
             showFamilyData
             familyMedications={familyMedications}
+            onToggleApproval={(approvalKey) => {
+              setFamilyCheckedItems((prev) => {
+                const isCurrentlyApproved = prev[approvalKey] === true;
+                const next = {
+                  ...prev,
+                  [approvalKey]: !isCurrentlyApproved,
+                  family_approval_date: !isCurrentlyApproved ? new Date().toISOString() : undefined,
+                  family_approval_by: !isCurrentlyApproved ? "admin" : undefined,
+                };
+                if (isCurrentlyApproved) {
+                  delete next.family_approval_date;
+                  delete next.family_approval_by;
+                }
+                saveFamilyToSupabase(next, familyNotes);
+                return next;
+              });
+            }}
             onDownloadReport={selectedFamilyId ? () => {
               const familyName = families.find(f => f.id === selectedFamilyId)?.full_name || "Family";
               generateFamilyReport(familyName, familyCheckedItems, familyNotes, ONBOARDING_SECTION_DEFS);
@@ -1710,6 +1759,23 @@ export default function AdminOnboardingChecklistPage() {
             showProfessionalData
             linkedCheckedItems={linkedFamilyCheckedItems}
             assignedFamilyName={families.find(f => f.id === profAssignedFamilyId)?.full_name}
+            onToggleApproval={(approvalKey) => {
+              setProfCheckedItems((prev) => {
+                const isCurrentlyApproved = prev[approvalKey] === true;
+                const next = {
+                  ...prev,
+                  [approvalKey]: !isCurrentlyApproved,
+                  professional_approval_date: !isCurrentlyApproved ? new Date().toISOString() : undefined,
+                  professional_approval_by: !isCurrentlyApproved ? "admin" : undefined,
+                };
+                if (isCurrentlyApproved) {
+                  delete next.professional_approval_date;
+                  delete next.professional_approval_by;
+                }
+                saveProfToSupabase(next, profNotes);
+                return next;
+              });
+            }}
             onDownloadReport={selectedProfessionalId ? () => {
               const profName = professionals.find(p => p.id === selectedProfessionalId)?.full_name || "Professional";
               const familyName = families.find(f => f.id === profAssignedFamilyId)?.full_name || "";
