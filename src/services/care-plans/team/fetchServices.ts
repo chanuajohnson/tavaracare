@@ -40,16 +40,49 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
 
     console.log(`Retrieved ${data?.length || 0} care team members for plan ID ${planId}:`, data);
 
+    // Collect caregiver IDs where the FK join returned NULL (RLS blocking)
+    const missingProfileIds: string[] = [];
+    (data || []).forEach((member: any) => {
+      if (!member) return;
+      const profileData = member.profiles;
+      const hasName = typeof profileData === 'object' && profileData !== null && profileData.full_name;
+      if (!hasName && member.caregiver_id) {
+        missingProfileIds.push(member.caregiver_id);
+      }
+    });
+
+    // RPC fallback for missing profiles
+    let rpcFallbackMap: Record<string, any> = {};
+    const uniqueMissing = [...new Set(missingProfileIds)];
+    if (uniqueMissing.length > 0) {
+      console.log("FK join returned NULL for care team member profiles, fetching via RPC fallback:", uniqueMissing);
+      try {
+        const { data: rpcProfiles } = await supabase
+          .rpc('get_public_professional_profiles', { ids: uniqueMissing });
+        if (rpcProfiles) {
+          rpcProfiles.forEach((p: any) => {
+            rpcFallbackMap[p.id] = {
+              full_name: p.full_name || 'Unknown Professional',
+              professional_type: p.professional_type || 'Care Professional',
+              avatar_url: p.avatar_url || null,
+              phone_number: null
+            };
+          });
+        }
+      } catch (rpcErr) {
+        console.error("RPC fallback for care team member profiles failed:", rpcErr);
+      }
+    }
+
     // More detailed transformation with validation
     return (data || []).map(member => {
-      // Validate member data
       if (!member) {
         console.warn("Received null or undefined member in data array");
         return null;
       }
       
-      // Safely access profile data with fallbacks
-      const profileData = member.profiles || {};
+      // Safely access profile data with fallbacks, then RPC fallback
+      const profileData = member.profiles || (member.caregiver_id ? rpcFallbackMap[member.caregiver_id] : null) || {};
       const fullName = typeof profileData === 'object' && profileData !== null 
         ? (profileData as any).full_name || 'Unknown Professional' 
         : 'Unknown Professional';
@@ -146,6 +179,39 @@ export const fetchAllCareTeamMembersForProfessional = async (professionalId: str
     
     console.log(`Retrieved ${allTeamMembers?.length || 0} total care team members:`, allTeamMembers);
     
+    // Collect caregiver IDs where the FK join returned NULL (RLS blocking)
+    const missingIds2: string[] = [];
+    (allTeamMembers || []).forEach((member: any) => {
+      if (!member) return;
+      const pd = member.profiles;
+      const hasName = typeof pd === 'object' && pd !== null && pd.full_name;
+      if (!hasName && member.caregiver_id) {
+        missingIds2.push(member.caregiver_id);
+      }
+    });
+
+    let rpcFallback2: Record<string, any> = {};
+    const unique2 = [...new Set(missingIds2)];
+    if (unique2.length > 0) {
+      console.log("FK join returned NULL for professional team member profiles, fetching via RPC fallback:", unique2);
+      try {
+        const { data: rpcProfiles2 } = await supabase
+          .rpc('get_public_professional_profiles', { ids: unique2 });
+        if (rpcProfiles2) {
+          rpcProfiles2.forEach((p: any) => {
+            rpcFallback2[p.id] = {
+              full_name: p.full_name || 'Unknown Professional',
+              professional_type: p.professional_type || 'Care Professional',
+              avatar_url: p.avatar_url || null,
+              phone_number: null
+            };
+          });
+        }
+      } catch (rpcErr) {
+        console.error("RPC fallback for professional team member profiles failed:", rpcErr);
+      }
+    }
+
     // Improved transformation with validation
     return (allTeamMembers || []).map(member => {
       if (!member) {
@@ -153,8 +219,8 @@ export const fetchAllCareTeamMembersForProfessional = async (professionalId: str
         return null;
       }
       
-      // Safely access profile data with fallbacks
-      const profileData = member.profiles || {};
+      // Safely access profile data with fallbacks, then RPC fallback
+      const profileData = member.profiles || (member.caregiver_id ? rpcFallback2[member.caregiver_id] : null) || {};
       const fullName = typeof profileData === 'object' && profileData !== null 
         ? (profileData as any).full_name || 'Unknown Professional' 
         : 'Unknown Professional';
