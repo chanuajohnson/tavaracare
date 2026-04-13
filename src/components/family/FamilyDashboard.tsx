@@ -10,6 +10,7 @@ import { EnhancedFamilyNextStepsPanel } from "@/components/family/EnhancedFamily
 import { CaregiverReadinessCard } from "@/components/family/CaregiverReadinessCard";
 import { FamilyReadinessChecker } from "@/components/family/FamilyReadinessChecker";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
+import { DailyCareQuickView } from "@/components/family/DailyCareQuickView";
 import { SchedulingStatusBanner } from "@/components/family/SchedulingStatusBanner";
 import { ScheduleVisitModal } from "@/components/family/ScheduleVisitModal";
 import { ProfessionalChatRequestsSection } from "@/components/family/ProfessionalChatRequestsSection";
@@ -120,6 +121,9 @@ const FamilyDashboard = () => {
             onScheduleCareClick={() => setShowScheduleModal(true)}
           />
         )}
+
+        {/* Daily Care Quick View — today's meds & nurse logs */}
+        <DailyCareQuickView />
 
         {/* Rate Information Blurb */}
         {showRateInfo && (
