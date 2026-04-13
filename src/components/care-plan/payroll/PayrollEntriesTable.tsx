@@ -6,7 +6,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { PayrollStatusBadge } from "./PayrollStatusBadge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Receipt, Check, Calendar, Download, Trash2 } from "lucide-react";
+import { Receipt, Check, Calendar, Download, Trash2, Undo2, ChevronDown, ChevronUp } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ShareReceiptDialog } from "./ShareReceiptDialog";
 import { generatePayReceipt, generateConsolidatedReceipt } from "@/services/care-plans/receiptService";
@@ -27,12 +27,14 @@ interface PayrollEntriesTableProps {
   entries: PayrollEntry[];
   onProcessPayment: (id: string) => void;
   onDeleteEntries?: (ids: string[]) => Promise<{ deleted: number; failed: number }>;
+  onUndoPayment?: (id: string) => Promise<boolean>;
 }
 
 export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   entries,
   onProcessPayment,
-  onDeleteEntries
+  onDeleteEntries,
+  onUndoPayment
 }) => {
   const isMobile = useIsMobile();
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
@@ -41,6 +43,10 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   const [currentEntry, setCurrentEntry] = useState<PayrollEntry | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [undoDialogOpen, setUndoDialogOpen] = useState(false);
+  const [undoTargetId, setUndoTargetId] = useState<string | null>(null);
+  const [isUndoing, setIsUndoing] = useState(false);
+  const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
 
   const handleSelectEntry = (entryId: string) => {
     setSelectedEntries(prev => 
