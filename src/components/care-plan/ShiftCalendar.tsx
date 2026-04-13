@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Edit, Plus, Trash2, Clock, User, Receipt, Calendar } from "lucide-react";
+import { ArrowLeft, ArrowRight, Edit, Plus, Trash2, Clock, User, Receipt, Calendar, CheckCircle2 } from "lucide-react";
 import { format, addDays, isSameDay, addWeeks, subWeeks } from 'date-fns';
 import { CareShift, CareTeamMemberWithProfile } from "@/types/careTypes";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 interface ShiftCalendarProps {
   selectedWeek: Date;
@@ -35,6 +36,25 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedDateShifts, setSelectedDateShifts] = useState<CareShift[]>([]);
   const [filterByCaregiver, setFilterByCaregiver] = useState<string | 'all'>('all');
+  const [loggedShiftIds, setLoggedShiftIds] = useState<Set<string>>(new Set());
+
+  // Fetch which shifts already have work logs
+  useEffect(() => {
+    const fetchLoggedShifts = async () => {
+      const shiftIds = careShifts.map(s => s.id).filter(Boolean);
+      if (shiftIds.length === 0) return;
+      
+      const { data, error } = await supabase
+        .from('work_logs')
+        .select('shift_id')
+        .in('shift_id', shiftIds);
+      
+      if (!error && data) {
+        setLoggedShiftIds(new Set(data.map(d => d.shift_id).filter(Boolean)));
+      }
+    };
+    fetchLoggedShifts();
+  }, [careShifts]);
 
   const navigateWeek = (direction: 'prev' | 'next') => {
     setSelectedWeek(prev => {
@@ -222,7 +242,12 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
                         key={shift.id} 
                         className={`text-xs p-1.5 rounded ${caregiverColorClass} border flex flex-col`}
                       >
-                        <div className="font-medium truncate">{shift.title}</div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium truncate flex-1">{shift.title}</span>
+                          {loggedShiftIds.has(shift.id) && (
+                            <CheckCircle2 className="h-3 w-3 text-green-600 flex-shrink-0" />
+                          )}
+                        </div>
                         <div className="text-muted-foreground truncate">
                           {getTimeDisplay(shift.startTime)} - {getTimeDisplay(shift.endTime)}
                         </div>
@@ -288,17 +313,25 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
                 key={shift.id} 
                 className={`p-3 border rounded-md ${getCaregiverColor(shift.caregiverId)}`}
               >
-                <div className="flex justify-between items-start">
+                <div className="flex justify-between items-start gap-2">
                   <h4 className="font-medium">{shift.title}</h4>
-                  <Badge 
-                    className={
-                      shift.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                      shift.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                      'bg-yellow-100 text-yellow-700'
-                    }
-                  >
-                    {shift.status}
-                  </Badge>
+                  <div className="flex gap-1">
+                    {loggedShiftIds.has(shift.id) && (
+                      <Badge className="bg-green-100 text-green-700">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Logged
+                      </Badge>
+                    )}
+                    <Badge 
+                      className={
+                        shift.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                        shift.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                        'bg-yellow-100 text-yellow-700'
+                      }
+                    >
+                      {shift.status}
+                    </Badge>
+                  </div>
                 </div>
                 <div className="mt-2 text-sm">
                   <div className="flex items-center gap-1">

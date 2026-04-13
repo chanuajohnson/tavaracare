@@ -16,6 +16,8 @@ export interface WorkLog {
   rate_type?: RateType;
   base_rate?: number;
   rate_multiplier?: number;
+  submitted_by_user_id?: string;
+  submitted_by_role?: string;
 }
 
 export interface WorkLogExpense {
@@ -61,6 +63,8 @@ export interface WorkLogInput {
   rate_type?: RateType;
   base_rate?: number;
   rate_multiplier?: number;
+  submitted_by_user_id?: string;
+  submitted_by_role?: string;
 }
 
 export interface WorkLogExpenseInput {

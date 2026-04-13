@@ -529,6 +529,7 @@ const ProfessionalProfileHub = () => {
           <ActionCardsGrid 
             isTrainingExpanded={isTrainingExpanded}
             onToggleTraining={() => setIsTrainingExpanded(!isTrainingExpanded)}
+            carePlanId={selectedCarePlanId || undefined}
           />
 
           {/* Training Content - Expandable Section with Training Progress */}

@@ -5563,6 +5563,8 @@ export type Database = {
           shift_id: string | null
           start_time: string
           status: string | null
+          submitted_by_role: string | null
+          submitted_by_user_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -5578,6 +5580,8 @@ export type Database = {
           shift_id?: string | null
           start_time: string
           status?: string | null
+          submitted_by_role?: string | null
+          submitted_by_user_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -5593,6 +5597,8 @@ export type Database = {
           shift_id?: string | null
           start_time?: string
           status?: string | null
+          submitted_by_role?: string | null
+          submitted_by_user_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
