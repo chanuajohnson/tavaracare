@@ -708,6 +708,7 @@ function ChecklistTabContent({
   onDownloadReport?: () => void;
   linkedCheckedItems?: Record<string, boolean | string>;
   assignedFamilyName?: string;
+  familyMedications?: Array<{ id: string; name: string; dosage?: string; medication_type?: string; instructions?: string; schedule?: any }>;
 }) {
   const publicGuideUrl = `${window.location.origin}/onboarding-guide`;
   const copyPublicLink = () => {
@@ -1132,6 +1133,7 @@ export default function AdminOnboardingChecklistPage() {
   const [familyCheckedItems, setFamilyCheckedItems] = useState<Record<string, boolean | string>>({});
   const [familyNotes, setFamilyNotes] = useState<OnboardingNote[]>([]);
   const [familyOpenSections, setFamilyOpenSections] = useState<Record<string, boolean>>({});
+  const [familyMedications, setFamilyMedications] = useState<Array<{ id: string; name: string; dosage?: string; medication_type?: string; instructions?: string; schedule?: any }>>([]);
   const familySaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Professional state
