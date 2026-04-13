@@ -333,7 +333,7 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Daily Care Log?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will permanently delete the care log for "{log.client_name}" on {selectedDateStr}. This action cannot be undone.
+                                  This will permanently delete the care log for "{resolveLogClientName(log.client_name)}" on {selectedDateStr}. This action cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
