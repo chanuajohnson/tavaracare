@@ -1,33 +1,25 @@
 
 
-## Plan: Fix Off-by-One Date Range in Bulk Work Log Entry
+## Plan: Fix Work Logs Not Showing Before March 14
 
 ### Root Cause
 
-When the user picks a start date (e.g., Mar 1) and end date (e.g., Mar 5), the `startDate` and `endDate` from the Calendar component are set to **midnight (00:00:00)** of those days. A shift on March 5 might have a `startTime` like `2026-03-05T08:00:00` (8 AM). The `isWithinInterval` check from date-fns treats the end boundary as `2026-03-05T00:00:00`, so the 8 AM shift on March 5 falls **after** the end boundary and is excluded.
+The Work Logs list defaults to the **"Last 30 days"** date filter. Today is April 13, so `subDays(today, 30)` = **March 14**. All work logs with a `start_time` before March 14 are filtered out. The data is in the database (March 2–13 confirmed present) — it is just hidden by the default filter.
 
-This is why selecting 5 days always produces only 4 matches — the last day is effectively cut off.
+### What I Will Change
 
-### Fix
+**File: `src/hooks/payroll/usePayrollFilters.ts`**
 
-In `BulkWorkLogForm.tsx`, adjust the `endDate` used in the interval check to be the **end of that day** (23:59:59.999) instead of midnight. This ensures all shifts on the selected end date are included.
+1. Change the default `dateRangeFilter` from `'last30'` to `'all'` so that all work logs are visible by default.
 
-### Technical Change
+**File: `src/components/care-plan/payroll/PayrollFilters.tsx`**
 
-**File: `src/components/care-plan/work-logs/BulkWorkLogForm.tsx`**
+2. Add a **"Last 60 days"** and **"Last 90 days"** option to the date range dropdown so users can view longer periods without switching to "All time".
 
-1. Add `import { endOfDay } from "date-fns"` to the existing date-fns import
-2. Change line 54 from:
-   ```ts
-   return isWithinInterval(shiftDate, { start: startDate, end: endDate });
-   ```
-   to:
-   ```ts
-   return isWithinInterval(shiftDate, { start: startDate, end: endOfDay(endDate) });
-   ```
+### Result
 
-This is a one-line fix. No other files need to change.
-
-### Expected Result
-Selecting March 1–5 will now correctly match all 5 days of shifts instead of only 4.
+After this change:
+- The Work Logs list will default to showing **all** work logs instead of only the last 30 days
+- Angela's March 2–13 entries will appear immediately without manual filter changes
+- Users can still narrow down using the 7/30/60/90-day or "This month" filters
 
