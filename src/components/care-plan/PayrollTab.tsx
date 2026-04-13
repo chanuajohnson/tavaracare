@@ -32,6 +32,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId, isProfession
     handleApproveWorkLog,
     handleRejectWorkLog,
     handleProcessPayment,
+    handleDeletePayrollEntries,
     careTeamMembers
   } = usePayrollData(carePlanId);
 
@@ -165,6 +166,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId, isProfession
                 <PayrollEntriesTable
                   entries={filteredPayrollEntries}
                   onProcessPayment={openPaymentDialog}
+                  onDeleteEntries={handleDeletePayrollEntries}
                 />
               )}
             </CardContent>

@@ -6,27 +6,41 @@ import { format, formatDistanceToNow } from "date-fns";
 import { PayrollStatusBadge } from "./PayrollStatusBadge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Receipt, Check, Calendar, Download } from "lucide-react";
+import { Receipt, Check, Calendar, Download, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ShareReceiptDialog } from "./ShareReceiptDialog";
 import { generatePayReceipt, generateConsolidatedReceipt } from "@/services/care-plans/receiptService";
 import { toast } from "sonner";
 import type { PayrollEntry } from "@/services/care-plans/types/workLogTypes";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface PayrollEntriesTableProps {
   entries: PayrollEntry[];
   onProcessPayment: (id: string) => void;
+  onDeleteEntries?: (ids: string[]) => Promise<{ deleted: number; failed: number }>;
 }
 
 export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   entries,
-  onProcessPayment
+  onProcessPayment,
+  onDeleteEntries
 }) => {
   const isMobile = useIsMobile();
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [currentReceiptUrl, setCurrentReceiptUrl] = useState<string | null>(null);
   const [currentEntry, setCurrentEntry] = useState<PayrollEntry | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSelectEntry = (entryId: string) => {
     setSelectedEntries(prev => 
@@ -133,6 +147,21 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
     <div>
       {selectedEntries.length > 0 && (
         <div className="mb-4 flex flex-col sm:flex-row justify-end gap-2">
+          {(() => {
+            const pendingSelected = entries.filter(
+              e => selectedEntries.includes(e.id) && e.payment_status === 'pending'
+            );
+            return pendingSelected.length > 0 && onDeleteEntries ? (
+              <Button
+                variant="destructive"
+                className="gap-2"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Selected ({pendingSelected.length})
+              </Button>
+            ) : null;
+          })()}
           <Button
             variant="outline"
             className="gap-2"
@@ -155,7 +184,6 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
             variant="outline"
             className="gap-2"
             onClick={() => {
-              // Add to Calendar functionality
               toast.success("Calendar entries created for payment dates");
             }}
           >
@@ -315,6 +343,42 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
         receiptUrl={currentReceiptUrl}
         workLog={currentEntry}
       />
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Pending Payroll Entries?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {(() => {
+                const pendingCount = entries.filter(
+                  e => selectedEntries.includes(e.id) && e.payment_status === 'pending'
+                ).length;
+                return `This will delete ${pendingCount} pending payroll ${pendingCount === 1 ? 'entry' : 'entries'} and reset the linked work logs back to pending so you can re-approve them. This action cannot be undone.`;
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!onDeleteEntries) return;
+                setIsDeleting(true);
+                const pendingIds = entries
+                  .filter(e => selectedEntries.includes(e.id) && e.payment_status === 'pending')
+                  .map(e => e.id);
+                await onDeleteEntries(pendingIds);
+                setSelectedEntries([]);
+                setDeleteDialogOpen(false);
+                setIsDeleting(false);
+              }}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete & Reset'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
