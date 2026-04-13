@@ -19,6 +19,7 @@ import { useComprehensiveUserData } from '@/hooks/admin/useComprehensiveUserData
 import { downloadUserReport, type ReportOptions } from '@/services/admin/userReportGenerator';
 import type { UserRole } from '@/types/userRoles';
 import { UserNudgeTab } from './UserNudgeTab';
+import { AdminCareLogsTab } from './AdminCareLogsTab';
 
 // Import formatting functions from the PDF generator to ensure UI consistency
 const formatCareSchedule = (careSchedule: string | null): string => {
@@ -355,11 +356,14 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
         </DialogHeader>
 
         <Tabs defaultValue="profile" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className={`grid w-full ${user.role === 'family' ? 'grid-cols-7' : 'grid-cols-6'}`}>
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="journey">Journey</TabsTrigger>
             {user.role === 'family' && (
               <TabsTrigger value="matching">Matching</TabsTrigger>
+            )}
+            {user.role === 'family' && (
+              <TabsTrigger value="carelogs">Care Logs</TabsTrigger>
             )}
             <TabsTrigger value="reports">Reports</TabsTrigger>
             <TabsTrigger value="nudge">Nudge</TabsTrigger>
@@ -627,6 +631,12 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           {user.role === 'family' && (
             <TabsContent value="matching" className="space-y-4">
               <UserMatchingActions user={user} onUserUpdate={onUserUpdate} />
+            </TabsContent>
+          )}
+
+          {user.role === 'family' && (
+            <TabsContent value="carelogs" className="space-y-4">
+              <AdminCareLogsTab userId={user.id} />
             </TabsContent>
           )}
 
