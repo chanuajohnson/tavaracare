@@ -453,6 +453,33 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AlertDialog open={undoDialogOpen} onOpenChange={setUndoDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Undo Payment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will revert this payroll entry back to pending status and clear all NIS calculations. You can then re-process payment with updated rates if needed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isUndoing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isUndoing}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!onUndoPayment || !undoTargetId) return;
+                setIsUndoing(true);
+                await onUndoPayment(undoTargetId);
+                setUndoDialogOpen(false);
+                setUndoTargetId(null);
+                setIsUndoing(false);
+              }}
+            >
+              {isUndoing ? 'Undoing...' : 'Undo Payment'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
