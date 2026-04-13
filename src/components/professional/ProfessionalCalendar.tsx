@@ -4,7 +4,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp, Clock, Calendar as CalendarIcon, ClipboardCheck, Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, Calendar as CalendarIcon, ClipboardCheck, Pencil, Trash2, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -13,7 +13,9 @@ import { useCarePlanShifts } from "@/hooks/useCarePlanShifts";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { DailyChecklist } from "./DailyChecklist";
+import { WorkLogForm } from "@/components/care-plan/WorkLogForm";
 import { toast } from "sonner";
+import type { CareShift } from "@/types/careTypes";
 
 interface ProfessionalCalendarProps {
   carePlanId?: string;
@@ -29,6 +31,8 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
   const [checklistDialogOpen, setChecklistDialogOpen] = useState(false);
   const [checklistPreload, setChecklistPreload] = useState<{ logId?: string; clientName?: string; date?: string }>({});
   const [deletingLogId, setDeletingLogId] = useState<string | null>(null);
+  const [workLogFormOpen, setWorkLogFormOpen] = useState(false);
+  const [selectedShiftForLog, setSelectedShiftForLog] = useState<CareShift | null>(null);
   
   const { 
     shifts, 
@@ -457,6 +461,38 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
                         <p className="text-xs text-muted-foreground">Location: {shift.location}</p>
                       )}
                     </div>
+                    {/* Action buttons for the professional's own shifts */}
+                    {isUserShift && (
+                      <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          onClick={() => {
+                            const careShift: CareShift = {
+                              id: shift.id,
+                              carePlanId: shift.carePlanId || carePlanId || '',
+                              familyId: shift.familyId || '',
+                              caregiverId: shift.caregiverId,
+                              title: shift.title,
+                              description: shift.description,
+                              location: shift.location,
+                              status: shift.status,
+                              startTime: shift.startTime,
+                              endTime: shift.endTime,
+                              createdAt: shift.createdAt || '',
+                              updatedAt: shift.updatedAt || '',
+                            };
+                            setSelectedShiftForLog(careShift);
+                            setWorkLogFormOpen(true);
+                            setSelectedDateDetails(null);
+                          }}
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          Log Hours
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -479,6 +515,33 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
               preloadLogId={checklistPreload.logId}
               preloadClientName={checklistPreload.clientName}
               preloadDate={checklistPreload.date}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Work Log Dialog */}
+      <Dialog open={workLogFormOpen} onOpenChange={setWorkLogFormOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Log Work Hours
+            </DialogTitle>
+          </DialogHeader>
+          {selectedShiftForLog && (
+            <WorkLogForm
+              carePlanId={selectedShiftForLog.carePlanId}
+              shift={selectedShiftForLog}
+              onSuccess={() => {
+                setWorkLogFormOpen(false);
+                setSelectedShiftForLog(null);
+                toast.success('Work hours logged successfully');
+              }}
+              onCancel={() => {
+                setWorkLogFormOpen(false);
+                setSelectedShiftForLog(null);
+              }}
             />
           )}
         </DialogContent>
