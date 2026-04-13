@@ -170,21 +170,25 @@ export default function ProfessionalOnboardingChecklistPage() {
   const [loading, setLoading] = useState(true);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [hasChecklist, setHasChecklist] = useState(false);
+  const [assignedFamilyId, setAssignedFamilyId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
     const load = async () => {
       try {
+        // Load the first available checklist row for this professional (family-specific)
         const { data, error } = await supabase
           .from("professional_onboarding_checklists")
-          .select("checked_items, notes")
+          .select("checked_items, notes, family_id")
           .eq("professional_id", user.id)
+          .limit(1)
           .maybeSingle();
         if (error) throw error;
         if (data) {
           setHasChecklist(true);
           setCheckedItems((data.checked_items as unknown as Record<string, boolean | string>) || {});
           setNotes((data.notes as unknown as OnboardingNote[]) || []);
+          setAssignedFamilyId(data.family_id || null);
         }
       } catch (err) {
         console.error("Failed to load professional onboarding checklist:", err);
@@ -222,16 +226,17 @@ export default function ProfessionalOnboardingChecklistPage() {
   }, 0);
 
   const saveNotesToSupabase = useCallback(async (updatedNotes: OnboardingNote[]) => {
-    if (!user?.id) return;
+    if (!user?.id || !assignedFamilyId) return;
     try {
       await supabase
         .from("professional_onboarding_checklists")
         .update({ notes: updatedNotes as any })
-        .eq("professional_id", user.id);
+        .eq("professional_id", user.id)
+        .eq("family_id", assignedFamilyId);
     } catch (err) {
       console.error("Failed to save notes:", err);
     }
-  }, [user?.id]);
+  }, [user?.id, assignedFamilyId]);
 
   const handleAcknowledgeNote = useCallback((index: number) => {
     const updatedNotes = [...notes];
