@@ -1,113 +1,44 @@
 
-## Plan: Fix Professional Schedule Context, Correct Names, and Remove “Unknown” Fallbacks
 
-### What I found
+## Plan: Fix Professional Schedule Context, Correct Names, and Remove "Unknown" Fallbacks
 
-1. **Care plan switching bug is real in code**
-   - `src/hooks/useCarePlanShifts.tsx` stores `initialFilters` in local state once and never re-syncs them when `carePlanId` changes.
-   - Result: when you switch from “Care plan for Mum” to “Peltier’s Care Plan 2025,” the schedule can keep showing the previous plan’s shifts, family name, and caregiver.
+### Confirmed Issues (verified in code and database)
 
-2. **The wrong family label in daily logs is also real in the database**
-   - For Tricia’s `daily_care_logs` on the Peltier plan, the records currently store:
-     - `care_plan_id = 4848aec5-edb0-4e4a-b8e8-5684c609e6d6`
-     - `client_name = "User1 Family Family Family"`
-   - So even after the navigation fix, the green checklist/log row can still show the wrong family name because the UI is reading the saved `client_name` directly.
+1. **Stale hook bug**: `useCarePlanShifts` stores `initialFilters` in state once at mount and never re-syncs when the parent component passes a new `carePlanId`. Switching care plans in the Profile Hub does not reload shifts.
+2. **Bad database data**: 2 rows in `daily_care_logs` for the Peltier care plan (`4848aec5-edb0-4e4a-b8e8-5684c609e6d6`) have `client_name = "User1 Family Family Family"`. The correct family name from `profiles` is **Chanua Johnson**.
+3. **Missing caregiver/family fallback**: When FK joins return NULL due to RLS, the calendar shows "Unassigned" instead of resolving names through the existing RPC functions.
 
-3. **The selected Peltier plan has different assigned caregiver data than “Care plan for Mum”**
-   - Tricia is assigned to both plans.
-   - The Peltier care plan belongs to **Chanua Johnson**.
-   - Recent Peltier shifts in the database are assigned to **Angela Newton Collymore** on the dates I checked.
-   - So the schedule needs to show the caregiver actually assigned to that specific shift/plan, not the previous plan’s caregiver.
+### Changes
 
-4. **“Unknown/Unassigned” is coming from UI fallback behavior**
-   - In `src/components/professional/ProfessionalCalendar.tsx`, the caregiver display uses:
-     - `shift.caregiverDetails?.full_name || 'Unassigned'`
-   - If the joined caregiver profile is missing, the UI does not try a second local lookup from the selected plan’s team members before falling back.
+#### 1. Fix stale filters in `src/hooks/useCarePlanShifts.tsx`
+- Add a `useRef` to track the previous `carePlanId`
+- Add a `useEffect` that updates internal `filters` state whenever `initialFilters.carePlanId` changes from the parent
+- This ensures switching from "Care plan for Mum" to "Peltier's Care Plan 2025" triggers a fresh data fetch with the correct plan ID
 
-### Implementation
+#### 2. Add family name fallback in `src/hooks/useCarePlanShifts.tsx`
+- When the FK join for `family_profile` returns NULL (RLS), collect missing `family_id` values
+- Call `get_professional_accessible_family_profiles` RPC to resolve family names (same pattern already used for caregiver fallback)
+- Use the resolved name in the `familyName` field of each shift
 
-#### 1. Fix the stale schedule hook
-Update `src/hooks/useCarePlanShifts.tsx` so it reacts whenever `carePlanId`, `startDate`, or `endDate` changes.
+#### 3. Improve log display in `src/components/professional/ProfessionalCalendar.tsx`
+- In the daily log rows (line 292), when `log.client_name` contains a suspicious pattern like "Family Family", prefer the family name from the matched shift data or the care plan context instead
+- This ensures even old logs with bad `client_name` display correctly in the calendar
 
-Planned change:
-- Add a sync effect that updates internal filters when incoming props change, or remove the duplicated internal filter state entirely and derive directly from props.
-- This ensures switching from one care plan to another immediately reloads the correct shifts, family, and caregiver names.
+#### 4. Fix bad data in `daily_care_logs` table
+- Update the 2 existing Peltier rows from `"User1 Family Family Family"` to `"Chanua Johnson"` using the Supabase insert/update tool
 
-#### 2. Strengthen caregiver name resolution in the professional schedule
-Update `src/components/professional/ProfessionalCalendar.tsx` so caregiver names never show as “Unknown/Unassigned” when that caregiver is part of the selected care plan.
+### Files Modified
 
-Planned change:
-- Add a resolver like:
-  - first use `shift.caregiverDetails`
-  - then fall back to the selected care plan’s `care_team_members`
-  - then, only if truly absent, show “Unassigned”
-- Keep “You” only when `shift.caregiverId === user.id`
-- For other assigned shifts, show the real caregiver name such as Angela Newton.
+| File | Change |
+|------|--------|
+| `src/hooks/useCarePlanShifts.tsx` | Sync filters on carePlanId change; add family name RPC fallback |
+| `src/components/professional/ProfessionalCalendar.tsx` | Resolve log display name from shift/plan context when client_name is bad |
+| DB: `daily_care_logs` | Update 2 rows: client_name from "User1 Family Family Family" to "Chanua Johnson" |
 
-#### 3. Keep family context tied to the selected care plan everywhere
-Update the schedule/log presentation so the visible care context comes from the selected care plan instead of stale or free-text values.
+### Expected Result
+- Switching care plans refreshes the schedule immediately with the correct shifts, family name, and caregiver names
+- Peltier's schedule shows **Chanua Johnson** as the family and the correct assigned caregiver (e.g., Angela Newton Collymore)
+- "You" still shows only for Tricia's own shifts
+- No more "Unassigned" or "Unknown" labels for team members who are on the care plan
+- Old daily logs for Peltier display "Chanua Johnson" instead of the bad stored value
 
-Planned change:
-- In `ProfessionalCalendar`, prefer plan-linked family context (`familyName`, `carePlanTitle`) over any older log text.
-- Ensure Peltier displays **Chanua Johnson / Peltier’s Care Plan 2025**, not the “Care plan for Mum” family.
-
-#### 4. Fix daily checklist/log family naming for professionals
-Update `src/components/professional/DailyChecklist.tsx` and `src/components/professional/ProfessionalCalendar.tsx`.
-
-Planned change:
-- When saving a daily care log, stop relying on stale selected text for `client_name`.
-- Derive the display name from the selected assignment/care plan family record.
-- When rendering existing logs in the professional calendar, if `client_name` is bad or generic, resolve the family name from `care_plan_id` / `family_id` instead of blindly displaying the stored string.
-
-#### 5. Clean up the bad existing Peltier log labels
-Because the wrong `client_name` values are already saved in `daily_care_logs`, code changes alone will not fix those old rows.
-
-Required follow-up in implementation mode:
-- Add a database migration or controlled data-fix statement to normalize existing `daily_care_logs.client_name` values for affected rows.
-- Specifically update Peltier-linked logs from `"User1 Family Family Family"` to the correct family name for that care plan.
-
-### Files to update
-
-- `src/hooks/useCarePlanShifts.tsx`
-- `src/components/professional/ProfessionalCalendar.tsx`
-- `src/components/professional/DailyChecklist.tsx`
-
-Likely one database migration/data-fix for:
-- `daily_care_logs.client_name`
-
-### Technical details
-
-```text
-Current bug flow
-Profile Hub switches selectedCarePlanId
-  -> ProfessionalCalendar receives new carePlanId
-  -> useCarePlanShifts keeps old internal filters
-  -> old plan shifts remain visible
-  -> Denise / old family still appear
-
-Second issue
-Daily log row reads stored client_name
-  -> existing bad value in DB = "User1 Family Family Family"
-  -> wrong family label still shows even on correct plan
-```
-
-```text
-Planned display resolution order
-Caregiver name:
-1. shift.caregiverDetails.full_name
-2. selected care plan team member full_name by caregiverId
-3. "Unassigned" only if no caregiver assigned
-
-Family/log label:
-1. family from selected care plan / family_id
-2. valid saved client_name
-3. safe fallback
-```
-
-### Expected result after implementation
-
-- Switching from **Care plan for Mum** to **Peltier’s Care Plan 2025** will refresh the schedule correctly.
-- Peltier will show the correct family context: **Chanua Johnson**.
-- Shift cards will show the actual assigned caregiver for that plan/shift, such as **Angela Newton**, or **You** only when the shift belongs to Tricia.
-- The professional view will stop showing unnecessary **Unknown** / **Unassigned** labels for assigned team members.
-- Existing mislabeled daily logs for Peltier will display the correct family name after the data fix.
