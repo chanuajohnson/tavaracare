@@ -9,7 +9,7 @@ import {
   WorkLog,
   PayrollEntry 
 } from "@/services/care-plans/workLogService";
-import { deletePayrollEntries, undoPayrollPayment } from "@/services/care-plans/work-logs/payrollService";
+import { deletePayrollEntries, undoPayrollPayment, recalculateWeeklyNIS } from "@/services/care-plans/work-logs/payrollService";
 import { deleteWorkLog } from "@/services/care-plans/work-logs/approvalService";
 import { fetchCareTeamMembers } from "@/services/care-plans/careTeamService";
 import { CareTeamMemberWithProfile } from "@/types/careTypes";
@@ -110,6 +110,14 @@ export const usePayrollData = (carePlanId: string) => {
     return false;
   };
 
+  const handleRecalculateNIS = async (entryId: string) => {
+    const success = await recalculateWeeklyNIS(entryId);
+    if (success) {
+      await loadData();
+    }
+    return success;
+  };
+
   return {
     workLogs,
     payrollEntries,
@@ -120,6 +128,7 @@ export const usePayrollData = (carePlanId: string) => {
     handleProcessPayment,
     handleDeletePayrollEntries,
     handleDeleteWorkLog,
-    handleUndoPayment
+    handleUndoPayment,
+    handleRecalculateNIS
   };
 };

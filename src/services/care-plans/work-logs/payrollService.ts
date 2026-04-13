@@ -323,6 +323,90 @@ export const undoPayrollPayment = async (payrollId: string): Promise<boolean> =>
 };
 
 /**
+ * Recalculate NIS for a paid week where NIS was not applied (e.g., edge function was down).
+ * Fetches all entries in the same week, calls NIS API on weekly total,
+ * distributes contributions proportionally, and updates entries in the DB.
+ */
+export const recalculateWeeklyNIS = async (entryId: string): Promise<boolean> => {
+  try {
+    // Reuse fetchWeeklyPendingEntries logic but we need all entries for the week
+    const { data: targetEntry, error: targetError } = await supabase
+      .from('payroll_entries')
+      .select(`
+        *,
+        care_team_members:care_team_member_id (
+          caregiver_id,
+          profiles!caregiver_id ( full_name )
+        )
+      `)
+      .eq('id', entryId)
+      .single();
+
+    if (targetError) throw targetError;
+
+    const careTeamMemberId = targetEntry.care_team_member_id;
+    const carePlanId = targetEntry.care_plan_id;
+    const entryDate = new Date(targetEntry.pay_period_start || targetEntry.created_at);
+    const { weekStart, weekEnd } = getISOWeekRange(entryDate);
+
+    // Get all entries for this caregiver in this week
+    const { data: weekEntries, error: weekError } = await supabase
+      .from('payroll_entries')
+      .select('*')
+      .eq('care_team_member_id', careTeamMemberId)
+      .eq('care_plan_id', carePlanId)
+      .gte('pay_period_start', weekStart.toISOString())
+      .lte('pay_period_start', weekEnd.toISOString());
+
+    if (weekError) throw weekError;
+    if (!weekEntries || weekEntries.length === 0) {
+      toast.error("No entries found for this week");
+      return false;
+    }
+
+    const weeklyGross = weekEntries.reduce((sum, e) => sum + (e.gross_pay || e.total_amount || 0), 0);
+
+    // Call NIS API
+    const nisResult = await calculateNIS({ weekly_earnings: weeklyGross });
+
+    if (!nisResult.nis_applicable) {
+      toast.info(`NIS not applicable for weekly earnings of $${weeklyGross.toFixed(2)} (≤ $200)`);
+      return true;
+    }
+
+    // Distribute NIS proportionally across all entries in the week
+    for (const entry of weekEntries) {
+      const entryGross = entry.gross_pay || entry.total_amount || 0;
+      const proportion = weeklyGross > 0 ? entryGross / weeklyGross : 0;
+      const entryEmployeeNIS = Math.round(nisResult.employee_contribution * proportion * 100) / 100;
+      const entryEmployerNIS = Math.round(nisResult.employer_contribution * proportion * 100) / 100;
+
+      const { error: updateError } = await supabase
+        .from('payroll_entries')
+        .update({
+          nis_applicable: true,
+          nis_class: nisResult.nis_class,
+          employee_contribution: entryEmployeeNIS,
+          employer_contribution: entryEmployerNIS,
+          net_pay_after_nis: Math.round((entryGross - entryEmployeeNIS) * 100) / 100,
+        })
+        .eq('id', entry.id);
+
+      if (updateError) throw updateError;
+    }
+
+    toast.success(
+      `NIS recalculated: Class ${nisResult.nis_class} — Employee $${nisResult.employee_contribution.toFixed(2)}, Employer $${nisResult.employer_contribution.toFixed(2)}`
+    );
+    return true;
+  } catch (error: any) {
+    console.error("Error recalculating NIS:", error);
+    toast.error(`NIS recalculation failed: ${error?.message || 'Unknown error'}`);
+    return false;
+  }
+};
+
+/**
  * Delete pending payroll entries and reset their linked work logs to 'pending'.
  * Only operates on entries with payment_status = 'pending'.
  */

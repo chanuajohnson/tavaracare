@@ -5,7 +5,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { PayrollStatusBadge } from "./PayrollStatusBadge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Receipt, Check, Calendar, Download, Trash2, Undo2, ChevronDown, ChevronUp } from "lucide-react";
+import { Receipt, Check, Calendar, Download, Trash2, Undo2, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ShareReceiptDialog } from "./ShareReceiptDialog";
 import { generatePayReceipt, generateConsolidatedReceipt } from "@/services/care-plans/receiptService";
@@ -29,13 +29,15 @@ interface PayrollEntriesTableProps {
   onProcessPayment: (id: string) => void;
   onDeleteEntries?: (ids: string[]) => Promise<{ deleted: number; failed: number }>;
   onUndoPayment?: (id: string) => Promise<boolean>;
+  onRecalculateNIS?: (entryId: string) => Promise<boolean>;
 }
 
 export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   entries,
   onProcessPayment,
   onDeleteEntries,
-  onUndoPayment
+  onUndoPayment,
+  onRecalculateNIS
 }) => {
   const isMobile = useIsMobile();
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
@@ -50,6 +52,8 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
   const [expandedWeekDetails, setExpandedWeekDetails] = useState<Set<string>>(new Set());
   const [showMonthlySummary, setShowMonthlySummary] = useState(false);
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
+  const [isRecalculating, setIsRecalculating] = useState(false);
 
   const weekGroups = useMemo(() => groupEntriesByWeek(entries), [entries]);
   const monthGroups = useMemo(() => groupWeeksByMonth(weekGroups), [weekGroups]);
@@ -86,6 +90,21 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
       if (next.has(weekKey)) next.delete(weekKey); else next.add(weekKey);
       return next;
     });
+  };
+
+  const toggleMonthExpand = (monthKey: string) => {
+    setExpandedMonths(prev => {
+      const next = new Set(prev);
+      if (next.has(monthKey)) next.delete(monthKey); else next.add(monthKey);
+      return next;
+    });
+  };
+
+  const handleRecalcNIS = async (entryId: string) => {
+    if (!onRecalculateNIS) return;
+    setIsRecalculating(true);
+    await onRecalculateNIS(entryId);
+    setIsRecalculating(false);
   };
 
   const handleGenerateReceipt = async (entry: PayrollEntry) => {
@@ -284,6 +303,24 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                             </div>
                           </div>
                         )}
+                        {/* Recalculate NIS button for weeks with $0 NIS but gross > 200 */}
+                        {isDetailsOpen && week.allPaid && week.weeklyGross > 200 && week.employeeContribution === 0 && onRecalculateNIS && (
+                          <div className="pb-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={isRecalculating}
+                              className="h-7 gap-1 text-xs border-warning bg-warning/10 hover:bg-warning/20 text-warning-foreground"
+                              onClick={() => handleRecalcNIS(week.entries[0].id)}
+                            >
+                              <RefreshCw className={`h-3 w-3 ${isRecalculating ? 'animate-spin' : ''}`} />
+                              {isRecalculating ? 'Recalculating...' : 'Recalculate NIS'}
+                            </Button>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              NIS was not applied when this week was processed (API was unavailable). Click to recalculate.
+                            </p>
+                          </div>
+                        )}
                         {/* Undo payment for the whole week */}
                         {isDetailsOpen && onUndoPayment && (
                           <div className="flex gap-2 pb-2">
@@ -371,25 +408,49 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Month</TableHead>
-                      <TableHead>Weeks</TableHead>
-                      <TableHead>Total Gross</TableHead>
+                      <TableHead className="w-8"></TableHead>
+                      <TableHead>Month / Week</TableHead>
+                      <TableHead>Entries</TableHead>
+                      <TableHead>Gross Pay</TableHead>
                       <TableHead>Employee NIS</TableHead>
                       <TableHead>Employer NIS</TableHead>
-                      <TableHead>Total Net Pay</TableHead>
+                      <TableHead>Net Pay</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {monthGroups.map((month) => (
-                      <TableRow key={month.key}>
-                        <TableCell className="font-medium">{month.monthLabel}</TableCell>
-                        <TableCell>{month.weeks.length} {month.weeks.length === 1 ? 'week' : 'weeks'}</TableCell>
-                        <TableCell>${month.totalGross.toFixed(2)}</TableCell>
-                        <TableCell>${month.totalEmployeeNIS.toFixed(2)}</TableCell>
-                        <TableCell>${month.totalEmployerNIS.toFixed(2)}</TableCell>
-                        <TableCell className="font-semibold">${month.totalNetPay.toFixed(2)}</TableCell>
-                      </TableRow>
-                    ))}
+                    {monthGroups.map((month) => {
+                      const isMonthExpanded = expandedMonths.has(month.key);
+                      return (
+                        <React.Fragment key={month.key}>
+                          <TableRow className="bg-muted/30 font-medium">
+                            <TableCell>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleMonthExpand(month.key)}>
+                                {isMonthExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              </Button>
+                            </TableCell>
+                            <TableCell className="font-semibold">{month.monthLabel}</TableCell>
+                            <TableCell>{month.weeks.length} {month.weeks.length === 1 ? 'week' : 'weeks'}</TableCell>
+                            <TableCell>${month.totalGross.toFixed(2)}</TableCell>
+                            <TableCell>${month.totalEmployeeNIS.toFixed(2)}</TableCell>
+                            <TableCell>${month.totalEmployerNIS.toFixed(2)}</TableCell>
+                            <TableCell className="font-semibold">${month.totalNetPay.toFixed(2)}</TableCell>
+                          </TableRow>
+                          {isMonthExpanded && month.weeks.map((week) => (
+                            <TableRow key={week.key} className="text-sm">
+                              <TableCell></TableCell>
+                              <TableCell className="pl-8 text-muted-foreground">
+                                {format(week.weekStart, 'MMM d')} – {format(week.weekEnd, 'MMM d')}
+                              </TableCell>
+                              <TableCell>{week.entries.length} entries</TableCell>
+                              <TableCell>${week.weeklyGross.toFixed(2)}</TableCell>
+                              <TableCell>${week.employeeContribution.toFixed(2)}</TableCell>
+                              <TableCell>${week.employerContribution.toFixed(2)}</TableCell>
+                              <TableCell>${week.weeklyNetPay.toFixed(2)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </React.Fragment>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
