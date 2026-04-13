@@ -1,25 +1,73 @@
 
 
-## Plan: Fix Work Logs Not Showing Before March 14
+## Plan: Bulk Approve / Reject / Delete Work Logs
 
-### Root Cause
+### Problem
+With 20+ pending work logs for Angela's March month, approving or rejecting them one at a time is tedious. You need a "select all / select some" checkbox approach with bulk action buttons.
 
-The Work Logs list defaults to the **"Last 30 days"** date filter. Today is April 13, so `subDays(today, 30)` = **March 14**. All work logs with a `start_time` before March 14 are filtered out. The data is in the database (March 2–13 confirmed present) — it is just hidden by the default filter.
+### Solution
+Add row-level checkboxes to the Work Logs table, a "select all pending" checkbox in the header, and a bulk action toolbar that appears when items are selected. Actions: **Approve Selected**, **Reject Selected** (with a single reason dialog), and **Delete Selected**.
 
-### What I Will Change
+### UI Flow
 
-**File: `src/hooks/payroll/usePayrollFilters.ts`**
+```text
+┌─────────────────────────────────────────────────────┐
+│ [✓ 18 selected]  [✓ Approve All]  [✗ Reject All]  │
+│                  [🗑 Delete Selected]               │
+├──┬───────────┬──────────┬───────┬──────┬───────────┤
+│☑ │ Angela    │ Mar 30   │ 8.0h  │ $280 │ pending   │
+│☑ │ Angela    │ Mar 27   │ 8.0h  │ $200 │ pending   │
+│☐ │ Angela    │ Mar 26   │ 8.0h  │ $280 │ approved  │
+│  │ (approved rows cannot be selected for approve)   │
+└──┴───────────┴──────────┴───────┴──────┴───────────┘
+```
 
-1. Change the default `dateRangeFilter` from `'last30'` to `'all'` so that all work logs are visible by default.
+### Technical Details
 
-**File: `src/components/care-plan/payroll/PayrollFilters.tsx`**
+**File: `src/components/care-plan/payroll/WorkLogsTable.tsx`**
+- Add `selectedIds` state (Set of work log IDs)
+- Add a "select all pending" checkbox in the table header
+- Add a bulk action toolbar above the table when items are selected, with:
+  - "Approve Selected" button (calls `onBulkApprove`)
+  - "Reject Selected" button (opens reject dialog with shared reason)
+  - "Delete Selected" button (with confirmation dialog)
+- Count display: "X selected"
+- Pass `selectedIds` and `onToggleSelect` to each `WorkLogTableRow`
 
-2. Add a **"Last 60 days"** and **"Last 90 days"** option to the date range dropdown so users can view longer periods without switching to "All time".
+**File: `src/components/care-plan/payroll/table/WorkLogTableRow.tsx`**
+- Add checkbox column as the first cell
+- Only show checkbox for pending work logs (non-pending rows get an empty cell)
+- Checkbox controlled by parent's `selectedIds` set
 
-### Result
+**File: `src/services/care-plans/work-logs/approvalService.ts`**
+- Add `bulkApproveWorkLogs(ids: string[])` — loops through IDs calling existing `approveWorkLog` sequentially, returns `{ approved: number, failed: number }`
+- Add `bulkRejectWorkLogs(ids: string[], reason: string)` — loops through IDs calling existing `rejectWorkLog`, returns `{ rejected: number, failed: number }`
+- Add `bulkDeleteWorkLogs(ids: string[])` — loops through IDs calling existing `deleteWorkLog`, returns `{ deleted: number, failed: number }`
 
-After this change:
-- The Work Logs list will default to showing **all** work logs instead of only the last 30 days
-- Angela's March 2–13 entries will appear immediately without manual filter changes
-- Users can still narrow down using the 7/30/60/90-day or "This month" filters
+**File: `src/hooks/payroll/usePayrollData.ts`**
+- Add `handleBulkApproveWorkLogs(ids: string[])` — calls bulk service, reloads data, shows summary toast
+- Add `handleBulkRejectWorkLogs(ids: string[], reason: string)` — same pattern
+- Add `handleBulkDeleteWorkLogs(ids: string[])` — same pattern
+- Return new handlers
+
+**File: `src/components/care-plan/PayrollTab.tsx`**
+- Pass new bulk handlers down to `WorkLogsTable`
+- Hide bulk actions for professional view (they cannot approve/reject)
+
+### Files to Create/Modify
+
+| File | Change |
+|------|--------|
+| `src/services/care-plans/work-logs/approvalService.ts` | Add `bulkApproveWorkLogs`, `bulkRejectWorkLogs`, `bulkDeleteWorkLogs` |
+| `src/hooks/payroll/usePayrollData.ts` | Add bulk action handlers |
+| `src/components/care-plan/PayrollTab.tsx` | Pass bulk handlers to WorkLogsTable |
+| `src/components/care-plan/payroll/WorkLogsTable.tsx` | Add checkboxes, bulk action toolbar, selection state |
+| `src/components/care-plan/payroll/table/WorkLogTableRow.tsx` | Add checkbox column |
+
+### Safety
+- Only pending work logs can be selected for approve/reject
+- Only pending work logs can be selected for delete
+- Confirmation dialog before bulk reject (requires reason) and bulk delete
+- Progress toast shows results: "Approved 18 of 18 work logs"
+- Individual row actions remain available alongside bulk actions
 
