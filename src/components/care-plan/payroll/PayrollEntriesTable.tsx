@@ -335,9 +335,75 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                         Process Payment
                       </Button>
                     )}
+                    {entry.payment_status === 'paid' && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-1"
+                          onClick={() => {
+                            setExpandedEntries(prev => {
+                              const next = new Set(prev);
+                              if (next.has(entry.id)) next.delete(entry.id);
+                              else next.add(entry.id);
+                              return next;
+                            });
+                          }}
+                        >
+                          {expandedEntries.has(entry.id) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          Details
+                        </Button>
+                        {onUndoPayment && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1 border-amber-200 hover:bg-amber-50 hover:text-amber-700"
+                            onClick={() => {
+                              setUndoTargetId(entry.id);
+                              setUndoDialogOpen(true);
+                            }}
+                          >
+                            <Undo2 className="h-4 w-4" /> Undo
+                          </Button>
+                        )}
+                      </>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
+              {/* Expanded details row for paid entries */}
+              {entry.payment_status === 'paid' && expandedEntries.has(entry.id) && (
+                <TableRow className="bg-muted/30">
+                  <TableCell colSpan={isMobile ? 8 : 13} className="py-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm px-2">
+                      <div>
+                        <span className="text-muted-foreground block">Payment Date</span>
+                        <span className="font-medium">{entry.payment_date ? format(new Date(entry.payment_date), 'MMM d, yyyy h:mm a') : 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block">NIS Class</span>
+                        <span className="font-medium">{entry.nis_class || (entry.nis_applicable ? 'Applied' : 'Not Applicable')}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block">Employee NIS</span>
+                        <span className="font-medium">${(entry.employee_contribution || 0).toFixed(2)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block">Employer NIS</span>
+                        <span className="font-medium">${(entry.employer_contribution || 0).toFixed(2)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block">Gross Pay</span>
+                        <span className="font-medium">${(entry.gross_pay || entry.total_amount || 0).toFixed(2)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block">Net Pay (After NIS)</span>
+                        <span className="font-medium">${(entry.net_pay_after_nis || entry.total_amount || 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
             ))}
           </TableBody>
         </Table>
