@@ -232,7 +232,8 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
           </TableHeader>
           <TableBody>
             {entries.map((entry) => (
-              <TableRow key={entry.id}>
+              <React.Fragment key={entry.id}>
+              <TableRow>
                 <TableCell>
                   <Checkbox 
                     checked={selectedEntries.includes(entry.id)}
@@ -404,6 +405,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                   </TableCell>
                 </TableRow>
               )}
+              </React.Fragment>
             ))}
           </TableBody>
         </Table>
