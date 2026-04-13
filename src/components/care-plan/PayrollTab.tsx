@@ -11,9 +11,10 @@ import { usePayrollFilters } from '@/hooks/payroll/usePayrollFilters';
 
 interface PayrollTabProps {
   carePlanId: string;
+  isProfessionalView?: boolean;
 }
 
-export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
+export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId, isProfessionalView = false }) => {
   const [currentTab, setCurrentTab] = useState<string>("worklogs");
   
   // Dialog states
@@ -143,6 +144,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
                   workLogs={filteredWorkLogs}
                   onApprove={handleApproveWorkLog}
                   onReject={openRejectDialog}
+                  isProfessionalView={isProfessionalView}
                 />
               )}
             </CardContent>

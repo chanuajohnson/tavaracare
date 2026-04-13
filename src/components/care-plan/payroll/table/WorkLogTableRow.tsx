@@ -13,13 +13,15 @@ interface WorkLogTableRowProps {
   onApprove: (id: string) => void;
   onReject: (id: string, reason: string) => Promise<boolean>;
   onGenerateReceipt: (workLog: WorkLog) => void;
+  isProfessionalView?: boolean;
 }
 
 export const WorkLogTableRow = ({
   workLog,
   onApprove,
   onReject,
-  onGenerateReceipt
+  onGenerateReceipt,
+  isProfessionalView = false
 }: WorkLogTableRowProps) => {
   const startTime = new Date(workLog.start_time);
   const endTime = new Date(workLog.end_time);
@@ -72,6 +74,7 @@ export const WorkLogTableRow = ({
           onApprove={onApprove}
           onReject={onReject}
           onGenerateReceipt={onGenerateReceipt}
+          isProfessionalView={isProfessionalView}
         />
       </TableCell>
     </TableRow>
