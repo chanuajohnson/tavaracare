@@ -1,74 +1,91 @@
 
+## Plan: Fix bi-directional approval persistence and surface the approval block inside Admin Post-Onboarding
 
-## Plan: Professional Approval RLS Fix + Admin Care Plan Access + Care Logs Visibility
+### What I found
+There are two separate problems behind what you’re seeing:
 
-### Summary
-Three interconnected issues to resolve:
+1. Professional approval is being saved from the professional page with:
+   - `update(...).eq("professional_id", user.id)` in `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx`
+   - but `professional_onboarding_checklists` now supports multiple rows per professional via `(professional_id, family_id)`
+   - so this update/load path is no longer family-specific and is vulnerable to loading/updating the wrong row or failing to reflect the correct assigned-family record in admin
 
-1. **Professional digital signature not persisting** — RLS blocks UPDATE on `professional_onboarding_checklists`
-2. **Admin cannot manage care plans on behalf of families** — no admin route to access a family's care plan management (schedule, shifts, team assignments)
-3. **Care Logs tab needs to be more visible on the family care plan page** — already exists as "Daily Logs" tab but user wants it more prominent with medication administrations included
+2. Admin currently shows approval only in the top “Professional Feedback Summary” card, not inside the actual `post_onboarding` section body
+   - so the admin cannot see the same final approval block that the professional/family sees at the bottom of their checklist
+   - that is why it feels like “the end approval section” is missing on admin
 
----
+### Implementation
+#### 1) Make professional approval family-specific and persistent
+**File:** `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx`
 
-### Change 1: Add UPDATE RLS policy for professionals on their own onboarding checklists
+- Load `family_id` together with `checked_items`
+- Store the assigned family id in state
+- Change the initial query from a broad `.eq("professional_id", user.id).maybeSingle()` flow to a deterministic record selection for the assigned checklist row
+- Change approval save to:
+  - update by both `professional_id` and `family_id`
+  - if needed, use upsert with `onConflict: "professional_id,family_id"` to match the admin save pattern
+- Change note save to also target the same `(professional_id, family_id)` row
+- Keep self-approval metadata intact so when the professional approves, admin sees:
+  - `professional_approval_confirmed: true`
+  - `professional_approval_date`
+  - no `professional_approval_by: "admin"` unless admin actually did it
 
-**Migration required**
+Result: when Tricia approves on her side, it persists on the exact assigned-family checklist row and admin reads the same saved record.
 
-Currently `professional_onboarding_checklists` has:
-- `Admins can manage...` (ALL)
-- `Professionals can view own...` (SELECT only)
+#### 2) Make admin and professional/family views truly bi-directional
+**Files:** 
+- `src/pages/admin/AdminOnboardingChecklistPage.tsx`
+- `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx`
+- `src/pages/family/FamilyOnboardingChecklistPage.tsx`
 
-Missing: UPDATE policy so professionals can save their digital approval. This is exactly why Tricia's "Approved" toast appeared but the data never persisted.
+- Preserve current admin toggle behavior
+- Ensure admin toggling writes to the same JSON keys the user pages read
+- Ensure self-approval pages read the same keys admin writes
+- Standardize display rules:
+  - self-approved: show “Approved — Digital signature recorded …”
+  - admin-approved: show same approved state plus “by Admin” / “recorded by admin on behalf”
+- Do the same consistency pass for family `family_approval_confirmed` so service commencement behaves identically
 
-```sql
-CREATE POLICY "Professionals can update own onboarding checklist"
-  ON public.professional_onboarding_checklists
-  FOR UPDATE
-  TO authenticated
-  USING (professional_id = auth.uid())
-  WITH CHECK (professional_id = auth.uid());
-```
+Result: whether the user approves or admin approves on their behalf, both sides show the same approved milestone state.
 
-### Change 2: Show professional's approval status on admin onboarding checklist
+#### 3) Show the approval block inside Admin Post-Onboarding section
+**File:** `src/pages/admin/AdminOnboardingChecklistPage.tsx`
 
-**File: `src/pages/admin/AdminOnboardingChecklistPage.tsx`**
+Inside the `section.id === "post_onboarding"` block:
+- For Professional tab:
+  - render the readiness approval card inside the section body under the care summary
+  - show approved state, date, and admin attribution if applicable
+  - keep the summary card at top, but also mirror the real end-of-checklist approval area
+- For Family tab:
+  - render the service commencement approval block inside admin post-onboarding as well
+  - include care start date / first billable week text and approved state
+  - show attribution when admin toggled on behalf of family
 
-The Professional Feedback Summary card already reads `professional_approval_confirmed` from `profCheckedItems`. Once the RLS fix above is applied, the professional's self-approval will persist and the admin will automatically see it — including the date and "by Admin" vs self-signed distinction. No frontend change needed for this part.
+Result: admin gets “eyes on everything” and can see the actual final milestone block where onboarding transitions into active care.
 
-### Change 3: Admin access to manage care plans on behalf of a family
+#### 4) Tighten professional checklist row selection in admin
+**File:** `src/pages/admin/AdminOnboardingChecklistPage.tsx`
 
-**File: `src/components/admin/UserDetailModal.tsx`**
+- Review the professional checklist loader so it always targets the selected `professional_id + family_id` pair
+- Avoid any fallback that can accidentally mask the correct row after selection changes
+- Keep the assigned family selector, but make the selected row the single source of truth
 
-Add a "Manage Care Plans" button in the family user's Profile tab that navigates the admin directly to `/family/care-management/{carePlanId}`. The CarePlanDetailPage already has `isAdminViewing` support (detects admin via `user_roles` table and shows an info banner).
-
-Steps:
-- Fetch the family's care plans (`care_plans` where `family_id = user.id`)
-- Display each care plan as a clickable link: "View [Plan Title]" → navigates to `/family/care-management/{planId}`
-- If no care plans exist, show a "Create Care Plan" button → `/family/care-management/create` (admin creates on behalf)
-
-This gives admin full access to schedule, shifts, team, medications, meals, daily logs — everything the family sees.
-
-### Change 4: Enhance Daily Logs tab on family care plan with medication administrations
-
-**File: `src/components/care-plan/DailyCareLogsTab.tsx`**
-
-Currently shows only `daily_care_logs` records. Add a medication administration section at the top (similar to the DailyCareQuickView component pattern):
-- Fetch recent `medication_administrations` joined through `medications` → `care_plans`
-- Display med name, dosage, time, administered by (name + role)
-- This makes the existing "Daily Logs" tab a comprehensive care log viewer
-
----
+Result: admin sees the correct family-specific professional onboarding record every time.
 
 ### Files to modify
+- `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx`
+- `src/pages/family/FamilyOnboardingChecklistPage.tsx`
+- `src/pages/admin/AdminOnboardingChecklistPage.tsx`
 
-| File | Change |
-|------|--------|
-| **Migration** | Add UPDATE policy on `professional_onboarding_checklists` for professionals |
-| `src/components/admin/UserDetailModal.tsx` | Add "Manage Care Plans" links in family Profile tab with direct navigation to care plan detail pages |
-| `src/components/care-plan/DailyCareLogsTab.tsx` | Add medication administration history section alongside daily care logs |
+### No migration needed
+The UPDATE policy for professionals already exists, and the DB currently contains:
+- professional approval saved for Tricia + User1 Family
+- family approval saved for User1 Family
+So this is now a frontend record-targeting and visibility issue, not a new schema issue.
 
-### No other frontend changes needed
-- Professional Feedback Summary on admin checklist already reads `professional_approval_confirmed` — it will work once RLS permits the UPDATE
-- CarePlanDetailPage already supports admin viewing with the blue "managing on behalf of" banner
+### Technical note
+Current DB read confirms:
+- `professional_onboarding_checklists` has Tricia + User1 Family with `professional_approval_confirmed = true`
+- `onboarding_checklists` has User1 Family with `family_approval_confirmed = true`
+
+That means the main bug is that the UI is not consistently loading/rendering the exact pair-specific approval record and not mirroring the approval block inside admin post-onboarding.
 
