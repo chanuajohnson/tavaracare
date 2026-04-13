@@ -264,7 +264,15 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                   )}
                 </TableCell>
                 {!isMobile && <TableCell>${entry.expense_total?.toFixed(2) || '0.00'}</TableCell>}
-                <TableCell className="font-medium">${entry.total_amount.toFixed(2)}</TableCell>
+                <TableCell className="font-medium">
+                  <div>${entry.total_amount.toFixed(2)}</div>
+                  {entry.nis_applicable && entry.employee_contribution ? (
+                    <div className="text-xs text-muted-foreground">
+                      NIS: -${entry.employee_contribution.toFixed(2)}
+                      <br />Net: ${(entry.net_pay_after_nis || entry.total_amount).toFixed(2)}
+                    </div>
+                  ) : null}
+                </TableCell>
                 <TableCell>
                   <PayrollStatusBadge status={entry.payment_status} />
                 </TableCell>
