@@ -1086,6 +1086,37 @@ function ChecklistTabContent({
                       <RateTierReferenceCard />
                     )}
 
+                    {section.id === "medication_confirmation" && showFamilyData && selectedId && (
+                      <div className="mt-4 border-t pt-4">
+                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                          <Pill className="h-4 w-4" />
+                          Active Medications on File
+                        </h4>
+                        {familyMedications && familyMedications.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {familyMedications.map((med) => (
+                              <div key={med.id} className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                                <p className="font-medium text-sm text-blue-900">{med.name}</p>
+                                {med.dosage && <p className="text-xs text-blue-700">Dosage: {med.dosage}</p>}
+                                {med.medication_type && <p className="text-xs text-blue-700">Type: {med.medication_type}</p>}
+                                {med.instructions && <p className="text-xs text-blue-700">Instructions: {med.instructions}</p>}
+                                {med.schedule && typeof med.schedule === 'object' && med.schedule.times && (
+                                  <p className="text-xs text-blue-700">
+                                    Schedule: {Array.isArray(med.schedule.times) ? med.schedule.times.join(', ') : String(med.schedule.times)}
+                                    {med.schedule.frequency && ` (${med.schedule.frequency})`}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                            ⚠️ No medications found for this family. The family has not yet added any medications to their care plan.
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {section.id === "post_onboarding" && (
                       <CareSummaryHeader
                         checkedItems={checkedItems}
@@ -1599,6 +1630,7 @@ export default function AdminOnboardingChecklistPage() {
             tableName="onboarding_checklists"
             idColumn="family_id"
             showFamilyData
+            familyMedications={familyMedications}
             onDownloadReport={selectedFamilyId ? () => {
               const familyName = families.find(f => f.id === selectedFamilyId)?.full_name || "Family";
               generateFamilyReport(familyName, familyCheckedItems, familyNotes, ONBOARDING_SECTION_DEFS);
