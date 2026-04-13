@@ -24,6 +24,18 @@ interface ProfessionalCalendarProps {
 
 export function ProfessionalCalendar({ carePlanId, loading = false }: ProfessionalCalendarProps) {
   const { user } = useAuth();
+
+  // Resolve log client_name: if it looks like bad data, prefer shift-level family name
+  const resolveLogClientName = (clientName?: string | null): string => {
+    if (!clientName) return 'Care Log';
+    // Detect suspicious patterns like "Family Family" or "User1 Family"
+    if (/family\s+family/i.test(clientName) || /^user\d/i.test(clientName)) {
+      // Try to find a good family name from the loaded shifts
+      const shiftWithFamily = shifts.find(s => s.familyName);
+      return shiftWithFamily?.familyName || 'Care Log';
+    }
+    return clientName;
+  };
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
   const [selectedDateDetails, setSelectedDateDetails] = useState<{date: Date, shifts: any[]} | null>(null);
