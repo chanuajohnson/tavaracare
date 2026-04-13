@@ -28,7 +28,7 @@ interface UseCarePlanDataProps {
   isProfessionalView?: boolean;
 }
 
-export const useCarePlanData = ({ carePlanId, userId }: UseCarePlanDataProps) => {
+export const useCarePlanData = ({ carePlanId, userId, isProfessionalView = false }: UseCarePlanDataProps) => {
   // Initialize all state with proper default values
   const [loading, setLoading] = useState(true);
   const [carePlan, setCarePlan] = useState<CarePlan | null>(null);
@@ -93,8 +93,13 @@ export const useCarePlanData = ({ carePlanId, userId }: UseCarePlanDataProps) =>
 
   const loadCareTeamMembers = async () => {
     try {
-      console.log(`[useCarePlanData] Loading care team members for plan id: ${carePlanId}`);
-      const members = await fetchCareTeamMembers(carePlanId);
+      console.log(`[useCarePlanData] Loading care team members for plan id: ${carePlanId}, isProfessionalView: ${isProfessionalView}`);
+      
+      // Use RPC for professional view to bypass RLS restrictions on teammate rows
+      const members = isProfessionalView
+        ? await fetchCareTeamMembersViaRPC(carePlanId)
+        : await fetchCareTeamMembers(carePlanId);
+      
       console.log(`[useCarePlanData] Fetched ${members.length} care team members:`, members);
       
       setCareTeamMembers(members);
