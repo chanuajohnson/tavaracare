@@ -2,6 +2,7 @@
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { WorkLog, WorkLogInput } from "../types/workLogTypes";
+import { resolveCaregiverNames } from "../utils/resolveCaregiveNames";
 
 export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
   try {
@@ -22,33 +23,29 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
     if (error) throw error;
     
     if (workLogs && workLogs.length > 0) {
-      const caregiverIds = workLogs
-        .map(log => log.care_team_members?.caregiver_id)
-        .filter(Boolean);
+      // Build records for the shared resolver
+      const records = workLogs.map(log => ({
+        caregiverId: log.care_team_members?.caregiver_id || null,
+        joinedName: log.care_team_members?.profiles?.full_name || null,
+      }));
 
-      if (caregiverIds.length > 0) {
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .in('id', caregiverIds);
+      // Resolve names with RPC fallback for any that RLS blocked
+      const nameMap = await resolveCaregiverNames(records);
 
-        if (profilesError) throw profilesError;
-
-        return workLogs.map(log => {
-          const caregiverId = log.care_team_members?.caregiver_id;
-          const profile = profiles?.find(p => p.id === caregiverId);
-          
-          let validRateType: 'regular' | 'overtime' | 'holiday' = 'regular';
-          if (log.rate_type === 'overtime') validRateType = 'overtime';
-          if (log.rate_type === 'holiday') validRateType = 'holiday';
-          
-          return {
-            ...log,
-            caregiver_name: profile?.full_name || 'Unknown',
-            rate_type: validRateType
-          };
-        });
-      }
+      return workLogs.map(log => {
+        const caregiverId = log.care_team_members?.caregiver_id;
+        const resolvedName = caregiverId ? nameMap.get(caregiverId) : null;
+        
+        let validRateType: 'regular' | 'overtime' | 'holiday' = 'regular';
+        if (log.rate_type === 'overtime') validRateType = 'overtime';
+        if (log.rate_type === 'holiday') validRateType = 'holiday';
+        
+        return {
+          ...log,
+          caregiver_name: resolvedName || 'Unknown',
+          rate_type: validRateType
+        };
+      });
     }
     
     return [] as WorkLog[];

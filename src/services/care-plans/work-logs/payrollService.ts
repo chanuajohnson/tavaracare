@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { PayrollEntry } from "../types/workLogTypes";
+import { resolveCaregiverNames } from "../utils/resolveCaregiveNames";
 
 export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEntry[]> => {
   try {
@@ -21,22 +22,19 @@ export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEn
     if (error) throw error;
     
     if (entries.length > 0) {
-      const caregiverIds = entries
-        .map(entry => entry.care_team_members?.caregiver_id)
-        .filter(Boolean);
+      // Build records for the shared resolver
+      const records = entries.map(entry => ({
+        caregiverId: entry.care_team_members?.caregiver_id || null,
+        joinedName: entry.care_team_members?.profiles?.full_name || null,
+      }));
 
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', caregiverIds);
-
-      if (profilesError) throw profilesError;
+      // Resolve names with RPC fallback for any that RLS blocked
+      const nameMap = await resolveCaregiverNames(records);
 
       return entries.map(entry => {
         const caregiverId = entry.care_team_members?.caregiver_id;
-        const profile = profiles?.find(p => p.id === caregiverId);
+        const resolvedName = caregiverId ? nameMap.get(caregiverId) : null;
         
-        // Ensure the payment_status is one of the allowed values
         const validStatus: 'pending' | 'approved' | 'paid' = 
           ['pending', 'approved', 'paid'].includes(entry.payment_status) 
             ? entry.payment_status as 'pending' | 'approved' | 'paid'
@@ -44,7 +42,7 @@ export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEn
             
         return {
           ...entry,
-          caregiver_name: profile?.full_name || 'Unknown',
+          caregiver_name: resolvedName || 'Unknown',
           payment_status: validStatus
         };
       });

@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import type { WorkLog, PayrollEntry } from './types/workLogTypes';
+import { resolveCaregiverNames } from './utils/resolveCaregiveNames';
 
 type ReceiptEntry = WorkLog | PayrollEntry;
 
