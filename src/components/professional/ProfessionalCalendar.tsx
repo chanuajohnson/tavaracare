@@ -289,7 +289,7 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
                         <div className="flex items-center gap-2 min-w-0">
                           <ClipboardCheck className="h-4 w-4 text-emerald-600 flex-shrink-0" />
                           <div className="min-w-0">
-                            <span className="text-sm font-medium truncate block">{log.client_name || 'Care Log'}</span>
+                            <span className="text-sm font-medium truncate block">{resolveLogClientName(log.client_name)}</span>
                             <span className="text-xs text-muted-foreground">
                               {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
                             </span>
