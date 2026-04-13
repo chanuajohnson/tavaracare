@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import type { PayrollEntry } from "../types/workLogTypes";
 import { resolveCaregiverNames } from "../utils/resolveCaregiveNames";
 import { calculateNIS } from "@/services/nisCalculation";
-import { startOfWeek, endOfWeek } from "date-fns";
+import { startOfWeek, endOfWeek, format } from "date-fns";
 
 export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEntry[]> => {
   try {
@@ -60,19 +60,58 @@ export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEn
  * Get the ISO week range (Monday–Sunday) for a given date.
  */
 const getISOWeekRange = (date: Date) => {
-  const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Monday
-  const weekEnd = endOfWeek(date, { weekStartsOn: 1 }); // Sunday
+  const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
   return { weekStart, weekEnd };
 };
 
+export interface WeeklyPayrollData {
+  pendingEntries: PayrollEntry[];
+  paidEntries: PayrollEntry[];
+  pendingTotal: number;
+  paidTotal: number;
+  weeklyTotal: number;
+  caregiverName: string;
+  weekStart: Date;
+  weekEnd: Date;
+  nisApplicable: boolean;
+  nisClass: string | null;
+  employeeContribution: number;
+  employerContribution: number;
+  netPayPending: number;
+  nisError: string | null;
+  paidNisEmployee: number;
+  paidNisEmployer: number;
+}
+
 /**
- * Fetch all pending payroll entries for the same caregiver in the same ISO week.
+ * Fetch ALL entries (paid + pending) for a caregiver in the same ISO week.
+ * NIS is calculated on the full weekly total, but only pending entries are processed.
  */
 export const fetchWeeklyPendingEntries = async (
   payrollId: string
-): Promise<{ entries: PayrollEntry[]; weeklyTotal: number; caregiverName: string }> => {
+): Promise<WeeklyPayrollData> => {
+  const empty: WeeklyPayrollData = {
+    pendingEntries: [],
+    paidEntries: [],
+    pendingTotal: 0,
+    paidTotal: 0,
+    weeklyTotal: 0,
+    caregiverName: 'Unknown',
+    weekStart: new Date(),
+    weekEnd: new Date(),
+    nisApplicable: false,
+    nisClass: null,
+    employeeContribution: 0,
+    employerContribution: 0,
+    netPayPending: 0,
+    nisError: null,
+    paidNisEmployee: 0,
+    paidNisEmployer: 0,
+  };
+
   try {
-    // First get the target entry to find caregiver and week
+    // Get the target entry to find caregiver and week
     const { data: targetEntry, error: targetError } = await supabase
       .from('payroll_entries')
       .select(`
@@ -93,101 +132,133 @@ export const fetchWeeklyPendingEntries = async (
     const carePlanId = targetEntry.care_plan_id;
     const caregiverName = targetEntry.care_team_members?.profiles?.full_name || 'Unknown';
     
-    // Get the ISO week range from pay_period_start
+    // Get ISO week range from pay_period_start
     const entryDate = new Date(targetEntry.pay_period_start || targetEntry.created_at);
     const { weekStart, weekEnd } = getISOWeekRange(entryDate);
 
-    // Fetch all pending entries for this caregiver in this care plan within the same week
-    const { data: weekEntries, error: weekError } = await supabase
+    // Fetch ALL entries for this caregiver in this care plan within the same week (all statuses)
+    const { data: allWeekEntries, error: weekError } = await supabase
       .from('payroll_entries')
       .select('*')
       .eq('care_team_member_id', careTeamMemberId)
       .eq('care_plan_id', carePlanId)
-      .eq('payment_status', 'pending')
       .gte('pay_period_start', weekStart.toISOString())
       .lte('pay_period_start', weekEnd.toISOString());
 
     if (weekError) throw weekError;
 
-    const entries = (weekEntries || []) as PayrollEntry[];
-    const weeklyTotal = entries.reduce((sum, e) => sum + (e.gross_pay || e.total_amount || 0), 0);
+    const entries = (allWeekEntries || []) as PayrollEntry[];
+    const pendingEntries = entries.filter(e => e.payment_status === 'pending');
+    const paidEntries = entries.filter(e => e.payment_status === 'paid');
 
-    return { entries, weeklyTotal, caregiverName };
+    const pendingTotal = pendingEntries.reduce((sum, e) => sum + (e.gross_pay || e.total_amount || 0), 0);
+    const paidTotal = paidEntries.reduce((sum, e) => sum + (e.gross_pay || e.total_amount || 0), 0);
+    const weeklyTotal = pendingTotal + paidTotal;
+
+    // Sum NIS already applied to paid entries this week
+    const paidNisEmployee = paidEntries.reduce((sum, e) => sum + (e.employee_contribution || 0), 0);
+    const paidNisEmployer = paidEntries.reduce((sum, e) => sum + (e.employer_contribution || 0), 0);
+
+    // Calculate NIS on the FULL weekly total
+    let nisApplicable = false;
+    let nisClass: string | null = null;
+    let employeeContribution = 0;
+    let employerContribution = 0;
+    let netPayPending = pendingTotal;
+    let nisError: string | null = null;
+
+    try {
+      const nisResult = await calculateNIS({ weekly_earnings: weeklyTotal });
+      nisApplicable = nisResult.nis_applicable;
+      nisClass = nisResult.nis_class;
+      
+      // Total NIS for the week, minus what's already been paid
+      const remainingEmployeeNIS = Math.max(0, nisResult.employee_contribution - paidNisEmployee);
+      const remainingEmployerNIS = Math.max(0, nisResult.employer_contribution - paidNisEmployer);
+      
+      employeeContribution = Math.round(remainingEmployeeNIS * 100) / 100;
+      employerContribution = Math.round(remainingEmployerNIS * 100) / 100;
+      netPayPending = Math.round((pendingTotal - employeeContribution) * 100) / 100;
+    } catch (err: any) {
+      console.error("NIS calculation failed:", err);
+      nisError = err?.message || "NIS calculation failed. Check edge function deployment and NUACHA_API_KEY.";
+    }
+
+    return {
+      pendingEntries,
+      paidEntries,
+      pendingTotal,
+      paidTotal,
+      weeklyTotal,
+      caregiverName,
+      weekStart,
+      weekEnd,
+      nisApplicable,
+      nisClass,
+      employeeContribution,
+      employerContribution,
+      netPayPending,
+      nisError,
+      paidNisEmployee,
+      paidNisEmployer,
+    };
   } catch (error) {
-    console.error("Error fetching weekly pending entries:", error);
-    return { entries: [], weeklyTotal: 0, caregiverName: 'Unknown' };
+    console.error("Error fetching weekly entries:", error);
+    return empty;
   }
 };
 
 /**
  * Process payment for all pending entries in the same ISO week.
- * Calculates NIS on weekly aggregate, distributes proportionally.
+ * NIS is calculated on the full weekly total (including already-paid entries).
  */
 export const processWeeklyPayrollPayment = async (
   payrollId: string,
   paymentDate = new Date()
 ): Promise<boolean> => {
   try {
-    const { entries, weeklyTotal } = await fetchWeeklyPendingEntries(payrollId);
+    const weeklyData = await fetchWeeklyPendingEntries(payrollId);
+    const { pendingEntries, pendingTotal, employeeContribution, employerContribution, nisApplicable, nisClass, nisError } = weeklyData;
 
-    if (entries.length === 0) {
+    if (pendingEntries.length === 0) {
       toast.error("No pending entries found for this week");
       return false;
     }
 
-    // Calculate NIS on weekly aggregate
-    let nisData = {
-      nis_applicable: false,
-      nis_class: null as string | null,
-      employee_contribution: 0,
-      employer_contribution: 0,
-      net_pay_after_nis: weeklyTotal,
-      nis_response: null as any,
-    };
-
-    try {
-      const nisResult = await calculateNIS({ weekly_earnings: weeklyTotal });
-      nisData = {
-        nis_applicable: nisResult.nis_applicable,
-        nis_class: nisResult.nis_class,
-        employee_contribution: nisResult.employee_contribution,
-        employer_contribution: nisResult.employer_contribution,
-        net_pay_after_nis: nisResult.net_pay_after_nis,
-        nis_response: nisResult,
-      };
-    } catch (nisError) {
-      console.warn("NIS calculation failed, proceeding without NIS:", nisError);
+    if (nisError) {
+      toast.warning(`NIS calculation failed: ${nisError}. Processing without NIS deductions.`);
     }
 
-    // Distribute NIS proportionally across entries
-    for (const entry of entries) {
-      const proportion = (entry.gross_pay || entry.total_amount) / weeklyTotal;
-      const entryEmployeeNIS = nisData.employee_contribution * proportion;
-      const entryEmployerNIS = nisData.employer_contribution * proportion;
-      const entryGross = entry.gross_pay || entry.total_amount;
+    // Distribute NIS proportionally across pending entries
+    for (const entry of pendingEntries) {
+      const entryGross = entry.gross_pay || entry.total_amount || 0;
+      const proportion = pendingTotal > 0 ? entryGross / pendingTotal : 0;
+      const entryEmployeeNIS = employeeContribution * proportion;
+      const entryEmployerNIS = employerContribution * proportion;
 
       const { error } = await supabase
         .from('payroll_entries')
         .update({
           payment_status: 'paid',
           payment_date: paymentDate.toISOString(),
-          nis_applicable: nisData.nis_applicable,
-          nis_class: nisData.nis_class,
+          nis_applicable: nisApplicable,
+          nis_class: nisClass,
           employee_contribution: Math.round(entryEmployeeNIS * 100) / 100,
           employer_contribution: Math.round(entryEmployerNIS * 100) / 100,
           net_pay_after_nis: Math.round((entryGross - entryEmployeeNIS) * 100) / 100,
-          nis_response: nisData.nis_response,
         })
         .eq('id', entry.id);
 
       if (error) throw error;
     }
 
-    const nisMsg = nisData.nis_applicable
-      ? ` NIS Class ${nisData.nis_class}: Employee $${nisData.employee_contribution.toFixed(2)}, Employer $${nisData.employer_contribution.toFixed(2)}`
-      : ' NIS: Not applicable (weekly earnings ≤ $200)';
+    const nisMsg = nisError
+      ? ' (NIS calculation failed — not applied)'
+      : nisApplicable
+        ? ` NIS Class ${nisClass}: Employee -$${employeeContribution.toFixed(2)}, Employer $${employerContribution.toFixed(2)}`
+        : ' NIS: Not applicable (weekly earnings ≤ $200)';
 
-    toast.success(`${entries.length} entries paid.${nisMsg}`);
+    toast.success(`${pendingEntries.length} entries paid.${nisMsg}`);
     return true;
   } catch (error) {
     console.error("Error processing weekly payroll payment:", error);
