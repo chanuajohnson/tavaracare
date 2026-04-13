@@ -115,3 +115,36 @@ export const deleteWorkLog = async (workLogId: string): Promise<boolean> => {
     return false;
   }
 };
+
+export const bulkApproveWorkLogs = async (ids: string[]): Promise<{ approved: number; failed: number }> => {
+  let approved = 0;
+  let failed = 0;
+  for (const id of ids) {
+    const success = await approveWorkLog(id);
+    if (success) approved++;
+    else failed++;
+  }
+  return { approved, failed };
+};
+
+export const bulkRejectWorkLogs = async (ids: string[], reason: string): Promise<{ rejected: number; failed: number }> => {
+  let rejected = 0;
+  let failed = 0;
+  for (const id of ids) {
+    const success = await rejectWorkLog(id, reason);
+    if (success) rejected++;
+    else failed++;
+  }
+  return { rejected, failed };
+};
+
+export const bulkDeleteWorkLogs = async (ids: string[]): Promise<{ deleted: number; failed: number }> => {
+  let deleted = 0;
+  let failed = 0;
+  for (const id of ids) {
+    const success = await deleteWorkLog(id);
+    if (success) deleted++;
+    else failed++;
+  }
+  return { deleted, failed };
+};
