@@ -30,6 +30,8 @@ interface CareShiftWithCaregiverDetails extends CareShift {
     professional_type: string;
     avatar_url: string | null;
   };
+  carePlanTitle?: string;
+  familyName?: string;
 }
 
 interface UseCarePlanShiftsFilters {
@@ -67,7 +69,7 @@ export function useCarePlanShifts(initialFilters?: UseCarePlanShiftsFilters) {
       
       console.log("Fetching care plan shifts for plan:", filters.carePlanId, "with filters:", filters);
       
-      // Query to get ALL shifts for the care plan, not just the current user's shifts
+      // Query shifts with care plan title and family profile
       let query = supabase
         .from('care_shifts')
         .select(`
@@ -86,6 +88,12 @@ export function useCarePlanShifts(initialFilters?: UseCarePlanShiftsFilters) {
           created_at,
           updated_at,
           google_calendar_event_id,
+          care_plans:care_plans!care_shifts_care_plan_id_fkey(
+            title
+          ),
+          family_profile:profiles!care_shifts_family_id_fkey(
+            full_name
+          ),
           profiles:profiles!care_shifts_caregiver_id_fkey(
             full_name,
             professional_type,
@@ -113,29 +121,61 @@ export function useCarePlanShifts(initialFilters?: UseCarePlanShiftsFilters) {
       }
       
       console.log("Raw care plan shifts data count:", data?.length || 0);
-      console.log("Raw care plan shifts data:", data);
+      
+      // Collect caregiver IDs where the FK join returned NULL (RLS issue)
+      const missingCaregiverIds = new Set<string>();
+      (data || []).forEach((item: any) => {
+        if (item.caregiver_id && !item.profiles) {
+          missingCaregiverIds.add(item.caregiver_id);
+        }
+      });
+
+      // Fallback: fetch caregiver profiles separately if FK join failed
+      let caregiverFallbackMap: Record<string, { full_name: string; professional_type: string; avatar_url: string | null }> = {};
+      if (missingCaregiverIds.size > 0) {
+        console.log("FK join returned NULL for caregivers, fetching via RPC fallback:", [...missingCaregiverIds]);
+        const { data: fallbackProfiles } = await supabase
+          .rpc('get_public_professional_profiles', { 
+            ids: [...missingCaregiverIds] 
+          });
+        
+        if (fallbackProfiles) {
+          fallbackProfiles.forEach((p: any) => {
+            caregiverFallbackMap[p.id] = {
+              full_name: p.full_name || 'Unknown Professional',
+              professional_type: p.professional_type || 'Care Professional',
+              avatar_url: p.avatar_url || null
+            };
+          });
+        }
+      }
       
       // Transform the data with caregiver details
       const careShifts: CareShiftWithCaregiverDetails[] = [];
       (data || []).forEach((item: any) => {
         try {
           const shift = adaptDbShiftToCareShift(item);
-          const shiftWithCaregiverDetails: CareShiftWithCaregiverDetails = {
+          
+          // Resolve caregiver details: prefer FK join, fallback to RPC
+          const profileData = item.profiles || (item.caregiver_id ? caregiverFallbackMap[item.caregiver_id] : undefined);
+          
+          const shiftWithDetails: CareShiftWithCaregiverDetails = {
             ...shift,
-            caregiverDetails: item.profiles ? {
-              full_name: item.profiles.full_name || 'Unknown Professional',
-              professional_type: item.profiles.professional_type || 'Care Professional',
-              avatar_url: item.profiles.avatar_url
-            } : undefined
+            caregiverDetails: profileData ? {
+              full_name: profileData.full_name || 'Unknown Professional',
+              professional_type: profileData.professional_type || 'Care Professional',
+              avatar_url: profileData.avatar_url
+            } : undefined,
+            carePlanTitle: item.care_plans?.title || undefined,
+            familyName: item.family_profile?.full_name || undefined
           };
-          careShifts.push(shiftWithCaregiverDetails);
+          careShifts.push(shiftWithDetails);
         } catch (err) {
           console.error("Error transforming shift data:", err, item);
         }
       });
       
       console.log("Transformed care plan shifts count:", careShifts.length);
-      console.log("Transformed care plan shifts:", careShifts);
       setShifts(careShifts);
     } catch (err: any) {
       console.error("Error fetching care plan shifts:", err);

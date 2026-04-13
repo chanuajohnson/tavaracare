@@ -359,6 +359,13 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
                             <div className="flex justify-between items-start">
                               <div>
                                 <h4 className="font-medium">{shift.title}</h4>
+                                {(shift.familyName || shift.carePlanTitle) && (
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {shift.familyName && <span className="font-medium">{shift.familyName}</span>}
+                                    {shift.familyName && shift.carePlanTitle && ' · '}
+                                    {shift.carePlanTitle}
+                                  </p>
+                                )}
                                 <div className="flex items-center gap-2 mt-1">
                                   <Avatar className="h-6 w-6">
                                     <AvatarImage src={shift.caregiverDetails?.avatar_url || ''} />
@@ -424,7 +431,16 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
                     }`}
                   >
                     <div className="flex justify-between items-start">
-                      <h4 className="font-medium">{shift.title}</h4>
+                      <div>
+                        <h4 className="font-medium">{shift.title}</h4>
+                        {(shift.familyName || shift.carePlanTitle) && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {shift.familyName && <span className="font-medium">{shift.familyName}</span>}
+                            {shift.familyName && shift.carePlanTitle && ' · '}
+                            {shift.carePlanTitle}
+                          </p>
+                        )}
+                      </div>
                       <Badge 
                         className={
                           shift.status === 'confirmed' ? 'bg-green-100 text-green-700' :
