@@ -1,91 +1,66 @@
 
-## Plan: Fix bi-directional approval persistence and surface the approval block inside Admin Post-Onboarding
 
-### What I found
-There are two separate problems behind what you’re seeing:
+## Plan: Fix Admin Care Plan Management (Shifts, Edit, Payroll)
 
-1. Professional approval is being saved from the professional page with:
-   - `update(...).eq("professional_id", user.id)` in `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx`
-   - but `professional_onboarding_checklists` now supports multiple rows per professional via `(professional_id, family_id)`
-   - so this update/load path is no longer family-specific and is vulnerable to loading/updating the wrong row or failing to reflect the correct assigned-family record in admin
+### Problems Found
 
-2. Admin currently shows approval only in the top “Professional Feedback Summary” card, not inside the actual `post_onboarding` section body
-   - so the admin cannot see the same final approval block that the professional/family sees at the bottom of their checklist
-   - that is why it feels like “the end approval section” is missing on admin
+1. **Care shift creation fails for admin** — The `care_shifts` table has NO admin RLS policy. INSERT/UPDATE/DELETE policies only allow `family_id = auth.uid()`. When admin creates shifts, `family_id` is the family's ID (not admin's), so RLS blocks it.
 
-### Implementation
-#### 1) Make professional approval family-specific and persistent
-**File:** `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx`
+2. **404 on "Edit" care plan details** — `PlanDetailsTab.tsx` navigates to `/family/care-management/create/${carePlan.id}` but the route is defined as `/family/care-management/create` (no `:id` param). The `useParams()` in CreateCarePlanPage reads `id` but never receives it because no route matches.
 
-- Load `family_id` together with `checked_items`
-- Store the assigned family id in state
-- Change the initial query from a broad `.eq("professional_id", user.id).maybeSingle()` flow to a deterministic record selection for the assigned checklist row
-- Change approval save to:
-  - update by both `professional_id` and `family_id`
-  - if needed, use upsert with `onConflict: "professional_id,family_id"` to match the admin save pattern
-- Change note save to also target the same `(professional_id, family_id)` row
-- Keep self-approval metadata intact so when the professional approves, admin sees:
-  - `professional_approval_confirmed: true`
-  - `professional_approval_date`
-  - no `professional_approval_by: "admin"` unless admin actually did it
+3. **Work logs / payroll inaccessible to admin** — The `work_logs` table has no admin RLS policy, so admin can't view or manage payroll/hours.
 
-Result: when Tricia approves on her side, it persists on the exact assigned-family checklist row and admin reads the same saved record.
+4. **Care team member management blocked for admin** — INSERT/UPDATE/DELETE on `care_team_members` only allows `family_id = auth.uid()`, blocking admin from assigning caregivers to shifts.
 
-#### 2) Make admin and professional/family views truly bi-directional
-**Files:** 
-- `src/pages/admin/AdminOnboardingChecklistPage.tsx`
-- `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx`
-- `src/pages/family/FamilyOnboardingChecklistPage.tsx`
+5. **Daily care logs INSERT blocked for admin** — Only professionals can create logs; admin has SELECT only.
 
-- Preserve current admin toggle behavior
-- Ensure admin toggling writes to the same JSON keys the user pages read
-- Ensure self-approval pages read the same keys admin writes
-- Standardize display rules:
-  - self-approved: show “Approved — Digital signature recorded …”
-  - admin-approved: show same approved state plus “by Admin” / “recorded by admin on behalf”
-- Do the same consistency pass for family `family_approval_confirmed` so service commencement behaves identically
+---
 
-Result: whether the user approves or admin approves on their behalf, both sides show the same approved milestone state.
+### Changes
 
-#### 3) Show the approval block inside Admin Post-Onboarding section
-**File:** `src/pages/admin/AdminOnboardingChecklistPage.tsx`
+#### 1. Database Migration — Add admin RLS policies
 
-Inside the `section.id === "post_onboarding"` block:
-- For Professional tab:
-  - render the readiness approval card inside the section body under the care summary
-  - show approved state, date, and admin attribution if applicable
-  - keep the summary card at top, but also mirror the real end-of-checklist approval area
-- For Family tab:
-  - render the service commencement approval block inside admin post-onboarding as well
-  - include care start date / first billable week text and approved state
-  - show attribution when admin toggled on behalf of family
+Add admin ALL policies to these tables that are missing them:
+- `care_shifts` — admin can manage all shifts
+- `work_logs` — admin can manage all work logs
+- `care_team_members` — admin can manage all team members
+- `daily_care_logs` — admin can manage all logs
 
-Result: admin gets “eyes on everything” and can see the actual final milestone block where onboarding transitions into active care.
+```sql
+CREATE POLICY "Admins can manage all care shifts"
+  ON public.care_shifts FOR ALL TO authenticated
+  USING (has_role(auth.uid(), 'admin')) WITH CHECK (has_role(auth.uid(), 'admin'));
 
-#### 4) Tighten professional checklist row selection in admin
-**File:** `src/pages/admin/AdminOnboardingChecklistPage.tsx`
+CREATE POLICY "Admins can manage all work logs"
+  ON public.work_logs FOR ALL TO authenticated
+  USING (has_role(auth.uid(), 'admin')) WITH CHECK (has_role(auth.uid(), 'admin'));
 
-- Review the professional checklist loader so it always targets the selected `professional_id + family_id` pair
-- Avoid any fallback that can accidentally mask the correct row after selection changes
-- Keep the assigned family selector, but make the selected row the single source of truth
+CREATE POLICY "Admins can manage all care team members"
+  ON public.care_team_members FOR ALL TO authenticated
+  USING (has_role(auth.uid(), 'admin')) WITH CHECK (has_role(auth.uid(), 'admin'));
 
-Result: admin sees the correct family-specific professional onboarding record every time.
+CREATE POLICY "Admins can manage all daily care logs"
+  ON public.daily_care_logs FOR ALL TO authenticated
+  USING (has_role(auth.uid(), 'admin')) WITH CHECK (has_role(auth.uid(), 'admin'));
+```
+
+#### 2. Fix Edit route — Add `:id` param to create route
+
+**File: `src/components/routing/AppRoutes.tsx`**
+
+Add a second route for editing:
+```
+<Route path="/family/care-management/create/:id" element={<CreateCarePlanPage />} />
+```
+This allows `PlanDetailsTab` to navigate to `/family/care-management/create/{planId}` and have `useParams().id` resolve correctly for edit mode.
+
+#### 3. No other frontend changes needed
+
+`CreateCarePlanPage` already reads `useParams().id`, detects edit mode, and loads existing plan data. `CarePlanDetailPage` already has `isAdminViewing` support. The only missing pieces were the route and the RLS policies.
 
 ### Files to modify
-- `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx`
-- `src/pages/family/FamilyOnboardingChecklistPage.tsx`
-- `src/pages/admin/AdminOnboardingChecklistPage.tsx`
-
-### No migration needed
-The UPDATE policy for professionals already exists, and the DB currently contains:
-- professional approval saved for Tricia + User1 Family
-- family approval saved for User1 Family
-So this is now a frontend record-targeting and visibility issue, not a new schema issue.
-
-### Technical note
-Current DB read confirms:
-- `professional_onboarding_checklists` has Tricia + User1 Family with `professional_approval_confirmed = true`
-- `onboarding_checklists` has User1 Family with `family_approval_confirmed = true`
-
-That means the main bug is that the UI is not consistently loading/rendering the exact pair-specific approval record and not mirroring the approval block inside admin post-onboarding.
+| File | Change |
+|------|--------|
+| **Migration** | Add admin ALL policies on `care_shifts`, `work_logs`, `care_team_members`, `daily_care_logs` |
+| `src/components/routing/AppRoutes.tsx` | Add `/family/care-management/create/:id` route for edit mode |
 
