@@ -4,10 +4,9 @@ import { format } from 'date-fns';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, Loader2, AlertTriangle } from "lucide-react";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { fetchWeeklyPendingEntries } from "@/services/care-plans/work-logs/payrollService";
-import { calculateNIS } from "@/services/nisCalculation";
+import { fetchWeeklyPendingEntries, type WeeklyPayrollData } from "@/services/care-plans/work-logs/payrollService";
 
 interface ProcessPaymentDialogProps {
   open: boolean;
@@ -27,16 +26,7 @@ export const ProcessPaymentDialog: React.FC<ProcessPaymentDialogProps> = ({
   payrollId,
 }) => {
   const [loading, setLoading] = useState(false);
-  const [weeklyData, setWeeklyData] = useState<{
-    entryCount: number;
-    weeklyTotal: number;
-    caregiverName: string;
-    nisApplicable: boolean;
-    nisClass: string | null;
-    employeeContribution: number;
-    employerContribution: number;
-    netPay: number;
-  } | null>(null);
+  const [weeklyData, setWeeklyData] = useState<WeeklyPayrollData | null>(null);
 
   useEffect(() => {
     if (open && payrollId) {
@@ -49,39 +39,8 @@ export const ProcessPaymentDialog: React.FC<ProcessPaymentDialogProps> = ({
   const loadWeeklyPreview = async (id: string) => {
     setLoading(true);
     try {
-      const { entries, weeklyTotal, caregiverName } = await fetchWeeklyPendingEntries(id);
-      
-      let nisResult = {
-        nis_applicable: false,
-        nis_class: null as string | null,
-        employee_contribution: 0,
-        employer_contribution: 0,
-        net_pay_after_nis: weeklyTotal,
-      };
-
-      try {
-        const nis = await calculateNIS({ weekly_earnings: weeklyTotal });
-        nisResult = {
-          nis_applicable: nis.nis_applicable,
-          nis_class: nis.nis_class,
-          employee_contribution: nis.employee_contribution,
-          employer_contribution: nis.employer_contribution,
-          net_pay_after_nis: nis.net_pay_after_nis,
-        };
-      } catch {
-        // NIS calculation failed, continue without
-      }
-
-      setWeeklyData({
-        entryCount: entries.length,
-        weeklyTotal,
-        caregiverName,
-        nisApplicable: nisResult.nis_applicable,
-        nisClass: nisResult.nis_class,
-        employeeContribution: nisResult.employee_contribution,
-        employerContribution: nisResult.employer_contribution,
-        netPay: nisResult.net_pay_after_nis,
-      });
+      const data = await fetchWeeklyPendingEntries(id);
+      setWeeklyData(data);
     } catch (error) {
       console.error('Error loading weekly preview:', error);
     } finally {
@@ -100,43 +59,80 @@ export const ProcessPaymentDialog: React.FC<ProcessPaymentDialogProps> = ({
         </DialogHeader>
 
         <div className="py-4 space-y-4">
-          {/* Weekly NIS Preview */}
           {loading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-sm text-muted-foreground">Calculating weekly NIS...</span>
+              <span className="ml-2 text-sm text-muted-foreground">Loading weekly data...</span>
             </div>
           ) : weeklyData ? (
             <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
+              {/* Caregiver name */}
               <div className="text-sm font-medium">{weeklyData.caregiverName}</div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <span className="text-muted-foreground">Entries this week:</span>
-                <span className="font-medium text-right">{weeklyData.entryCount}</span>
-                
-                <span className="text-muted-foreground">Weekly gross pay:</span>
-                <span className="font-medium text-right">${weeklyData.weeklyTotal.toFixed(2)}</span>
+              
+              {/* Week range */}
+              <div className="text-xs text-muted-foreground">
+                Week: {format(weeklyData.weekStart, 'EEE MMM d')} – {format(weeklyData.weekEnd, 'EEE MMM d, yyyy')}
               </div>
 
+              {/* Breakdown */}
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {weeklyData.paidEntries.length > 0 && (
+                  <>
+                    <span className="text-muted-foreground">Already paid this week:</span>
+                    <span className="text-right">${weeklyData.paidTotal.toFixed(2)} ({weeklyData.paidEntries.length} {weeklyData.paidEntries.length === 1 ? 'entry' : 'entries'})</span>
+                  </>
+                )}
+                
+                <span className="text-muted-foreground">Pending to process:</span>
+                <span className="font-medium text-right">${weeklyData.pendingTotal.toFixed(2)} ({weeklyData.pendingEntries.length} {weeklyData.pendingEntries.length === 1 ? 'entry' : 'entries'})</span>
+                
+                <span className="text-muted-foreground font-medium">Weekly total for NIS:</span>
+                <span className="font-semibold text-right">${weeklyData.weeklyTotal.toFixed(2)}</span>
+              </div>
+
+              {/* NIS section */}
               <div className="border-t pt-2 space-y-1">
-                {weeklyData.nisApplicable ? (
+                {weeklyData.nisError ? (
+                  <div className="flex items-start gap-2 text-sm text-destructive">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div>
+                      <div className="font-medium">NIS calculation failed</div>
+                      <div className="text-xs text-muted-foreground mt-1">{weeklyData.nisError}</div>
+                      <div className="text-xs mt-1">Payment will proceed without NIS deductions. You can retry or process anyway.</div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2"
+                        onClick={() => payrollId && loadWeeklyPreview(payrollId)}
+                      >
+                        Retry NIS Calculation
+                      </Button>
+                    </div>
+                  </div>
+                ) : weeklyData.nisApplicable ? (
                   <>
                     <div className="text-sm font-medium text-primary">
                       NIS Class {weeklyData.nisClass}
                     </div>
+                    {weeklyData.paidNisEmployee > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        NIS already applied to paid entries: Employee ${weeklyData.paidNisEmployee.toFixed(2)}, Employer ${weeklyData.paidNisEmployer.toFixed(2)}
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      <span className="text-muted-foreground">Employee NIS deduction:</span>
+                      <span className="text-muted-foreground">Employee NIS (remaining):</span>
                       <span className="font-medium text-right text-destructive">
                         -${weeklyData.employeeContribution.toFixed(2)}
                       </span>
                       
-                      <span className="text-muted-foreground">Employer NIS liability:</span>
+                      <span className="text-muted-foreground">Employer NIS (remaining):</span>
                       <span className="font-medium text-right">
                         ${weeklyData.employerContribution.toFixed(2)}
                       </span>
                       
-                      <span className="text-muted-foreground font-medium">Net pay to caregiver:</span>
+                      <span className="text-muted-foreground font-medium">Net pay (this batch):</span>
                       <span className="font-semibold text-right">
-                        ${weeklyData.netPay.toFixed(2)}
+                        ${weeklyData.netPayPending.toFixed(2)}
                       </span>
                     </div>
                   </>
@@ -177,14 +173,14 @@ export const ProcessPaymentDialog: React.FC<ProcessPaymentDialogProps> = ({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={onProcess} disabled={loading}>
+          <Button onClick={onProcess} disabled={loading || (weeklyData?.pendingEntries.length === 0)}>
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Calculating...
+                Loading...
               </>
             ) : weeklyData ? (
-              `Process ${weeklyData.entryCount} ${weeklyData.entryCount === 1 ? 'Entry' : 'Entries'}`
+              `Process ${weeklyData.pendingEntries.length} ${weeklyData.pendingEntries.length === 1 ? 'Entry' : 'Entries'}`
             ) : (
               'Process Payment'
             )}
