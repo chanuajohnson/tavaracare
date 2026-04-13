@@ -3,7 +3,6 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { WorkLog } from "../types/workLogTypes";
 import { calculatePayrollEntry } from "../payrollCalculationService";
-import { calculateNIS } from "@/services/nisCalculation";
 
 export const approveWorkLog = async (workLogId: string): Promise<boolean> => {
   try {
@@ -30,31 +29,7 @@ export const approveWorkLog = async (workLogId: string): Promise<boolean> => {
       (payrollData.holidayHours * payrollData.holidayRate) +
       payrollData.expenseTotal;
 
-    // Calculate NIS contributions
-    let nisData = {
-      nis_applicable: false,
-      nis_class: null as string | null,
-      employee_contribution: 0,
-      employer_contribution: 0,
-      net_pay_after_nis: grossPay,
-      nis_response: null as any,
-    };
-
-    try {
-      const nisResult = await calculateNIS({ weekly_earnings: grossPay });
-      nisData = {
-        nis_applicable: nisResult.nis_applicable,
-        nis_class: nisResult.nis_class,
-        employee_contribution: nisResult.employee_contribution,
-        employer_contribution: nisResult.employer_contribution,
-        net_pay_after_nis: nisResult.net_pay_after_nis,
-        nis_response: nisResult,
-      };
-    } catch (nisError) {
-      console.warn("NIS calculation failed, proceeding without NIS:", nisError);
-      // Continue without NIS — don't block the approval
-    }
-
+    // NIS is now calculated at payment time (weekly aggregation), not per-entry
     const { error: payrollError } = await supabase
       .from('payroll_entries')
       .insert({
@@ -73,21 +48,16 @@ export const approveWorkLog = async (workLogId: string): Promise<boolean> => {
         payment_status: 'pending',
         pay_period_start: workLog.start_time,
         pay_period_end: workLog.end_time,
-        // NIS fields
-        nis_applicable: nisData.nis_applicable,
-        nis_class: nisData.nis_class,
-        employee_contribution: nisData.employee_contribution,
-        employer_contribution: nisData.employer_contribution,
-        net_pay_after_nis: nisData.net_pay_after_nis,
-        nis_response: nisData.nis_response,
+        // NIS fields left as defaults — will be populated at payment processing
+        nis_applicable: false,
+        employee_contribution: 0,
+        employer_contribution: 0,
+        net_pay_after_nis: grossPay,
       });
       
     if (payrollError) throw payrollError;
 
-    const nisMsg = nisData.nis_applicable 
-      ? ` (NIS: $${nisData.employee_contribution.toFixed(2)} employee / $${nisData.employer_contribution.toFixed(2)} employer)`
-      : '';
-    toast.success(`Work log approved and payroll entry created${nisMsg}`);
+    toast.success("Work log approved and payroll entry created. NIS will be calculated when payment is processed.");
     return true;
   } catch (error) {
     console.error("Error approving work log:", error);

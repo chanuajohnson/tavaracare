@@ -186,6 +186,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId, isProfession
         onProcess={handleProcessPaymentSubmit}
         paymentDate={paymentDate}
         onDateChange={setPaymentDate}
+        payrollId={payrollToProcess}
       />
     </div>
   );
