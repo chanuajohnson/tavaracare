@@ -313,17 +313,25 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
                 key={shift.id} 
                 className={`p-3 border rounded-md ${getCaregiverColor(shift.caregiverId)}`}
               >
-                <div className="flex justify-between items-start">
+                <div className="flex justify-between items-start gap-2">
                   <h4 className="font-medium">{shift.title}</h4>
-                  <Badge 
-                    className={
-                      shift.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                      shift.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                      'bg-yellow-100 text-yellow-700'
-                    }
-                  >
-                    {shift.status}
-                  </Badge>
+                  <div className="flex gap-1">
+                    {loggedShiftIds.has(shift.id) && (
+                      <Badge className="bg-green-100 text-green-700">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Logged
+                      </Badge>
+                    )}
+                    <Badge 
+                      className={
+                        shift.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                        shift.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                        'bg-yellow-100 text-yellow-700'
+                      }
+                    >
+                      {shift.status}
+                    </Badge>
+                  </div>
                 </div>
                 <div className="mt-2 text-sm">
                   <div className="flex items-center gap-1">
