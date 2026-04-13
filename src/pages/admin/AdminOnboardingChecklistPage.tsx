@@ -681,6 +681,7 @@ function ChecklistTabContent({
   onDownloadReport,
   linkedCheckedItems,
   assignedFamilyName,
+  familyMedications,
 }: {
   profiles: ProfileOption[];
   loadingProfiles: boolean;
@@ -708,6 +709,7 @@ function ChecklistTabContent({
   onDownloadReport?: () => void;
   linkedCheckedItems?: Record<string, boolean | string>;
   assignedFamilyName?: string;
+  familyMedications?: Array<{ id: string; name: string; dosage?: string; medication_type?: string; instructions?: string; schedule?: any }>;
 }) {
   const publicGuideUrl = `${window.location.origin}/onboarding-guide`;
   const copyPublicLink = () => {
@@ -1084,6 +1086,37 @@ function ChecklistTabContent({
                       <RateTierReferenceCard />
                     )}
 
+                    {section.id === "medication_confirmation" && showFamilyData && selectedId && (
+                      <div className="mt-4 border-t pt-4">
+                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                          <Pill className="h-4 w-4" />
+                          Active Medications on File
+                        </h4>
+                        {familyMedications && familyMedications.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {familyMedications.map((med) => (
+                              <div key={med.id} className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                                <p className="font-medium text-sm text-blue-900">{med.name}</p>
+                                {med.dosage && <p className="text-xs text-blue-700">Dosage: {med.dosage}</p>}
+                                {med.medication_type && <p className="text-xs text-blue-700">Type: {med.medication_type}</p>}
+                                {med.instructions && <p className="text-xs text-blue-700">Instructions: {med.instructions}</p>}
+                                {med.schedule && typeof med.schedule === 'object' && med.schedule.times && (
+                                  <p className="text-xs text-blue-700">
+                                    Schedule: {Array.isArray(med.schedule.times) ? med.schedule.times.join(', ') : String(med.schedule.times)}
+                                    {med.schedule.frequency && ` (${med.schedule.frequency})`}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                            ⚠️ No medications found for this family. The family has not yet added any medications to their care plan.
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {section.id === "post_onboarding" && (
                       <CareSummaryHeader
                         checkedItems={checkedItems}
@@ -1132,6 +1165,7 @@ export default function AdminOnboardingChecklistPage() {
   const [familyCheckedItems, setFamilyCheckedItems] = useState<Record<string, boolean | string>>({});
   const [familyNotes, setFamilyNotes] = useState<OnboardingNote[]>([]);
   const [familyOpenSections, setFamilyOpenSections] = useState<Record<string, boolean>>({});
+  const [familyMedications, setFamilyMedications] = useState<Array<{ id: string; name: string; dosage?: string; medication_type?: string; instructions?: string; schedule?: any }>>([]);
   const familySaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Professional state
@@ -1216,7 +1250,39 @@ export default function AdminOnboardingChecklistPage() {
     load();
   }, [selectedFamilyId]);
 
-  // Load professional checklist (now scoped by family_id)
+  // Load family medications
+  useEffect(() => {
+    if (!selectedFamilyId) {
+      setFamilyMedications([]);
+      return;
+    }
+    const loadMeds = async () => {
+      try {
+        const { data: carePlans } = await supabase
+          .from("care_plans")
+          .select("id")
+          .eq("family_id", selectedFamilyId);
+        if (!carePlans || carePlans.length === 0) {
+          setFamilyMedications([]);
+          return;
+        }
+        const carePlanIds = carePlans.map(cp => cp.id);
+        const { data: meds, error } = await supabase
+          .from("medications")
+          .select("id, name, dosage, medication_type, instructions, schedule")
+          .in("care_plan_id", carePlanIds)
+          .order("name");
+        if (error) throw error;
+        setFamilyMedications(meds || []);
+      } catch (err) {
+        console.error("Failed to load family medications:", err);
+        setFamilyMedications([]);
+      }
+    };
+    loadMeds();
+  }, [selectedFamilyId]);
+
+
   useEffect(() => {
     if (!selectedProfessionalId) {
       setProfCheckedItems({});
@@ -1564,6 +1630,7 @@ export default function AdminOnboardingChecklistPage() {
             tableName="onboarding_checklists"
             idColumn="family_id"
             showFamilyData
+            familyMedications={familyMedications}
             onDownloadReport={selectedFamilyId ? () => {
               const familyName = families.find(f => f.id === selectedFamilyId)?.full_name || "Family";
               generateFamilyReport(familyName, familyCheckedItems, familyNotes, ONBOARDING_SECTION_DEFS);

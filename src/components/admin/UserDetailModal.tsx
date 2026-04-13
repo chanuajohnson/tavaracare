@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle, FileText, Download, Share, Shield, Eye, Trash2 } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle, FileText, Download, Share, Shield, Eye, Trash2, Pill } from 'lucide-react';
 import { UserMatchingActions } from './UserMatchingActions';
 import { MatchingStatusToggle } from './MatchingStatusToggle';
 import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
@@ -77,6 +77,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const [reportLoading, setReportLoading] = useState(false);
   const [anonymousReport, setAnonymousReport] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [userMedications, setUserMedications] = useState<Array<{ id: string; name: string; dosage?: string; medication_type?: string }>>([]);
 
   // Only call hooks when user and role are valid
   const shouldCallFamilyHook = user?.role === 'family' && user?.id;
@@ -150,6 +151,35 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
     if (user && isOpen) {
       fetchUserDetails();
     }
+  }, [user, isOpen]);
+
+  // Fetch medications for family users
+  useEffect(() => {
+    if (!user || !isOpen || user.role !== 'family') {
+      setUserMedications([]);
+      return;
+    }
+    const loadMeds = async () => {
+      try {
+        const { data: carePlans } = await supabase
+          .from("care_plans")
+          .select("id")
+          .eq("family_id", user.id);
+        if (!carePlans || carePlans.length === 0) {
+          setUserMedications([]);
+          return;
+        }
+        const { data: meds } = await supabase
+          .from("medications")
+          .select("id, name, dosage, medication_type")
+          .in("care_plan_id", carePlans.map(cp => cp.id))
+          .order("name");
+        setUserMedications(meds || []);
+      } catch {
+        setUserMedications([]);
+      }
+    };
+    loadMeds();
   }, [user, isOpen]);
 
   const fetchUserDetails = async () => {
@@ -719,6 +749,30 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             <div><strong>Custom Care Schedule:</strong> {comprehensiveData.profile.custom_schedule || 'Not specified'}</div>
                             <div><strong>Additional Notes:</strong> {comprehensiveData.profile.additional_notes || 'None provided'}</div>
                           </div>
+                        </Card>
+                      )}
+
+                      {/* Family Medications Summary */}
+                      {comprehensiveData.profile.role === 'family' && (
+                        <Card className="p-4">
+                          <h5 className="font-medium mb-2 flex items-center gap-2">
+                            <Pill className="h-4 w-4" />
+                            Medications ({userMedications.length})
+                          </h5>
+                          {userMedications.length > 0 ? (
+                            <div className="text-sm space-y-1">
+                              {userMedications.map(med => (
+                                <div key={med.id} className="flex items-center gap-2">
+                                  <span className="text-primary">•</span>
+                                  <span className="font-medium">{med.name}</span>
+                                  {med.dosage && <span className="text-muted-foreground">— {med.dosage}</span>}
+                                  {med.medication_type && <Badge variant="outline" className="text-xs ml-1">{med.medication_type}</Badge>}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No medications on file</p>
+                          )}
                         </Card>
                       )}
 
