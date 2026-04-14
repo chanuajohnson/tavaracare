@@ -1,112 +1,63 @@
 
 
-## Plan: Align Payroll Records with Government NIS Forms (NI 184 & NI 187)
+## How This Plan Improves What's Already Built
 
-### What the Government Forms Require
+### Current State (what exists now)
+The current `ni184Generator.ts` and `ni187Generator.ts` use **jsPDF** to create brand-new PDFs from scratch with custom layouts. These look like generic reports, not the official government forms. The NI 184 generates a landscape table, and the NI 187 generates a portrait summary -- neither matches the actual government form layout that NIBTT expects.
 
-**NI 184 (Statement of Contribution Paid/Due)** — per-employee detail:
-- Employee NIS Number
-- Employee Name (surname first)
-- Date of Birth
-- Date Employed / Last Date Worked
-- Salary for Period
-- Weekly contribution values (Week 1-5 breakdown)
-- Total contributions brought forward
+### What the New Plan Does Differently
 
-**NI 187 (Summary of Contributions Due/In Arrears)** — employer-level summary:
-- Employer Trade Name, Registration Number, Service Centre Code
-- Pay period (from/to)
-- Number of employees
-- Contributions due, penalty, interest, total, amount paid, balance
-- Section F: monthly breakdown if period exceeds one month
+1. **Uses the actual government PDF as the template** -- instead of drawing a custom layout, we load the blank NI 184 / NI 187 PDFs and write data directly onto them. The output looks exactly like the official form, ready to submit.
 
-### What We're Missing Today
+2. **Moves PDF generation server-side** -- an edge function (`generate-nis-form`) handles the heavy lifting with `pdf-lib`, which is better suited for filling existing PDFs than jsPDF (which is designed for creating new ones).
 
-**Currently stored**: `nis_class`, `nis_applicable`, `employee_contribution`, `employer_contribution`, `net_pay_after_nis` on `payroll_entries`. Weekly NIS calculations via the Nuacha API proxy.
+3. **Proper field detection** -- uses the PDF skill scripts to detect whether the government forms have fillable fields (interactive PDF forms) or need coordinate-based text overlay. This determines the most accurate filling method.
 
-**Not stored anywhere**:
-1. **Employee NIS Number** — critical identifier for government filings
-2. **Date of Birth** — required on NI 184
-3. **Date Employed** — required on NI 184
-4. **Employer details** — trade name, NIS registration number, service centre code, address, phone
-5. **Weekly contribution breakdown per employee** — NI 184 needs Week 1-5 columns per month
-6. **Monthly NIS summary totals** — for NI 187 Section B/F
-
-### Do We Need to Revisit the Nuacha API?
-
-**No, the API itself is fine.** The Nuacha API correctly returns NIS class, employee/employer contributions based on weekly earnings. What we need is better **data capture and reporting** around the API results. The calculation engine works; we just need to:
-- Store the weekly breakdown per employee per month (we already calculate weekly, we just don't aggregate for reporting)
-- Add the missing identity fields so we can populate the forms
+4. **Adds manual adjustment inputs** -- the NI 187 has fields like "Balance Brought Forward", "Penalty", and "Interest" that can't come from payroll data. The new UI adds small inputs for these before generating.
 
 ### Implementation Plan
 
-#### 1. Database: Add Missing Fields
+#### Step 1: Detect PDF Form Fields
+- Copy uploaded NI 184 and NI 187 PDFs into sandbox
+- Run `detect_fillable_fields.py` on both to determine filling approach
+- If fillable: extract field metadata for direct field filling
+- If not fillable: extract layout structure and map coordinates
 
-**`care_team_members` table** — add employee-level NIS fields:
-- `nis_number` (text) — National Insurance number
-- `date_of_birth` (date) — for NI 184
-- `date_employed` (date) — for NI 184
-- `is_nis_registered` (boolean, default false) — flag for NIS applicability
+#### Step 2: Store Blank PDFs
+- Create a `nis-forms` Supabase Storage bucket (public read)
+- Upload the blank NI 184 and NI 187 PDFs to it
 
-**New `employer_settings` table** — one row per family/employer:
-- `id`, `family_id` (references profiles)
-- `trade_name` (text)
-- `employer_registration_number` (text) — 5-digit NIS employer reg
-- `service_centre_code` (text)
-- `address` (text)
-- `phone` (text)
+#### Step 3: Create Edge Function `generate-nis-form`
+- Accepts: `formType` (184 or 187), `carePlanId`, `familyId`, `periodStart`, `periodEnd`, and optional manual fields (balance_bf, penalty, interest, payment_method)
+- Fetches blank PDF from storage
+- Queries employer_settings, care_team_members (NIS-registered), payroll_entries for the period
+- Uses `pdf-lib` to fill in the form (either via form fields or text overlay)
+- Returns the completed PDF
 
-#### 2. UI: Care Team Member Card — NIS Fields
+#### Step 4: Update UI
+**File: `src/components/care-plan/payroll/NISReportsSection.tsx`**
+- Replace current jsPDF-based generators with calls to the edge function
+- Add input fields for NI 187 manual values (balance b/f, penalty, interest)
+- Keep the period selector as-is
+- Download the returned PDF blob
 
-On `CareTeamMemberCard.tsx`, add editable fields:
-- NIS Number input
-- Date of Birth picker
-- Date Employed picker
-- NIS Registered toggle
+#### Step 5: Remove Client-Side Generators
+- Remove or deprecate `ni184Generator.ts` and `ni187Generator.ts` (replaced by edge function)
 
-#### 3. UI: Employer Settings Section
-
-Add an "Employer / NIS Settings" section accessible from the Care Plan or a settings page where the family admin enters:
-- Trade Name, Employer Registration Number, Service Centre Code, Address, Phone
-
-#### 4. NI 184 Report Generator
-
-Create a service that, given a care plan and a contribution period (month):
-- Queries all care team members with `is_nis_registered = true`
-- Pulls their payroll entries for that month, grouped by ISO week
-- Populates the NI 184 columns: NIS number, name, DOB, date employed, salary for period, Week 1-5 contributions, total
-- Generates a downloadable PDF matching the NI 184 layout
-
-#### 5. NI 187 Report Generator
-
-Create a service that, given a contribution period:
-- Sums all employee+employer contributions for the period
-- Populates: contributions due, number of employees, employer details
-- For periods exceeding one month, generates Section F monthly breakdown
-- Generates a downloadable PDF matching the NI 187 layout
-
-#### 6. Bank Transfer Recording (from prior plan)
-
-Add `bank_transfer_ref`, `bank_transfer_date`, `bank_transfer_notes` to `payroll_entries` — this feeds into the NI 187 "Amount Paid" and "Method of Payment" sections.
+#### Step 6: Fix Current Errors
+- The "No NIS-registered employees" error happens because `is_nis_registered` hasn't been toggled for existing employees
+- Add better error messaging pointing users to the Care Team page to set the NIS flag
 
 ### Files to Create/Modify
 
 | File | Change |
 |------|--------|
-| **Migration** | Add `nis_number`, `date_of_birth`, `date_employed`, `is_nis_registered` to `care_team_members`; create `employer_settings` table; add bank transfer columns to `payroll_entries` |
-| `src/components/care-plan/CareTeamMemberCard.tsx` | NIS fields UI (NIS number, DOB, date employed, NIS toggle) |
-| `src/services/care-plans/team/` | `updateNISRegistration` + `updateEmployeeNISDetails` functions |
-| `src/components/care-plan/settings/EmployerSettingsForm.tsx` | New component for employer NIS details |
-| `src/services/care-plans/reports/ni184Generator.ts` | NI 184 PDF report generator |
-| `src/services/care-plans/reports/ni187Generator.ts` | NI 187 PDF report generator |
-| `src/components/care-plan/payroll/NISReportsSection.tsx` | UI to select period and download NI 184 / NI 187 |
-| `src/types/careTypes.ts` | Add NIS fields to CareTeamMember interface |
+| `supabase/functions/generate-nis-form/index.ts` | New edge function for PDF generation |
+| `src/components/care-plan/payroll/NISReportsSection.tsx` | Call edge function instead of client-side generators; add NI 187 manual inputs |
+| `src/services/care-plans/reports/ni184Generator.ts` | Remove (replaced by edge function) |
+| `src/services/care-plans/reports/ni187Generator.ts` | Remove (replaced by edge function) |
+| Storage migration | Create `nis-forms` bucket with blank PDFs |
 
-### Implementation Order
-1. Database migrations (employee NIS fields + employer settings + bank transfer columns)
-2. Care team member NIS fields UI
-3. Employer settings form
-4. NI 184 report generator
-5. NI 187 report generator
-6. Reports download UI in the Payroll tab
+### Result
+Click "Download NI 184" or "Download NI 187" and get the actual government form pre-filled with all your payroll data. No manual transcription needed -- just print and submit.
 
