@@ -3,16 +3,15 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
 import { Button } from "@/components/ui/button";
 import { format, formatDistanceToNow } from "date-fns";
 import { PayrollStatusBadge } from "./PayrollStatusBadge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Receipt, Check, Calendar, Download, Trash2, Undo2, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { Receipt, Calendar, Trash2, Undo2, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ShareReceiptDialog } from "./ShareReceiptDialog";
 import { generatePayReceipt, generateConsolidatedReceipt } from "@/services/care-plans/receiptService";
 import { toast } from "sonner";
 import type { PayrollEntry } from "@/services/care-plans/types/workLogTypes";
-import { groupEntriesByWeek, groupWeeksByMonth, type WeekGroup } from "@/utils/payroll/groupByWeek";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { groupEntriesByWeek, groupWeeksByMonth, type WeekGroup, type MonthGroup } from "@/utils/payroll/groupByWeek";
+import { Progress } from "@/components/ui/progress";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,53 +50,58 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   const [undoDialogOpen, setUndoDialogOpen] = useState(false);
   const [undoTargetId, setUndoTargetId] = useState<string | null>(null);
   const [isUndoing, setIsUndoing] = useState(false);
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
   const [expandedWeekDetails, setExpandedWeekDetails] = useState<Set<string>>(new Set());
-  const [showMonthlySummary, setShowMonthlySummary] = useState(false);
-  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
+  const [expandedMonthNIS, setExpandedMonthNIS] = useState<Set<string>>(new Set());
   const [isRecalculating, setIsRecalculating] = useState(false);
+  const [bulkRecalcProgress, setBulkRecalcProgress] = useState<{ current: number; total: number } | null>(null);
 
   const weekGroups = useMemo(() => groupEntriesByWeek(entries), [entries]);
   const monthGroups = useMemo(() => groupWeeksByMonth(weekGroups), [weekGroups]);
 
   const handleSelectEntry = (entryId: string) => {
     setSelectedEntries(prev =>
-      prev.includes(entryId)
-        ? prev.filter(id => id !== entryId)
-        : [...prev, entryId]
+      prev.includes(entryId) ? prev.filter(id => id !== entryId) : [...prev, entryId]
     );
   };
 
   const handleSelectWeek = (week: WeekGroup, checked: boolean) => {
     const weekEntryIds = week.entries.map(e => e.id);
     setSelectedEntries(prev => {
-      if (checked) {
-        return [...new Set([...prev, ...weekEntryIds])];
-      }
+      if (checked) return [...new Set([...prev, ...weekEntryIds])];
       return prev.filter(id => !weekEntryIds.includes(id));
     });
   };
 
-  const toggleWeekExpand = (weekKey: string) => {
-    setExpandedWeeks(prev => {
-      const next = new Set(prev);
-      if (next.has(weekKey)) next.delete(weekKey); else next.add(weekKey);
-      return next;
-    });
-  };
-
-  const toggleWeekDetails = (weekKey: string) => {
-    setExpandedWeekDetails(prev => {
-      const next = new Set(prev);
-      if (next.has(weekKey)) next.delete(weekKey); else next.add(weekKey);
-      return next;
-    });
-  };
-
-  const toggleMonthExpand = (monthKey: string) => {
+  const toggleMonthExpand = (key: string) => {
     setExpandedMonths(prev => {
       const next = new Set(prev);
-      if (next.has(monthKey)) next.delete(monthKey); else next.add(monthKey);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+
+  const toggleMonthNIS = (key: string) => {
+    setExpandedMonthNIS(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+
+  const toggleWeekExpand = (key: string) => {
+    setExpandedWeeks(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+
+  const toggleWeekDetails = (key: string) => {
+    setExpandedWeekDetails(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
       return next;
     });
   };
@@ -107,6 +111,26 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
     setIsRecalculating(true);
     await onRecalculateNIS(entryId);
     setIsRecalculating(false);
+  };
+
+  const handleBulkRecalcNIS = async (month: MonthGroup) => {
+    if (!onRecalculateNIS) return;
+    const weeksNeedingNIS = month.weeks.filter(
+      w => w.allPaid && w.weeklyGross > 200 && w.employeeContribution === 0
+    );
+    if (weeksNeedingNIS.length === 0) {
+      toast.info("No weeks in this month need NIS recalculation.");
+      return;
+    }
+    setIsRecalculating(true);
+    setBulkRecalcProgress({ current: 0, total: weeksNeedingNIS.length });
+    for (let i = 0; i < weeksNeedingNIS.length; i++) {
+      setBulkRecalcProgress({ current: i + 1, total: weeksNeedingNIS.length });
+      await onRecalculateNIS(weeksNeedingNIS[i].entries[0].id);
+    }
+    setBulkRecalcProgress(null);
+    setIsRecalculating(false);
+    toast.success(`NIS recalculated for ${weeksNeedingNIS.length} week(s).`);
   };
 
   const handleGenerateReceipt = async (entry: PayrollEntry) => {
@@ -124,10 +148,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   const handleGenerateConsolidatedReceipt = async () => {
     try {
       const selectedPayrollEntries = entries.filter(entry => selectedEntries.includes(entry.id));
-      if (selectedPayrollEntries.length === 0) {
-        toast.error("No entries selected");
-        return;
-      }
+      if (selectedPayrollEntries.length === 0) { toast.error("No entries selected"); return; }
       if (selectedPayrollEntries.length === 1) {
         const receiptUrl = await generatePayReceipt(selectedPayrollEntries[0]);
         setCurrentReceiptUrl(receiptUrl);
@@ -144,15 +165,9 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
     }
   };
 
-  const formatDate = (date: string | null | undefined, showRelative = false) => {
+  const formatDate = (date: string | null | undefined) => {
     if (!date) return '-';
-    try {
-      const dateObj = new Date(date);
-      if (showRelative) return formatDistanceToNow(dateObj, { addSuffix: true });
-      return format(dateObj, 'MMM d, yyyy');
-    } catch {
-      return '-';
-    }
+    try { return format(new Date(date), 'MMM d, yyyy'); } catch { return '-'; }
   };
 
   if (!entries.length) {
@@ -160,6 +175,9 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   }
 
   const colCount = isMobile ? 7 : 10;
+
+  const getWeeksNeedingNIS = (month: MonthGroup) =>
+    month.weeks.filter(w => w.allPaid && w.weeklyGross > 200 && w.employeeContribution === 0);
 
   return (
     <div>
@@ -188,16 +206,15 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
         </div>
       )}
 
-      {/* Weekly grouped table */}
+      {/* Month-first grouped payroll */}
       <div className="overflow-x-auto">
         <Table>
-          <TableCaption>Payroll entries grouped by work week (Mon–Sun)</TableCaption>
+          <TableCaption>Payroll entries grouped by month → week (Mon–Sun)</TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead className="w-8"></TableHead>
               <TableHead className="w-10"></TableHead>
-              <TableHead>Caregiver</TableHead>
-              <TableHead>Period</TableHead>
+              <TableHead>Caregiver / Period</TableHead>
               <TableHead>Hours</TableHead>
               {!isMobile && <TableHead>Gross Pay</TableHead>}
               {!isMobile && <TableHead>NIS (Employee)</TableHead>}
@@ -207,62 +224,44 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {weekGroups.map((week) => {
-              const isExpanded = expandedWeeks.has(week.key);
-              const isDetailsOpen = expandedWeekDetails.has(week.key);
-              const allWeekSelected = week.entries.every(e => selectedEntries.includes(e.id));
-              const someWeekSelected = week.entries.some(e => selectedEntries.includes(e.id));
+            {monthGroups.map((month) => {
+              const isMonthOpen = expandedMonths.has(month.key);
+              const isNISOpen = expandedMonthNIS.has(month.key);
+              const weeksNeedingNIS = getWeeksNeedingNIS(month);
 
               return (
-                <React.Fragment key={week.key}>
-                  {/* Week header row */}
-                  <TableRow className="bg-muted/50 font-medium hover:bg-muted/70">
+                <React.Fragment key={month.key}>
+                  {/* ── MONTH HEADER ROW ── */}
+                  <TableRow className="bg-primary/10 font-semibold hover:bg-primary/15 border-b-2 border-primary/20">
                     <TableCell>
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleWeekExpand(week.key)}>
-                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleMonthExpand(month.key)}>
+                        {isMonthOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </Button>
                     </TableCell>
+                    <TableCell></TableCell>
                     <TableCell>
-                      <Checkbox
-                        checked={allWeekSelected}
-                        // @ts-ignore
-                        indeterminate={someWeekSelected && !allWeekSelected}
-                        onCheckedChange={(checked) => handleSelectWeek(week, !!checked)}
-                      />
-                    </TableCell>
-                    <TableCell className="font-semibold">{week.caregiverName}</TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div className="font-medium">{format(week.weekStart, 'MMM d')} – {format(week.weekEnd, 'MMM d, yyyy')}</div>
-                        <div className="text-xs text-muted-foreground">{week.entries.length} {week.entries.length === 1 ? 'entry' : 'entries'}</div>
+                      <div>
+                        <span className="text-base">{month.monthLabel}</span>
+                        <span className="text-xs text-muted-foreground ml-2">
+                          ({month.weeks.length} {month.weeks.length === 1 ? 'week' : 'weeks'})
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        {week.weeklyRegularHours > 0 && <div>{week.weeklyRegularHours}h reg</div>}
-                        {week.weeklyOvertimeHours > 0 && <div>{week.weeklyOvertimeHours}h OT</div>}
-                        {week.weeklyHolidayHours > 0 && <div>{week.weeklyHolidayHours}h hol</div>}
+                        {month.totalRegularHours > 0 && <div>{month.totalRegularHours.toFixed(1)}h reg</div>}
+                        {month.totalOvertimeHours > 0 && <div>{month.totalOvertimeHours.toFixed(1)}h OT</div>}
+                        {month.totalHolidayHours > 0 && <div>{month.totalHolidayHours.toFixed(1)}h hol</div>}
                       </div>
                     </TableCell>
-                    {!isMobile && <TableCell>${week.weeklyGross.toFixed(2)}</TableCell>}
-                    {!isMobile && (
-                      <TableCell>
-                        {week.nisApplicable ? (
-                          <div className="text-sm">
-                            <div>${week.employeeContribution.toFixed(2)}</div>
-                            {week.nisClass && <div className="text-xs text-muted-foreground">Class {week.nisClass}</div>}
-                          </div>
-                        ) : '-'}
-                      </TableCell>
-                    )}
-                    {!isMobile && (
-                      <TableCell>{week.nisApplicable ? `$${week.employerContribution.toFixed(2)}` : '-'}</TableCell>
-                    )}
-                    <TableCell className="font-semibold">${week.weeklyNetPay.toFixed(2)}</TableCell>
+                    {!isMobile && <TableCell>${month.totalGross.toFixed(2)}</TableCell>}
+                    {!isMobile && <TableCell>${month.totalEmployeeNIS.toFixed(2)}</TableCell>}
+                    {!isMobile && <TableCell>${month.totalEmployerNIS.toFixed(2)}</TableCell>}
+                    <TableCell className="font-bold">${month.totalNetPay.toFixed(2)}</TableCell>
                     <TableCell>
-                      {week.allPaid ? (
+                      {month.allPaid ? (
                         <PayrollStatusBadge status="paid" />
-                      ) : week.allPending ? (
+                      ) : month.allPending ? (
                         <PayrollStatusBadge status="pending" />
                       ) : (
                         <span className="text-xs text-muted-foreground">Mixed</span>
@@ -270,216 +269,287 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                     </TableCell>
                   </TableRow>
 
-                  {/* Week-level NIS detail row (for paid weeks) */}
-                  {week.allPaid && (
-                    <TableRow className="bg-muted/20">
-                      <TableCell colSpan={colCount} className="py-1 px-4">
-                        <button
-                          onClick={() => toggleWeekDetails(week.key)}
-                          className="text-xs text-primary hover:underline flex items-center gap-1"
-                        >
-                          {isDetailsOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                          Weekly NIS Summary
-                        </button>
-                        {isDetailsOpen && (
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm mt-2 pb-2">
+                  {/* ── MONTHLY NIS SUMMARY (always visible under month header) ── */}
+                  <TableRow className="bg-primary/5 border-b border-primary/10">
+                    <TableCell colSpan={colCount} className="py-2 px-4">
+                      <button
+                        onClick={() => toggleMonthNIS(month.key)}
+                        className="text-xs text-primary hover:underline flex items-center gap-1 font-medium"
+                      >
+                        {isNISOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                        Monthly NIS Summary
+                        {weeksNeedingNIS.length > 0 && (
+                          <span className="ml-2 text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded text-[10px]">
+                            {weeksNeedingNIS.length} week(s) missing NIS
+                          </span>
+                        )}
+                      </button>
+                      {isNISOpen && (
+                        <div className="mt-2 space-y-3">
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
                             <div>
-                              <span className="text-muted-foreground block text-xs">NIS Class</span>
-                              <span className="font-medium">{week.nisClass || (week.nisApplicable ? 'Applied' : 'N/A')}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground block text-xs">Weekly Gross</span>
-                              <span className="font-medium">${week.weeklyGross.toFixed(2)}</span>
+                              <span className="text-muted-foreground block text-xs">Total Gross</span>
+                              <span className="font-semibold">${month.totalGross.toFixed(2)}</span>
                             </div>
                             <div>
                               <span className="text-muted-foreground block text-xs">Employee NIS</span>
-                              <span className="font-medium">${week.employeeContribution.toFixed(2)}</span>
+                              <span className="font-semibold">${month.totalEmployeeNIS.toFixed(2)}</span>
                             </div>
                             <div>
                               <span className="text-muted-foreground block text-xs">Employer NIS</span>
-                              <span className="font-medium">${week.employerContribution.toFixed(2)}</span>
+                              <span className="font-semibold">${month.totalEmployerNIS.toFixed(2)}</span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground block text-xs">Weekly Net Pay</span>
-                              <span className="font-medium">${week.weeklyNetPay.toFixed(2)}</span>
+                              <span className="text-muted-foreground block text-xs">Combined NIS</span>
+                              <span className="font-semibold">${(month.totalEmployeeNIS + month.totalEmployerNIS).toFixed(2)}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground block text-xs">Total Net Pay</span>
+                              <span className="font-semibold">${month.totalNetPay.toFixed(2)}</span>
                             </div>
                           </div>
-                        )}
-                        {/* Recalculate NIS button for weeks with $0 NIS but gross > 200 */}
-                        {isDetailsOpen && week.allPaid && week.weeklyGross > 200 && week.employeeContribution === 0 && onRecalculateNIS && (
-                          <div className="pb-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={isRecalculating}
-                              className="h-7 gap-1 text-xs border-warning bg-warning/10 hover:bg-warning/20 text-warning-foreground"
-                              onClick={() => handleRecalcNIS(week.entries[0].id)}
-                            >
-                              <RefreshCw className={`h-3 w-3 ${isRecalculating ? 'animate-spin' : ''}`} />
-                              {isRecalculating ? 'Recalculating...' : 'Recalculate NIS'}
-                            </Button>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              NIS was not applied when this week was processed (API was unavailable). Click to recalculate.
-                            </p>
+                          <div className="text-xs text-muted-foreground">
+                            {month.weeks.filter(w => w.nisApplicable).length} of {month.weeks.length} weeks have NIS applied
                           </div>
-                        )}
-                        {/* Bank transfer recording for paid entries */}
-                        {isDetailsOpen && onRecordBankTransfer && week.allPaid && (
-                          <div className="flex flex-wrap gap-2 pb-2">
-                            {week.entries.filter(e => e.payment_status === 'paid').map(entry => (
+                          {/* Bulk recalculate button */}
+                          {weeksNeedingNIS.length > 0 && onRecalculateNIS && (
+                            <div>
                               <Button
-                                key={`transfer-${entry.id}`}
                                 variant="outline"
                                 size="sm"
-                                className="h-7 gap-1 text-xs"
-                                onClick={() => onRecordBankTransfer(entry.id)}
+                                disabled={isRecalculating}
+                                className="h-7 gap-1 text-xs border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-700"
+                                onClick={() => handleBulkRecalcNIS(month)}
                               >
-                                {entry.bank_transfer_ref ? (
-                                  <span className="text-green-600">✓ {entry.bank_transfer_ref}</span>
-                                ) : (
-                                  <>Record Transfer</>
-                                )}
+                                <RefreshCw className={`h-3 w-3 ${isRecalculating ? 'animate-spin' : ''}`} />
+                                {bulkRecalcProgress
+                                  ? `Recalculating ${bulkRecalcProgress.current} of ${bulkRecalcProgress.total}...`
+                                  : `Recalculate NIS for ${weeksNeedingNIS.length} week(s)`}
                               </Button>
-                            ))}
-                          </div>
-                        )}
-                        {/* Undo payment for the whole week */}
-                        {isDetailsOpen && onUndoPayment && (
-                          <div className="flex gap-2 pb-2">
-                            {week.entries.map(entry => (
-                              <Button
-                                key={entry.id}
-                                variant="outline"
-                                size="sm"
-                                className="h-7 gap-1 text-xs border-warning hover:bg-warning/10 hover:text-warning-foreground"
-                                onClick={() => {
-                                  setUndoTargetId(entry.id);
-                                  setUndoDialogOpen(true);
-                                }}
-                              >
-                                <Undo2 className="h-3 w-3" /> Undo {formatDate(entry.pay_period_start)}
-                              </Button>
-                            ))}
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  )}
-
-                  {/* Expanded daily entries */}
-                  {isExpanded && week.entries.map((entry) => (
-                    <TableRow key={entry.id} className="bg-background">
-                      <TableCell></TableCell>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedEntries.includes(entry.id)}
-                          onCheckedChange={() => handleSelectEntry(entry.id)}
-                        />
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm pl-6">
-                        {formatDate(entry.pay_period_start)}
-                        {entry.pay_period_end && entry.pay_period_start !== entry.pay_period_end && (
-                          <span className="text-xs"> – {formatDate(entry.pay_period_end)}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {entry.regular_hours}h @ ${entry.regular_rate}/hr
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {entry.overtime_hours > 0 && <div>{entry.overtime_hours}h OT</div>}
-                        {(entry.holiday_hours || 0) > 0 && <div>{entry.holiday_hours}h hol</div>}
-                      </TableCell>
-                      {!isMobile && <TableCell className="text-sm">${(entry.gross_pay || entry.total_amount).toFixed(2)}</TableCell>}
-                      {!isMobile && <TableCell className="text-xs text-muted-foreground">—</TableCell>}
-                      {!isMobile && <TableCell className="text-xs text-muted-foreground">—</TableCell>}
-                      <TableCell className="text-sm">${entry.total_amount.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <PayrollStatusBadge status={entry.payment_status} />
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleGenerateReceipt(entry)}>
-                            <Receipt className="h-3 w-3" />
-                          </Button>
-                          {entry.payment_status === 'pending' && (
-                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => onProcessPayment(entry.id)}>
-                              Process
-                            </Button>
+                              {bulkRecalcProgress && (
+                                <Progress
+                                  value={(bulkRecalcProgress.current / bulkRecalcProgress.total) * 100}
+                                  className="h-1.5 mt-1 w-48"
+                                />
+                              )}
+                              <p className="text-[10px] text-muted-foreground mt-1">
+                                These weeks were processed when the NIS API was unavailable.
+                              </p>
+                            </div>
                           )}
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                      )}
+                    </TableCell>
+                  </TableRow>
+
+                  {/* ── WEEKS INSIDE MONTH ── */}
+                  {isMonthOpen && month.weeks.map((week) => {
+                    const isWeekExpanded = expandedWeeks.has(week.key);
+                    const isDetailsOpen = expandedWeekDetails.has(week.key);
+                    const allWeekSelected = week.entries.every(e => selectedEntries.includes(e.id));
+                    const someWeekSelected = week.entries.some(e => selectedEntries.includes(e.id));
+
+                    return (
+                      <React.Fragment key={week.key}>
+                        {/* Week header row */}
+                        <TableRow className="bg-muted/50 font-medium hover:bg-muted/70">
+                          <TableCell>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleWeekExpand(week.key)}>
+                              {isWeekExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </Button>
+                          </TableCell>
+                          <TableCell>
+                            <Checkbox
+                              checked={allWeekSelected}
+                              // @ts-ignore
+                              indeterminate={someWeekSelected && !allWeekSelected}
+                              onCheckedChange={(checked) => handleSelectWeek(week, !!checked)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm pl-2">
+                              <div className="font-medium">{week.caregiverName}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {format(week.weekStart, 'MMM d')} – {format(week.weekEnd, 'MMM d, yyyy')}
+                                <span className="ml-1">· {week.entries.length} {week.entries.length === 1 ? 'entry' : 'entries'}</span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {week.weeklyRegularHours > 0 && <div>{week.weeklyRegularHours}h reg</div>}
+                              {week.weeklyOvertimeHours > 0 && <div>{week.weeklyOvertimeHours}h OT</div>}
+                              {week.weeklyHolidayHours > 0 && <div>{week.weeklyHolidayHours}h hol</div>}
+                            </div>
+                          </TableCell>
+                          {!isMobile && <TableCell>${week.weeklyGross.toFixed(2)}</TableCell>}
+                          {!isMobile && (
+                            <TableCell>
+                              {week.nisApplicable ? (
+                                <div className="text-sm">
+                                  <div>${week.employeeContribution.toFixed(2)}</div>
+                                  {week.nisClass && <div className="text-xs text-muted-foreground">Class {week.nisClass}</div>}
+                                </div>
+                              ) : '-'}
+                            </TableCell>
+                          )}
+                          {!isMobile && (
+                            <TableCell>{week.nisApplicable ? `$${week.employerContribution.toFixed(2)}` : '-'}</TableCell>
+                          )}
+                          <TableCell className="font-semibold">${week.weeklyNetPay.toFixed(2)}</TableCell>
+                          <TableCell>
+                            {week.allPaid ? (
+                              <PayrollStatusBadge status="paid" />
+                            ) : week.allPending ? (
+                              <PayrollStatusBadge status="pending" />
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Mixed</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+
+                        {/* Week-level NIS detail row (paid weeks) */}
+                        {week.allPaid && (
+                          <TableRow className="bg-muted/20">
+                            <TableCell colSpan={colCount} className="py-1 px-4">
+                              <button
+                                onClick={() => toggleWeekDetails(week.key)}
+                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                              >
+                                {isDetailsOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                Weekly NIS Summary
+                              </button>
+                              {isDetailsOpen && (
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm mt-2 pb-2">
+                                  <div>
+                                    <span className="text-muted-foreground block text-xs">NIS Class</span>
+                                    <span className="font-medium">{week.nisClass || (week.nisApplicable ? 'Applied' : 'N/A')}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground block text-xs">Weekly Gross</span>
+                                    <span className="font-medium">${week.weeklyGross.toFixed(2)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground block text-xs">Employee NIS</span>
+                                    <span className="font-medium">${week.employeeContribution.toFixed(2)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground block text-xs">Employer NIS</span>
+                                    <span className="font-medium">${week.employerContribution.toFixed(2)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground block text-xs">Weekly Net Pay</span>
+                                    <span className="font-medium">${week.weeklyNetPay.toFixed(2)}</span>
+                                  </div>
+                                </div>
+                              )}
+                              {isDetailsOpen && week.weeklyGross > 200 && week.employeeContribution === 0 && onRecalculateNIS && (
+                                <div className="pb-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={isRecalculating}
+                                    className="h-7 gap-1 text-xs border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-700"
+                                    onClick={() => handleRecalcNIS(week.entries[0].id)}
+                                  >
+                                    <RefreshCw className={`h-3 w-3 ${isRecalculating ? 'animate-spin' : ''}`} />
+                                    {isRecalculating ? 'Recalculating...' : 'Recalculate NIS'}
+                                  </Button>
+                                  <p className="text-[10px] text-muted-foreground mt-1">
+                                    NIS was not applied when this week was processed.
+                                  </p>
+                                </div>
+                              )}
+                              {isDetailsOpen && onRecordBankTransfer && week.allPaid && (
+                                <div className="flex flex-wrap gap-2 pb-2">
+                                  {week.entries.filter(e => e.payment_status === 'paid').map(entry => (
+                                    <Button
+                                      key={`transfer-${entry.id}`}
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 gap-1 text-xs"
+                                      onClick={() => onRecordBankTransfer(entry.id)}
+                                    >
+                                      {entry.bank_transfer_ref ? (
+                                        <span className="text-green-600">✓ {entry.bank_transfer_ref}</span>
+                                      ) : (
+                                        <>Record Transfer</>
+                                      )}
+                                    </Button>
+                                  ))}
+                                </div>
+                              )}
+                              {isDetailsOpen && onUndoPayment && (
+                                <div className="flex gap-2 pb-2">
+                                  {week.entries.map(entry => (
+                                    <Button
+                                      key={entry.id}
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 gap-1 text-xs border-orange-300 hover:bg-orange-50 text-orange-700"
+                                      onClick={() => {
+                                        setUndoTargetId(entry.id);
+                                        setUndoDialogOpen(true);
+                                      }}
+                                    >
+                                      <Undo2 className="h-3 w-3" /> Undo {formatDate(entry.pay_period_start)}
+                                    </Button>
+                                  ))}
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* Expanded daily entries */}
+                        {isWeekExpanded && week.entries.map((entry) => (
+                          <TableRow key={entry.id} className="bg-background">
+                            <TableCell></TableCell>
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedEntries.includes(entry.id)}
+                                onCheckedChange={() => handleSelectEntry(entry.id)}
+                              />
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm pl-8">
+                              {formatDate(entry.pay_period_start)}
+                              {entry.pay_period_end && entry.pay_period_start !== entry.pay_period_end && (
+                                <span className="text-xs"> – {formatDate(entry.pay_period_end)}</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {entry.regular_hours}h @ ${entry.regular_rate}/hr
+                              {entry.overtime_hours > 0 && <div className="text-xs">{entry.overtime_hours}h OT</div>}
+                              {(entry.holiday_hours || 0) > 0 && <div className="text-xs">{entry.holiday_hours}h hol</div>}
+                            </TableCell>
+                            {!isMobile && <TableCell className="text-sm">${(entry.gross_pay || entry.total_amount).toFixed(2)}</TableCell>}
+                            {!isMobile && <TableCell className="text-xs text-muted-foreground">—</TableCell>}
+                            {!isMobile && <TableCell className="text-xs text-muted-foreground">—</TableCell>}
+                            <TableCell className="text-sm">${entry.total_amount.toFixed(2)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <PayrollStatusBadge status={entry.payment_status} />
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleGenerateReceipt(entry)}>
+                                  <Receipt className="h-3 w-3" />
+                                </Button>
+                                {entry.payment_status === 'pending' && (
+                                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => onProcessPayment(entry.id)}>
+                                    Process
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </React.Fragment>
+                    );
+                  })}
                 </React.Fragment>
               );
             })}
           </TableBody>
         </Table>
       </div>
-
-      {/* Monthly Summary */}
-      {monthGroups.length > 0 && (
-        <div className="mt-6">
-          <Collapsible open={showMonthlySummary} onOpenChange={setShowMonthlySummary}>
-            <CollapsibleTrigger asChild>
-              <Button variant="outline" className="w-full gap-2">
-                {showMonthlySummary ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                Monthly Summary
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="border rounded-lg mt-2 overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-8"></TableHead>
-                      <TableHead>Month / Week</TableHead>
-                      <TableHead>Entries</TableHead>
-                      <TableHead>Gross Pay</TableHead>
-                      <TableHead>Employee NIS</TableHead>
-                      <TableHead>Employer NIS</TableHead>
-                      <TableHead>Net Pay</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {monthGroups.map((month) => {
-                      const isMonthExpanded = expandedMonths.has(month.key);
-                      return (
-                        <React.Fragment key={month.key}>
-                          <TableRow className="bg-muted/30 font-medium">
-                            <TableCell>
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleMonthExpand(month.key)}>
-                                {isMonthExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                              </Button>
-                            </TableCell>
-                            <TableCell className="font-semibold">{month.monthLabel}</TableCell>
-                            <TableCell>{month.weeks.length} {month.weeks.length === 1 ? 'week' : 'weeks'}</TableCell>
-                            <TableCell>${month.totalGross.toFixed(2)}</TableCell>
-                            <TableCell>${month.totalEmployeeNIS.toFixed(2)}</TableCell>
-                            <TableCell>${month.totalEmployerNIS.toFixed(2)}</TableCell>
-                            <TableCell className="font-semibold">${month.totalNetPay.toFixed(2)}</TableCell>
-                          </TableRow>
-                          {isMonthExpanded && month.weeks.map((week) => (
-                            <TableRow key={week.key} className="text-sm">
-                              <TableCell></TableCell>
-                              <TableCell className="pl-8 text-muted-foreground">
-                                {format(week.weekStart, 'MMM d')} – {format(week.weekEnd, 'MMM d')}
-                              </TableCell>
-                              <TableCell>{week.entries.length} entries</TableCell>
-                              <TableCell>${week.weeklyGross.toFixed(2)}</TableCell>
-                              <TableCell>${week.employeeContribution.toFixed(2)}</TableCell>
-                              <TableCell>${week.employerContribution.toFixed(2)}</TableCell>
-                              <TableCell>${week.weeklyNetPay.toFixed(2)}</TableCell>
-                            </TableRow>
-                          ))}
-                        </React.Fragment>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
-      )}
 
       <ShareReceiptDialog
         open={receiptDialogOpen}
