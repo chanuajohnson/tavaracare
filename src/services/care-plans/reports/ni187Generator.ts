@@ -139,8 +139,10 @@ export const generateNI187Report = async (
     const fontSize = 8;
 
     const drawOnPage = (page: any, text: string, x: number, structY: number, size = fontSize) => {
-      const { height: pageHeight } = page.getSize();
-      const pdfY = pageHeight - structY - size;
+      const { width: mw, height: mh } = page.getSize();
+      const rot = page.getRotation().angle;
+      const vh = (rot === 90 || rot === 270) ? mw : mh;
+      const pdfY = vh - structY - size;
       page.drawText(String(text), { x, y: pdfY, size, font, color: rgb(0, 0, 0) });
     };
 
@@ -271,7 +273,7 @@ export const generateNI187Report = async (
 
     // Generate output
     const pdfBytes = await pdfDoc.save();
-    const blob = new Blob([new Uint8Array(pdfBytes) as any], { type: 'application/pdf' });
+    const blob = new Blob([new Uint8Array(pdfBytes) as unknown as BlobPart], { type: 'application/pdf' });
     return URL.createObjectURL(blob);
   } catch (error) {
     console.error('Error generating NI 187 report:', error);

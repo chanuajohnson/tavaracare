@@ -100,13 +100,17 @@ export const generateNI184Report = async (
     const templateBytes = await templateResponse.arrayBuffer();
     const pdfDoc = await PDFDocument.load(templateBytes);
     const page = pdfDoc.getPages()[0];
-    const { height: pageHeight } = page.getSize();
+    const { width: mediaboxWidth, height: mediaboxHeight } = page.getSize();
+    const rotation = page.getRotation().angle;
+    // NI 184 has /Rotate=90: mediabox is portrait (612x1008) but displayed landscape
+    // pdf-lib drawText uses the visual coordinate system where height = mediaboxWidth for rotated pages
+    const visualHeight = (rotation === 90 || rotation === 270) ? mediaboxWidth : mediaboxHeight;
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontSize = 7;
 
     // Helper: convert structure Y (top-down) to pdf-lib Y (bottom-up)
     const drawText = (text: string, x: number, structY: number, size = fontSize) => {
-      const pdfY = pageHeight - structY - size;
+      const pdfY = visualHeight - structY - size;
       page.drawText(text, { x, y: pdfY, size, font, color: rgb(0, 0, 0) });
     };
 
@@ -229,7 +233,7 @@ export const generateNI184Report = async (
 
     // Generate output
     const pdfBytes = await pdfDoc.save();
-    const blob = new Blob([new Uint8Array(pdfBytes) as any], { type: 'application/pdf' });
+    const blob = new Blob([new Uint8Array(pdfBytes) as unknown as BlobPart], { type: 'application/pdf' });
     return URL.createObjectURL(blob);
   } catch (error) {
     console.error('Error generating NI 184 report:', error);

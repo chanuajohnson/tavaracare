@@ -28,7 +28,7 @@ export const MissionCard = ({
         <div className="space-y-4">
           <p>At Tavara.care, our mission is to transform caregiving through technology, community, and compassion. </p>
           
-          <p>We connect families with qualified caregivers while providing professional development, fair compensation, and supportive resources to elevate the caregiving profession and create a more connected care ecosystem in Trinidad &amp; Tobago.</p>
+          <p>We coordinate and manage care teams for families while providing professional development, fair compensation, and supportive resources to elevate the caregiving profession and create a more connected care ecosystem in Trinidad &amp; Tobago.</p>
         </div>
       </CardContent>
     </Card>

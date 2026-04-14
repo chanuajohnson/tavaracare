@@ -97,8 +97,8 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
     // Care Coordination Steps (9-11)
     {
       id: 9,
-      title: "Caregiver Assigned",
-      description: "A caregiver has been matched and assigned to your family. View your care team.",
+      title: "Care Team Confirmed",
+      description: "A care team member has been selected and coordinated for your family. View your care team.",
       completed: false,
       category: 'scheduling',
       accessible: false
@@ -106,7 +106,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
     {
       id: 10,
       title: "Initial Family Meeting",
-      description: "Meet and greet with your assigned caregiver at your home.",
+      description: "Meet and greet with your care team member at your home.",
       completed: false,
       category: 'scheduling',
       accessible: false
@@ -114,7 +114,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
     {
       id: 11,
       title: "Care Begins",
-      description: "Your caregiver starts providing care. View your care plan for schedules and details.",
+      description: "Your care team begins providing support. View your care plan for schedules and details.",
       completed: false,
       category: 'scheduling',
       accessible: false

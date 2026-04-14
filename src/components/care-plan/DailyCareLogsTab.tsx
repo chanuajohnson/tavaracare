@@ -274,7 +274,7 @@ export const DailyCareLogsTab = ({ carePlanId }: DailyCareLogsTabProps) => {
           <ClipboardCheck className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
           <h3 className="text-lg font-medium text-muted-foreground">No Daily Logs Yet</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Care logs will appear here once your assigned nurse completes their daily checklist.
+            Care logs will appear here once your care team member completes their daily checklist.
           </p>
         </CardContent>
       </Card>
