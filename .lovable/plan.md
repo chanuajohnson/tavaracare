@@ -1,50 +1,51 @@
 
 
-## Plan: Set Up Peltier's Care Plan Revenue in Unit Economics
+## Plan: Fix Unit Economics Dashboard — Subscriptions & Data
 
-### Current State
-- **Chanua Johnson** (user `7d850934-a44f-4348-944b-ae7182dca237`) has two care plans:
-  - "Test Care Plan Onboarding" (`ee7cc4bd`) — test, ignore
-  - "Peltier's Care Plan 2025" (`4848aec5`) — the real one
-- **Payroll data exists**: Angela at $35/hr, 8hrs/day, Mon-Fri — already flowing correctly
-- **No subscription exists** for Chanua — so the dashboard shows $0 revenue
-- The `subscription_plans` table has old plans (Basic $29.99, etc.) — no "Family Care" at $499/week
+### Root Cause Analysis
 
-### What Needs to Happen (Database Only)
+**Issue 1: Both families show "No subscription" and $0 revenue**
+This is an **RLS (Row Level Security) problem**. The `user_subscriptions` table has a policy: `auth.uid() = user_id` — meaning only the subscription owner can read their own record. When the admin loads the Unit Economics page, the query to `user_subscriptions` returns **zero rows** because the admin is not Chanua or Ana Maria. Chanua's subscription already exists in the database but is invisible to the admin.
 
-**Step 1: Create a "Family Care" subscription plan** in `subscription_plans`
-- Name: `Family Care`
-- Price: `499` (weekly)
-- Description: "Active care coordination with dedicated management support"
-- Duration: `7` days (weekly billing)
+**Issue 2: Ana Maria Aimey has no subscription**
+She needs a `user_subscription` record linking her to the Family Care plan, same as Chanua.
 
-**Step 2: Create a `user_subscription`** linking Chanua to the Family Care plan
-- `user_id`: `7d850934-a44f-4348-944b-ae7182dca237`
-- `plan_id`: (the new Family Care plan ID)
-- `status`: `active`
-- `start_date`: now
-- `payment_method`: `manual`
+**Issue 3: Angela's caregiver breakdown numbers are inflated**
+The database has **25 payroll entries** for Angela within the 4-week window (all created on April 13), when there should be **5** (one per weekday for 1 week). This causes the dashboard to show 50 hrs/wk and $1,750/wk instead of the correct 40 hrs/wk and $1,400/wk. This is a data quality issue from how the entries were created — not a code bug. The expected correct weekly numbers for $35/hr × 8hrs × 5 days are:
+- Hours/wk: **40**
+- Pay/wk: **$1,400**
+- Employer NIS/wk: **$150.60**
+- Employee NIS/wk: **$75.30**
 
-### No Code Changes Needed
-The hook's `getWeeklyRevenue` function already handles this:
-- Plan name includes "care" → returns `$499/week`
-- Payroll data already has the correct $35/hr × 8hrs = $280/day entries with NIS
+### Changes
 
-### Expected Result After Data Setup
-For Peltier's Care Plan 2025:
-- **Revenue/wk**: $499
-- **Wages/wk**: ~$1,400 (5 days × $280)
-- **NIS/wk**: ~$150.60 employer
-- **Ops/wk**: $360 (configurable defaults)
-- **Total Cost/wk**: ~$1,910
-- **Margin**: -$1,411 (-283%)
-- **Status**: Losing (this is expected — the $499 subscription alone doesn't cover wages; the family also pays the caregiver directly, which is separate from Tavara's subscription revenue)
+**1. Database Migration: Add admin RLS policy on `user_subscriptions`**
+Add a SELECT policy allowing admins to read all subscription records:
+```sql
+CREATE POLICY "Admins can view all subscriptions"
+ON public.user_subscriptions FOR SELECT
+TO authenticated
+USING (public.is_current_user_admin());
+```
 
-### Important Note
-The dashboard currently treats `weeklyRevenue` as the Tavara subscription fee only — it does **not** include the caregiver wages that families pay directly. This means the margin will appear deeply negative because the caregiver cost ($1,400+) is being compared against only the coordination fee ($499). 
+**2. Database Migration: Create subscription for Ana Maria Aimey**
+Link user `9874b53e-ea23-4ccb-abed-ddbb0367edf5` to the existing "Family Care" plan ($499/week):
+```sql
+INSERT INTO user_subscriptions (user_id, plan_id, status, start_date, end_date, payment_method)
+SELECT '9874b53e-ea23-4ccb-abed-ddbb0367edf5'::uuid, sp.id, 'active', now(), now() + interval '1 year', 'manual'
+FROM subscription_plans sp WHERE sp.name = 'Family Care' AND sp.price = 499.00 LIMIT 1;
+```
 
-If you want the dashboard to reflect the **full family cost** (caregiver wages + Tavara fee) as revenue, I'd need to adjust the revenue calculation. Otherwise, the current model correctly shows Tavara's margin on its coordination fee alone — which means operating costs ($360) should be the main comparison against the $499 fee, yielding ~$139/week margin (28%) before wage pass-through.
+**3. No code changes needed**
+The hook logic already correctly maps "Family Care" to $499/wk revenue. Once the RLS policy is fixed, both families will display their subscription and $499/wk revenue.
 
-### Recommendation
-I can also update the Unit Economics hook to separate **Tavara coordination margin** (subscription vs. operating costs) from **pass-through costs** (caregiver wages + NIS that families pay directly). This would give a much more accurate picture. Want me to include that in the plan?
+### Expected Result After Fix
+
+| Client | Plan | Revenue/wk | Status |
+|--------|------|-----------|--------|
+| Chanua Johnson | Family Care | $499 | Visible (was hidden by RLS) |
+| Ana Maria Aimey | Family Care | $499 | Visible (new subscription) |
+
+### Note on Payroll Data
+The 25 duplicate payroll entries for Angela inflate the caregiver breakdown. This is existing data — if you want me to clean it up to the correct 5 entries (1 week, Mon-Fri), I can do that as a separate step.
 
