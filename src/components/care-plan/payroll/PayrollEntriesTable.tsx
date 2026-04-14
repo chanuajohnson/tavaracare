@@ -30,6 +30,7 @@ interface PayrollEntriesTableProps {
   onDeleteEntries?: (ids: string[]) => Promise<{ deleted: number; failed: number }>;
   onUndoPayment?: (id: string) => Promise<boolean>;
   onRecalculateNIS?: (entryId: string) => Promise<boolean>;
+  onRecordBankTransfer?: (payrollId: string) => void;
 }
 
 export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
@@ -37,7 +38,8 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   onProcessPayment,
   onDeleteEntries,
   onUndoPayment,
-  onRecalculateNIS
+  onRecalculateNIS,
+  onRecordBankTransfer
 }) => {
   const isMobile = useIsMobile();
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
@@ -319,6 +321,26 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                             <p className="text-xs text-muted-foreground mt-1">
                               NIS was not applied when this week was processed (API was unavailable). Click to recalculate.
                             </p>
+                          </div>
+                        )}
+                        {/* Bank transfer recording for paid entries */}
+                        {isDetailsOpen && onRecordBankTransfer && week.allPaid && (
+                          <div className="flex flex-wrap gap-2 pb-2">
+                            {week.entries.filter(e => e.payment_status === 'paid').map(entry => (
+                              <Button
+                                key={`transfer-${entry.id}`}
+                                variant="outline"
+                                size="sm"
+                                className="h-7 gap-1 text-xs"
+                                onClick={() => onRecordBankTransfer(entry.id)}
+                              >
+                                {entry.bank_transfer_ref ? (
+                                  <span className="text-green-600">✓ {entry.bank_transfer_ref}</span>
+                                ) : (
+                                  <>Record Transfer</>
+                                )}
+                              </Button>
+                            ))}
                           </div>
                         )}
                         {/* Undo payment for the whole week */}

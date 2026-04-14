@@ -892,9 +892,13 @@ export type Database = {
           care_plan_id: string | null
           caregiver_id: string
           created_at: string | null
+          date_employed: string | null
+          date_of_birth: string | null
           display_name: string | null
           family_id: string
           id: string
+          is_nis_registered: boolean
+          nis_number: string | null
           notes: string | null
           overtime_rate: number | null
           regular_rate: number | null
@@ -906,9 +910,13 @@ export type Database = {
           care_plan_id?: string | null
           caregiver_id: string
           created_at?: string | null
+          date_employed?: string | null
+          date_of_birth?: string | null
           display_name?: string | null
           family_id: string
           id?: string
+          is_nis_registered?: boolean
+          nis_number?: string | null
           notes?: string | null
           overtime_rate?: number | null
           regular_rate?: number | null
@@ -920,9 +928,13 @@ export type Database = {
           care_plan_id?: string | null
           caregiver_id?: string
           created_at?: string | null
+          date_employed?: string | null
+          date_of_birth?: string | null
           display_name?: string | null
           family_id?: string
           id?: string
+          is_nis_registered?: boolean
+          nis_number?: string | null
           notes?: string | null
           overtime_rate?: number | null
           regular_rate?: number | null
@@ -1732,6 +1744,50 @@ export type Database = {
             foreignKeyName: "daily_care_logs_family_id_fkey"
             columns: ["family_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employer_settings: {
+        Row: {
+          address: string | null
+          created_at: string
+          employer_registration_number: string | null
+          family_id: string
+          id: string
+          phone: string | null
+          service_centre_code: string | null
+          trade_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          employer_registration_number?: string | null
+          family_id: string
+          id?: string
+          phone?: string | null
+          service_centre_code?: string | null
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          employer_registration_number?: string | null
+          family_id?: string
+          id?: string
+          phone?: string | null
+          service_centre_code?: string | null
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employer_settings_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -3154,6 +3210,9 @@ export type Database = {
       }
       payroll_entries: {
         Row: {
+          bank_transfer_date: string | null
+          bank_transfer_notes: string | null
+          bank_transfer_ref: string | null
           care_plan_id: string
           care_team_member_id: string
           created_at: string | null
@@ -3182,6 +3241,9 @@ export type Database = {
           work_log_id: string
         }
         Insert: {
+          bank_transfer_date?: string | null
+          bank_transfer_notes?: string | null
+          bank_transfer_ref?: string | null
           care_plan_id: string
           care_team_member_id: string
           created_at?: string | null
@@ -3210,6 +3272,9 @@ export type Database = {
           work_log_id: string
         }
         Update: {
+          bank_transfer_date?: string | null
+          bank_transfer_notes?: string | null
+          bank_transfer_ref?: string | null
           care_plan_id?: string
           care_team_member_id?: string
           created_at?: string | null

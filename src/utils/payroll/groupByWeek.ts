@@ -32,6 +32,12 @@ export interface MonthGroup {
   totalEmployeeNIS: number;
   totalEmployerNIS: number;
   totalNetPay: number;
+  totalHours: number;
+  totalRegularHours: number;
+  totalOvertimeHours: number;
+  totalHolidayHours: number;
+  allPaid: boolean;
+  allPending: boolean;
 }
 
 /**
@@ -131,6 +137,12 @@ export function groupWeeksByMonth(weeks: WeekGroup[]): MonthGroup[] {
         totalEmployeeNIS: 0,
         totalEmployerNIS: 0,
         totalNetPay: 0,
+        totalHours: 0,
+        totalRegularHours: 0,
+        totalOvertimeHours: 0,
+        totalHolidayHours: 0,
+        allPaid: true,
+        allPending: true,
       });
     }
 
@@ -140,6 +152,12 @@ export function groupWeeksByMonth(weeks: WeekGroup[]): MonthGroup[] {
     mg.totalEmployeeNIS += week.employeeContribution;
     mg.totalEmployerNIS += week.employerContribution;
     mg.totalNetPay += week.weeklyNetPay;
+    mg.totalHours += week.weeklyRegularHours + week.weeklyOvertimeHours + week.weeklyHolidayHours;
+    mg.totalRegularHours += week.weeklyRegularHours;
+    mg.totalOvertimeHours += week.weeklyOvertimeHours;
+    mg.totalHolidayHours += week.weeklyHolidayHours;
+    if (!week.allPaid) mg.allPaid = false;
+    if (!week.allPending) mg.allPending = false;
   }
 
   return Array.from(map.values()).sort((a, b) => b.key.localeCompare(a.key));

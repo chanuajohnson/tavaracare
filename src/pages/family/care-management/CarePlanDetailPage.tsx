@@ -236,7 +236,7 @@ const CarePlanDetailPage = () => {
           </TabsContent>
           
           <TabsContent value="payroll">
-            <PayrollTab carePlanId={id} isProfessionalView={searchParams.get('from') === 'professional'} />
+            <PayrollTab carePlanId={id} familyId={carePlan?.familyId} isProfessionalView={searchParams.get('from') === 'professional'} />
           </TabsContent>
         </Tabs>
       </Container>
