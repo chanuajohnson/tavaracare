@@ -58,6 +58,10 @@ export interface CareTeamMember {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  nisNumber?: string | null;
+  dateOfBirth?: string | null;
+  dateEmployed?: string | null;
+  isNisRegistered?: boolean;
 }
 
 // Professional details from profiles
@@ -150,6 +154,21 @@ export interface CareTeamMemberDto {
   created_at?: string;
   updated_at?: string;
   display_name?: string;
+  nis_number?: string | null;
+  date_of_birth?: string | null;
+  date_employed?: string | null;
+  is_nis_registered?: boolean;
+}
+
+// Employer NIS Settings
+export interface EmployerSettings {
+  id: string;
+  familyId: string;
+  tradeName?: string;
+  employerRegistrationNumber?: string;
+  serviceCentreCode?: string;
+  address?: string;
+  phone?: string;
 }
 
 // Care Team Member Input for create/update operations

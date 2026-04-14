@@ -59,6 +59,10 @@ export interface PayrollEntry {
   gross_pay?: number;
   net_pay_after_nis?: number;
   nis_response?: any;
+  // Bank transfer fields
+  bank_transfer_ref?: string | null;
+  bank_transfer_date?: string | null;
+  bank_transfer_notes?: string | null;
 }
 
 export interface WorkLogInput {
