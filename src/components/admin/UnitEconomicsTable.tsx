@@ -51,6 +51,8 @@ export function UnitEconomicsTable({ clients }: Props) {
             <TableHead className="w-8"></TableHead>
             <TableHead>Client</TableHead>
             <TableHead>Plan</TableHead>
+            <TableHead className="text-right">Sub/wk</TableHead>
+            <TableHead className="text-right">CG Fees/wk</TableHead>
             <TableHead className="text-right">Revenue/wk</TableHead>
             <TableHead className="text-right">Wages/wk</TableHead>
             <TableHead className="text-right">NIS/wk</TableHead>
@@ -79,6 +81,8 @@ export function UnitEconomicsTable({ clients }: Props) {
                   <TableCell>
                     <Badge variant="outline" className="text-xs">{client.subscriptionPlan}</Badge>
                   </TableCell>
+                  <TableCell className="text-right text-muted-foreground">{fmt(client.subscriptionRevenue)}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{fmt(client.weeklyCaregiverCost)}</TableCell>
                   <TableCell className="text-right font-medium">{fmt(client.weeklyRevenue)}</TableCell>
                   <TableCell className="text-right">{fmt(client.weeklyCaregiverCost)}</TableCell>
                   <TableCell className="text-right">{fmt(client.weeklyNisCost)}</TableCell>
