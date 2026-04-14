@@ -103,119 +103,119 @@ const SubscriptionPage = () => {
     priceMonthly: "Free",
     periodWeekly: "",
     periodMonthly: "",
-    description: "Everything you need to start your caregiving journey",
+    description: "Get organized and start building your care team",
     features: [{
-      name: "Complete family profile and care preferences",
+      name: "Family profile and care preferences setup",
       included: true
     }, {
-      name: "Initial care needs assessment",
+      name: "Care needs assessment and planning tools",
       included: true
     }, {
-      name: "Legacy Story for your loved one",
+      name: "Legacy Story — preserve your loved one's journey",
       included: true
     }, {
-      name: "Instant caregiver matching",
+      name: "Care team discovery and matching",
       included: true
     }, {
-      name: "Medication management and scheduling",
+      name: "Medication tracking and scheduling",
       included: true
     }, {
       name: "Meal planning and grocery lists",
       included: true
     }, {
-      name: "Unlimited caregiver chat",
+      name: "Unlimited messaging with your care team",
       included: true
     }, {
-      name: "Email and community support",
+      name: "Community support and resources",
       included: true
     }, {
       name: "Dedicated care coordinator",
       included: false
     }, {
-      name: "Priority caregiver matching",
+      name: "Care team scheduling and oversight",
       included: false
     }, {
-      name: "Video consultations with caregivers",
+      name: "Video consultations for care planning",
       included: false
     }, {
-      name: "Weekly/monthly billing management",
+      name: "Care coordination and billing support",
       included: false
     }],
     popular: false,
     buttonColor: "bg-muted text-muted-foreground hover:bg-muted/90",
-    buttonText: "Current Plan"
+    buttonText: "Get Started Free"
   }, {
     id: "care",
     name: "Family Care",
-    priceWeekly: "$199.99",
-    priceMonthly: "$699.99",
+    priceWeekly: "$499",
+    priceMonthly: "$1,799",
     periodWeekly: "week",
     periodMonthly: "month",
-    description: "Enhanced features plus instant video calls with caregivers",
+    description: "Active care coordination with dedicated management support",
     features: [{
       name: "Everything in Family Basic",
       included: true
     }, {
-      name: "Instant video calls with caregivers",
+      name: "Dedicated care coordinator assigned to your family",
       included: true
     }, {
-      name: "Skip chat phase entirely",
+      name: "Care team scheduling and oversight",
       included: true
     }, {
-      name: "30-minute video sessions",
+      name: "Video consultations for care planning",
       included: true
     }, {
-      name: "Dedicated care coordinator",
+      name: "Care coordination and billing support",
       included: true
     }, {
-      name: "Weekly/monthly billing management",
+      name: "Weekly care check-ins and status updates",
       included: true
     }, {
-      name: "Priority caregiver matching",
+      name: "Priority matching and complex care management",
       included: false
     }, {
-      name: "Extended video sessions",
+      name: "24/7 on-call coordinator support",
       included: false
     }],
     popular: false,
     buttonColor: "bg-primary hover:bg-primary/90",
-    buttonText: "Upgrade to Care"
+    buttonText: "Start Care Coordination"
   }, {
     id: "premium",
     name: "Family Premium",
-    priceWeekly: "$399.99",
-    priceMonthly: "$1,099.99",
+    priceWeekly: "$2,499",
+    priceMonthly: "$2,499",
     periodWeekly: "month",
     periodMonthly: "month",
-    description: "Complete access with priority matching and extended video sessions — best value",
+    description: "Concierge-level coordination for complex or high-touch care needs",
     features: [{
       name: "Everything in Family Care",
       included: true
     }, {
-      name: "Priority caregiver matching",
+      name: "Priority care team matching and placement",
       included: true
     }, {
-      name: "Extended video sessions",
+      name: "Extended video consultations",
       included: true
     }, {
-      name: "Advanced care plan management",
+      name: "Comprehensive care plan management",
       included: true
     }, {
-      name: "Priority support & escalation",
+      name: "24/7 on-call coordinator support",
       included: true
     }, {
-      name: "Custom care team coordination",
+      name: "Multi-caregiver scheduling and rotation management",
       included: true
     }, {
-      name: "Detailed care analytics & reports",
+      name: "Detailed care analytics and progress reports",
       included: true
     }, {
-      name: "Multi-caregiver scheduling",
+      name: "Emergency escalation and rapid response coordination",
       included: true
     }],
     popular: true,
     buttonColor: "bg-primary hover:bg-primary/90",
-    buttonText: "Upgrade to Premium"
+    buttonText: "Choose Premium"
   }];
   
   const getPlanPrice = (plan: typeof familyPlans[0]) => {
@@ -360,11 +360,13 @@ const SubscriptionPage = () => {
   
   const getButtonText = (plan: any) => {
     if (isCurrentPlan(plan.id)) {
-      return "Current Plan";
+      return plan.id === "basic" ? "Get Started Free" : "Current Plan";
     }
     const action = getPlanAction(plan.id);
     if (action === "upgrade") {
-      return `Upgrade to ${plan.name.split(' ').pop()}`;
+      if (plan.id === "care") return "Start Care Coordination";
+      if (plan.id === "premium") return "Choose Premium";
+      return plan.buttonText;
     } else if (action === "downgrade") {
       return `Downgrade to ${plan.name.split(' ').pop()}`;
     }
@@ -539,13 +541,11 @@ const SubscriptionPage = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-3xl font-bold">
-                  {isVideoCallFeature 
-                    ? 'Unlock Instant Video Calls' 
-                    : 'Subscribe to Access Premium Features'}
+                  Choose Your Care Coordination Plan
                 </h1>
-                {featureType && <p className="text-lg text-primary mt-2">
-                    <span className="font-medium">Feature: {featureType}</span>
-                  </p>}
+                <p className="text-lg text-muted-foreground mt-2">
+                  Structure, coordination, and peace of mind — so you can focus on what matters most.
+                </p>
               </div>
               <Button variant="outline" size="sm" onClick={handleGoBack} className="flex items-center gap-1">
                 <ArrowLeft className="h-4 w-4" />
@@ -557,21 +557,13 @@ const SubscriptionPage = () => {
             
             <div className="bg-muted/30 border p-4 rounded-lg">
               <div className="flex items-start gap-2">
-                {isVideoCallFeature ? (
-                  <Video className="h-5 w-5 text-purple-500 mt-1 flex-shrink-0" />
-                ) : (
-                  <Crown className="h-5 w-5 text-yellow-500 mt-1 flex-shrink-0" />
-                )}
+                <Crown className="h-5 w-5 text-yellow-500 mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold text-lg">
-                    {isVideoCallFeature 
-                      ? 'Upgrade to Skip Chat & Meet Face-to-Face'
-                      : `Upgrade to Unlock ${featureType}`}
+                    Find the right level of care coordination for your family
                   </h3>
                   <p className="text-muted-foreground">
-                    {isVideoCallFeature 
-                      ? 'Chat is free and unlimited. Upgrade to book instant video calls and meet your caregivers face-to-face without the text conversation phase.'
-                      : 'Choose the plan that best fits your needs to access this premium feature and more.'}
+                    Every plan gives your family tools, guidance, and hands-on support to coordinate care with confidence.
                   </p>
                   {userSubscription && <p className="mt-2 text-sm">
                       <span className="font-medium">Your Current Plan:</span> {plans.find(p => p.id === userSubscription)?.name || "Basic"}
@@ -595,6 +587,13 @@ const SubscriptionPage = () => {
                 </span>
               </div>
             )}
+            
+            {/* Clarity Block */}
+            <div className="bg-accent/30 border border-accent rounded-lg p-4 text-center">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Caregiver compensation is arranged directly between your family and your care team. Your Tavara subscription covers care coordination, management tools, and ongoing support to ensure care is delivered consistently and effectively.
+              </p>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
               {plans.map(plan => {
