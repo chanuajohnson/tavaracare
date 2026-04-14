@@ -1,5 +1,5 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import { format, getWeek } from 'date-fns';
+import { format, getWeek, startOfWeek, addWeeks, isWithinInterval } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { fetchEmployerSettings } from '@/services/care-plans/team/employerSettingsService';
 
@@ -7,58 +7,78 @@ import { fetchEmployerSettings } from '@/services/care-plans/team/employerSettin
  * Generate NI 184 - Statement of Contribution Paid/Due
  * Fills the official NIBTT government form template with payroll data
  * 
- * NI 184 is landscape A4 (1008 x 612 PDF points)
- * Coordinate system: y=0 at top, increasing downward (pdfplumber convention)
- * pdf-lib uses y=0 at bottom, so we convert: pdfY = pageHeight - structureY
+ * The NI 184 blank template has MediaBox [0,0,612,1008] with /Rotate=90.
+ * pdfplumber sees it as landscape 1008×612 (visual space).
+ * pdf-lib draws in the unrotated mediabox space, so text appears rotated.
+ * 
+ * FIX: We embed the template page into a NEW unrotated landscape page (1008×612).
+ * Then all coordinates from pdfplumber's structure analysis work directly:
+ *   pdfLibY = visualHeight - structureY - fontSize
+ * where visualHeight = 612 (the actual page height of the new unrotated page).
  */
 
-// Column X positions (from structure analysis of NI184_blank.pdf)
+// Visual page dimensions (landscape, post-normalization)
+const PAGE_WIDTH = 1008;
+const PAGE_HEIGHT = 612;
+
+// Column X positions (from pdfplumber structure extraction of NI184_blank.pdf)
 const COL = {
-  NIS_NUMBER: 58,       // Col 1: NIS Number
-  SURNAME: 200,         // Col 2: Surname
-  FIRST_NAME: 365,      // Col 2: First Name
-  DOB_YYYY: 432,        // Col 3: DOB Year
-  DOB_MM: 470,          // Col 3: DOB Month
-  DOB_DD: 504,          // Col 3: DOB Day
-  EMPLOYED_YYYY: 526,   // Col 4: Date Employed Year
-  EMPLOYED_MM: 564,     // Col 4: Date Employed Month
-  EMPLOYED_DD: 598,     // Col 4: Date Employed Day
-  SALARY: 632,          // Col 5: Salary for Period
-  WK1: 685,             // Col 6: Week 1
-  WK2: 740,             // Col 6: Week 2
-  WK3: 785,             // Col 6: Week 3
-  WK4: 830,             // Col 6: Week 4
-  WK5: 870,             // Col 6: Week 5
-  TOTAL: 920,           // Col 7: Total Value
+  NIS_NUMBER: 67,        // Col 1: NIS Number
+  SURNAME: 202,          // Col 2: Surname
+  FIRST_NAME: 363,       // Col 2: First Name
+  DOB_YYYY: 430,         // Col 3: DOB Year
+  DOB_MM: 469,           // Col 3: DOB Month
+  DOB_DD: 502,           // Col 3: DOB Day
+  EMPLOYED_YYYY: 524,    // Col 4: Date Employed Year
+  EMPLOYED_MM: 563,      // Col 4: Date Employed Month
+  EMPLOYED_DD: 596,      // Col 4: Date Employed Day
+  SALARY: 643,           // Col 5: Salary for Period ($)
+  WK1: 685,              // Col 6: Week 1 ($)
+  WK2: 739,              // Col 6: Week 2 ($)
+  WK3: 784,              // Col 6: Week 3 ($)
+  WK4: 829,              // Col 6: Week 4 ($)
+  WK5: 869,              // Col 6: Week 5 ($)
+  TOTAL: 940,            // Col 7: Total Value ($)
 };
 
-// Row Y positions (structure top values, will be converted to pdf-lib coords)
+// Header Y positions (pdfplumber top-down coordinates)
 const HEADER = {
-  TRADE_NAME: 78,       // Employer's Trade Name
-  REG_NUMBER: 73,       // Registration Number boxes start
-  SERVICE_CENTRE: 73,   // Service Centre Code
-  ADDRESS: 100,         // Address line
-  TELEPHONE: 105,       // Telephone
-  PERIOD_FROM_YYYY: 150,
-  PERIOD_FROM_MM: 152,
-  PERIOD_FROM_DD: 152,
-  PERIOD_TO_YYYY: 150,
-  PERIOD_TO_MM: 152,
-  PERIOD_TO_DD: 152,
-  NUM_WEEKS: 140,
+  TRADE_NAME_X: 112,
+  TRADE_NAME_Y: 78,
+  REG_NUMBER_X: 595,
+  REG_NUMBER_Y: 73,
+  SERVICE_CENTRE_X: 805,
+  SERVICE_CENTRE_Y: 73,
+  ADDRESS_X: 100,
+  ADDRESS_Y: 100,
+  TELEPHONE_X: 770,
+  TELEPHONE_Y: 105,
+  PERIOD_FROM_YYYY_X: 141,
+  PERIOD_FROM_MM_X: 188,
+  PERIOD_FROM_DD_X: 227,
+  PERIOD_TO_YYYY_X: 294,
+  PERIOD_TO_MM_X: 341,
+  PERIOD_TO_DD_X: 380,
+  PERIOD_Y: 152,
+  NUM_WEEKS_X: 533,
+  NUM_WEEKS_Y: 141,
 };
 
-// Data rows start at y=228 (top of first data row), each row is 18pt tall
-const DATA_ROW_START = 228;
+// Data rows: first row starts at y=225 (top of row boundary), each row is 18pt
+const DATA_ROW_START = 225;
 const DATA_ROW_HEIGHT = 18;
-const MAX_ROWS = 11; // 11 employee rows on the form
+const MAX_ROWS = 11;
 
-// Footer
+// Footer positions
 const FOOTER = {
-  TOTAL_EMPLOYEES: 432,  // y position
-  TOTAL_CONTRIBUTIONS: 437,
-  PREPARED_BY: 568,
-  DATE_YYYY: 568,
+  TOTAL_EMPLOYEES_X: 155,
+  TOTAL_EMPLOYEES_Y: 429,
+  TOTAL_CONTRIBUTIONS_X: 869,
+  TOTAL_CONTRIBUTIONS_Y: 433,
+  DATE_YYYY_X: 875,
+  DATE_MM_X: 920,
+  DATE_DD_X: 950,
+  DATE_Y: 568,
 };
 
 export const generateNI184Report = async (
@@ -95,74 +115,88 @@ export const generateNI184Report = async (
       return null;
     }
 
-    // Load blank NI 184 PDF
+    // Load blank NI 184 PDF template
     const templateResponse = await fetch('/forms/NI184_blank.pdf');
     const templateBytes = await templateResponse.arrayBuffer();
-    const pdfDoc = await PDFDocument.load(templateBytes);
-    const page = pdfDoc.getPages()[0];
-    const { width: mediaboxWidth, height: mediaboxHeight } = page.getSize();
-    const rotation = page.getRotation().angle;
-    // NI 184 has /Rotate=90: mediabox is portrait (612x1008) but displayed landscape
-    // pdf-lib drawText uses the visual coordinate system where height = mediaboxWidth for rotated pages
-    const visualHeight = (rotation === 90 || rotation === 270) ? mediaboxWidth : mediaboxHeight;
+    const templateDoc = await PDFDocument.load(templateBytes);
+
+    // Create a NEW document with an unrotated landscape page
+    const pdfDoc = await PDFDocument.create();
+    
+    // Embed the rotated template page into the new document
+    const [embeddedPage] = await pdfDoc.embedPages(templateDoc.getPages());
+    
+    // Add a fresh landscape page (no rotation)
+    const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+    
+    // Draw the embedded template onto the new page
+    // The embedded page handles the rotation internally
+    page.drawPage(embeddedPage, {
+      x: 0,
+      y: 0,
+      width: PAGE_WIDTH,
+      height: PAGE_HEIGHT,
+    });
+
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontSize = 7;
 
-    // Helper: convert structure Y (top-down) to pdf-lib Y (bottom-up)
+    // Helper: convert pdfplumber top-down Y to pdf-lib bottom-up Y
     const drawText = (text: string, x: number, structY: number, size = fontSize) => {
-      const pdfY = visualHeight - structY - size;
+      const pdfY = PAGE_HEIGHT - structY - size;
       page.drawText(text, { x, y: pdfY, size, font, color: rgb(0, 0, 0) });
     };
 
     // === HEADER SECTION ===
-    // Trade Name
-    drawText(employer?.tradeName || '', 112, HEADER.TRADE_NAME);
+    drawText(employer?.tradeName || '', HEADER.TRADE_NAME_X, HEADER.TRADE_NAME_Y);
     
-    // Registration Number
     if (employer?.employerRegistrationNumber) {
-      drawText(employer.employerRegistrationNumber, 595, HEADER.REG_NUMBER);
+      drawText(employer.employerRegistrationNumber, HEADER.REG_NUMBER_X, HEADER.REG_NUMBER_Y);
     }
     
-    // Service Centre Code
     if (employer?.serviceCentreCode) {
-      drawText(employer.serviceCentreCode, 805, HEADER.SERVICE_CENTRE);
+      drawText(employer.serviceCentreCode, HEADER.SERVICE_CENTRE_X, HEADER.SERVICE_CENTRE_Y);
     }
     
-    // Address
-    drawText(employer?.address || '', 100, HEADER.ADDRESS);
+    drawText(employer?.address || '', HEADER.ADDRESS_X, HEADER.ADDRESS_Y);
     
-    // Telephone
     if (employer?.phone) {
-      drawText(employer.phone, 770, HEADER.TELEPHONE);
+      drawText(employer.phone, HEADER.TELEPHONE_X, HEADER.TELEPHONE_Y);
     }
 
     // Contribution Period
-    const fromYear = format(periodStart, 'yyyy');
-    const fromMonth = format(periodStart, 'MM');
-    const fromDay = format(periodStart, 'dd');
-    const toYear = format(periodEnd, 'yyyy');
-    const toMonth = format(periodEnd, 'MM');
-    const toDay = format(periodEnd, 'dd');
-
-    drawText(fromYear, 134, HEADER.PERIOD_FROM_YYYY);
-    drawText(fromMonth, 183, HEADER.PERIOD_FROM_MM);
-    drawText(fromDay, 223, HEADER.PERIOD_FROM_DD);
-    drawText(toYear, 287, HEADER.PERIOD_TO_YYYY);
-    drawText(toMonth, 336, HEADER.PERIOD_TO_MM);
-    drawText(toDay, 376, HEADER.PERIOD_TO_DD);
+    drawText(format(periodStart, 'yyyy'), HEADER.PERIOD_FROM_YYYY_X, HEADER.PERIOD_Y);
+    drawText(format(periodStart, 'MM'), HEADER.PERIOD_FROM_MM_X, HEADER.PERIOD_Y);
+    drawText(format(periodStart, 'dd'), HEADER.PERIOD_FROM_DD_X, HEADER.PERIOD_Y);
+    drawText(format(periodEnd, 'yyyy'), HEADER.PERIOD_TO_YYYY_X, HEADER.PERIOD_Y);
+    drawText(format(periodEnd, 'MM'), HEADER.PERIOD_TO_MM_X, HEADER.PERIOD_Y);
+    drawText(format(periodEnd, 'dd'), HEADER.PERIOD_TO_DD_X, HEADER.PERIOD_Y);
 
     // Number of weeks
     const msPerWeek = 7 * 24 * 60 * 60 * 1000;
     const numWeeks = Math.ceil((periodEnd.getTime() - periodStart.getTime()) / msPerWeek);
-    drawText(String(numWeeks), 545, HEADER.NUM_WEEKS);
+    drawText(String(numWeeks), HEADER.NUM_WEEKS_X, HEADER.NUM_WEEKS_Y);
 
     // === EMPLOYEE DATA ROWS ===
     let totalContributions = 0;
 
-    members.slice(0, MAX_ROWS).forEach((member: any, rowIndex: number) => {
-      const rowY = DATA_ROW_START + (rowIndex * DATA_ROW_HEIGHT) + 4; // +4 for vertical centering
+    // Build ordered week slots for the period (chronological WK1..WK5)
+    const periodWeekSlots: { start: Date; end: Date; weekNum: number }[] = [];
+    let weekCursor = startOfWeek(periodStart, { weekStartsOn: 1 });
+    while (weekCursor <= periodEnd && periodWeekSlots.length < 5) {
+      const weekEnd = new Date(weekCursor.getTime() + 6 * 24 * 60 * 60 * 1000);
+      periodWeekSlots.push({
+        start: weekCursor,
+        end: weekEnd,
+        weekNum: getWeek(weekCursor, { weekStartsOn: 1 }),
+      });
+      weekCursor = addWeeks(weekCursor, 1);
+    }
 
-      // Get this member's payroll entries
+    members.slice(0, MAX_ROWS).forEach((member: any, rowIndex: number) => {
+      // Center text vertically in the 18pt row: offset by ~6pt from top
+      const rowY = DATA_ROW_START + (rowIndex * DATA_ROW_HEIGHT) + 6;
+
       const memberEntries = entries.filter((e: any) => e.care_team_member_id === member.id);
 
       // NIS Number
@@ -170,7 +204,7 @@ export const generateNI184Report = async (
 
       // Name (Surname, First Name)
       const fullName = member.profiles?.full_name || member.display_name || '';
-      const nameParts = fullName.split(' ');
+      const nameParts = fullName.trim().split(' ');
       const surname = nameParts.length > 1 ? nameParts.slice(-1).join(' ') : fullName;
       const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : '';
       drawText(surname.toUpperCase(), COL.SURNAME, rowY);
@@ -193,43 +227,45 @@ export const generateNI184Report = async (
       }
 
       // Salary for period
-      const totalSalary = memberEntries.reduce((s: number, e: any) => s + (e.gross_pay || e.total_amount || 0), 0);
+      const totalSalary = memberEntries.reduce(
+        (s: number, e: any) => s + (e.gross_pay || e.total_amount || 0), 0
+      );
       drawText(totalSalary.toFixed(2), COL.SALARY, rowY);
 
-      // Weekly contribution breakdown
-      const weekMap = new Map<number, number>();
-      for (const entry of memberEntries) {
-        const entryDate = new Date(entry.pay_period_start || entry.created_at);
-        const weekNum = getWeek(entryDate, { weekStartsOn: 1 });
-        const existing = weekMap.get(weekNum) || 0;
-        const contribTotal = (entry.employee_contribution || 0) + (entry.employer_contribution || 0);
-        weekMap.set(weekNum, existing + contribTotal);
-      }
-
-      const weeklyValues = Array.from(weekMap.values()).sort();
+      // Weekly contributions - chronological ordering using period week slots
       const weekCols = [COL.WK1, COL.WK2, COL.WK3, COL.WK4, COL.WK5];
-      weeklyValues.slice(0, 5).forEach((val, i) => {
-        drawText(val.toFixed(2), weekCols[i], rowY);
+      let empTotal = 0;
+
+      periodWeekSlots.forEach((slot, i) => {
+        const slotContrib = memberEntries
+          .filter((e: any) => {
+            const entryDate = new Date(e.pay_period_start || e.created_at);
+            return getWeek(entryDate, { weekStartsOn: 1 }) === slot.weekNum;
+          })
+          .reduce((s: number, e: any) => 
+            s + (e.employee_contribution || 0) + (e.employer_contribution || 0), 0
+          );
+
+        if (slotContrib > 0) {
+          drawText(slotContrib.toFixed(2), weekCols[i], rowY);
+          empTotal += slotContrib;
+        }
       });
 
       // Total value for this employee
-      const empTotal = weeklyValues.reduce((s, v) => s + v, 0);
       drawText(empTotal.toFixed(2), COL.TOTAL, rowY);
       totalContributions += empTotal;
     });
 
     // === FOOTER ===
-    // Total employees
-    drawText(String(members.length), 155, FOOTER.TOTAL_EMPLOYEES);
+    drawText(String(members.length), FOOTER.TOTAL_EMPLOYEES_X, FOOTER.TOTAL_EMPLOYEES_Y);
+    drawText(totalContributions.toFixed(2), FOOTER.TOTAL_CONTRIBUTIONS_X, FOOTER.TOTAL_CONTRIBUTIONS_Y);
 
-    // Total value of contributions
-    drawText(totalContributions.toFixed(2), 870, FOOTER.TOTAL_CONTRIBUTIONS);
-
-    // Date (bottom right)
+    // Date
     const today = new Date();
-    drawText(format(today, 'yyyy'), 875, FOOTER.DATE_YYYY);
-    drawText(format(today, 'MM'), 920, FOOTER.DATE_YYYY);
-    drawText(format(today, 'dd'), 950, FOOTER.DATE_YYYY);
+    drawText(format(today, 'yyyy'), FOOTER.DATE_YYYY_X, FOOTER.DATE_Y);
+    drawText(format(today, 'MM'), FOOTER.DATE_MM_X, FOOTER.DATE_Y);
+    drawText(format(today, 'dd'), FOOTER.DATE_DD_X, FOOTER.DATE_Y);
 
     // Generate output
     const pdfBytes = await pdfDoc.save();
