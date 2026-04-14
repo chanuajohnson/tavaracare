@@ -50,13 +50,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   const [undoDialogOpen, setUndoDialogOpen] = useState(false);
   const [undoTargetId, setUndoTargetId] = useState<string | null>(null);
   const [isUndoing, setIsUndoing] = useState(false);
-  // Default all months expanded so week breakdowns are visible
-  const defaultExpandedMonths = useMemo(() => new Set(monthGroups.map(m => m.key)), [monthGroups]);
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
-  const effectiveExpandedMonths = useMemo(() => {
-    // If user hasn't toggled anything yet, show all expanded
-    return expandedMonths.size === 0 && monthGroups.length > 0 ? defaultExpandedMonths : expandedMonths;
-  }, [expandedMonths, defaultExpandedMonths, monthGroups]);
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
   const [expandedWeekDetails, setExpandedWeekDetails] = useState<Set<string>>(new Set());
   const [expandedMonthNIS, setExpandedMonthNIS] = useState<Set<string>>(new Set());
@@ -65,6 +59,13 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
 
   const weekGroups = useMemo(() => groupEntriesByWeek(entries), [entries]);
   const monthGroups = useMemo(() => groupWeeksByMonth(weekGroups), [weekGroups]);
+
+  // Default all months expanded so week breakdowns are visible
+  const [hasUserToggledMonths, setHasUserToggledMonths] = useState(false);
+  const effectiveExpandedMonths = useMemo(() => {
+    if (!hasUserToggledMonths) return new Set(monthGroups.map(m => m.key));
+    return expandedMonths;
+  }, [expandedMonths, hasUserToggledMonths, monthGroups]);
 
   const handleSelectEntry = (entryId: string) => {
     setSelectedEntries(prev =>
