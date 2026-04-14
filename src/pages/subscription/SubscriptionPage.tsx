@@ -360,11 +360,13 @@ const SubscriptionPage = () => {
   
   const getButtonText = (plan: any) => {
     if (isCurrentPlan(plan.id)) {
-      return "Current Plan";
+      return plan.id === "basic" ? "Get Started Free" : "Current Plan";
     }
     const action = getPlanAction(plan.id);
     if (action === "upgrade") {
-      return `Upgrade to ${plan.name.split(' ').pop()}`;
+      if (plan.id === "care") return "Start Care Coordination";
+      if (plan.id === "premium") return "Choose Premium";
+      return plan.buttonText;
     } else if (action === "downgrade") {
       return `Downgrade to ${plan.name.split(' ').pop()}`;
     }
