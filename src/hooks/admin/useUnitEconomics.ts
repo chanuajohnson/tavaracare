@@ -263,11 +263,13 @@ export function useUnitEconomics(weeksBack: number = 4) {
       const opCost = totalOperatingCost(operatingCosts);
       setClients(prev => prev.map(c => {
         const newTotal = c.weeklyCaregiverCost + c.weeklyNisCost + c.weeklyExpenses + opCost;
-        const newMargin = c.weeklyRevenue - newTotal;
-        const newPct = c.weeklyRevenue > 0 ? (newMargin / c.weeklyRevenue) * 100 : (newTotal > 0 ? -100 : 0);
+        const newRevenue = c.subscriptionRevenue + c.weeklyCaregiverCost;
+        const newMargin = newRevenue - newTotal;
+        const newPct = newRevenue > 0 ? (newMargin / newRevenue) * 100 : (newTotal > 0 ? -100 : 0);
         return {
           ...c,
           weeklyOperatingCost: opCost,
+          weeklyRevenue: Math.round(newRevenue * 100) / 100,
           weeklyTotalCost: Math.round(newTotal * 100) / 100,
           weeklyMargin: Math.round(newMargin * 100) / 100,
           marginPercent: Math.round(newPct * 10) / 10,
