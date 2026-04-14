@@ -55,6 +55,7 @@ export function UnitEconomicsTable({ clients }: Props) {
             <TableHead className="text-right">Revenue/mo</TableHead>
             <TableHead className="text-right">Wages/mo</TableHead>
             <TableHead className="text-right">Employer NIS</TableHead>
+            <TableHead className="text-right">Employee NIS</TableHead>
             <TableHead className="text-right">Ops/mo</TableHead>
             <TableHead className="text-right">Total Cost/mo</TableHead>
             <TableHead className="text-right">Margin</TableHead>
@@ -85,6 +86,7 @@ export function UnitEconomicsTable({ clients }: Props) {
                   <TableCell className="text-right font-medium">{fmt(client.monthlyRevenue)}</TableCell>
                   <TableCell className="text-right">{fmt(client.monthlyCaregiverCost)}</TableCell>
                   <TableCell className="text-right">{fmt(client.monthlyNisCost)}</TableCell>
+                  <TableCell className="text-right">{fmt(client.monthlyEmployeeNis)}</TableCell>
                   <TableCell className="text-right">{fmt(client.monthlyOperatingCost)}</TableCell>
                   <TableCell className="text-right font-medium">{fmt(client.monthlyTotalCost)}</TableCell>
                   <TableCell className="text-right">
@@ -95,7 +97,7 @@ export function UnitEconomicsTable({ clients }: Props) {
 
                 {isOpen && (
                   <TableRow>
-                    <TableCell colSpan={12} className="bg-muted/30 p-4">
+                    <TableCell colSpan={13} className="bg-muted/30 p-4">
                       <div className="space-y-3">
                         {/* Payroll Period */}
                         {client.periodStart && client.periodEnd && (
