@@ -539,13 +539,11 @@ const SubscriptionPage = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-3xl font-bold">
-                  {isVideoCallFeature 
-                    ? 'Unlock Instant Video Calls' 
-                    : 'Subscribe to Access Premium Features'}
+                  Choose Your Care Coordination Plan
                 </h1>
-                {featureType && <p className="text-lg text-primary mt-2">
-                    <span className="font-medium">Feature: {featureType}</span>
-                  </p>}
+                <p className="text-lg text-muted-foreground mt-2">
+                  Structure, coordination, and peace of mind — so you can focus on what matters most.
+                </p>
               </div>
               <Button variant="outline" size="sm" onClick={handleGoBack} className="flex items-center gap-1">
                 <ArrowLeft className="h-4 w-4" />
@@ -557,21 +555,13 @@ const SubscriptionPage = () => {
             
             <div className="bg-muted/30 border p-4 rounded-lg">
               <div className="flex items-start gap-2">
-                {isVideoCallFeature ? (
-                  <Video className="h-5 w-5 text-purple-500 mt-1 flex-shrink-0" />
-                ) : (
-                  <Crown className="h-5 w-5 text-yellow-500 mt-1 flex-shrink-0" />
-                )}
+                <Crown className="h-5 w-5 text-yellow-500 mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold text-lg">
-                    {isVideoCallFeature 
-                      ? 'Upgrade to Skip Chat & Meet Face-to-Face'
-                      : `Upgrade to Unlock ${featureType}`}
+                    Find the right level of care coordination for your family
                   </h3>
                   <p className="text-muted-foreground">
-                    {isVideoCallFeature 
-                      ? 'Chat is free and unlimited. Upgrade to book instant video calls and meet your caregivers face-to-face without the text conversation phase.'
-                      : 'Choose the plan that best fits your needs to access this premium feature and more.'}
+                    Every plan gives your family tools, guidance, and hands-on support to coordinate care with confidence.
                   </p>
                   {userSubscription && <p className="mt-2 text-sm">
                       <span className="font-medium">Your Current Plan:</span> {plans.find(p => p.id === userSubscription)?.name || "Basic"}
@@ -595,6 +585,13 @@ const SubscriptionPage = () => {
                 </span>
               </div>
             )}
+            
+            {/* Clarity Block */}
+            <div className="bg-accent/30 border border-accent rounded-lg p-4 text-center">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Caregiver compensation is arranged directly between your family and your care team. Your Tavara subscription covers care coordination, management tools, and ongoing support to ensure care is delivered consistently and effectively.
+              </p>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
               {plans.map(plan => {
