@@ -323,6 +323,26 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                             </p>
                           </div>
                         )}
+                        {/* Bank transfer recording for paid entries */}
+                        {isDetailsOpen && onRecordBankTransfer && week.allPaid && (
+                          <div className="flex flex-wrap gap-2 pb-2">
+                            {week.entries.filter(e => e.payment_status === 'paid').map(entry => (
+                              <Button
+                                key={`transfer-${entry.id}`}
+                                variant="outline"
+                                size="sm"
+                                className="h-7 gap-1 text-xs"
+                                onClick={() => onRecordBankTransfer(entry.id)}
+                              >
+                                {entry.bank_transfer_ref ? (
+                                  <span className="text-green-600">✓ {entry.bank_transfer_ref}</span>
+                                ) : (
+                                  <>Record Transfer</>
+                                )}
+                              </Button>
+                            ))}
+                          </div>
+                        )}
                         {/* Undo payment for the whole week */}
                         {isDetailsOpen && onUndoPayment && (
                           <div className="flex gap-2 pb-2">
