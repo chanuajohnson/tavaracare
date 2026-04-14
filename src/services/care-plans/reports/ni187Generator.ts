@@ -271,7 +271,7 @@ export const generateNI187Report = async (
 
     // Generate output
     const pdfBytes = await pdfDoc.save();
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const blob = new Blob([pdfBytes.buffer], { type: 'application/pdf' });
     return URL.createObjectURL(blob);
   } catch (error) {
     console.error('Error generating NI 187 report:', error);
