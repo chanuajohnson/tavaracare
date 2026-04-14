@@ -390,7 +390,8 @@ export const recalculateWeeklyNIS = async (entryId: string): Promise<boolean> =>
     // Distribute NIS proportionally across all entries in the week
     for (const entry of weekEntries) {
       const entryGross = entry.gross_pay || entry.total_amount || 0;
-      const proportion = weeklyGross > 0 ? entryGross / weeklyGross : 0;
+      const entryWages = getWageEarnings(entry);
+      const proportion = weeklyGross > 0 ? entryWages / weeklyGross : 0;
       const entryEmployeeNIS = Math.round(nisResult.employee_contribution * proportion * 100) / 100;
       const entryEmployerNIS = Math.round(nisResult.employer_contribution * proportion * 100) / 100;
 
