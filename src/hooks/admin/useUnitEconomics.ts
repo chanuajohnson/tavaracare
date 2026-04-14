@@ -35,6 +35,7 @@ export interface ClientEconomics {
   familyId: string;
   familyName: string;
   subscriptionPlan: string;
+  subscriptionRevenue: number;
   weeklyRevenue: number;
   weeklyCaregiverCost: number;
   weeklyNisCost: number;
@@ -203,7 +204,9 @@ export function useUnitEconomics(weeksBack: number = 4) {
         const weeklyExpenses = totalExpenses / numWeeks;
 
         const sub = subMap[cp.family_id];
-        const weeklyRevenue = sub ? getWeeklyRevenue(sub.planName, sub.price) : 0;
+        const subscriptionRevenue = sub ? getWeeklyRevenue(sub.planName, sub.price) : 0;
+        // Total revenue = subscription fee + caregiver wages (pass-through from family)
+        const weeklyRevenue = subscriptionRevenue + weeklyCaregiverCost;
 
         const weeklyTotalCost = weeklyCaregiverCost + weeklyNis + weeklyExpenses + opCostPerWeek;
         const weeklyMargin = weeklyRevenue - weeklyTotalCost;
@@ -215,6 +218,7 @@ export function useUnitEconomics(weeksBack: number = 4) {
           familyId: cp.family_id,
           familyName: profilesMap[cp.family_id] || 'Unknown',
           subscriptionPlan: sub?.planName || 'No subscription',
+          subscriptionRevenue: Math.round(subscriptionRevenue * 100) / 100,
           weeklyRevenue: Math.round(weeklyRevenue * 100) / 100,
           weeklyCaregiverCost: Math.round(weeklyCaregiverCost * 100) / 100,
           weeklyNisCost: Math.round(weeklyNis * 100) / 100,
