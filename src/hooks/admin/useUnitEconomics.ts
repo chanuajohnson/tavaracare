@@ -1,0 +1,277 @@
+import { useState, useEffect, useMemo } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { subWeeks, startOfWeek, endOfWeek, differenceInWeeks } from 'date-fns';
+
+export interface OperatingCosts {
+  careCoordination: number;
+  replacementBuffer: number;
+  paymentProcessing: number;
+  adminDocumentation: number;
+  platformOverhead: number;
+  salesAcquisition: number;
+}
+
+export const DEFAULT_OPERATING_COSTS: OperatingCosts = {
+  careCoordination: 75,
+  replacementBuffer: 75,
+  paymentProcessing: 30,
+  adminDocumentation: 45,
+  platformOverhead: 35,
+  salesAcquisition: 100,
+};
+
+export interface CaregiverBreakdown {
+  caregiverId: string;
+  caregiverName: string;
+  totalHours: number;
+  totalPay: number;
+  employerNis: number;
+  employeeNis: number;
+}
+
+export interface ClientEconomics {
+  carePlanId: string;
+  carePlanTitle: string;
+  familyId: string;
+  familyName: string;
+  subscriptionPlan: string;
+  weeklyRevenue: number;
+  weeklyCaregiverCost: number;
+  weeklyNisCost: number;
+  weeklyExpenses: number;
+  weeklyOperatingCost: number;
+  weeklyTotalCost: number;
+  weeklyMargin: number;
+  marginPercent: number;
+  status: 'profitable' | 'at-risk' | 'losing';
+  caregiverBreakdowns: CaregiverBreakdown[];
+}
+
+export interface UnitEconomicsSummary {
+  totalActiveClients: number;
+  avgWeeklyRevenue: number;
+  avgWeeklyCost: number;
+  avgMarginPercent: number;
+}
+
+function getWeeklyRevenue(planName: string | null, price: number | null): number {
+  if (!planName || !price) return 0;
+  const name = planName.toLowerCase();
+  if (name.includes('basic') || name.includes('free')) return 0;
+  if (name.includes('premium')) return Math.round((2499 / 4.33) * 100) / 100;
+  if (name.includes('care')) return 499;
+  // Fallback: assume monthly, divide by 4.33
+  if (price > 200) return Math.round((price / 4.33) * 100) / 100;
+  return price;
+}
+
+function getStatus(marginPercent: number): 'profitable' | 'at-risk' | 'losing' {
+  if (marginPercent >= 20) return 'profitable';
+  if (marginPercent >= 10) return 'at-risk';
+  return 'losing';
+}
+
+export function loadOperatingCosts(): OperatingCosts {
+  try {
+    const stored = localStorage.getItem('tavara_operating_costs');
+    if (stored) return { ...DEFAULT_OPERATING_COSTS, ...JSON.parse(stored) };
+  } catch {}
+  return DEFAULT_OPERATING_COSTS;
+}
+
+export function saveOperatingCosts(costs: OperatingCosts) {
+  localStorage.setItem('tavara_operating_costs', JSON.stringify(costs));
+}
+
+export function totalOperatingCost(costs: OperatingCosts): number {
+  return Object.values(costs).reduce((s, v) => s + v, 0);
+}
+
+export function useUnitEconomics(weeksBack: number = 4) {
+  const [clients, setClients] = useState<ClientEconomics[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [operatingCosts, setOperatingCosts] = useState<OperatingCosts>(loadOperatingCosts);
+
+  const updateOperatingCosts = (costs: OperatingCosts) => {
+    setOperatingCosts(costs);
+    saveOperatingCosts(costs);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [weeksBack]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const periodEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+      const periodStart = startOfWeek(subWeeks(new Date(), weeksBack), { weekStartsOn: 1 });
+      const numWeeks = Math.max(1, differenceInWeeks(periodEnd, periodStart));
+
+      // Fetch active care plans with family profiles
+      const { data: carePlans } = await supabase
+        .from('care_plans')
+        .select('id, title, family_id, status')
+        .eq('status', 'active');
+
+      if (!carePlans?.length) {
+        setClients([]);
+        setLoading(false);
+        return;
+      }
+
+      const familyIds = [...new Set(carePlans.map(cp => cp.family_id))];
+      const carePlanIds = carePlans.map(cp => cp.id);
+
+      // Parallel fetches
+      const [profilesRes, subscriptionsRes, payrollRes, teamRes] = await Promise.all([
+        supabase.from('profiles').select('id, full_name').in('id', familyIds),
+        supabase.from('user_subscriptions').select('user_id, plan_id, status').in('user_id', familyIds).eq('status', 'active'),
+        supabase.from('payroll_entries').select('care_plan_id, care_team_member_id, regular_hours, regular_rate, overtime_hours, overtime_rate, holiday_hours, holiday_rate, expense_total, employer_contribution, employee_contribution, gross_pay')
+          .in('care_plan_id', carePlanIds)
+          .gte('created_at', periodStart.toISOString())
+          .lte('created_at', periodEnd.toISOString()),
+        supabase.from('care_team_members').select('id, care_plan_id, caregiver_id, display_name').in('care_plan_id', carePlanIds),
+      ]);
+
+      // Fetch subscription plans
+      const planIds = [...new Set((subscriptionsRes.data || []).map(s => s.plan_id).filter(Boolean))];
+      let plansMap: Record<string, { name: string; price: number }> = {};
+      if (planIds.length) {
+        const { data: plans } = await supabase.from('subscription_plans').select('id, name, price').in('id', planIds);
+        (plans || []).forEach(p => { plansMap[p.id] = { name: p.name, price: p.price }; });
+      }
+
+      const profilesMap: Record<string, string> = {};
+      (profilesRes.data || []).forEach(p => { profilesMap[p.id] = p.full_name || 'Unknown'; });
+
+      const subMap: Record<string, { planName: string; price: number }> = {};
+      (subscriptionsRes.data || []).forEach(s => {
+        if (s.plan_id && plansMap[s.plan_id]) {
+          subMap[s.user_id] = { planName: plansMap[s.plan_id].name, price: plansMap[s.plan_id].price };
+        }
+      });
+
+      const teamMap: Record<string, Record<string, string>> = {};
+      (teamRes.data || []).forEach(tm => {
+        if (tm.care_plan_id) {
+          if (!teamMap[tm.care_plan_id]) teamMap[tm.care_plan_id] = {};
+          teamMap[tm.care_plan_id][tm.id] = tm.display_name || 'Caregiver';
+        }
+      });
+
+      const opCostPerWeek = totalOperatingCost(operatingCosts);
+
+      const result: ClientEconomics[] = carePlans.map(cp => {
+        const payrollEntries = (payrollRes.data || []).filter(pe => pe.care_plan_id === cp.id);
+
+        // Aggregate by caregiver
+        const cgMap: Record<string, CaregiverBreakdown> = {};
+        let totalCaregiverCost = 0;
+        let totalNis = 0;
+        let totalExpenses = 0;
+
+        payrollEntries.forEach(pe => {
+          const cgId = pe.care_team_member_id || 'unknown';
+          if (!cgMap[cgId]) {
+            cgMap[cgId] = {
+              caregiverId: cgId,
+              caregiverName: teamMap[cp.id]?.[cgId] || 'Caregiver',
+              totalHours: 0,
+              totalPay: 0,
+              employerNis: 0,
+              employeeNis: 0,
+            };
+          }
+          const hours = (Number(pe.regular_hours) || 0) + (Number(pe.overtime_hours) || 0) + (Number(pe.holiday_hours) || 0);
+          const pay = (Number(pe.regular_hours) || 0) * (Number(pe.regular_rate) || 0)
+            + (Number(pe.overtime_hours) || 0) * (Number(pe.overtime_rate) || 0)
+            + (Number(pe.holiday_hours) || 0) * (Number(pe.holiday_rate) || 0);
+
+          cgMap[cgId].totalHours += hours;
+          cgMap[cgId].totalPay += pay;
+          cgMap[cgId].employerNis += Number(pe.employer_contribution) || 0;
+          cgMap[cgId].employeeNis += Number(pe.employee_contribution) || 0;
+
+          totalCaregiverCost += pay;
+          totalNis += Number(pe.employer_contribution) || 0;
+          totalExpenses += Number(pe.expense_total) || 0;
+        });
+
+        const weeklyCaregiverCost = totalCaregiverCost / numWeeks;
+        const weeklyNis = totalNis / numWeeks;
+        const weeklyExpenses = totalExpenses / numWeeks;
+
+        const sub = subMap[cp.family_id];
+        const weeklyRevenue = sub ? getWeeklyRevenue(sub.planName, sub.price) : 0;
+
+        const weeklyTotalCost = weeklyCaregiverCost + weeklyNis + weeklyExpenses + opCostPerWeek;
+        const weeklyMargin = weeklyRevenue - weeklyTotalCost;
+        const marginPercent = weeklyRevenue > 0 ? (weeklyMargin / weeklyRevenue) * 100 : (weeklyTotalCost > 0 ? -100 : 0);
+
+        return {
+          carePlanId: cp.id,
+          carePlanTitle: cp.title,
+          familyId: cp.family_id,
+          familyName: profilesMap[cp.family_id] || 'Unknown',
+          subscriptionPlan: sub?.planName || 'No subscription',
+          weeklyRevenue: Math.round(weeklyRevenue * 100) / 100,
+          weeklyCaregiverCost: Math.round(weeklyCaregiverCost * 100) / 100,
+          weeklyNisCost: Math.round(weeklyNis * 100) / 100,
+          weeklyExpenses: Math.round(weeklyExpenses * 100) / 100,
+          weeklyOperatingCost: opCostPerWeek,
+          weeklyTotalCost: Math.round(weeklyTotalCost * 100) / 100,
+          weeklyMargin: Math.round(weeklyMargin * 100) / 100,
+          marginPercent: Math.round(marginPercent * 10) / 10,
+          status: getStatus(marginPercent),
+          caregiverBreakdowns: Object.values(cgMap).map(cg => ({
+            ...cg,
+            totalHours: Math.round((cg.totalHours / numWeeks) * 10) / 10,
+            totalPay: Math.round((cg.totalPay / numWeeks) * 100) / 100,
+            employerNis: Math.round((cg.employerNis / numWeeks) * 100) / 100,
+            employeeNis: Math.round((cg.employeeNis / numWeeks) * 100) / 100,
+          })),
+        };
+      });
+
+      setClients(result);
+    } catch (err) {
+      console.error('Error fetching unit economics:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const summary: UnitEconomicsSummary = useMemo(() => {
+    if (!clients.length) return { totalActiveClients: 0, avgWeeklyRevenue: 0, avgWeeklyCost: 0, avgMarginPercent: 0 };
+    const n = clients.length;
+    return {
+      totalActiveClients: n,
+      avgWeeklyRevenue: Math.round(clients.reduce((s, c) => s + c.weeklyRevenue, 0) / n),
+      avgWeeklyCost: Math.round(clients.reduce((s, c) => s + c.weeklyTotalCost, 0) / n),
+      avgMarginPercent: Math.round(clients.reduce((s, c) => s + c.marginPercent, 0) / n * 10) / 10,
+    };
+  }, [clients]);
+
+  // Recalculate margins when operating costs change
+  useEffect(() => {
+    if (clients.length > 0) {
+      const opCost = totalOperatingCost(operatingCosts);
+      setClients(prev => prev.map(c => {
+        const newTotal = c.weeklyCaregiverCost + c.weeklyNisCost + c.weeklyExpenses + opCost;
+        const newMargin = c.weeklyRevenue - newTotal;
+        const newPct = c.weeklyRevenue > 0 ? (newMargin / c.weeklyRevenue) * 100 : (newTotal > 0 ? -100 : 0);
+        return {
+          ...c,
+          weeklyOperatingCost: opCost,
+          weeklyTotalCost: Math.round(newTotal * 100) / 100,
+          weeklyMargin: Math.round(newMargin * 100) / 100,
+          marginPercent: Math.round(newPct * 10) / 10,
+          status: getStatus(newPct),
+        };
+      }));
+    }
+  }, [operatingCosts]);
+
+  return { clients, summary, loading, operatingCosts, updateOperatingCosts, refetch: fetchData };
+}
