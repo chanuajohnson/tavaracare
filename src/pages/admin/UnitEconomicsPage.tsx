@@ -104,7 +104,7 @@ export default function UnitEconomicsPage() {
       {/* Per-Client Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Per-Client Economics — {formatMonthLabel(selectedMonth)}</CardTitle>
+          <CardTitle>Per-Client Economics — {formatMonthLabel(selectedMonth)} (Payroll Month)</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
