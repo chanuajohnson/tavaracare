@@ -1,111 +1,50 @@
 
 
-## Plan: Build Unit Economics Dashboard
+## Plan: Set Up Peltier's Care Plan Revenue in Unit Economics
 
-### What This Is
-An admin-only page at `/admin/unit-economics` that shows real-time profit/loss per client (care plan) by pulling actual payroll data from `payroll_entries`, NIS contributions, subscription revenue, and configurable operating cost estimates.
+### Current State
+- **Chanua Johnson** (user `7d850934-a44f-4348-944b-ae7182dca237`) has two care plans:
+  - "Test Care Plan Onboarding" (`ee7cc4bd`) — test, ignore
+  - "Peltier's Care Plan 2025" (`4848aec5`) — the real one
+- **Payroll data exists**: Angela at $35/hr, 8hrs/day, Mon-Fri — already flowing correctly
+- **No subscription exists** for Chanua — so the dashboard shows $0 revenue
+- The `subscription_plans` table has old plans (Basic $29.99, etc.) — no "Family Care" at $499/week
 
-### Data Sources (Already in DB)
+### What Needs to Happen (Database Only)
 
-| Data | Source Table | Fields |
-|------|-------------|--------|
-| Caregiver wages | `payroll_entries` | `regular_hours * regular_rate`, `overtime_hours * overtime_rate`, `holiday_hours * holiday_rate`, `expense_total` |
-| NIS costs | `payroll_entries` | `employer_contribution`, `employee_contribution` |
-| Client identity | `care_plans` → `profiles` | `family_id`, `title` |
-| Subscription tier | `user_subscriptions` → `subscription_plans` | `plan_id`, `price`, `name` |
-| Care team | `care_team_members` | `care_plan_id`, `regular_rate` |
+**Step 1: Create a "Family Care" subscription plan** in `subscription_plans`
+- Name: `Family Care`
+- Price: `499` (weekly)
+- Description: "Active care coordination with dedicated management support"
+- Duration: `7` days (weekly billing)
 
-### What Gets Built
+**Step 2: Create a `user_subscription`** linking Chanua to the Family Care plan
+- `user_id`: `7d850934-a44f-4348-944b-ae7182dca237`
+- `plan_id`: (the new Family Care plan ID)
+- `status`: `active`
+- `start_date`: now
+- `payment_method`: `manual`
 
-**1. New page: `src/pages/admin/UnitEconomicsPage.tsx`**
+### No Code Changes Needed
+The hook's `getWeeklyRevenue` function already handles this:
+- Plan name includes "care" → returns `$499/week`
+- Payroll data already has the correct $35/hr × 8hrs = $280/day entries with NIS
 
-Top-level metrics cards:
-- Total active clients
-- Average weekly revenue per client
-- Average weekly cost per client
-- Average gross margin % (with color: green >20%, yellow 10-20%, red <10%)
+### Expected Result After Data Setup
+For Peltier's Care Plan 2025:
+- **Revenue/wk**: $499
+- **Wages/wk**: ~$1,400 (5 days × $280)
+- **NIS/wk**: ~$150.60 employer
+- **Ops/wk**: $360 (configurable defaults)
+- **Total Cost/wk**: ~$1,910
+- **Margin**: -$1,411 (-283%)
+- **Status**: Losing (this is expected — the $499 subscription alone doesn't cover wages; the family also pays the caregiver directly, which is separate from Tavara's subscription revenue)
 
-Per-client table with columns:
-- Client name (from care plan → profile)
-- Subscription plan + weekly fee
-- Weekly caregiver wages (summed from paid payroll entries)
-- Weekly employer NIS
-- Estimated operating costs (configurable defaults)
-- Total weekly cost
-- Total weekly revenue (subscription fee)
-- Gross margin ($) and margin (%)
-- Status indicator (profitable / at-risk / losing money)
+### Important Note
+The dashboard currently treats `weeklyRevenue` as the Tavara subscription fee only — it does **not** include the caregiver wages that families pay directly. This means the margin will appear deeply negative because the caregiver cost ($1,400+) is being compared against only the coordination fee ($499). 
 
-Expandable row detail showing:
-- Breakdown by caregiver (hours, rate, pay)
-- NIS breakdown (employer + employee)
-- Operating cost assumptions
+If you want the dashboard to reflect the **full family cost** (caregiver wages + Tavara fee) as revenue, I'd need to adjust the revenue calculation. Otherwise, the current model correctly shows Tavara's margin on its coordination fee alone — which means operating costs ($360) should be the main comparison against the $499 fee, yielding ~$139/week margin (28%) before wage pass-through.
 
-**2. New hook: `src/hooks/admin/useUnitEconomics.ts`**
-
-Fetches and aggregates:
-- All active care plans with family profiles
-- Payroll entries grouped by care_plan_id for a selected period (last 4 weeks default)
-- User subscriptions to determine revenue per client
-- Computes wage totals, NIS totals, and margin per client
-
-**3. New component: `src/components/admin/UnitEconomicsTable.tsx`**
-
-Renders the per-client breakdown table with expandable rows.
-
-**4. New component: `src/components/admin/OperatingCostConfig.tsx`**
-
-A small panel with editable defaults (stored in localStorage for now):
-- Care coordination cost/week (default: $75)
-- Replacement/backup buffer/week (default: $75)
-- Payment processing/week (default: $30)
-- Admin & documentation/week (default: $45)
-- Platform overhead/week (default: $35)
-- Sales & acquisition/week (default: $100)
-
-These get applied uniformly to each client for margin calculation.
-
-**5. Route addition in `src/App.tsx`**
-
-Add `/admin/unit-economics` route pointing to the new page. Add a navigation card on the Admin Dashboard linking to it.
-
-### Key Calculations
-
-```text
-Per Client Per Week:
-  Revenue = subscription_plan.price (weekly equivalent)
-  
-  Caregiver Cost = SUM(regular_hours * regular_rate + 
-                       overtime_hours * overtime_rate + 
-                       holiday_hours * holiday_rate) + expense_total
-  
-  NIS Cost = SUM(employer_contribution)
-  
-  Operating Cost = sum of configurable line items
-  
-  Total Cost = Caregiver Cost + NIS Cost + Operating Cost
-  
-  Gross Margin = Revenue - Total Cost
-  Margin % = (Gross Margin / Revenue) * 100
-```
-
-### Files to Create/Modify
-
-| File | Action |
-|------|--------|
-| `src/pages/admin/UnitEconomicsPage.tsx` | Create |
-| `src/hooks/admin/useUnitEconomics.ts` | Create |
-| `src/components/admin/UnitEconomicsTable.tsx` | Create |
-| `src/components/admin/OperatingCostConfig.tsx` | Create |
-| `src/App.tsx` | Add route (minimal, preserving all existing routes) |
-| `src/pages/admin/AdminDashboard.tsx` | Add navigation card to unit economics |
-
-### Technical Notes
-- Period selector: default last 4 weeks, with option for custom date range
-- Weekly averages computed by dividing total period costs by number of weeks
-- Subscription revenue mapped from `user_subscriptions` joined to `subscription_plans` for each family
-- For Family Basic (free), revenue = $0
-- Family Care = $499/week or $1,799/month ÷ 4.33 = ~$415/week
-- Family Premium = $2,499/month ÷ 4.33 = ~$577/week
-- Color-coded margin indicators throughout
+### Recommendation
+I can also update the Unit Economics hook to separate **Tavara coordination margin** (subscription vs. operating costs) from **pass-through costs** (caregiver wages + NIS that families pay directly). This would give a much more accurate picture. Want me to include that in the plan?
 
