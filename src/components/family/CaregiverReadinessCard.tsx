@@ -106,7 +106,7 @@ export function CaregiverReadinessCard() {
             </h4>
             <p className={`text-xs mt-1 ${isReady ? "text-green-700" : "text-amber-700"}`}>
               {isReady
-                ? "Your assigned caregiver has completed their onboarding preparation and is ready to start."
+                ? "Your care team member has completed their onboarding preparation and is ready to start."
                 : `Onboarding is ${percentage}% complete (${readiness.checkedItems}/${readiness.totalItems} items covered).`}
             </p>
             <div className="flex items-center gap-2 mt-2 flex-wrap">

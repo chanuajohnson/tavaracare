@@ -326,7 +326,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                             </Label>
                             <Textarea
                               id="emergency-reason"
-                              placeholder="e.g., Assigned nurse called in sick, family emergency, etc."
+                              placeholder="e.g., Care team member called in sick, family emergency, etc."
                               value={newShift.emergencyReason}
                               onChange={(e) => setNewShift({...newShift, emergencyReason: e.target.value})}
                               className="border-orange-300 focus:border-orange-500"
