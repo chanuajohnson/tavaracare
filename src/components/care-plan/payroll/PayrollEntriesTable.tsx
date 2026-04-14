@@ -82,6 +82,14 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   };
 
   const toggleMonthExpand = (key: string) => {
+    if (!hasUserToggledMonths) {
+      // First toggle: initialize from effective state
+      const init = new Set(monthGroups.map(m => m.key));
+      init.has(key) ? init.delete(key) : init.add(key);
+      setExpandedMonths(init);
+      setHasUserToggledMonths(true);
+      return;
+    }
     setExpandedMonths(prev => {
       const next = new Set(prev);
       next.has(key) ? next.delete(key) : next.add(key);
