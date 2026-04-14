@@ -1,88 +1,67 @@
 
+Goal: fix the NI 184 so the downloaded PDF is truly pre-filled in the correct boxes, not just “more centered.”
 
-## Plan: Fix NI 184 Pre-fill Bug + System-Wide Language Positioning Shift
+What I confirmed from your uploaded PDF
+- The form is not blank anymore, so the earlier off-page rendering bug was partly fixed.
+- But the overlay text is still wrong in a more important way:
+  - the inserted values are rendering vertically/rotated
+  - several values are landing in the wrong cells
+  - the generated row content is not aligned to the government form grid
+- I also confirmed the NI 184 template itself has `/Rotate 90`, and the current generator is still drawing directly onto that rotated page.
 
-### Part 1: Fix NI 184 Blank PDF Bug
+Root cause
+- The current code in `src/services/care-plans/reports/ni184Generator.ts` only adjusted the Y-axis using a “visualHeight” workaround.
+- That solved “invisible/off-page” text, but not the rotated drawing context.
+- Because the page itself is rotated, `drawText()` is effectively being placed in a rotated coordinate space, which is why the text in your output appears vertical.
+- There is also a second accuracy issue in the row logic:
+  - `weeklyValues` is built with `Array.from(weekMap.values()).sort()`
+  - that sorts contribution amounts, not weeks
+  - so even if placement were correct, WK1–WK5 can still be assigned to the wrong columns.
 
-**Root Cause**: The NI 184 government PDF has `/Rotate=90` in its metadata. Its mediabox is portrait (612x1008), but it's displayed as landscape (1008x612). 
+What I would change
+1. Normalize the NI 184 page before drawing
+- Update `ni184Generator.ts` so we do not draw onto a rotated page as-is.
+- Safer approach:
+  - load the official page
+  - create a new unrotated landscape page
+  - draw the original NI 184 template page onto it
+  - then overlay text onto the new normalized page
+- This gives one stable coordinate system for all text placement.
 
-The current code does:
-```
-const { height: pageHeight } = page.getSize(); // Returns 1008 (mediabox, wrong!)
-const pdfY = pageHeight - structY - size;       // 1008 - 228 - 7 = 773 (way off)
-```
+2. Recalibrate NI 184 coordinates against the normalized page
+- Re-map the header fields and table rows on the normalized landscape page.
+- Specifically verify:
+  - employer trade name
+  - reg number
+  - service centre
+  - phone
+  - period from/to
+  - no. of weeks
+  - first data row baseline
+  - footer totals/date
 
-pdf-lib's `drawText` works in the visual coordinate system where the visual height is actually **612**. All text is being drawn ~400 points above where it should be — completely off the visible page. That's why the download produces a blank form.
+3. Fix weekly column ordering
+- Replace value-sorting with ordered week-slot placement.
+- Map entries by actual week sequence within the selected period, then place them into WK1, WK2, WK3, WK4, WK5 in chronological order.
 
-**Fix in `src/services/care-plans/reports/ni184Generator.ts`**:
-- After `page.getSize()`, check `page.getRotation().angle`
-- Calculate visual height: if rotation is 90 or 270, visual height = mediabox width (612)
-- Use visual height for the Y conversion instead of mediabox height
-- Same fix needed in `ni187Generator.ts` (though NI 187 has no rotation, adding the check defensively)
+4. Tighten row text behavior
+- Keep names horizontal and within the row.
+- Add small per-column font/offset adjustments if needed for DOB, dates employed, salary, and totals.
+- Preserve current 11-row max.
 
-**Also fix the `as any` type cast** on the Blob constructor (line 232).
+5. Validate NI 187 defensively
+- NI 187 appears less affected because it is portrait, but I would still review it for the same normalized-page safety pattern so both generators behave consistently.
 
----
+Files to update
+- `src/services/care-plans/reports/ni184Generator.ts`
+- likely minor follow-up in `src/services/care-plans/reports/ni187Generator.ts` for consistency only
 
-### Part 2: Language Positioning Shift (Coordination Platform, Not Employer)
+Expected result after implementation
+- NI 184 text will render horizontally
+- values will sit inside the correct boxes/rows
+- WK1–WK5 will reflect actual payroll week order instead of sorted dollar amounts
+- the downloaded PDF will be the official form with usable pre-filled data, not a visually broken overlay
 
-Update language across **7 files** to shift from employer/agency model to care coordination/management platform:
-
-#### File 1: `src/components/admin/onboarding/onboardingSections.ts` (Family Terms & Post-Onboarding)
-- **Line 231**: "not hiring the caregiver directly" → "The family engages caregivers directly, with Tavara providing coordination, structure, and support"
-- **Line 232**: "assigned caregiver is part of Tavara's rotation pool" → "care team member is part of a coordinated rotation pool managed by Tavara for seamless coverage"
-- **Line 235**: "Tavara handles all employer aspects of NIS" → "The family is responsible for statutory obligations including NIS contributions. Tavara provides guidance and tools to help manage these requirements"
-- **Lines 253-258**: Replace "Assigned nurse" language with "Care team member" and "coordinated by Tavara" language
-- **Line 258**: "Tavara handles all employer NIS obligations" → "NIS contributions are the family's responsibility — Tavara provides tools and guidance to manage them"
-
-#### File 2: `src/components/admin/onboarding/professionalOnboardingSections.ts` (Professional Terms & Post-Onboarding)
-- **Line 144**: "hired through Tavara Care" → "engaged by the family, with Tavara Care providing coordination, structure, and support"
-- **Line 149**: "NIS contributions are handled by Tavara as the employer of record" → "NIS contributions are managed through Tavara's coordination platform"
-- **Line 161**: "Assigned nurse confirmed" → "Care team member confirmed"
-- **Line 164-165**: Remove "employer of record" language, replace with coordination language
-- **Line 166**: "View your assignments" → "View your coordinated care placements"
-
-#### File 3: `src/hooks/useEnhancedJourneyProgress.ts` (Journey Steps)
-- **Step 9 (line 50)**: "Caregiver Assigned" → "Care Team Confirmed"
-- **Step 9 description**: "matched and assigned to your family" → "selected and coordinated for your care team"
-- **Step 9 tooltip**: "View your assigned caregiver" → "View your care team member"
-- **Step 10 (line 51)**: "assigned caregiver" → "care team member"
-- **Step 11**: "Your caregiver starts providing care" → "Your care team begins"
-- Same changes in the second step definition block (~lines 714-740)
-
-#### File 4: `src/components/family/CaregiverReadinessCard.tsx`
-- **Line 109**: "Your assigned caregiver has completed" → "Your care team member has completed"
-
-#### File 5: `src/pages/admin/AdminOnboardingChecklistPage.tsx` (Admin checklist labels)
-- **Line 270**: "not direct hire" → "family engages caregiver directly with Tavara coordination"
-- **Line 271**: "Assigned caregiver" → "Care team member"
-- **Line 274**: "NIS contributions for caregiver covered by Tavara" → "NIS guidance and tools provided by Tavara"
-- **Lines 279-284**: Replace all "Assigned nurse" with "Care team member", remove "paid by Tavara" (replace with "coordinated by Tavara")
-
-#### File 6: `src/components/care-plan/DailyCareLogsTab.tsx`
-- **Line 277**: "your assigned nurse" → "your care team member"
-
-#### File 7: `src/components/care-plan/ScheduleTab.tsx`
-- **Line 329**: "Assigned nurse called in sick" → "Care team member called in sick"
-
-#### File 8: `src/components/about/MissionCard.tsx`
-- **Line 31**: Update mission text to emphasize coordination: "We coordinate and manage care teams for families while providing..."
-
----
-
-### Summary of Impact
-
-| Area | Old Language | New Language |
-|------|-------------|-------------|
-| Onboarding checklists | "Tavara handles NIS", "employer of record" | "Family responsible for NIS, Tavara provides guidance/tools" |
-| Journey steps | "Caregiver Assigned" | "Care Team Confirmed" |
-| Dashboard cards | "Your assigned caregiver" | "Your care team member" |
-| Professional terms | "Hired through Tavara" | "Engaged by the family, Tavara coordinates" |
-| Post-onboarding | "Assigned nurse paid by Tavara" | "Care team member coordinated by Tavara" |
-
-### Implementation Order
-1. Fix NI 184/187 PDF rotation bug (highest priority — broken feature)
-2. Update onboarding section definitions (family + professional)
-3. Update journey progress steps
-4. Update remaining UI components (readiness card, daily logs, schedule, admin checklist, about page)
-
+Important note
+- This is not a copy tweak or “move 20px left” fix.
+- The underlying fix is to normalize the rotated government PDF before drawing. That is the correct technical fix for what your uploaded result is showing.
