@@ -1,51 +1,47 @@
 
+## Plan: Fix Revenue Model, Clean Payroll Data, and Restore Ana Maria
 
-## Plan: Fix Unit Economics Dashboard — Subscriptions & Data
+### Issues Identified
 
-### Root Cause Analysis
+1. **Revenue model incomplete**: Currently only counting subscription fee ($499/wk). The family also pays caregiver wages ($1,400/wk for 40hrs x $35/hr). Total weekly revenue per client should be $499 + $1,400 = **$1,899/wk**.
 
-**Issue 1: Both families show "No subscription" and $0 revenue**
-This is an **RLS (Row Level Security) problem**. The `user_subscriptions` table has a policy: `auth.uid() = user_id` — meaning only the subscription owner can read their own record. When the admin loads the Unit Economics page, the query to `user_subscriptions` returns **zero rows** because the admin is not Chanua or Ana Maria. Chanua's subscription already exists in the database but is invisible to the admin.
+2. **Angela's payroll data duplicated**: There are **25 entries** for Angela on 2026-04-13 when there should be **5** (Mon-Fri, 8hrs each at $35/hr). This inflates hours to ~50/wk and wages to ~$1,750/wk instead of the correct 40hrs/$1,400.
 
-**Issue 2: Ana Maria Aimey has no subscription**
-She needs a `user_subscription` record linking her to the Family Care plan, same as Chanua.
-
-**Issue 3: Angela's caregiver breakdown numbers are inflated**
-The database has **25 payroll entries** for Angela within the 4-week window (all created on April 13), when there should be **5** (one per weekday for 1 week). This causes the dashboard to show 50 hrs/wk and $1,750/wk instead of the correct 40 hrs/wk and $1,400/wk. This is a data quality issue from how the entries were created — not a code bug. The expected correct weekly numbers for $35/hr × 8hrs × 5 days are:
-- Hours/wk: **40**
-- Pay/wk: **$1,400**
-- Employer NIS/wk: **$150.60**
-- Employee NIS/wk: **$75.30**
+3. **Ana Maria missing from dashboard**: Her care plan is active and subscription exists, but she's not appearing. Need to investigate if this is an RLS or query issue with care_plans or profiles tables.
 
 ### Changes
 
-**1. Database Migration: Add admin RLS policy on `user_subscriptions`**
-Add a SELECT policy allowing admins to read all subscription records:
-```sql
-CREATE POLICY "Admins can view all subscriptions"
-ON public.user_subscriptions FOR SELECT
-TO authenticated
-USING (public.is_current_user_admin());
-```
+**1. Update revenue calculation in `useUnitEconomics.ts`**
+- Change `weeklyRevenue` to be the sum of:
+  - **Subscription fee** (Family Care = $499/wk)
+  - **Caregiver wages** (passed through from family = total payroll cost for that plan)
+- This means: `weeklyRevenue = subscriptionRevenue + weeklyCaregiverCost`
+- Update the table to show both revenue lines (subscription + caregiver fees)
+- Margin calculation stays: `weeklyRevenue - weeklyTotalCost`
+- With correct data: $1,899 revenue - ($1,400 wages + $150 NIS + $360 ops) = ~-$11 margin
 
-**2. Database Migration: Create subscription for Ana Maria Aimey**
-Link user `9874b53e-ea23-4ccb-abed-ddbb0367edf5` to the existing "Family Care" plan ($499/week):
-```sql
-INSERT INTO user_subscriptions (user_id, plan_id, status, start_date, end_date, payment_method)
-SELECT '9874b53e-ea23-4ccb-abed-ddbb0367edf5'::uuid, sp.id, 'active', now(), now() + interval '1 year', 'manual'
-FROM subscription_plans sp WHERE sp.name = 'Family Care' AND sp.price = 499.00 LIMIT 1;
-```
+**2. Update `UnitEconomicsTable.tsx`**
+- Add a "Subscription" column and "Caregiver Fees" column in the expanded breakdown
+- Show revenue breakdown: subscription fee + caregiver pass-through
 
-**3. No code changes needed**
-The hook logic already correctly maps "Family Care" to $499/wk revenue. Once the RLS policy is fixed, both families will display their subscription and $499/wk revenue.
+**3. Database migration: Clean Angela's duplicate payroll entries**
+- Delete 20 of the 25 duplicate entries for care_team_member `2302e12c` on 2026-04-13, keeping only 5
+- The 5 retained entries represent Mon-Fri: 8hrs x $35/hr = $280/day each
 
-### Expected Result After Fix
+**4. Database migration: Fix RLS if needed for Ana Maria's visibility**
+- Verify care_plans admin policy works for both families
+- If needed, add explicit admin SELECT policy
 
-| Client | Plan | Revenue/wk | Status |
-|--------|------|-----------|--------|
-| Chanua Johnson | Family Care | $499 | Visible (was hidden by RLS) |
-| Ana Maria Aimey | Family Care | $499 | Visible (new subscription) |
+### Expected Results After Fix
 
-### Note on Payroll Data
-The 25 duplicate payroll entries for Angela inflate the caregiver breakdown. This is existing data — if you want me to clean it up to the correct 5 entries (1 week, Mon-Fri), I can do that as a separate step.
+| Client | Plan | Subscription/wk | Caregiver Fees/wk | Total Revenue/wk | Wages/wk | NIS/wk | Ops/wk | Total Cost/wk | Margin |
+|--------|------|-----------------|-------------------|-----------------|----------|--------|--------|---------------|--------|
+| Chanua Johnson | Family Care | $499 | $1,400 | $1,899 | $1,400 | $150 | $360 | $1,910 | -$11 (-0.6%) |
+| Ana Maria Aimey | Family Care | $499 | $0* | $499 | $0 | $0 | $360 | $360 | $139 (27.9%) |
 
+*Ana Maria has no payroll entries yet (caregivers assigned but no shifts logged).
+
+### Technical Details
+- Revenue model change is in `useUnitEconomics.ts` lines 206-209
+- Payroll cleanup via SQL: delete 20 rows by ID, keeping 5 with correct data
+- The `ClientEconomics` interface will get a new `subscriptionRevenue` field to separate the two revenue streams
