@@ -1,48 +1,77 @@
 
 
-## Plan: Fix NIS Weekly Earnings Calculation
+## Plan: Update Subscription Pricing & Rewrite Copy for Care Coordination
 
-### Root Cause
-The `weekly_earnings` sent to the NIS API is computed by summing `gross_pay` from payroll entries. The `gross_pay` field includes **reimbursed expenses** (transport, supplies, etc.), which should not be part of NIS-insurable earnings. Additionally, the sum should reflect only actual wage earnings (hours x rates) to ensure accuracy per the Nuacha API's expectations.
+### Pricing Updates
 
-### Fix
-Compute `weekly_earnings` as the sum of **(regular_hours x regular_rate) + (overtime_hours x overtime_rate) + (holiday_hours x holiday_rate)** across all entries in the week — excluding expense reimbursements.
+| Plan | Weekly | Monthly | Current (Wrong) |
+|------|--------|---------|-----------------|
+| Family Basic | Free | Free | Same |
+| Family Care | $499 | $1,799 | $199.99/wk, $699.99/mo |
+| Family Premium | — (monthly only) | $2,499 | $399.99/wk, $1,099.99/mo |
 
-### Files to Modify
+### Changes in `src/pages/subscription/SubscriptionPage.tsx`
 
-**1. `src/services/care-plans/work-logs/payrollService.ts`**
+**1. Pricing values (lines 148-219)**
+- Family Care: `priceWeekly: "$499"`, `priceMonthly: "$1,799"`
+- Family Premium: `priceWeekly: "$2,499"`, `priceMonthly: "$2,499"` (monthly only — both show same price, or hide weekly toggle for Premium)
 
-Create a helper function to compute wage-only earnings from a payroll entry:
-```typescript
-const getWageEarnings = (entry) =>
-  (entry.regular_hours || 0) * (entry.regular_rate || 0) +
-  (entry.overtime_hours || 0) * (entry.overtime_rate || 0) +
-  (entry.holiday_hours || 0) * (entry.holiday_rate || 0);
-```
+**2. Page header (lines 541-548)**
+- Replace "Subscribe to Access Premium Features" with "Choose Your Care Coordination Plan"
+- Replace feature type display with tagline: "Structure, coordination, and peace of mind — so you can focus on what matters most."
 
-**In `fetchWeeklyPendingEntries`** (around line 154-156):
-- Change `weeklyTotal` calculation from summing `gross_pay` to summing `getWageEarnings(entry)` for each entry
-- This ensures the NIS API receives actual weekly wage earnings, not gross pay + expenses
-- Keep `pendingTotal` and `paidTotal` using `gross_pay` for display purposes (those show total compensation including expenses)
+**3. Info banner (lines 558-581)**
+- Replace "Upgrade to Unlock {featureType}" with "Find the right level of care coordination"
+- Replace description with: "Every plan gives your family tools, guidance, and hands-on support to coordinate care with confidence."
+- Remove video call variant copy
 
-**In `recalculateWeeklyNIS`** (around line 367):
-- Change `weeklyGross` to use `getWageEarnings(entry)` instead of `gross_pay`
-- Same reasoning: NIS should be on wages only
+**4. Family Basic plan copy (lines 99-146)**
+- Description: "Get organized and start building your care team"
+- Rewrite features to coordination language:
+  - "Family profile and care preferences setup"
+  - "Care needs assessment and planning tools"
+  - "Legacy Story — preserve your loved one's journey"
+  - "Care team discovery and matching"
+  - "Medication tracking and scheduling"
+  - "Meal planning and grocery lists"
+  - "Unlimited messaging with your care team"
+  - "Community support and resources"
+- Excluded features updated to match new names
+- buttonText: "Get Started Free"
 
-**In `processWeeklyPayrollPayment`** (around line 230):
-- The NIS distribution proportion should also use wage earnings, not gross_pay, so NIS is distributed proportionally to wages
+**5. Family Care plan copy (lines 147-183)**
+- Description: "Active care coordination with dedicated management support"
+- Rewrite features:
+  - "Everything in Family Basic"
+  - "Dedicated care coordinator assigned to your family"
+  - "Care team scheduling and oversight"
+  - "Video consultations for care planning"
+  - "Care coordination and billing support"
+  - "Weekly care check-ins and status updates"
+- Excluded: "Priority matching and complex care management", "24/7 on-call coordinator"
+- buttonText: "Start Care Coordination"
 
-### What This Fixes
-- 4-day week at $35/hr x 8hrs: `weekly_earnings` = $1,120 (not $1,400)
-- 5-day week at $35/hr x 8hrs: `weekly_earnings` = $1,400
-- Weeks with expenses no longer inflate the NIS class
+**6. Family Premium plan copy (lines 184-219)**
+- Description: "Concierge-level coordination for complex or high-touch care needs"
+- Rewrite features:
+  - "Everything in Family Care"
+  - "Priority care team matching and placement"
+  - "Extended video consultations"
+  - "Comprehensive care plan management"
+  - "24/7 on-call coordinator support"
+  - "Multi-caregiver scheduling and rotation management"
+  - "Detailed care analytics and progress reports"
+  - "Emergency escalation and rapid response coordination"
+- buttonText: "Choose Premium"
 
-### No Changes Needed
-- The NIS API / edge function proxy — already correct
-- The `calculatePayrollEntry` service — correctly calculates hours and rates
-- The `approvalService.ts` — payroll entry creation is fine (stores hours and rates separately)
-- Database schema — all needed fields (`regular_hours`, `regular_rate`, etc.) already exist on `payroll_entries`
+**7. Clarity block — NEW (after billing toggle, ~line 597)**
+Add a styled note:
+> "Caregiver compensation is arranged directly between your family and your care team. Your Tavara subscription covers care coordination, management tools, and ongoing support to ensure care is delivered consistently and effectively."
 
-### After Deploying
-Use the "Recalculate NIS" button on each month to update stored NIS values using the corrected wage-only calculation and 2026 NIS rates.
+**8. CTA buttons throughout**
+- Replace "Upgrade to Care" → "Start Care Coordination"
+- Replace "Upgrade to Premium" → "Choose Premium"
+- Replace "Current Plan" → "Get Started Free"
+
+### Single file change: `src/pages/subscription/SubscriptionPage.tsx`
 
