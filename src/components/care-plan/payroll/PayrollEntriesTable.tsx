@@ -131,7 +131,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   const handleBulkRecalcNIS = async (month: MonthGroup) => {
     if (!onRecalculateNIS) return;
     const weeksNeedingNIS = month.weeks.filter(
-      w => w.allPaid && w.weeklyGross > 200 && w.employeeContribution === 0
+      w => w.allPaid && w.weeklyGross > 200
     );
     if (weeksNeedingNIS.length === 0) {
       toast.info("No weeks in this month need NIS recalculation.");
@@ -192,7 +192,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   const colCount = isMobile ? 8 : 11;
 
   const getWeeksNeedingNIS = (month: MonthGroup) =>
-    month.weeks.filter(w => w.allPaid && w.weeklyGross > 200 && w.employeeContribution === 0);
+    month.weeks.filter(w => w.allPaid && w.weeklyGross > 200);
 
   return (
     <div>
@@ -297,7 +297,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                         Monthly NIS Summary
                         {weeksNeedingNIS.length > 0 && (
                           <span className="ml-2 text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded text-[10px]">
-                            {weeksNeedingNIS.length} week(s) missing NIS
+                            {weeksNeedingNIS.length} week(s) eligible for NIS
                           </span>
                         )}
                       </button>
@@ -488,7 +488,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                                   </div>
                                 </div>
                               )}
-                              {isDetailsOpen && week.weeklyGross > 200 && week.employeeContribution === 0 && onRecalculateNIS && (
+                              {isDetailsOpen && week.weeklyGross > 200 && onRecalculateNIS && (
                                 <div className="pb-2">
                                   <Button
                                     variant="outline"
@@ -501,7 +501,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                                     {isRecalculating ? 'Recalculating...' : 'Recalculate NIS'}
                                   </Button>
                                   <p className="text-[10px] text-muted-foreground mt-1">
-                                    NIS was not applied when this week was processed.
+                                    Recalculate NIS contributions based on current weekly gross.
                                   </p>
                                 </div>
                               )}
