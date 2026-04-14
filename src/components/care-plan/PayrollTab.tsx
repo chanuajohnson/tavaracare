@@ -29,7 +29,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId, familyId, is
   const [payrollToProcess, setPayrollToProcess] = useState<string | null>(null);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [bankTransferDialogOpen, setBankTransferDialogOpen] = useState(false);
-  const [bankTransferPayrollId, setBankTransferPayrollId] = useState<string | null>(null);
+  const [bankTransferPayrollIds, setBankTransferPayrollIds] = useState<string[]>([]);
 
   const {
     workLogs,
@@ -98,8 +98,10 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId, familyId, is
     }
   };
 
-  const openBankTransferDialog = (payrollId: string) => {
-    setBankTransferPayrollId(payrollId);
+  const openBankTransferDialog = (payrollIdOrIds: string) => {
+    // Accepts comma-separated IDs from monthly bulk transfer
+    const ids = payrollIdOrIds.split(',').filter(Boolean);
+    setBankTransferPayrollIds(ids);
     setBankTransferDialogOpen(true);
   };
 
@@ -222,7 +224,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId, familyId, is
       <BankTransferDialog
         open={bankTransferDialogOpen}
         onOpenChange={setBankTransferDialogOpen}
-        payrollId={bankTransferPayrollId}
+        payrollIds={bankTransferPayrollIds}
       />
     </div>
   );

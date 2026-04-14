@@ -124,14 +124,16 @@ export function groupWeeksByMonth(weeks: WeekGroup[]): MonthGroup[] {
   const map = new Map<string, MonthGroup>();
 
   for (const week of weeks) {
-    const m = getMonth(week.weekStart);
-    const y = getYear(week.weekStart);
+    // Use week-ending date (Sunday) to determine which month a week belongs to.
+    // This ensures a week like Mar 30–Apr 5 counts under April, not March.
+    const m = getMonth(week.weekEnd);
+    const y = getYear(week.weekEnd);
     const key = `${y}-${String(m).padStart(2, "0")}`;
 
     if (!map.has(key)) {
       map.set(key, {
         key,
-        monthLabel: format(week.weekStart, "MMMM yyyy"),
+        monthLabel: format(week.weekEnd, "MMMM yyyy"),
         weeks: [],
         totalGross: 0,
         totalEmployeeNIS: 0,
