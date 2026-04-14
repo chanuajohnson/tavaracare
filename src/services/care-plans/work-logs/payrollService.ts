@@ -5,6 +5,15 @@ import { resolveCaregiverNames } from "../utils/resolveCaregiveNames";
 import { calculateNIS } from "@/services/nisCalculation";
 import { startOfWeek, endOfWeek, format } from "date-fns";
 
+/**
+ * Compute wage-only earnings from a payroll entry (excludes expense reimbursements).
+ * This is what should be sent to the NIS API as weekly_earnings.
+ */
+const getWageEarnings = (entry: any): number =>
+  (entry.regular_hours || 0) * (entry.regular_rate || 0) +
+  (entry.overtime_hours || 0) * (entry.overtime_rate || 0) +
+  (entry.holiday_hours || 0) * (entry.holiday_rate || 0);
+
 export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEntry[]> => {
   try {
     const { data: entries, error } = await supabase
@@ -153,7 +162,8 @@ export const fetchWeeklyPendingEntries = async (
 
     const pendingTotal = pendingEntries.reduce((sum, e) => sum + (e.gross_pay || e.total_amount || 0), 0);
     const paidTotal = paidEntries.reduce((sum, e) => sum + (e.gross_pay || e.total_amount || 0), 0);
-    const weeklyTotal = pendingTotal + paidTotal;
+    // Use wage-only earnings for NIS calculation (excludes expense reimbursements)
+    const weeklyTotal = entries.reduce((sum, e) => sum + getWageEarnings(e), 0);
 
     // Sum NIS already applied to paid entries this week
     const paidNisEmployee = paidEntries.reduce((sum, e) => sum + (e.employee_contribution || 0), 0);
@@ -232,7 +242,9 @@ export const processWeeklyPayrollPayment = async (
     // Distribute NIS proportionally across pending entries
     for (const entry of pendingEntries) {
       const entryGross = entry.gross_pay || entry.total_amount || 0;
-      const proportion = pendingTotal > 0 ? entryGross / pendingTotal : 0;
+      const entryWages = getWageEarnings(entry);
+      const pendingWages = pendingEntries.reduce((sum, e) => sum + getWageEarnings(e), 0);
+      const proportion = pendingWages > 0 ? entryWages / pendingWages : 0;
       const entryEmployeeNIS = employeeContribution * proportion;
       const entryEmployerNIS = employerContribution * proportion;
 
@@ -364,7 +376,8 @@ export const recalculateWeeklyNIS = async (entryId: string): Promise<boolean> =>
       return false;
     }
 
-    const weeklyGross = weekEntries.reduce((sum, e) => sum + (e.gross_pay || e.total_amount || 0), 0);
+    // Use wage-only earnings for NIS calculation (excludes expense reimbursements)
+    const weeklyGross = weekEntries.reduce((sum, e) => sum + getWageEarnings(e), 0);
 
     // Call NIS API
     const nisResult = await calculateNIS({ weekly_earnings: weeklyGross });
