@@ -125,6 +125,24 @@ export function UnitEconomicsTable({ clients }: Props) {
                           <p className="text-sm text-muted-foreground">No payroll data for this month.</p>
                         )}
 
+                        <div className="space-y-2 pt-2">
+                          <h4 className="text-sm font-semibold">Revenue Breakdown</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="text-xs bg-background rounded p-2 border">
+                              <span className="text-muted-foreground block">Tavara Coordination Fee ({client.subscriptionPlan})</span>
+                              <span className="font-medium text-sm">{fmt(client.monthlySubscriptionRevenue)}/mo</span>
+                            </div>
+                            <div className="text-xs bg-background rounded p-2 border">
+                              <span className="text-muted-foreground block">Caregiver Wages Pass-through</span>
+                              <span className="font-medium text-sm">{fmt(client.monthlyCaregiverFees)}/mo</span>
+                            </div>
+                            <div className="text-xs bg-background rounded p-2 border">
+                              <span className="text-muted-foreground block">Total Revenue</span>
+                              <span className="font-semibold text-sm">{fmt(client.monthlyRevenue)}/mo</span>
+                            </div>
+                          </div>
+                        </div>
+
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
                           <div className="text-xs">
                             <span className="text-muted-foreground">Weekly Avg Revenue:</span>
