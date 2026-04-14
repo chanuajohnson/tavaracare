@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings, UserCheck, MapPin, Link2, Shield, HeartHandshake, ClipboardCheck } from "lucide-react";
+import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings, UserCheck, MapPin, Link2, Shield, HeartHandshake, ClipboardCheck, DollarSign } from "lucide-react";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
@@ -119,6 +119,10 @@ export default function AdminDashboard() {
 
   const handleOnboardingChecklistClick = () => {
     navigate('/admin/onboarding-checklist');
+  };
+
+  const handleUnitEconomicsClick = () => {
+    navigate('/admin/unit-economics');
   };
 
   return (
@@ -256,6 +260,15 @@ export default function AdminDashboard() {
         >
           <ClipboardCheck className="h-6 w-6" />
           <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Onboarding Checklist</span>
+        </Button>
+
+        <Button
+          onClick={handleUnitEconomicsClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <DollarSign className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Unit Economics</span>
         </Button>
       </div>
 
