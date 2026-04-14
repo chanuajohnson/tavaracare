@@ -1,67 +1,55 @@
 
-Goal: fix the NI 184 so the downloaded PDF is truly pre-filled in the correct boxes, not just “more centered.”
 
-What I confirmed from your uploaded PDF
-- The form is not blank anymore, so the earlier off-page rendering bug was partly fixed.
-- But the overlay text is still wrong in a more important way:
-  - the inserted values are rendering vertically/rotated
-  - several values are landing in the wrong cells
-  - the generated row content is not aligned to the government form grid
-- I also confirmed the NI 184 template itself has `/Rotate 90`, and the current generator is still drawing directly onto that rotated page.
+## Plan: Monthly-First Payroll View with NIS Summary + Bulk Recalculate
 
-Root cause
-- The current code in `src/services/care-plans/reports/ni184Generator.ts` only adjusted the Y-axis using a “visualHeight” workaround.
-- That solved “invisible/off-page” text, but not the rotated drawing context.
-- Because the page itself is rotated, `drawText()` is effectively being placed in a rotated coordinate space, which is why the text in your output appears vertical.
-- There is also a second accuracy issue in the row logic:
-  - `weeklyValues` is built with `Array.from(weekMap.values()).sort()`
-  - that sorts contribution amounts, not weeks
-  - so even if placement were correct, WK1–WK5 can still be assigned to the wrong columns.
+### What Changes
 
-What I would change
-1. Normalize the NI 184 page before drawing
-- Update `ni184Generator.ts` so we do not draw onto a rotated page as-is.
-- Safer approach:
-  - load the official page
-  - create a new unrotated landscape page
-  - draw the original NI 184 template page onto it
-  - then overlay text onto the new normalized page
-- This gives one stable coordinate system for all text placement.
+The current payroll table shows weeks flat with a hidden "Monthly Summary" collapsible at the bottom. You want the **opposite**: months as the primary view, weeks nested inside each month as collapsible dropdowns, and a clear monthly NIS summary showing total employee + employer contributions.
 
-2. Recalibrate NI 184 coordinates against the normalized page
-- Re-map the header fields and table rows on the normalized landscape page.
-- Specifically verify:
-  - employer trade name
-  - reg number
-  - service centre
-  - phone
-  - period from/to
-  - no. of weeks
-  - first data row baseline
-  - footer totals/date
+### 1. Restructure PayrollEntriesTable to Month-First Layout
 
-3. Fix weekly column ordering
-- Replace value-sorting with ordered week-slot placement.
-- Map entries by actual week sequence within the selected period, then place them into WK1, WK2, WK3, WK4, WK5 in chronological order.
+**File: `src/components/care-plan/payroll/PayrollEntriesTable.tsx`**
 
-4. Tighten row text behavior
-- Keep names horizontal and within the row.
-- Add small per-column font/offset adjustments if needed for DOB, dates employed, salary, and totals.
-- Preserve current 11-row max.
+Replace the current flat week list (lines 210-413) + bottom monthly summary (lines 418-482) with a single month-first structure:
 
-5. Validate NI 187 defensively
-- NI 187 appears less affected because it is portrait, but I would still review it for the same normalized-page safety pattern so both generators behave consistently.
+```text
+[ March 2026 ]  $5,600.00 gross | Employee NIS: $79.20 | Employer NIS: $165.00 | Net: $5,520.80
+  [ v Week: Mar 30 – Apr 5 ]  $1,400 | $19.80 | $41.25 | $1,380.20
+      Mon Mar 30 ... (daily entries)
+      Tue Mar 31 ...
+  [ v Week: Mar 23 – Mar 29 ]  $1,400 | $19.80 | $41.25 | $1,380.20
+  [ v Week: Mar 16 – Mar 22 ]  ...
+  [ v Week: Mar 9 – Mar 15 ]   ...
+```
 
-Files to update
-- `src/services/care-plans/reports/ni184Generator.ts`
-- likely minor follow-up in `src/services/care-plans/reports/ni187Generator.ts` for consistency only
+- **Month row**: bold header with totals for gross, employee NIS, employer NIS, net pay, hours, and status
+- **Monthly NIS Summary card**: expandable section under each month header showing aggregated NIS class breakdown, total contributions, and a "Recalculate All NIS" button for weeks with missing NIS
+- **Week rows**: collapsible inside each month, showing the existing week-level data
+- **Daily entries**: collapsible inside each week (existing behavior preserved)
 
-Expected result after implementation
-- NI 184 text will render horizontally
-- values will sit inside the correct boxes/rows
-- WK1–WK5 will reflect actual payroll week order instead of sorted dollar amounts
-- the downloaded PDF will be the official form with usable pre-filled data, not a visually broken overlay
+### 2. Add Bulk "Recalculate NIS" at Month Level
 
-Important note
-- This is not a copy tweak or “move 20px left” fix.
-- The underlying fix is to normalize the rotated government PDF before drawing. That is the correct technical fix for what your uploaded result is showing.
+- Add a button on the monthly NIS summary that recalculates NIS for **all weeks in that month** that have $0 NIS but gross > $200
+- Calls `handleRecalculateNIS` for each affected week sequentially
+- Shows progress: "Recalculating 1 of 3..."
+
+### 3. Monthly NIS Summary Section
+
+Each month header expands to show:
+- Total Employee NIS contributions for the month
+- Total Employer NIS contributions for the month  
+- Total NIS (combined) for the month
+- Number of weeks with NIS applied vs missing
+- "Recalculate Missing NIS" button when applicable
+
+### Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/components/care-plan/payroll/PayrollEntriesTable.tsx` | Restructure to month-first with weeks as nested collapsibles; add monthly NIS summary; add bulk recalculate |
+
+### What Stays the Same
+- All existing week-level functionality (select, expand daily entries, NIS detail, bank transfers, undo)
+- The `groupByWeek.ts` utility and `MonthGroup` interface (already has the right data)
+- All payroll data hooks and services
+
