@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { subWeeks, startOfWeek, endOfWeek, differenceInWeeks } from 'date-fns';
+import { startOfMonth, endOfMonth, format, getDaysInMonth, parse } from 'date-fns';
 
 export interface OperatingCosts {
   careCoordination: number;
@@ -35,14 +35,21 @@ export interface ClientEconomics {
   familyId: string;
   familyName: string;
   subscriptionPlan: string;
-  subscriptionRevenue: number;
+  // Monthly figures
+  monthlySubscriptionRevenue: number;
+  monthlyCaregiverFees: number;
+  monthlyRevenue: number;
+  monthlyCaregiverCost: number;
+  monthlyNisCost: number;
+  monthlyExpenses: number;
+  monthlyOperatingCost: number;
+  monthlyTotalCost: number;
+  monthlyMargin: number;
+  // Weekly averages
   weeklyRevenue: number;
   weeklyCaregiverCost: number;
-  weeklyNisCost: number;
-  weeklyExpenses: number;
   weeklyOperatingCost: number;
-  weeklyTotalCost: number;
-  weeklyMargin: number;
+  // Derived
   marginPercent: number;
   status: 'profitable' | 'at-risk' | 'losing';
   caregiverBreakdowns: CaregiverBreakdown[];
@@ -50,18 +57,17 @@ export interface ClientEconomics {
 
 export interface UnitEconomicsSummary {
   totalActiveClients: number;
-  avgWeeklyRevenue: number;
-  avgWeeklyCost: number;
+  totalMonthlyRevenue: number;
+  totalMonthlyCost: number;
   avgMarginPercent: number;
 }
 
-function getWeeklyRevenue(planName: string | null, price: number | null): number {
+function getWeeklySubscriptionRevenue(planName: string | null, price: number | null): number {
   if (!planName || !price) return 0;
   const name = planName.toLowerCase();
   if (name.includes('basic') || name.includes('free')) return 0;
   if (name.includes('premium')) return Math.round((2499 / 4.33) * 100) / 100;
   if (name.includes('care')) return 499;
-  // Fallback: assume monthly, divide by 4.33
   if (price > 200) return Math.round((price / 4.33) * 100) / 100;
   return price;
 }
@@ -88,28 +94,63 @@ export function totalOperatingCost(costs: OperatingCosts): number {
   return Object.values(costs).reduce((s, v) => s + v, 0);
 }
 
-export function useUnitEconomics(weeksBack: number = 4) {
+export function useUnitEconomics(selectedMonth: string) {
   const [clients, setClients] = useState<ClientEconomics[]>([]);
   const [loading, setLoading] = useState(true);
   const [operatingCosts, setOperatingCosts] = useState<OperatingCosts>(loadOperatingCosts);
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
 
   const updateOperatingCosts = (costs: OperatingCosts) => {
     setOperatingCosts(costs);
     saveOperatingCosts(costs);
   };
 
+  // Fetch available months from payroll data
   useEffect(() => {
-    fetchData();
-  }, [weeksBack]);
+    fetchAvailableMonths();
+  }, []);
+
+  useEffect(() => {
+    if (selectedMonth) fetchData();
+  }, [selectedMonth]);
+
+  const fetchAvailableMonths = async () => {
+    try {
+      const { data } = await supabase
+        .from('payroll_entries')
+        .select('pay_period_start')
+        .not('pay_period_start', 'is', null)
+        .order('pay_period_start', { ascending: false });
+
+      if (data?.length) {
+        const months = new Set<string>();
+        data.forEach(row => {
+          if (row.pay_period_start) {
+            const d = new Date(row.pay_period_start);
+            months.add(format(d, 'yyyy-MM'));
+          }
+        });
+        // Always include current month
+        months.add(format(new Date(), 'yyyy-MM'));
+        setAvailableMonths([...months].sort().reverse());
+      } else {
+        setAvailableMonths([format(new Date(), 'yyyy-MM')]);
+      }
+    } catch (err) {
+      console.error('Error fetching available months:', err);
+      setAvailableMonths([format(new Date(), 'yyyy-MM')]);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const periodEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
-      const periodStart = startOfWeek(subWeeks(new Date(), weeksBack), { weekStartsOn: 1 });
-      const numWeeks = Math.max(1, differenceInWeeks(periodEnd, periodStart));
+      const monthDate = parse(selectedMonth, 'yyyy-MM', new Date());
+      const periodStart = startOfMonth(monthDate);
+      const periodEnd = endOfMonth(monthDate);
+      const weeksInMonth = getDaysInMonth(monthDate) / 7;
 
-      // Fetch active care plans with family profiles
+      // Fetch active care plans
       const { data: carePlans } = await supabase
         .from('care_plans')
         .select('id, title, family_id, status')
@@ -130,8 +171,8 @@ export function useUnitEconomics(weeksBack: number = 4) {
         supabase.from('user_subscriptions').select('user_id, plan_id, status').in('user_id', familyIds).eq('status', 'active'),
         supabase.from('payroll_entries').select('care_plan_id, care_team_member_id, regular_hours, regular_rate, overtime_hours, overtime_rate, holiday_hours, holiday_rate, expense_total, employer_contribution, employee_contribution, gross_pay')
           .in('care_plan_id', carePlanIds)
-          .gte('created_at', periodStart.toISOString())
-          .lte('created_at', periodEnd.toISOString()),
+          .gte('pay_period_start', periodStart.toISOString())
+          .lte('pay_period_start', periodEnd.toISOString()),
         supabase.from('care_team_members').select('id, care_plan_id, caregiver_id, display_name').in('care_plan_id', carePlanIds),
       ]);
 
@@ -161,12 +202,13 @@ export function useUnitEconomics(weeksBack: number = 4) {
         }
       });
 
-      const opCostPerWeek = totalOperatingCost(operatingCosts);
+      const weeklyOpCost = totalOperatingCost(operatingCosts);
+      const monthlyOpCost = Math.round(weeklyOpCost * weeksInMonth * 100) / 100;
 
       const result: ClientEconomics[] = carePlans.map(cp => {
         const payrollEntries = (payrollRes.data || []).filter(pe => pe.care_plan_id === cp.id);
 
-        // Aggregate by caregiver
+        // Aggregate by caregiver — monthly totals
         const cgMap: Record<string, CaregiverBreakdown> = {};
         let totalCaregiverCost = 0;
         let totalNis = 0;
@@ -199,18 +241,16 @@ export function useUnitEconomics(weeksBack: number = 4) {
           totalExpenses += Number(pe.expense_total) || 0;
         });
 
-        const weeklyCaregiverCost = totalCaregiverCost / numWeeks;
-        const weeklyNis = totalNis / numWeeks;
-        const weeklyExpenses = totalExpenses / numWeeks;
-
         const sub = subMap[cp.family_id];
-        const subscriptionRevenue = sub ? getWeeklyRevenue(sub.planName, sub.price) : 0;
-        // Total revenue = subscription fee + caregiver wages (pass-through from family)
-        const weeklyRevenue = subscriptionRevenue + weeklyCaregiverCost;
+        const weeklySubRevenue = sub ? getWeeklySubscriptionRevenue(sub.planName, sub.price) : 0;
+        const monthlySubRevenue = Math.round(weeklySubRevenue * weeksInMonth * 100) / 100;
 
-        const weeklyTotalCost = weeklyCaregiverCost + weeklyNis + weeklyExpenses + opCostPerWeek;
-        const weeklyMargin = weeklyRevenue - weeklyTotalCost;
-        const marginPercent = weeklyRevenue > 0 ? (weeklyMargin / weeklyRevenue) * 100 : (weeklyTotalCost > 0 ? -100 : 0);
+        // Monthly figures
+        const monthlyCaregiverFees = Math.round(totalCaregiverCost * 100) / 100;
+        const monthlyRevenue = monthlySubRevenue + monthlyCaregiverFees;
+        const monthlyTotalCost = Math.round((totalCaregiverCost + totalNis + totalExpenses + monthlyOpCost) * 100) / 100;
+        const monthlyMargin = Math.round((monthlyRevenue - monthlyTotalCost) * 100) / 100;
+        const marginPercent = monthlyRevenue > 0 ? (monthlyMargin / monthlyRevenue) * 100 : (monthlyTotalCost > 0 ? -100 : 0);
 
         return {
           carePlanId: cp.id,
@@ -218,22 +258,26 @@ export function useUnitEconomics(weeksBack: number = 4) {
           familyId: cp.family_id,
           familyName: profilesMap[cp.family_id] || 'Unknown',
           subscriptionPlan: sub?.planName || 'No subscription',
-          subscriptionRevenue: Math.round(subscriptionRevenue * 100) / 100,
-          weeklyRevenue: Math.round(weeklyRevenue * 100) / 100,
-          weeklyCaregiverCost: Math.round(weeklyCaregiverCost * 100) / 100,
-          weeklyNisCost: Math.round(weeklyNis * 100) / 100,
-          weeklyExpenses: Math.round(weeklyExpenses * 100) / 100,
-          weeklyOperatingCost: opCostPerWeek,
-          weeklyTotalCost: Math.round(weeklyTotalCost * 100) / 100,
-          weeklyMargin: Math.round(weeklyMargin * 100) / 100,
+          monthlySubscriptionRevenue: monthlySubRevenue,
+          monthlyCaregiverFees,
+          monthlyRevenue: Math.round(monthlyRevenue * 100) / 100,
+          monthlyCaregiverCost: Math.round(totalCaregiverCost * 100) / 100,
+          monthlyNisCost: Math.round(totalNis * 100) / 100,
+          monthlyExpenses: Math.round(totalExpenses * 100) / 100,
+          monthlyOperatingCost: monthlyOpCost,
+          monthlyTotalCost,
+          monthlyMargin,
+          weeklyRevenue: Math.round((monthlyRevenue / weeksInMonth) * 100) / 100,
+          weeklyCaregiverCost: Math.round((totalCaregiverCost / weeksInMonth) * 100) / 100,
+          weeklyOperatingCost: weeklyOpCost,
           marginPercent: Math.round(marginPercent * 10) / 10,
           status: getStatus(marginPercent),
           caregiverBreakdowns: Object.values(cgMap).map(cg => ({
             ...cg,
-            totalHours: Math.round((cg.totalHours / numWeeks) * 10) / 10,
-            totalPay: Math.round((cg.totalPay / numWeeks) * 100) / 100,
-            employerNis: Math.round((cg.employerNis / numWeeks) * 100) / 100,
-            employeeNis: Math.round((cg.employeeNis / numWeeks) * 100) / 100,
+            totalHours: Math.round(cg.totalHours * 10) / 10,
+            totalPay: Math.round(cg.totalPay * 100) / 100,
+            employerNis: Math.round(cg.employerNis * 100) / 100,
+            employeeNis: Math.round(cg.employeeNis * 100) / 100,
           })),
         };
       });
@@ -247,31 +291,36 @@ export function useUnitEconomics(weeksBack: number = 4) {
   };
 
   const summary: UnitEconomicsSummary = useMemo(() => {
-    if (!clients.length) return { totalActiveClients: 0, avgWeeklyRevenue: 0, avgWeeklyCost: 0, avgMarginPercent: 0 };
+    if (!clients.length) return { totalActiveClients: 0, totalMonthlyRevenue: 0, totalMonthlyCost: 0, avgMarginPercent: 0 };
     const n = clients.length;
     return {
       totalActiveClients: n,
-      avgWeeklyRevenue: Math.round(clients.reduce((s, c) => s + c.weeklyRevenue, 0) / n),
-      avgWeeklyCost: Math.round(clients.reduce((s, c) => s + c.weeklyTotalCost, 0) / n),
+      totalMonthlyRevenue: Math.round(clients.reduce((s, c) => s + c.monthlyRevenue, 0)),
+      totalMonthlyCost: Math.round(clients.reduce((s, c) => s + c.monthlyTotalCost, 0)),
       avgMarginPercent: Math.round(clients.reduce((s, c) => s + c.marginPercent, 0) / n * 10) / 10,
     };
   }, [clients]);
 
   // Recalculate margins when operating costs change
   useEffect(() => {
-    if (clients.length > 0) {
-      const opCost = totalOperatingCost(operatingCosts);
+    if (clients.length > 0 && selectedMonth) {
+      const monthDate = parse(selectedMonth, 'yyyy-MM', new Date());
+      const weeksInMonth = getDaysInMonth(monthDate) / 7;
+      const weeklyOpCost = totalOperatingCost(operatingCosts);
+      const monthlyOpCost = Math.round(weeklyOpCost * weeksInMonth * 100) / 100;
+
       setClients(prev => prev.map(c => {
-        const newTotal = c.weeklyCaregiverCost + c.weeklyNisCost + c.weeklyExpenses + opCost;
-        const newRevenue = c.subscriptionRevenue + c.weeklyCaregiverCost;
-        const newMargin = newRevenue - newTotal;
-        const newPct = newRevenue > 0 ? (newMargin / newRevenue) * 100 : (newTotal > 0 ? -100 : 0);
+        const newTotalCost = c.monthlyCaregiverCost + c.monthlyNisCost + c.monthlyExpenses + monthlyOpCost;
+        const newRevenue = c.monthlySubscriptionRevenue + c.monthlyCaregiverFees;
+        const newMargin = newRevenue - newTotalCost;
+        const newPct = newRevenue > 0 ? (newMargin / newRevenue) * 100 : (newTotalCost > 0 ? -100 : 0);
         return {
           ...c,
-          weeklyOperatingCost: opCost,
-          weeklyRevenue: Math.round(newRevenue * 100) / 100,
-          weeklyTotalCost: Math.round(newTotal * 100) / 100,
-          weeklyMargin: Math.round(newMargin * 100) / 100,
+          monthlyOperatingCost: monthlyOpCost,
+          weeklyOperatingCost: weeklyOpCost,
+          monthlyRevenue: Math.round(newRevenue * 100) / 100,
+          monthlyTotalCost: Math.round(newTotalCost * 100) / 100,
+          monthlyMargin: Math.round(newMargin * 100) / 100,
           marginPercent: Math.round(newPct * 10) / 10,
           status: getStatus(newPct),
         };
@@ -279,5 +328,5 @@ export function useUnitEconomics(weeksBack: number = 4) {
     }
   }, [operatingCosts]);
 
-  return { clients, summary, loading, operatingCosts, updateOperatingCosts, refetch: fetchData };
+  return { clients, summary, loading, operatingCosts, updateOperatingCosts, availableMonths, refetch: fetchData };
 }
