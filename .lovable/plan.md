@@ -1,63 +1,88 @@
 
 
-## How This Plan Improves What's Already Built
+## Plan: Fix NI 184 Pre-fill Bug + System-Wide Language Positioning Shift
 
-### Current State (what exists now)
-The current `ni184Generator.ts` and `ni187Generator.ts` use **jsPDF** to create brand-new PDFs from scratch with custom layouts. These look like generic reports, not the official government forms. The NI 184 generates a landscape table, and the NI 187 generates a portrait summary -- neither matches the actual government form layout that NIBTT expects.
+### Part 1: Fix NI 184 Blank PDF Bug
 
-### What the New Plan Does Differently
+**Root Cause**: The NI 184 government PDF has `/Rotate=90` in its metadata. Its mediabox is portrait (612x1008), but it's displayed as landscape (1008x612). 
 
-1. **Uses the actual government PDF as the template** -- instead of drawing a custom layout, we load the blank NI 184 / NI 187 PDFs and write data directly onto them. The output looks exactly like the official form, ready to submit.
+The current code does:
+```
+const { height: pageHeight } = page.getSize(); // Returns 1008 (mediabox, wrong!)
+const pdfY = pageHeight - structY - size;       // 1008 - 228 - 7 = 773 (way off)
+```
 
-2. **Moves PDF generation server-side** -- an edge function (`generate-nis-form`) handles the heavy lifting with `pdf-lib`, which is better suited for filling existing PDFs than jsPDF (which is designed for creating new ones).
+pdf-lib's `drawText` works in the visual coordinate system where the visual height is actually **612**. All text is being drawn ~400 points above where it should be — completely off the visible page. That's why the download produces a blank form.
 
-3. **Proper field detection** -- uses the PDF skill scripts to detect whether the government forms have fillable fields (interactive PDF forms) or need coordinate-based text overlay. This determines the most accurate filling method.
+**Fix in `src/services/care-plans/reports/ni184Generator.ts`**:
+- After `page.getSize()`, check `page.getRotation().angle`
+- Calculate visual height: if rotation is 90 or 270, visual height = mediabox width (612)
+- Use visual height for the Y conversion instead of mediabox height
+- Same fix needed in `ni187Generator.ts` (though NI 187 has no rotation, adding the check defensively)
 
-4. **Adds manual adjustment inputs** -- the NI 187 has fields like "Balance Brought Forward", "Penalty", and "Interest" that can't come from payroll data. The new UI adds small inputs for these before generating.
+**Also fix the `as any` type cast** on the Blob constructor (line 232).
 
-### Implementation Plan
+---
 
-#### Step 1: Detect PDF Form Fields
-- Copy uploaded NI 184 and NI 187 PDFs into sandbox
-- Run `detect_fillable_fields.py` on both to determine filling approach
-- If fillable: extract field metadata for direct field filling
-- If not fillable: extract layout structure and map coordinates
+### Part 2: Language Positioning Shift (Coordination Platform, Not Employer)
 
-#### Step 2: Store Blank PDFs
-- Create a `nis-forms` Supabase Storage bucket (public read)
-- Upload the blank NI 184 and NI 187 PDFs to it
+Update language across **7 files** to shift from employer/agency model to care coordination/management platform:
 
-#### Step 3: Create Edge Function `generate-nis-form`
-- Accepts: `formType` (184 or 187), `carePlanId`, `familyId`, `periodStart`, `periodEnd`, and optional manual fields (balance_bf, penalty, interest, payment_method)
-- Fetches blank PDF from storage
-- Queries employer_settings, care_team_members (NIS-registered), payroll_entries for the period
-- Uses `pdf-lib` to fill in the form (either via form fields or text overlay)
-- Returns the completed PDF
+#### File 1: `src/components/admin/onboarding/onboardingSections.ts` (Family Terms & Post-Onboarding)
+- **Line 231**: "not hiring the caregiver directly" → "The family engages caregivers directly, with Tavara providing coordination, structure, and support"
+- **Line 232**: "assigned caregiver is part of Tavara's rotation pool" → "care team member is part of a coordinated rotation pool managed by Tavara for seamless coverage"
+- **Line 235**: "Tavara handles all employer aspects of NIS" → "The family is responsible for statutory obligations including NIS contributions. Tavara provides guidance and tools to help manage these requirements"
+- **Lines 253-258**: Replace "Assigned nurse" language with "Care team member" and "coordinated by Tavara" language
+- **Line 258**: "Tavara handles all employer NIS obligations" → "NIS contributions are the family's responsibility — Tavara provides tools and guidance to manage them"
 
-#### Step 4: Update UI
-**File: `src/components/care-plan/payroll/NISReportsSection.tsx`**
-- Replace current jsPDF-based generators with calls to the edge function
-- Add input fields for NI 187 manual values (balance b/f, penalty, interest)
-- Keep the period selector as-is
-- Download the returned PDF blob
+#### File 2: `src/components/admin/onboarding/professionalOnboardingSections.ts` (Professional Terms & Post-Onboarding)
+- **Line 144**: "hired through Tavara Care" → "engaged by the family, with Tavara Care providing coordination, structure, and support"
+- **Line 149**: "NIS contributions are handled by Tavara as the employer of record" → "NIS contributions are managed through Tavara's coordination platform"
+- **Line 161**: "Assigned nurse confirmed" → "Care team member confirmed"
+- **Line 164-165**: Remove "employer of record" language, replace with coordination language
+- **Line 166**: "View your assignments" → "View your coordinated care placements"
 
-#### Step 5: Remove Client-Side Generators
-- Remove or deprecate `ni184Generator.ts` and `ni187Generator.ts` (replaced by edge function)
+#### File 3: `src/hooks/useEnhancedJourneyProgress.ts` (Journey Steps)
+- **Step 9 (line 50)**: "Caregiver Assigned" → "Care Team Confirmed"
+- **Step 9 description**: "matched and assigned to your family" → "selected and coordinated for your care team"
+- **Step 9 tooltip**: "View your assigned caregiver" → "View your care team member"
+- **Step 10 (line 51)**: "assigned caregiver" → "care team member"
+- **Step 11**: "Your caregiver starts providing care" → "Your care team begins"
+- Same changes in the second step definition block (~lines 714-740)
 
-#### Step 6: Fix Current Errors
-- The "No NIS-registered employees" error happens because `is_nis_registered` hasn't been toggled for existing employees
-- Add better error messaging pointing users to the Care Team page to set the NIS flag
+#### File 4: `src/components/family/CaregiverReadinessCard.tsx`
+- **Line 109**: "Your assigned caregiver has completed" → "Your care team member has completed"
 
-### Files to Create/Modify
+#### File 5: `src/pages/admin/AdminOnboardingChecklistPage.tsx` (Admin checklist labels)
+- **Line 270**: "not direct hire" → "family engages caregiver directly with Tavara coordination"
+- **Line 271**: "Assigned caregiver" → "Care team member"
+- **Line 274**: "NIS contributions for caregiver covered by Tavara" → "NIS guidance and tools provided by Tavara"
+- **Lines 279-284**: Replace all "Assigned nurse" with "Care team member", remove "paid by Tavara" (replace with "coordinated by Tavara")
 
-| File | Change |
-|------|--------|
-| `supabase/functions/generate-nis-form/index.ts` | New edge function for PDF generation |
-| `src/components/care-plan/payroll/NISReportsSection.tsx` | Call edge function instead of client-side generators; add NI 187 manual inputs |
-| `src/services/care-plans/reports/ni184Generator.ts` | Remove (replaced by edge function) |
-| `src/services/care-plans/reports/ni187Generator.ts` | Remove (replaced by edge function) |
-| Storage migration | Create `nis-forms` bucket with blank PDFs |
+#### File 6: `src/components/care-plan/DailyCareLogsTab.tsx`
+- **Line 277**: "your assigned nurse" → "your care team member"
 
-### Result
-Click "Download NI 184" or "Download NI 187" and get the actual government form pre-filled with all your payroll data. No manual transcription needed -- just print and submit.
+#### File 7: `src/components/care-plan/ScheduleTab.tsx`
+- **Line 329**: "Assigned nurse called in sick" → "Care team member called in sick"
+
+#### File 8: `src/components/about/MissionCard.tsx`
+- **Line 31**: Update mission text to emphasize coordination: "We coordinate and manage care teams for families while providing..."
+
+---
+
+### Summary of Impact
+
+| Area | Old Language | New Language |
+|------|-------------|-------------|
+| Onboarding checklists | "Tavara handles NIS", "employer of record" | "Family responsible for NIS, Tavara provides guidance/tools" |
+| Journey steps | "Caregiver Assigned" | "Care Team Confirmed" |
+| Dashboard cards | "Your assigned caregiver" | "Your care team member" |
+| Professional terms | "Hired through Tavara" | "Engaged by the family, Tavara coordinates" |
+| Post-onboarding | "Assigned nurse paid by Tavara" | "Care team member coordinated by Tavara" |
+
+### Implementation Order
+1. Fix NI 184/187 PDF rotation bug (highest priority — broken feature)
+2. Update onboarding section definitions (family + professional)
+3. Update journey progress steps
+4. Update remaining UI components (readiness card, daily logs, schedule, admin checklist, about page)
 
