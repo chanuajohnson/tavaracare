@@ -1,139 +1,277 @@
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { format, eachMonthOfInterval } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { fetchEmployerSettings } from '@/services/care-plans/team/employerSettingsService';
 
 /**
  * Generate NI 187 - Summary of Contributions Due/In Arrears
- * Employer-level summary for a given period
+ * Fills the official NIBTT government form template with payroll data
+ * 
+ * NI 187 is portrait (612 x 792 PDF points), 2 pages
+ * Coordinate system: structure Y is top-down, pdf-lib Y is bottom-up
  */
+
+// Page 1 coordinate map (from structure analysis)
+const P1 = {
+  // Section A - Employer Information
+  TRADE_NAME_X: 160,
+  TRADE_NAME_Y: 147,
+  ADDRESS_X: 85,
+  ADDRESS_Y: 178,
+  REG_NO_X: 477,
+  REG_NO_Y: 206,
+  TELEPHONE_X: 112,
+  TELEPHONE_Y: 227,
+  
+  // Contribution Period
+  PERIOD_FROM_YYYY_X: 315,
+  PERIOD_FROM_MM_X: 362,
+  PERIOD_FROM_DD_X: 396,
+  PERIOD_Y: 265,
+  PERIOD_TO_YYYY_X: 468,
+  PERIOD_TO_MM_X: 515,
+  PERIOD_TO_DD_X: 549,
+  
+  // Number of employees
+  NUM_EMPLOYEES_X: 505,
+  NUM_EMPLOYEES_Y: 289,
+  
+  // Section B - Value of Contributions Payable
+  // $ column starts ~234, c column ~279
+  SECTION_B_DOLLARS_X: 220,
+  SECTION_B_CENTS_X: 270,
+  BALANCE_BF_Y: 342,
+  CONTRIBUTIONS_DUE_Y: 363,
+  PENALTY_Y: 381,
+  INTEREST_Y: 401,
+  TOTAL_AMOUNT_DUE_Y: 422,
+  AMOUNT_PAID_Y: 443,
+  BALANCE_CF_Y: 464,
+  
+  // Section C - Method of Payment
+  CASH_DOLLARS_X: 500,
+  CASH_CENTS_X: 545,
+  CASH_Y: 363,
+  CHEQUE_DOLLARS_X: 500,
+  CHEQUE_CENTS_X: 545,
+  CHEQUE_Y: 395,
+  TOTAL_PAYMENT_DOLLARS_X: 500,
+  TOTAL_PAYMENT_CENTS_X: 545,
+  TOTAL_PAYMENT_Y: 425,
+  
+  // Section D - Certificate
+  NAME_X: 70,
+  NAME_Y: 576,
+  POSITION_X: 100,
+  POSITION_Y: 632,
+  DATE_YYYY_X: 423,
+  DATE_MM_X: 470,
+  DATE_DD_X: 504,
+  DATE_Y: 642,
+};
+
+// Page 2 - Section F monthly breakdown
+const P2 = {
+  // Column X positions
+  FROM_X: 45,
+  TO_X: 130,
+  CONTRIB_DOLLARS_X: 210,
+  CONTRIB_CENTS_X: 260,
+  PENALTY_DOLLARS_X: 300,
+  PENALTY_CENTS_X: 345,
+  INTEREST_DOLLARS_X: 385,
+  INTEREST_CENTS_X: 430,
+  TOTAL_DOLLARS_X: 465,
+  TOTAL_CENTS_X: 510,
+  NUM_EMPLOYEES_X: 555,
+  
+  // First data row Y and row height
+  FIRST_ROW_Y: 103,
+  ROW_HEIGHT: 17.3,
+  MAX_ROWS: 20,
+};
+
+interface NI187ManualFields {
+  balanceBf?: number;
+  penalty?: number;
+  interest?: number;
+  paymentMethod?: 'cash' | 'cheque';
+}
+
 export const generateNI187Report = async (
   carePlanId: string,
   familyId: string,
   periodStart: Date,
-  periodEnd: Date
+  periodEnd: Date,
+  manualFields?: NI187ManualFields
 ): Promise<string | null> => {
   try {
-    const employer = await fetchEmployerSettings(familyId);
+    // Fetch data in parallel
+    const [employer, countResult, entriesResult] = await Promise.all([
+      fetchEmployerSettings(familyId),
+      supabase
+        .from('care_team_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('care_plan_id', carePlanId)
+        .eq('is_nis_registered', true),
+      supabase
+        .from('payroll_entries')
+        .select('*')
+        .eq('care_plan_id', carePlanId)
+        .gte('pay_period_start', periodStart.toISOString())
+        .lte('pay_period_start', periodEnd.toISOString())
+        .eq('nis_applicable', true),
+    ]);
 
-    // Count NIS-registered employees
-    const { count: employeeCount } = await supabase
-      .from('care_team_members')
-      .select('*', { count: 'exact', head: true })
-      .eq('care_plan_id', carePlanId)
-      .eq('is_nis_registered', true);
+    if (entriesResult.error) throw entriesResult.error;
 
-    // Fetch payroll entries for the period
-    const { data: entries, error } = await supabase
-      .from('payroll_entries')
-      .select('*')
-      .eq('care_plan_id', carePlanId)
-      .gte('pay_period_start', periodStart.toISOString())
-      .lte('pay_period_start', periodEnd.toISOString())
-      .eq('nis_applicable', true);
+    const employeeCount = countResult.count || 0;
+    const allEntries = entriesResult.data || [];
 
-    if (error) throw error;
+    // Load blank NI 187 PDF (2 pages)
+    const templateResponse = await fetch('/forms/NI187_blank.pdf');
+    const templateBytes = await templateResponse.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(templateBytes);
+    const pages = pdfDoc.getPages();
+    const page1 = pages[0];
+    const page2 = pages.length > 1 ? pages[1] : null;
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontSize = 8;
 
-    const allEntries = entries || [];
+    const drawOnPage = (page: any, text: string, x: number, structY: number, size = fontSize) => {
+      const { height: pageHeight } = page.getSize();
+      const pdfY = pageHeight - structY - size;
+      page.drawText(String(text), { x, y: pdfY, size, font, color: rgb(0, 0, 0) });
+    };
+
+    // Helper to split dollars and cents
+    const splitAmount = (amount: number): [string, string] => {
+      const parts = amount.toFixed(2).split('.');
+      return [parts[0], parts[1]];
+    };
+
+    // === PAGE 1: SECTIONS A-E ===
+    
+    // Section A: Employer Information
+    drawOnPage(page1, employer?.tradeName || '', P1.TRADE_NAME_X, P1.TRADE_NAME_Y);
+    drawOnPage(page1, employer?.address || '', P1.ADDRESS_X, P1.ADDRESS_Y);
+    
+    if (employer?.employerRegistrationNumber) {
+      drawOnPage(page1, employer.employerRegistrationNumber, P1.REG_NO_X, P1.REG_NO_Y);
+    }
+    if (employer?.phone) {
+      drawOnPage(page1, employer.phone, P1.TELEPHONE_X, P1.TELEPHONE_Y);
+    }
+
+    // Contribution Period
+    drawOnPage(page1, format(periodStart, 'yyyy'), P1.PERIOD_FROM_YYYY_X, P1.PERIOD_Y);
+    drawOnPage(page1, format(periodStart, 'MM'), P1.PERIOD_FROM_MM_X, P1.PERIOD_Y);
+    drawOnPage(page1, format(periodStart, 'dd'), P1.PERIOD_FROM_DD_X, P1.PERIOD_Y);
+    drawOnPage(page1, format(periodEnd, 'yyyy'), P1.PERIOD_TO_YYYY_X, P1.PERIOD_Y);
+    drawOnPage(page1, format(periodEnd, 'MM'), P1.PERIOD_TO_MM_X, P1.PERIOD_Y);
+    drawOnPage(page1, format(periodEnd, 'dd'), P1.PERIOD_TO_DD_X, P1.PERIOD_Y);
+
+    // Number of employees
+    drawOnPage(page1, String(employeeCount), P1.NUM_EMPLOYEES_X, P1.NUM_EMPLOYEES_Y);
+
+    // Section B: Value of Contributions Payable
+    const balanceBf = manualFields?.balanceBf || 0;
     const totalEmployeeContrib = allEntries.reduce((s, e) => s + (e.employee_contribution || 0), 0);
     const totalEmployerContrib = allEntries.reduce((s, e) => s + (e.employer_contribution || 0), 0);
-    const totalContributions = totalEmployeeContrib + totalEmployerContrib;
+    const contributionsDue = totalEmployeeContrib + totalEmployerContrib;
+    const penalty = manualFields?.penalty || 0;
+    const interest = manualFields?.interest || 0;
+    const totalAmountDue = balanceBf + contributionsDue + penalty + interest;
     const totalPaid = allEntries
       .filter((e: any) => e.payment_status === 'paid')
       .reduce((s, e) => s + (e.employee_contribution || 0) + (e.employer_contribution || 0), 0);
-    const balance = totalContributions - totalPaid;
+    const balanceCf = totalAmountDue - totalPaid;
 
-    // Monthly breakdown (Section F)
-    const months = eachMonthOfInterval({ start: periodStart, end: periodEnd });
-    const monthlyBreakdown = months.map(monthStart => {
-      const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
-      const monthEntries = allEntries.filter((e: any) => {
-        const d = new Date(e.pay_period_start || e.created_at);
-        return d >= monthStart && d <= monthEnd;
+    // Draw Section B values
+    const sectionBValues: [number, number][] = [
+      [P1.BALANCE_BF_Y, balanceBf],
+      [P1.CONTRIBUTIONS_DUE_Y, contributionsDue],
+      [P1.PENALTY_Y, penalty],
+      [P1.INTEREST_Y, interest],
+      [P1.TOTAL_AMOUNT_DUE_Y, totalAmountDue],
+      [P1.AMOUNT_PAID_Y, totalPaid],
+      [P1.BALANCE_CF_Y, balanceCf],
+    ];
+
+    sectionBValues.forEach(([y, amount]) => {
+      const [dollars, cents] = splitAmount(amount);
+      drawOnPage(page1, dollars, P1.SECTION_B_DOLLARS_X, y);
+      drawOnPage(page1, cents, P1.SECTION_B_CENTS_X, y);
+    });
+
+    // Section C: Method of Payment
+    const paymentMethod = manualFields?.paymentMethod || 'cheque';
+    if (paymentMethod === 'cash') {
+      const [d, c] = splitAmount(totalPaid);
+      drawOnPage(page1, d, P1.CASH_DOLLARS_X, P1.CASH_Y);
+      drawOnPage(page1, c, P1.CASH_CENTS_X, P1.CASH_Y);
+    } else {
+      const [d, c] = splitAmount(totalPaid);
+      drawOnPage(page1, d, P1.CHEQUE_DOLLARS_X, P1.CHEQUE_Y);
+      drawOnPage(page1, c, P1.CHEQUE_CENTS_X, P1.CHEQUE_Y);
+    }
+    // Total payment
+    const [totalD, totalC] = splitAmount(totalPaid);
+    drawOnPage(page1, totalD, P1.TOTAL_PAYMENT_DOLLARS_X, P1.TOTAL_PAYMENT_Y);
+    drawOnPage(page1, totalC, P1.TOTAL_PAYMENT_CENTS_X, P1.TOTAL_PAYMENT_Y);
+
+    // Section D: Certificate - Date
+    const today = new Date();
+    drawOnPage(page1, format(today, 'yyyy'), P1.DATE_YYYY_X, P1.DATE_Y);
+    drawOnPage(page1, format(today, 'MM'), P1.DATE_MM_X, P1.DATE_Y);
+    drawOnPage(page1, format(today, 'dd'), P1.DATE_DD_X, P1.DATE_Y);
+
+    // === PAGE 2: SECTION F - Monthly Breakdown ===
+    if (page2) {
+      const months = eachMonthOfInterval({ start: periodStart, end: periodEnd });
+      
+      months.slice(0, P2.MAX_ROWS).forEach((monthStart, rowIndex) => {
+        const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+        const rowY = P2.FIRST_ROW_Y + (rowIndex * P2.ROW_HEIGHT) + 4;
+
+        // Filter entries for this month
+        const monthEntries = allEntries.filter((e: any) => {
+          const d = new Date(e.pay_period_start || e.created_at);
+          return d >= monthStart && d <= monthEnd;
+        });
+
+        const monthContrib = monthEntries.reduce((s, e) => 
+          s + (e.employee_contribution || 0) + (e.employer_contribution || 0), 0);
+        const monthEmployees = new Set(monthEntries.map((e: any) => e.care_team_member_id)).size;
+
+        // From / To dates
+        drawOnPage(page2, format(monthStart, 'yy/MM/dd'), P2.FROM_X, rowY, 7);
+        drawOnPage(page2, format(monthEnd, 'yy/MM/dd'), P2.TO_X, rowY, 7);
+
+        // Contributions Due
+        const [cd, cc] = splitAmount(monthContrib);
+        drawOnPage(page2, cd, P2.CONTRIB_DOLLARS_X, rowY, 7);
+        drawOnPage(page2, cc, P2.CONTRIB_CENTS_X, rowY, 7);
+
+        // Penalty & Interest (0 unless manually entered)
+        drawOnPage(page2, '0', P2.PENALTY_DOLLARS_X, rowY, 7);
+        drawOnPage(page2, '00', P2.PENALTY_CENTS_X, rowY, 7);
+        drawOnPage(page2, '0', P2.INTEREST_DOLLARS_X, rowY, 7);
+        drawOnPage(page2, '00', P2.INTEREST_CENTS_X, rowY, 7);
+
+        // Total
+        const [td, tc] = splitAmount(monthContrib);
+        drawOnPage(page2, td, P2.TOTAL_DOLLARS_X, rowY, 7);
+        drawOnPage(page2, tc, P2.TOTAL_CENTS_X, rowY, 7);
+
+        // Number of employees
+        drawOnPage(page2, String(monthEmployees), P2.NUM_EMPLOYEES_X, rowY, 7);
       });
-      const ee = monthEntries.reduce((s, e) => s + (e.employee_contribution || 0), 0);
-      const er = monthEntries.reduce((s, e) => s + (e.employer_contribution || 0), 0);
-      return {
-        month: format(monthStart, 'MMMM yyyy'),
-        employeeContrib: ee,
-        employerContrib: er,
-        total: ee + er,
-      };
-    });
+    }
 
-    // Generate PDF
-    const doc = new jsPDF('portrait', 'mm', 'a4');
-    const pageWidth = doc.internal.pageSize.getWidth();
-
-    doc.setFontSize(14);
-    doc.text('NI 187 - Summary of Contributions Due/In Arrears', pageWidth / 2, 15, { align: 'center' });
-    doc.setFontSize(9);
-    doc.text('National Insurance Board of Trinidad & Tobago', pageWidth / 2, 21, { align: 'center' });
-
-    // Section A: Employer Details
-    let y = 32;
-    doc.setFontSize(11);
-    doc.text('Section A: Employer Details', 14, y);
-    doc.setFontSize(9);
-    y += 7;
-    doc.text(`Trade Name: ${employer?.tradeName || '___________'}`, 14, y);
-    y += 5;
-    doc.text(`Registration No: ${employer?.employerRegistrationNumber || '___________'}`, 14, y);
-    doc.text(`Service Centre: ${employer?.serviceCentreCode || '___________'}`, 110, y);
-    y += 5;
-    doc.text(`Address: ${employer?.address || '___________'}`, 14, y);
-    y += 5;
-    doc.text(`Phone: ${employer?.phone || '___________'}`, 14, y);
-
-    // Section B: Summary
-    y += 10;
-    doc.setFontSize(11);
-    doc.text('Section B: Summary of Contributions', 14, y);
-    y += 3;
-
-    autoTable(doc, {
-      startY: y,
-      head: [['Description', 'Amount (TTD)']],
-      body: [
-        ['Contribution Period', `${format(periodStart, 'dd/MM/yyyy')} to ${format(periodEnd, 'dd/MM/yyyy')}`],
-        ['Number of Employees', String(employeeCount || 0)],
-        ['Total Employee Contributions', `$${totalEmployeeContrib.toFixed(2)}`],
-        ['Total Employer Contributions', `$${totalEmployerContrib.toFixed(2)}`],
-        ['Total Contributions Due', `$${totalContributions.toFixed(2)}`],
-        ['Penalty', '$0.00'],
-        ['Interest', '$0.00'],
-        ['Grand Total', `$${totalContributions.toFixed(2)}`],
-        ['Amount Paid', `$${totalPaid.toFixed(2)}`],
-        ['Balance Outstanding', `$${balance.toFixed(2)}`],
-      ],
-      theme: 'grid',
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [41, 128, 185] },
-      columnStyles: { 1: { halign: 'right' } },
-    });
-
-    // Section F: Monthly Breakdown
-    const finalY = (doc as any).lastAutoTable?.finalY || y + 80;
-    doc.setFontSize(11);
-    doc.text('Section F: Monthly Breakdown', 14, finalY + 10);
-
-    autoTable(doc, {
-      startY: finalY + 14,
-      head: [['Month', 'Employee (TTD)', 'Employer (TTD)', 'Total (TTD)']],
-      body: monthlyBreakdown.map(m => [
-        m.month,
-        `$${m.employeeContrib.toFixed(2)}`,
-        `$${m.employerContrib.toFixed(2)}`,
-        `$${m.total.toFixed(2)}`,
-      ]),
-      theme: 'grid',
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [41, 128, 185] },
-      columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
-    });
-
-    const blob = doc.output('blob');
+    // Generate output
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
     return URL.createObjectURL(blob);
   } catch (error) {
     console.error('Error generating NI 187 report:', error);
