@@ -1,77 +1,111 @@
 
 
-## Plan: Update Subscription Pricing & Rewrite Copy for Care Coordination
+## Plan: Build Unit Economics Dashboard
 
-### Pricing Updates
+### What This Is
+An admin-only page at `/admin/unit-economics` that shows real-time profit/loss per client (care plan) by pulling actual payroll data from `payroll_entries`, NIS contributions, subscription revenue, and configurable operating cost estimates.
 
-| Plan | Weekly | Monthly | Current (Wrong) |
-|------|--------|---------|-----------------|
-| Family Basic | Free | Free | Same |
-| Family Care | $499 | $1,799 | $199.99/wk, $699.99/mo |
-| Family Premium | — (monthly only) | $2,499 | $399.99/wk, $1,099.99/mo |
+### Data Sources (Already in DB)
 
-### Changes in `src/pages/subscription/SubscriptionPage.tsx`
+| Data | Source Table | Fields |
+|------|-------------|--------|
+| Caregiver wages | `payroll_entries` | `regular_hours * regular_rate`, `overtime_hours * overtime_rate`, `holiday_hours * holiday_rate`, `expense_total` |
+| NIS costs | `payroll_entries` | `employer_contribution`, `employee_contribution` |
+| Client identity | `care_plans` → `profiles` | `family_id`, `title` |
+| Subscription tier | `user_subscriptions` → `subscription_plans` | `plan_id`, `price`, `name` |
+| Care team | `care_team_members` | `care_plan_id`, `regular_rate` |
 
-**1. Pricing values (lines 148-219)**
-- Family Care: `priceWeekly: "$499"`, `priceMonthly: "$1,799"`
-- Family Premium: `priceWeekly: "$2,499"`, `priceMonthly: "$2,499"` (monthly only — both show same price, or hide weekly toggle for Premium)
+### What Gets Built
 
-**2. Page header (lines 541-548)**
-- Replace "Subscribe to Access Premium Features" with "Choose Your Care Coordination Plan"
-- Replace feature type display with tagline: "Structure, coordination, and peace of mind — so you can focus on what matters most."
+**1. New page: `src/pages/admin/UnitEconomicsPage.tsx`**
 
-**3. Info banner (lines 558-581)**
-- Replace "Upgrade to Unlock {featureType}" with "Find the right level of care coordination"
-- Replace description with: "Every plan gives your family tools, guidance, and hands-on support to coordinate care with confidence."
-- Remove video call variant copy
+Top-level metrics cards:
+- Total active clients
+- Average weekly revenue per client
+- Average weekly cost per client
+- Average gross margin % (with color: green >20%, yellow 10-20%, red <10%)
 
-**4. Family Basic plan copy (lines 99-146)**
-- Description: "Get organized and start building your care team"
-- Rewrite features to coordination language:
-  - "Family profile and care preferences setup"
-  - "Care needs assessment and planning tools"
-  - "Legacy Story — preserve your loved one's journey"
-  - "Care team discovery and matching"
-  - "Medication tracking and scheduling"
-  - "Meal planning and grocery lists"
-  - "Unlimited messaging with your care team"
-  - "Community support and resources"
-- Excluded features updated to match new names
-- buttonText: "Get Started Free"
+Per-client table with columns:
+- Client name (from care plan → profile)
+- Subscription plan + weekly fee
+- Weekly caregiver wages (summed from paid payroll entries)
+- Weekly employer NIS
+- Estimated operating costs (configurable defaults)
+- Total weekly cost
+- Total weekly revenue (subscription fee)
+- Gross margin ($) and margin (%)
+- Status indicator (profitable / at-risk / losing money)
 
-**5. Family Care plan copy (lines 147-183)**
-- Description: "Active care coordination with dedicated management support"
-- Rewrite features:
-  - "Everything in Family Basic"
-  - "Dedicated care coordinator assigned to your family"
-  - "Care team scheduling and oversight"
-  - "Video consultations for care planning"
-  - "Care coordination and billing support"
-  - "Weekly care check-ins and status updates"
-- Excluded: "Priority matching and complex care management", "24/7 on-call coordinator"
-- buttonText: "Start Care Coordination"
+Expandable row detail showing:
+- Breakdown by caregiver (hours, rate, pay)
+- NIS breakdown (employer + employee)
+- Operating cost assumptions
 
-**6. Family Premium plan copy (lines 184-219)**
-- Description: "Concierge-level coordination for complex or high-touch care needs"
-- Rewrite features:
-  - "Everything in Family Care"
-  - "Priority care team matching and placement"
-  - "Extended video consultations"
-  - "Comprehensive care plan management"
-  - "24/7 on-call coordinator support"
-  - "Multi-caregiver scheduling and rotation management"
-  - "Detailed care analytics and progress reports"
-  - "Emergency escalation and rapid response coordination"
-- buttonText: "Choose Premium"
+**2. New hook: `src/hooks/admin/useUnitEconomics.ts`**
 
-**7. Clarity block — NEW (after billing toggle, ~line 597)**
-Add a styled note:
-> "Caregiver compensation is arranged directly between your family and your care team. Your Tavara subscription covers care coordination, management tools, and ongoing support to ensure care is delivered consistently and effectively."
+Fetches and aggregates:
+- All active care plans with family profiles
+- Payroll entries grouped by care_plan_id for a selected period (last 4 weeks default)
+- User subscriptions to determine revenue per client
+- Computes wage totals, NIS totals, and margin per client
 
-**8. CTA buttons throughout**
-- Replace "Upgrade to Care" → "Start Care Coordination"
-- Replace "Upgrade to Premium" → "Choose Premium"
-- Replace "Current Plan" → "Get Started Free"
+**3. New component: `src/components/admin/UnitEconomicsTable.tsx`**
 
-### Single file change: `src/pages/subscription/SubscriptionPage.tsx`
+Renders the per-client breakdown table with expandable rows.
+
+**4. New component: `src/components/admin/OperatingCostConfig.tsx`**
+
+A small panel with editable defaults (stored in localStorage for now):
+- Care coordination cost/week (default: $75)
+- Replacement/backup buffer/week (default: $75)
+- Payment processing/week (default: $30)
+- Admin & documentation/week (default: $45)
+- Platform overhead/week (default: $35)
+- Sales & acquisition/week (default: $100)
+
+These get applied uniformly to each client for margin calculation.
+
+**5. Route addition in `src/App.tsx`**
+
+Add `/admin/unit-economics` route pointing to the new page. Add a navigation card on the Admin Dashboard linking to it.
+
+### Key Calculations
+
+```text
+Per Client Per Week:
+  Revenue = subscription_plan.price (weekly equivalent)
+  
+  Caregiver Cost = SUM(regular_hours * regular_rate + 
+                       overtime_hours * overtime_rate + 
+                       holiday_hours * holiday_rate) + expense_total
+  
+  NIS Cost = SUM(employer_contribution)
+  
+  Operating Cost = sum of configurable line items
+  
+  Total Cost = Caregiver Cost + NIS Cost + Operating Cost
+  
+  Gross Margin = Revenue - Total Cost
+  Margin % = (Gross Margin / Revenue) * 100
+```
+
+### Files to Create/Modify
+
+| File | Action |
+|------|--------|
+| `src/pages/admin/UnitEconomicsPage.tsx` | Create |
+| `src/hooks/admin/useUnitEconomics.ts` | Create |
+| `src/components/admin/UnitEconomicsTable.tsx` | Create |
+| `src/components/admin/OperatingCostConfig.tsx` | Create |
+| `src/App.tsx` | Add route (minimal, preserving all existing routes) |
+| `src/pages/admin/AdminDashboard.tsx` | Add navigation card to unit economics |
+
+### Technical Notes
+- Period selector: default last 4 weeks, with option for custom date range
+- Weekly averages computed by dividing total period costs by number of weeks
+- Subscription revenue mapped from `user_subscriptions` joined to `subscription_plans` for each family
+- For Family Basic (free), revenue = $0
+- Family Care = $499/week or $1,799/month ÷ 4.33 = ~$415/week
+- Family Premium = $2,499/month ÷ 4.33 = ~$577/week
+- Color-coded margin indicators throughout
 
