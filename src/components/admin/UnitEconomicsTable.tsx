@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { ClientEconomics } from '@/hooks/admin/useUnitEconomics';
@@ -51,13 +50,13 @@ export function UnitEconomicsTable({ clients }: Props) {
             <TableHead className="w-8"></TableHead>
             <TableHead>Client</TableHead>
             <TableHead>Plan</TableHead>
-            <TableHead className="text-right">Sub/wk</TableHead>
-            <TableHead className="text-right">CG Fees/wk</TableHead>
-            <TableHead className="text-right">Revenue/wk</TableHead>
-            <TableHead className="text-right">Wages/wk</TableHead>
-            <TableHead className="text-right">NIS/wk</TableHead>
-            <TableHead className="text-right">Ops/wk</TableHead>
-            <TableHead className="text-right">Total Cost/wk</TableHead>
+            <TableHead className="text-right">Sub/mo</TableHead>
+            <TableHead className="text-right">CG Fees/mo</TableHead>
+            <TableHead className="text-right">Revenue/mo</TableHead>
+            <TableHead className="text-right">Wages/mo</TableHead>
+            <TableHead className="text-right">NIS/mo</TableHead>
+            <TableHead className="text-right">Ops/mo</TableHead>
+            <TableHead className="text-right">Total Cost/mo</TableHead>
             <TableHead className="text-right">Margin</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
@@ -81,15 +80,15 @@ export function UnitEconomicsTable({ clients }: Props) {
                   <TableCell>
                     <Badge variant="outline" className="text-xs">{client.subscriptionPlan}</Badge>
                   </TableCell>
-                  <TableCell className="text-right text-muted-foreground">{fmt(client.subscriptionRevenue)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{fmt(client.weeklyCaregiverCost)}</TableCell>
-                  <TableCell className="text-right font-medium">{fmt(client.weeklyRevenue)}</TableCell>
-                  <TableCell className="text-right">{fmt(client.weeklyCaregiverCost)}</TableCell>
-                  <TableCell className="text-right">{fmt(client.weeklyNisCost)}</TableCell>
-                  <TableCell className="text-right">{fmt(client.weeklyOperatingCost)}</TableCell>
-                  <TableCell className="text-right font-medium">{fmt(client.weeklyTotalCost)}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{fmt(client.monthlySubscriptionRevenue)}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{fmt(client.monthlyCaregiverFees)}</TableCell>
+                  <TableCell className="text-right font-medium">{fmt(client.monthlyRevenue)}</TableCell>
+                  <TableCell className="text-right">{fmt(client.monthlyCaregiverCost)}</TableCell>
+                  <TableCell className="text-right">{fmt(client.monthlyNisCost)}</TableCell>
+                  <TableCell className="text-right">{fmt(client.monthlyOperatingCost)}</TableCell>
+                  <TableCell className="text-right font-medium">{fmt(client.monthlyTotalCost)}</TableCell>
                   <TableCell className="text-right">
-                    <MarginCell value={client.weeklyMargin} percent={client.marginPercent} />
+                    <MarginCell value={client.monthlyMargin} percent={client.marginPercent} />
                   </TableCell>
                   <TableCell><StatusBadge status={client.status} /></TableCell>
                 </TableRow>
@@ -98,16 +97,16 @@ export function UnitEconomicsTable({ clients }: Props) {
                   <TableRow>
                     <TableCell colSpan={12} className="bg-muted/30 p-4">
                       <div className="space-y-3">
-                        <h4 className="text-sm font-semibold">Caregiver Breakdown (weekly avg)</h4>
+                        <h4 className="text-sm font-semibold">Caregiver Breakdown (monthly totals)</h4>
                         {client.caregiverBreakdowns.length > 0 ? (
                           <Table>
                             <TableHeader>
                               <TableRow>
                                 <TableHead>Caregiver</TableHead>
-                                <TableHead className="text-right">Hours/wk</TableHead>
-                                <TableHead className="text-right">Pay/wk</TableHead>
-                                <TableHead className="text-right">Employer NIS/wk</TableHead>
-                                <TableHead className="text-right">Employee NIS/wk</TableHead>
+                                <TableHead className="text-right">Hours/mo</TableHead>
+                                <TableHead className="text-right">Pay/mo</TableHead>
+                                <TableHead className="text-right">Employer NIS/mo</TableHead>
+                                <TableHead className="text-right">Employee NIS/mo</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -123,17 +122,25 @@ export function UnitEconomicsTable({ clients }: Props) {
                             </TableBody>
                           </Table>
                         ) : (
-                          <p className="text-sm text-muted-foreground">No payroll data for this period.</p>
+                          <p className="text-sm text-muted-foreground">No payroll data for this month.</p>
                         )}
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
                           <div className="text-xs">
-                            <span className="text-muted-foreground">Expenses/wk:</span>
-                            <span className="ml-1 font-medium">{fmt(client.weeklyExpenses)}</span>
+                            <span className="text-muted-foreground">Weekly Avg Revenue:</span>
+                            <span className="ml-1 font-medium">{fmt(client.weeklyRevenue)}</span>
                           </div>
                           <div className="text-xs">
-                            <span className="text-muted-foreground">Operating/wk:</span>
-                            <span className="ml-1 font-medium">{fmt(client.weeklyOperatingCost)}</span>
+                            <span className="text-muted-foreground">Weekly Avg CG Cost:</span>
+                            <span className="ml-1 font-medium">{fmt(client.weeklyCaregiverCost)}</span>
+                          </div>
+                          <div className="text-xs">
+                            <span className="text-muted-foreground">Expenses/mo:</span>
+                            <span className="ml-1 font-medium">{fmt(client.monthlyExpenses)}</span>
+                          </div>
+                          <div className="text-xs">
+                            <span className="text-muted-foreground">Operating/mo:</span>
+                            <span className="ml-1 font-medium">{fmt(client.monthlyOperatingCost)}</span>
                           </div>
                         </div>
                       </div>
