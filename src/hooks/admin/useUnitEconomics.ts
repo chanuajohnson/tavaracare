@@ -35,6 +35,7 @@ export interface ClientEconomics {
   familyId: string;
   familyName: string;
   subscriptionPlan: string;
+  subscriptionRevenue: number;
   weeklyRevenue: number;
   weeklyCaregiverCost: number;
   weeklyNisCost: number;
@@ -203,7 +204,9 @@ export function useUnitEconomics(weeksBack: number = 4) {
         const weeklyExpenses = totalExpenses / numWeeks;
 
         const sub = subMap[cp.family_id];
-        const weeklyRevenue = sub ? getWeeklyRevenue(sub.planName, sub.price) : 0;
+        const subscriptionRevenue = sub ? getWeeklyRevenue(sub.planName, sub.price) : 0;
+        // Total revenue = subscription fee + caregiver wages (pass-through from family)
+        const weeklyRevenue = subscriptionRevenue + weeklyCaregiverCost;
 
         const weeklyTotalCost = weeklyCaregiverCost + weeklyNis + weeklyExpenses + opCostPerWeek;
         const weeklyMargin = weeklyRevenue - weeklyTotalCost;
@@ -215,6 +218,7 @@ export function useUnitEconomics(weeksBack: number = 4) {
           familyId: cp.family_id,
           familyName: profilesMap[cp.family_id] || 'Unknown',
           subscriptionPlan: sub?.planName || 'No subscription',
+          subscriptionRevenue: Math.round(subscriptionRevenue * 100) / 100,
           weeklyRevenue: Math.round(weeklyRevenue * 100) / 100,
           weeklyCaregiverCost: Math.round(weeklyCaregiverCost * 100) / 100,
           weeklyNisCost: Math.round(weeklyNis * 100) / 100,
@@ -259,11 +263,13 @@ export function useUnitEconomics(weeksBack: number = 4) {
       const opCost = totalOperatingCost(operatingCosts);
       setClients(prev => prev.map(c => {
         const newTotal = c.weeklyCaregiverCost + c.weeklyNisCost + c.weeklyExpenses + opCost;
-        const newMargin = c.weeklyRevenue - newTotal;
-        const newPct = c.weeklyRevenue > 0 ? (newMargin / c.weeklyRevenue) * 100 : (newTotal > 0 ? -100 : 0);
+        const newRevenue = c.subscriptionRevenue + c.weeklyCaregiverCost;
+        const newMargin = newRevenue - newTotal;
+        const newPct = newRevenue > 0 ? (newMargin / newRevenue) * 100 : (newTotal > 0 ? -100 : 0);
         return {
           ...c,
           weeklyOperatingCost: opCost,
+          weeklyRevenue: Math.round(newRevenue * 100) / 100,
           weeklyTotalCost: Math.round(newTotal * 100) / 100,
           weeklyMargin: Math.round(newMargin * 100) / 100,
           marginPercent: Math.round(newPct * 10) / 10,
