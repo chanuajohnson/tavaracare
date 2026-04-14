@@ -50,7 +50,13 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   const [undoDialogOpen, setUndoDialogOpen] = useState(false);
   const [undoTargetId, setUndoTargetId] = useState<string | null>(null);
   const [isUndoing, setIsUndoing] = useState(false);
+  // Default all months expanded so week breakdowns are visible
+  const defaultExpandedMonths = useMemo(() => new Set(monthGroups.map(m => m.key)), [monthGroups]);
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
+  const effectiveExpandedMonths = useMemo(() => {
+    // If user hasn't toggled anything yet, show all expanded
+    return expandedMonths.size === 0 && monthGroups.length > 0 ? defaultExpandedMonths : expandedMonths;
+  }, [expandedMonths, defaultExpandedMonths, monthGroups]);
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
   const [expandedWeekDetails, setExpandedWeekDetails] = useState<Set<string>>(new Set());
   const [expandedMonthNIS, setExpandedMonthNIS] = useState<Set<string>>(new Set());
@@ -174,7 +180,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
     return <div className="text-center p-4">No payroll entries found.</div>;
   }
 
-  const colCount = isMobile ? 7 : 10;
+  const colCount = isMobile ? 8 : 11;
 
   const getWeeksNeedingNIS = (month: MonthGroup) =>
     month.weeks.filter(w => w.allPaid && w.weeklyGross > 200 && w.employeeContribution === 0);
@@ -219,13 +225,14 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
               {!isMobile && <TableHead>Gross Pay</TableHead>}
               {!isMobile && <TableHead>NIS (Employee)</TableHead>}
               {!isMobile && <TableHead>NIS (Employer)</TableHead>}
+              {!isMobile && <TableHead>Total NIS</TableHead>}
               <TableHead>Net Pay</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {monthGroups.map((month) => {
-              const isMonthOpen = expandedMonths.has(month.key);
+              const isMonthOpen = effectiveExpandedMonths.has(month.key);
               const isNISOpen = expandedMonthNIS.has(month.key);
               const weeksNeedingNIS = getWeeksNeedingNIS(month);
 
@@ -257,6 +264,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                     {!isMobile && <TableCell>${month.totalGross.toFixed(2)}</TableCell>}
                     {!isMobile && <TableCell>${month.totalEmployeeNIS.toFixed(2)}</TableCell>}
                     {!isMobile && <TableCell>${month.totalEmployerNIS.toFixed(2)}</TableCell>}
+                    {!isMobile && <TableCell className="font-semibold">${(month.totalEmployeeNIS + month.totalEmployerNIS).toFixed(2)}</TableCell>}
                     <TableCell className="font-bold">${month.totalNetPay.toFixed(2)}</TableCell>
                     <TableCell>
                       {month.allPaid ? (
@@ -337,6 +345,31 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                               </p>
                             </div>
                           )}
+                          {/* Monthly Bank Transfer */}
+                          {onRecordBankTransfer && month.allPaid && (
+                            <div className="pt-2 border-t border-primary/10">
+                              {(() => {
+                                const allEntryIds = month.weeks.flatMap(w => w.entries.filter(e => e.payment_status === 'paid').map(e => e.id));
+                                const existingRef = month.weeks
+                                  .flatMap(w => w.entries)
+                                  .find(e => e.bank_transfer_ref)?.bank_transfer_ref;
+                                return (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 gap-1 text-xs"
+                                    onClick={() => onRecordBankTransfer(allEntryIds.join(','))}
+                                  >
+                                    {existingRef ? (
+                                      <span className="text-green-600">✓ Transfer: {existingRef}</span>
+                                    ) : (
+                                      <>Record Monthly Transfer</>
+                                    )}
+                                  </Button>
+                                );
+                              })()}
+                            </div>
+                          )}
                         </div>
                       )}
                     </TableCell>
@@ -395,6 +428,9 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                           )}
                           {!isMobile && (
                             <TableCell>{week.nisApplicable ? `$${week.employerContribution.toFixed(2)}` : '-'}</TableCell>
+                          )}
+                          {!isMobile && (
+                            <TableCell>{week.nisApplicable ? `$${(week.employeeContribution + week.employerContribution).toFixed(2)}` : '-'}</TableCell>
                           )}
                           <TableCell className="font-semibold">${week.weeklyNetPay.toFixed(2)}</TableCell>
                           <TableCell>
@@ -460,25 +496,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                                   </p>
                                 </div>
                               )}
-                              {isDetailsOpen && onRecordBankTransfer && week.allPaid && (
-                                <div className="flex flex-wrap gap-2 pb-2">
-                                  {week.entries.filter(e => e.payment_status === 'paid').map(entry => (
-                                    <Button
-                                      key={`transfer-${entry.id}`}
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-7 gap-1 text-xs"
-                                      onClick={() => onRecordBankTransfer(entry.id)}
-                                    >
-                                      {entry.bank_transfer_ref ? (
-                                        <span className="text-green-600">✓ {entry.bank_transfer_ref}</span>
-                                      ) : (
-                                        <>Record Transfer</>
-                                      )}
-                                    </Button>
-                                  ))}
-                                </div>
-                              )}
+                              {/* Bank transfer moved to monthly level */}
                               {isDetailsOpen && onUndoPayment && (
                                 <div className="flex gap-2 pb-2">
                                   {week.entries.map(entry => (
@@ -523,6 +541,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                               {(entry.holiday_hours || 0) > 0 && <div className="text-xs">{entry.holiday_hours}h hol</div>}
                             </TableCell>
                             {!isMobile && <TableCell className="text-sm">${(entry.gross_pay || entry.total_amount).toFixed(2)}</TableCell>}
+                            {!isMobile && <TableCell className="text-xs text-muted-foreground">—</TableCell>}
                             {!isMobile && <TableCell className="text-xs text-muted-foreground">—</TableCell>}
                             {!isMobile && <TableCell className="text-xs text-muted-foreground">—</TableCell>}
                             <TableCell className="text-sm">${entry.total_amount.toFixed(2)}</TableCell>

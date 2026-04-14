@@ -16,14 +16,14 @@ import { recordBankTransfer } from "@/services/care-plans/team/nisService";
 interface BankTransferDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  payrollId: string | null;
+  payrollIds: string[];
   onRecorded?: () => void;
 }
 
 export const BankTransferDialog: React.FC<BankTransferDialogProps> = ({
   open,
   onOpenChange,
-  payrollId,
+  payrollIds,
   onRecorded,
 }) => {
   const [ref, setRef] = useState('');
@@ -32,11 +32,15 @@ export const BankTransferDialog: React.FC<BankTransferDialogProps> = ({
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
-    if (!payrollId || !ref.trim()) return;
+    if (!payrollIds.length || !ref.trim()) return;
     setSaving(true);
-    const success = await recordBankTransfer(payrollId, ref.trim(), new Date(date), notes.trim() || undefined);
+    let allSuccess = true;
+    for (const id of payrollIds) {
+      const success = await recordBankTransfer(id, ref.trim(), new Date(date), notes.trim() || undefined);
+      if (!success) allSuccess = false;
+    }
     setSaving(false);
-    if (success) {
+    if (allSuccess) {
       setRef('');
       setNotes('');
       onOpenChange(false);
@@ -48,9 +52,9 @@ export const BankTransferDialog: React.FC<BankTransferDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Record Bank Transfer</DialogTitle>
+          <DialogTitle>Record Monthly NIS Transfer</DialogTitle>
           <DialogDescription>
-            Enter the bank transfer details for this payment.
+            Enter the bank transfer details for this monthly NIS payment ({payrollIds.length} {payrollIds.length === 1 ? 'entry' : 'entries'}).
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
