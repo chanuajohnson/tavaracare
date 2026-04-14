@@ -711,14 +711,14 @@ export const useEnhancedJourneyProgress = () => {
       {
         id: "9",
         step_number: 9,
-        title: "Caregiver Assigned",
-        description: "A caregiver has been matched and assigned to your family",
+        title: "Care Team Confirmed",
+        description: "A care team member has been selected and coordinated for your family",
         completed: false, // Will be updated via sharedJourneyData
         accessible: isVisitConfirmed,
         category: 'scheduling',
         icon_name: 'UserCheck',
-        tooltip_content: 'View your assigned caregiver',
-        detailed_explanation: 'Your caregiver has been assigned. View your care team.',
+        tooltip_content: 'View your care team member',
+        detailed_explanation: 'Your care team member has been confirmed. View your care team.',
         time_estimate_minutes: 0,
         is_optional: false,
         action: () => navigate('/family/care-management')
