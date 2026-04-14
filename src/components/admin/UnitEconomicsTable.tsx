@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChevronDown, ChevronRight, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronRight, TrendingUp, TrendingDown, AlertTriangle, CalendarDays } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { ClientEconomics } from '@/hooks/admin/useUnitEconomics';
 
@@ -54,7 +54,7 @@ export function UnitEconomicsTable({ clients }: Props) {
             <TableHead className="text-right">CG Fees/mo</TableHead>
             <TableHead className="text-right">Revenue/mo</TableHead>
             <TableHead className="text-right">Wages/mo</TableHead>
-            <TableHead className="text-right">NIS/mo</TableHead>
+            <TableHead className="text-right">Employer NIS</TableHead>
             <TableHead className="text-right">Ops/mo</TableHead>
             <TableHead className="text-right">Total Cost/mo</TableHead>
             <TableHead className="text-right">Margin</TableHead>
@@ -97,16 +97,58 @@ export function UnitEconomicsTable({ clients }: Props) {
                   <TableRow>
                     <TableCell colSpan={12} className="bg-muted/30 p-4">
                       <div className="space-y-3">
-                        <h4 className="text-sm font-semibold">Caregiver Breakdown (monthly totals)</h4>
+                        {/* Payroll Period */}
+                        {client.periodStart && client.periodEnd && (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-background border rounded px-3 py-2">
+                            <CalendarDays className="h-3.5 w-3.5" />
+                            <span>
+                              Payroll month: <span className="font-medium text-foreground">{client.periodStart} – {client.periodEnd}</span>
+                              {' '}({client.payrollWeeks} week{client.payrollWeeks !== 1 ? 's' : ''})
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Revenue Breakdown */}
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-semibold">Revenue Breakdown</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="text-xs bg-background rounded p-2 border">
+                              <span className="text-muted-foreground block">Tavara Care Coordination Fee</span>
+                              <span className="font-medium text-sm">
+                                {fmt(client.monthlySubscriptionRevenue)}/mo
+                              </span>
+                              <span className="text-muted-foreground block text-[10px]">
+                                {client.subscriptionPlan} — {fmt(client.weeklyOperatingCost > 0 ? client.monthlySubscriptionRevenue / client.payrollWeeks : 0)}/wk × {client.payrollWeeks} weeks
+                              </span>
+                            </div>
+                            <div className="text-xs bg-background rounded p-2 border">
+                              <span className="text-muted-foreground block">Caregiver Wages Pass-through</span>
+                              <span className="font-medium text-sm">{fmt(client.monthlyCaregiverFees)}/mo</span>
+                              <span className="text-muted-foreground block text-[10px]">
+                                Actual wages from payroll
+                              </span>
+                            </div>
+                            <div className="text-xs bg-background rounded p-2 border border-primary/30">
+                              <span className="text-muted-foreground block">Total Revenue</span>
+                              <span className="font-semibold text-sm">{fmt(client.monthlyRevenue)}/mo</span>
+                              <span className="text-muted-foreground block text-[10px]">
+                                {fmt(client.monthlySubscriptionRevenue)} + {fmt(client.monthlyCaregiverFees)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Caregiver Breakdown */}
+                        <h4 className="text-sm font-semibold">Caregiver Breakdown (payroll month totals)</h4>
                         {client.caregiverBreakdowns.length > 0 ? (
                           <Table>
                             <TableHeader>
                               <TableRow>
                                 <TableHead>Caregiver</TableHead>
-                                <TableHead className="text-right">Hours/mo</TableHead>
-                                <TableHead className="text-right">Pay/mo</TableHead>
-                                <TableHead className="text-right">Employer NIS/mo</TableHead>
-                                <TableHead className="text-right">Employee NIS/mo</TableHead>
+                                <TableHead className="text-right">Hours</TableHead>
+                                <TableHead className="text-right">Gross Pay</TableHead>
+                                <TableHead className="text-right">Employer NIS</TableHead>
+                                <TableHead className="text-right">Employee NIS</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -125,39 +167,22 @@ export function UnitEconomicsTable({ clients }: Props) {
                           <p className="text-sm text-muted-foreground">No payroll data for this month.</p>
                         )}
 
-                        <div className="space-y-2 pt-2">
-                          <h4 className="text-sm font-semibold">Revenue Breakdown</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div className="text-xs bg-background rounded p-2 border">
-                              <span className="text-muted-foreground block">Tavara Coordination Fee ({client.subscriptionPlan})</span>
-                              <span className="font-medium text-sm">{fmt(client.monthlySubscriptionRevenue)}/mo</span>
-                            </div>
-                            <div className="text-xs bg-background rounded p-2 border">
-                              <span className="text-muted-foreground block">Caregiver Wages Pass-through</span>
-                              <span className="font-medium text-sm">{fmt(client.monthlyCaregiverFees)}/mo</span>
-                            </div>
-                            <div className="text-xs bg-background rounded p-2 border">
-                              <span className="text-muted-foreground block">Total Revenue</span>
-                              <span className="font-semibold text-sm">{fmt(client.monthlyRevenue)}/mo</span>
-                            </div>
-                          </div>
-                        </div>
-
+                        {/* Cost Summary */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
                           <div className="text-xs">
-                            <span className="text-muted-foreground">Weekly Avg Revenue:</span>
-                            <span className="ml-1 font-medium">{fmt(client.weeklyRevenue)}</span>
+                            <span className="text-muted-foreground">Employer NIS:</span>
+                            <span className="ml-1 font-medium">{fmt(client.monthlyNisCost)}</span>
                           </div>
                           <div className="text-xs">
-                            <span className="text-muted-foreground">Weekly Avg CG Cost:</span>
-                            <span className="ml-1 font-medium">{fmt(client.weeklyCaregiverCost)}</span>
+                            <span className="text-muted-foreground">Employee NIS:</span>
+                            <span className="ml-1 font-medium">{fmt(client.monthlyEmployeeNis)}</span>
                           </div>
                           <div className="text-xs">
-                            <span className="text-muted-foreground">Expenses/mo:</span>
+                            <span className="text-muted-foreground">Expenses:</span>
                             <span className="ml-1 font-medium">{fmt(client.monthlyExpenses)}</span>
                           </div>
                           <div className="text-xs">
-                            <span className="text-muted-foreground">Operating/mo:</span>
+                            <span className="text-muted-foreground">Operating ({client.payrollWeeks} wks × {fmt(client.weeklyOperatingCost)}):</span>
                             <span className="ml-1 font-medium">{fmt(client.monthlyOperatingCost)}</span>
                           </div>
                         </div>
