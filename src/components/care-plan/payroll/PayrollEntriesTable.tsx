@@ -30,6 +30,7 @@ interface PayrollEntriesTableProps {
   onDeleteEntries?: (ids: string[]) => Promise<{ deleted: number; failed: number }>;
   onUndoPayment?: (id: string) => Promise<boolean>;
   onRecalculateNIS?: (entryId: string) => Promise<boolean>;
+  onRecordBankTransfer?: (payrollId: string) => void;
 }
 
 export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
@@ -37,7 +38,8 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   onProcessPayment,
   onDeleteEntries,
   onUndoPayment,
-  onRecalculateNIS
+  onRecalculateNIS,
+  onRecordBankTransfer
 }) => {
   const isMobile = useIsMobile();
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
