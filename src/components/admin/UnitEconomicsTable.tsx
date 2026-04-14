@@ -96,7 +96,7 @@ export function UnitEconomicsTable({ clients }: Props) {
 
                 {isOpen && (
                   <TableRow>
-                    <TableCell colSpan={10} className="bg-muted/30 p-4">
+                    <TableCell colSpan={12} className="bg-muted/30 p-4">
                       <div className="space-y-3">
                         <h4 className="text-sm font-semibold">Caregiver Breakdown (weekly avg)</h4>
                         {client.caregiverBreakdowns.length > 0 ? (
