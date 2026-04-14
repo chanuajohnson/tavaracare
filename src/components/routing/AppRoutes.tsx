@@ -19,6 +19,7 @@ import PlatformAnalyticsPage from "@/pages/admin/PlatformAnalyticsPage";
 import ShiftManagementPage from "@/pages/admin/ShiftManagementPage";
 import ProfessionalScreeningPage from "@/pages/admin/ProfessionalScreeningPage";
 import AdminOnboardingChecklistPage from "@/pages/admin/AdminOnboardingChecklistPage";
+import UnitEconomicsPage from "@/pages/admin/UnitEconomicsPage";
 import MobileScreeningPage from "@/pages/screening/MobileScreeningPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
@@ -184,6 +185,7 @@ export const AppRoutes = () => {
       <Route path="/admin/campaign-links" element={<CampaignLinksPage />} />
       <Route path="/admin/family-care-plans" element={<AdminFamilyCarePlansPage />} />
       <Route path="/admin/onboarding-checklist" element={<AdminOnboardingChecklistPage />} />
+      <Route path="/admin/unit-economics" element={<UnitEconomicsPage />} />
       
       {/* Legacy Routes */}
       <Route path="/legacy-stories" element={<LegacyStoriesPage />} />
