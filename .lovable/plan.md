@@ -1,43 +1,25 @@
 
 
-## Plan: Generate NarrateAI Context Document for Tavara
+## Plan: Always Show "Recalculate NIS" Button for Paid Weeks
 
-Create a markdown/text document summarizing Tavara's purpose, features, user roles, and key pages — optimized for NarrateAI to produce accurate voiceover narration.
+### Problem
+The "Recalculate NIS" button only appears when `employeeContribution === 0`. Your entries have $19.80 (incorrect, but non-zero), so the button is hidden. You cannot trigger recalculation to fix the wrong values.
 
-### What I'll Create
+### Fix
+**File: `src/components/care-plan/payroll/PayrollEntriesTable.tsx`**
 
-A single file at `/mnt/documents/Tavara_NarrateAI_Context.md` containing:
+Three condition changes:
 
-1. **Application Overview** — Tavara.care is a care coordination platform based in Trinidad & Tobago. Tagline: "It takes a village to care." Connects families with professional caregivers, not as an employer/agency but as a managed coordination platform.
+1. **Bulk recalc filter** (line 134): Change from `w.employeeContribution === 0` to include all paid weeks with gross > $200. The button label will say "Recalculate NIS for X week(s)" regardless of current NIS value.
 
-2. **Three User Roles**:
-   - **Family** — Find caregivers, create care plans, track medications/appointments, manage payroll/NIS, coordinate care teams
-   - **Professional** — Showcase qualifications, find care opportunities, manage client relationships, access training, daily checklists, NIS documentation
-   - **Community** — Join care circles, share resources, volunteer, connect with families
+2. **Monthly `weeksNeedingNIS` variable** (around line 274): Same condition update so the bulk button appears.
 
-3. **Key Platform Features**:
-   - AI-powered caregiver matching with compatibility scores
-   - Care plan creation and management
-   - Payroll system with NIS (National Insurance) calculation, NI 184/187 form generation
-   - Daily care checklists and shift logs
-   - Bank transfer tracking for monthly NIS payments
-   - Nurse Handbook & SOP documentation
-   - TAV — AI virtual care coordinator assistant
-   - Chat-based registration flow with form pre-fill
+3. **Per-week recalculate button** (line 491): Change `week.employeeContribution === 0` to just `week.weeklyGross > 200` so the button always shows for weeks that qualify for NIS, with updated label text: "Recalculate NIS" (always visible) instead of only showing when NIS is missing.
 
-4. **Navigation & Page Map**:
-   - Landing page (`/`) — role selection (Family, Professional, Community)
-   - Auth (`/auth`) — login/registration
-   - Family Dashboard (`/dashboard/family`) — care plans, team, schedule
-   - Professional Dashboard (`/dashboard/professional`) — assignments, profile, admin tools
-   - Care Management (`/family/care-management/:id`) — payroll, daily logs, care team, NIS reports
-   - About (`/about`) — mission, values, story
+The message below the per-week button will change from "NIS was not applied when this week was processed." to "Recalculate NIS contributions based on current weekly gross."
 
-5. **Positioning Language** — "Tavara helps you build, manage, and coordinate your care team." Families engage caregivers directly; Tavara coordinates, enforces standards, and manages quality.
-
-6. **Values**: Empathy, Community, Innovation, Accessibility, Trust
-
-7. **Technical Stack**: React, Supabase, Tailwind CSS, AI-powered chat
-
-### Single file, no code changes needed — just artifact generation.
+### Result
+- Recalculate button visible on every paid week with gross > $200
+- Bulk recalculate at month level covers all qualifying weeks
+- You can immediately fix the $19.80 → $75.30 values
 
