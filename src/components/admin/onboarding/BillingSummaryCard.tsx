@@ -72,9 +72,7 @@ export default function BillingSummaryCard({ carePlanId }: BillingSummaryCardPro
   if (!items.length) return null;
 
   // Group items by billing logic
-  const corePlan = items.filter(i =>
-    i.category === 'weekly_addon' && (i.label.toLowerCase().includes('care management') || i.label.toLowerCase().includes('coordination'))
-  );
+  const corePlan = items.filter(i => i.category === 'core_plan');
   const hourly = items.filter(i => i.billing_type === 'hourly');
   const weeklyAddons = items.filter(i =>
     i.billing_type === 'weekly' && !corePlan.includes(i)
