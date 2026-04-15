@@ -190,16 +190,13 @@ function buildLineItemsTable(data: CareBillingData): string {
 }
 
 function buildSubscriptionSection(data: CareBillingData): string {
-  if (!data.subscriptionTier) return '';
+  // Only show the "Includes" details as a subtle note — no separate price box
+  // The subscription amount is already in the line items table and included in the total
+  if (!data.subscriptionTier || !data.subscriptionIncludes || data.subscriptionIncludes.length === 0) return '';
   return `
-    <div style="padding: 16px 32px;">
-      <div style="background: #F0EDFA; border-left: 4px solid ${TAVARA_BLUE}; padding: 14px 18px; border-radius: 0 6px 6px 0;">
-        <div style="font-size: 12px; font-weight: 700; color: ${TAVARA_BLUE};">Subscription: ${data.subscriptionTier} — ${data.subscriptionRate || ''}</div>
-        ${data.subscriptionIncludes && data.subscriptionIncludes.length > 0 ? `
-          <div style="font-size: 11px; color: #555; margin-top: 6px;">
-            <strong>Includes:</strong> ${data.subscriptionIncludes.join(' · ')}
-          </div>
-        ` : ''}
+    <div style="padding: 8px 32px;">
+      <div style="font-size: 10px; color: #666; line-height: 1.6; border-left: 3px solid #D6BCFA; padding-left: 12px;">
+        <strong style="color: #555;">${data.subscriptionTier} includes:</strong> ${data.subscriptionIncludes.join(' · ')}
       </div>
     </div>
   `;
@@ -480,14 +477,21 @@ export function buildDefaultCareBillingData(
 
   // If subscription detected from approved services, add it as a proper line item
   if (detectedSubscriptionRate !== null && detectedSubscriptionRate > 0) {
+    // Clean label: strip [Discounted from ...] and [WAIVED ...] annotations
+    const cleanLabel = (detectedSubscriptionLabel || 'Active Care Management')
+      .replace(/\s*\[Discounted from[^\]]*\]/gi, '')
+      .replace(/\s*\[WAIVED[^\]]*\]/gi, '')
+      .trim();
     baseLineItems.push({
-      description: detectedSubscriptionLabel || 'Active Care Management — Care Coordination',
+      description: cleanLabel.includes('Care Coordination') ? cleanLabel : `${cleanLabel} — Care Coordination`,
       amount: detectedSubscriptionRate,
       note: '(weekly)',
     });
   }
 
+
   const allLineItems = [...baseLineItems, ...nonSubscriptionItems];
+  console.log('[invoiceService] Line items for document:', allLineItems.map(i => `${i.description}: $${i.amount}`));
 
   // Calculate totals from actual line items
   const calculatedSubtotal = allLineItems.reduce((sum, item) => sum + item.amount, 0);
