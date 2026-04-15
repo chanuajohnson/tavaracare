@@ -40,6 +40,9 @@ interface ProfessionalProgressData {
   totalSteps: number;
   loading: boolean;
   refreshProgress: () => Promise<void>;
+  agreedRate?: string;
+  weeklyHours?: number;
+  projectedWeeklyEarnings?: number;
 }
 
 export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
@@ -48,7 +51,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<any>(null);
   const [documentsData, setDocumentsData] = useState<any[]>([]);
-
+  const [compensationData, setCompensationData] = useState<{ agreedRate?: string; weeklyHours?: number; projectedWeeklyEarnings?: number }>({});
   const storedProgress = useStoredJourneyProgress(user?.id || '', 'professional');
 
   console.log('🔍 Enhanced Professional Progress Data:', {
