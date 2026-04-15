@@ -471,6 +471,9 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     completedSteps,
     totalSteps,
     loading: loading || storedProgress.loading,
-    refreshProgress
+    refreshProgress,
+    agreedRate: compensationData.agreedRate,
+    weeklyHours: compensationData.weeklyHours,
+    projectedWeeklyEarnings: compensationData.projectedWeeklyEarnings
   };
 };
