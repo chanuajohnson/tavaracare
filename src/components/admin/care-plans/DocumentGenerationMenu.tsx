@@ -35,6 +35,7 @@ interface DocumentGenerationMenuProps {
   size?: 'default' | 'sm' | 'lg';
   careRate?: string;
   weeklyHours?: number;
+  hideWaivedItems?: boolean;
 }
 
 const DocumentGenerationMenu = ({
@@ -52,6 +53,7 @@ const DocumentGenerationMenu = ({
   size = 'sm',
   careRate,
   weeklyHours,
+  hideWaivedItems = false,
 }: DocumentGenerationMenuProps) => {
   const [generating, setGenerating] = useState<string | null>(null);
   const [approvedLineItems, setApprovedLineItems] = useState<BillingLineItem[]>([]);
@@ -116,6 +118,11 @@ const DocumentGenerationMenu = ({
       }
     }
 
+    // Filter out waived $0 items if hideWaivedItems is true
+    const filteredApprovedItems = hideWaivedItems
+      ? approvedLineItems.filter(item => !(item.amount === 0 && item.description.includes('[WAIVED]')))
+      : approvedLineItems;
+
     return buildDefaultCareBillingData({
       familyName,
       familyEmail,
@@ -127,7 +134,7 @@ const DocumentGenerationMenu = ({
       carePlanId,
       carePlanTitle,
       ...billingData,
-      additionalLineItems: [...approvedLineItems, ...caregiverLineItems],
+      additionalLineItems: [...filteredApprovedItems, ...caregiverLineItems],
     });
   };
 

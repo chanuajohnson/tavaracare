@@ -1887,6 +1887,19 @@ export default function AdminOnboardingChecklistPage() {
                   <div>
                     <h3 className="text-sm font-semibold">Billing Documents</h3>
                     <p className="text-xs text-muted-foreground">Generate a quote, invoice, or receipt for this family</p>
+                    <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!familyCheckedItems["hide_waived_items"]}
+                        onChange={(e) => {
+                          const next = { ...familyCheckedItems, hide_waived_items: e.target.checked };
+                          setFamilyCheckedItems(next);
+                          saveFamilyToSupabase(next, familyNotes);
+                        }}
+                        className="h-4 w-4 rounded border-primary text-primary"
+                      />
+                      <span className="text-xs text-muted-foreground">Hide waived ($0) items on documents</span>
+                    </label>
                   </div>
                   <DocumentGenerationMenu
                     familyName={families.find(f => f.id === selectedFamilyId)?.full_name || 'Family'}
@@ -1895,6 +1908,7 @@ export default function AdminOnboardingChecklistPage() {
                     weeklyHours={getWeeklyHoursFromSchedule(
                       families.find(f => f.id === selectedFamilyId)?.care_schedule || undefined
                     )}
+                    hideWaivedItems={!!familyCheckedItems["hide_waived_items"]}
                   />
                 </div>
               </CardContent>
