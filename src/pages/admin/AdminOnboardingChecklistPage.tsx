@@ -176,6 +176,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 interface ProfileOption {
   id: string;
   full_name: string | null;
+  care_schedule?: string | null;
 }
 
 /** Map raw checklist items to past-tense, agreement-focused language */
@@ -1148,6 +1149,18 @@ function ChecklistTabContent({
                       <CareSuppliesCard />
                     )}
 
+                    {(section.id === "rates_payment" || section.id === "rates_and_changes") && showFamilyData && (
+                      <CaregiverRateSelector
+                        careSchedule={profiles.find(p => p.id === selectedId)?.care_schedule || undefined}
+                        currentRate={(checkedItems["care_rate"] as string) || ''}
+                        onRateChange={(rateStr) => {
+                          const next = { ...checkedItems, care_rate: rateStr };
+                          // We need to trigger save - use onDateChange which saves
+                          onDateChange?.("care_rate", rateStr);
+                        }}
+                      />
+                    )}
+
                     {(section.id === "rates_payment" || section.id === "rates_and_changes") && (
                       <RateTierReferenceCard />
                     )}
@@ -1379,7 +1392,7 @@ export default function AdminOnboardingChecklistPage() {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("id, full_name")
+          .select("id, full_name, care_schedule")
           .eq("role", "family")
           .order("full_name");
         if (error) throw error;
