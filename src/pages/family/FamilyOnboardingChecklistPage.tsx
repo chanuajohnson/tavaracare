@@ -618,6 +618,16 @@ export default function FamilyOnboardingChecklistPage() {
                 {section.id === "post_onboarding" && (
                   <>
                     <CareSummaryHeader checkedItems={checkedItems} />
+                    {familyCarePlanId && (
+                      <>
+                        <div className="mt-3">
+                          <BillingSummaryCard carePlanId={familyCarePlanId} />
+                        </div>
+                        <div className="mt-3">
+                          <ServiceCommencementConfirmation carePlanId={familyCarePlanId} />
+                        </div>
+                      </>
+                    )}
                     <ServiceCommencementApproval
                       checkedItems={checkedItems}
                       familyId={user?.id}
