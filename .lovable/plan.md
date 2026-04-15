@@ -1,117 +1,55 @@
 
 
-# Gap Analysis & Upgrade Plan: Journey Steps, Dashboards, Admin, and TAV
+# Plan: Update Dashboard UI Components to Surface Financial Context + 15-Step Alignment
 
-## Identified Gaps
+## What Changed (Backend/Hooks) vs What Didn't (UI)
 
-After auditing the family dashboard journey, professional dashboard journey, admin journey panels, and TAV assistant, here are the key misalignments with the recent onboarding checklist upgrades:
+The hooks (`useEnhancedJourneyProgress`, `useFamilyJourneyProgress`, `useEnhancedProfessionalProgress`) were upgraded to return `agreedRate`, `weeklyHours`, and `projectedWeeklyEarnings`. But **none of the dashboard UI components** consume or display this data. The family dashboard visually looks the same as before.
 
-### Gap 1: Family Journey — Missing Steps 9-11 in `useFamilyJourneyProgress` (Dashboard Hook)
+## Changes
 
-The **dashboard-facing** hook (`useFamilyJourneyProgress.ts`) still uses a **12-step** model (steps 1-8 then trial 9-12). But the **shared data** hook (`useSharedFamilyJourneyData.ts`) uses the upgraded **15-step** model with the new steps 9 (Care Team Confirmed), 10 (Initial Family Meeting), 11 (Care Begins). The dashboard hook is out of sync — it has no awareness of caregiver assignments, introduction dates, or start dates from `onboarding_checklists`.
+### 1. `src/components/family/EnhancedFamilyNextStepsPanel.tsx` — Add Billing Context Card
 
-### Gap 2: Admin Journey Tracking — Outdated 12-Step Model
+- Destructure `agreedRate`, `weeklyHours` from `useEnhancedJourneyProgress()` (already returned, just not used)
+- When `agreedRate` is set, render a compact **"Your Care Plan Summary"** card above the journey stages showing:
+  - Agreed rate (e.g., "$35/hr — Standard")
+  - Weekly hours and projected weekly cost
+  - Subscription tier if applicable
+- Add the new Care Coordination stage group (steps 9-11) to `groupStepsByStage()` — currently the stages map only has `foundation`, `scheduling`, `trial`, `conversion` but the hooks now return `care_coordination` steps that aren't grouped
 
-The admin aggregate journey tracker (`useAdminJourneyTracking.ts` + `stepDefinitions.ts`) uses the OLD **12 steps**: Profile → Care Assessment → Legacy Story → View Matches → Medication → Meal → Schedule Visit → Confirm Visit → Schedule Trial → Pay Trial → Begin Trial → Choose Path. It completely misses the new steps (Care Team Confirmed, Initial Family Meeting, Care Begins) and has no awareness of caregiver assignments or `onboarding_checklists` data.
+### 2. `src/components/professional/EnhancedProfessionalNextStepsPanel.tsx` — Add Compensation Card
 
-### Gap 3: Admin `FamilyJourneyProgressPanel` — No Rate/Billing Context
+- Destructure `agreedRate`, `weeklyHours`, `projectedWeeklyEarnings` from `useEnhancedProfessionalProgress()` (already returned)
+- When compensation data exists, show a green-themed **"Your Compensation"** card below the progress bar: hourly rate, weekly hours, projected earnings, payment schedule ("Weekly, every Friday")
 
-The admin per-user `FamilyJourneyProgressPanel` shows journey steps but has no mention of the caregiver rate, weekly hours, billing summary, or compensation data that was just added to the onboarding checklist. When an admin views a family user's journey, there's no billing/rate context.
+### 3. `src/components/tav/components/FamilyJourneyPreview.tsx` — Add Rate Summary Line
 
-### Gap 4: Professional Dashboard Journey — No Post-Onboarding Compensation Visibility
+- Access `agreedRate` and `weeklyHours` from the existing `journeyProgress` object (already available via `useEnhancedJourneyProgress`)
+- When set, add a compact line below the progress bar: "Rate: $35/hr — 40 hrs/wk"
+- Update the step preview from `slice(0, 7)` to show key milestones across all 15 steps (show first 7 foundation + highlight current stage)
 
-The professional dashboard (`EnhancedProfessionalNextStepsPanel`) and `useEnhancedProfessionalProgress` show 8 steps (account → profile → availability → documents → references → screening → assignments → training). There is **no step or card** for "View Your Compensation" or "Rate Confirmed" after a caregiver is assigned to a family. The admin onboarding now shows compensation summaries, but the professional's own dashboard has no awareness of their agreed rate or earnings.
+### 4. `src/components/tav/components/ProfessionalJourneyPreview.tsx` — Add Earnings Summary Line
 
-### Gap 5: TAV Assistant — No Awareness of Billing/Rate/Compensation Context
+- Destructure `agreedRate`, `projectedWeeklyEarnings` from `useEnhancedProfessionalProgress()` (already returned)
+- When set, add a compact earnings line: "Earnings: $35/hr — ~$1,400/wk"
 
-TAV uses `useEnhancedProfessionalProgress` and `useEnhancedJourneyProgress` for progress context. It has no awareness of:
-- The family's agreed caregiver rate
-- Weekly hours or shift selection
-- Billing summary / projected costs
-- Professional's compensation details
-- Bank details or payment schedule
+### 5. `src/components/family/FamilyNextStepsPanel.tsx` — Align to 15 Steps
 
-TAV's `ProgressContext` type only tracks `completionPercentage`, `currentStep`, `totalSteps`, `nextAction`, `journeyStage`, `careModel`, and `trialCompleted` — no financial context.
+- Currently shows `steps.slice(0, 7)` — update to show steps grouped by stage category with the new care_coordination steps visible
+- Add `step_number` property access (the `useFamilyJourneyProgress` hook returns steps with `id` matching step number)
 
-### Gap 6: `useFamilyJourneyProgress` Completion Calculation — Simpler Than `useSharedFamilyJourneyData`
+### 6. `src/components/family/FamilyDashboard.tsx` — Update Rate Info Card
 
-The dashboard hook (`useFamilyJourneyProgress`) uses a simple `full_name` check for profile completion (step 1), while the shared hook uses the enhanced `calculateRegistrationCompletion` with required + enhanced field checks. This discrepancy means completion percentages can differ between the dashboard and admin views.
+- The existing "Tavara Care Rates" collapsible card (line 130) shows hardcoded $40–$50+/hr range
+- When the user has an `agreedRate` from their journey, show their **actual agreed rate** prominently instead of the generic range
+- Minor: no structural changes, just conditionally show personalized rate
 
----
+## Files Modified
 
-## Implementation Plan
-
-### Phase 1: Align Family Dashboard Journey to 15-Step Model
-
-**File: `src/hooks/useFamilyJourneyProgress.ts`**
-- Replace the 12-step model with the 15-step model matching `useSharedFamilyJourneyData`
-- Add steps 9 (Care Team Confirmed), 10 (Initial Family Meeting), 11 (Care Begins)
-- Renumber trial steps to 12-14 and conversion to 15
-- Add queries for `caregiver_assignments`, `admin_match_interventions`, and `onboarding_checklists` (for intro/start dates)
-- Use `calculateRegistrationCompletion` for step 1 consistency
-- Update `updateStepAccessibility`, `getButtonText`, `handleStepAction`, and `determineJourneyStage` accordingly
-
-### Phase 2: Upgrade Admin Aggregate Journey Tracking to 15-Step Model
-
-**Files:**
-- `src/hooks/admin/journey/stepDefinitions.ts` — Update `STEP_TITLES` and `STEP_CATEGORIES` to 15 steps with new Care Coordination category
-- `src/hooks/admin/journey/types.ts` — Add 'care_coordination' to category union type
-- `src/hooks/admin/journey/userProgressCalculator.ts` — Add checks for caregiver assignments, intro date, and start date from `onboarding_checklists`
-- `src/hooks/admin/useAdminJourneyTracking.ts` — Update step tracking to 15 entries
-
-### Phase 3: Add Rate/Billing Context to Admin Journey Panel
-
-**File: `src/components/admin/FamilyJourneyProgressPanel.tsx`**
-- When a family has reached post-onboarding (step 9+), show a compact billing summary below the progress bar: agreed rate, weekly hours, projected weekly cost
-- Pull this from `onboarding_checklists.checked_items["care_rate"]` for the family
-
-### Phase 4: Add Compensation Step to Professional Dashboard
-
-**File: `src/hooks/useEnhancedProfessionalProgress.ts`**
-- After step 7 (Match with Families), add awareness of the linked family's `care_rate` from `onboarding_checklists`
-- Add a "Compensation Confirmed" indicator when the rate is set
-- Expose `agreedRate` and `weeklyHours` in the return data
-
-**File: `src/components/professional/EnhancedProfessionalNextStepsPanel.tsx`**
-- When a professional has active assignments AND a rate is set, show a compact compensation card: hourly rate, assigned shift, projected weekly earnings, payment schedule
-
-### Phase 5: Upgrade TAV ProgressContext with Financial Awareness
-
-**File: `src/components/tav/types.ts`**
-- Add optional fields to `ProgressContext`: `agreedRate`, `weeklyHours`, `projectedWeeklyEarnings`, `paymentSchedule`
-
-**File: `src/components/tav/TavaraAssistantPanel.tsx`**
-- Populate the new financial fields from the enhanced hooks when building `ProgressContext`
-
-**File: `src/components/tav/RoleBasedContent.tsx`**
-- When professional has compensation data, surface it in the TAV panel alongside journey progress
-- When family has billing data, TAV can reference their rate and weekly cost in context
-
-**File: `src/components/tav/components/FamilyJourneyPreview.tsx` and `ProfessionalJourneyPreview.tsx`**
-- Add a compact financial summary line when data is available (e.g., "Rate: $35/hr — 40 hrs/wk")
-
-### Phase 6: Ensure DB Function Alignment
-
-**File: DB function `calculate_and_update_journey_progress`**
-- Already has 12-step family logic — needs migration to add steps 9-11 (care team confirmed, family meeting, care begins) matching the frontend 15-step model
-- Check caregiver_assignments and onboarding_checklists for new step completion
-
----
-
-## Files Modified (Summary)
-
-1. `src/hooks/useFamilyJourneyProgress.ts` — 12→15 steps, add assignment/checklist queries
-2. `src/hooks/admin/journey/stepDefinitions.ts` — 12→15 step titles/categories
-3. `src/hooks/admin/journey/types.ts` — Add 'care_coordination' category
-4. `src/hooks/admin/journey/userProgressCalculator.ts` — Add assignment/checklist checks
-5. `src/hooks/admin/useAdminJourneyTracking.ts` — 15-step tracking
-6. `src/components/admin/FamilyJourneyProgressPanel.tsx` — Add billing context
-7. `src/hooks/useEnhancedProfessionalProgress.ts` — Add compensation awareness
-8. `src/components/professional/EnhancedProfessionalNextStepsPanel.tsx` — Add compensation card
-9. `src/components/tav/types.ts` — Extend ProgressContext
-10. `src/components/tav/TavaraAssistantPanel.tsx` — Populate financial context
-11. `src/components/tav/RoleBasedContent.tsx` — Surface financial data
-12. `src/components/tav/components/FamilyJourneyPreview.tsx` — Add rate summary
-13. `src/components/tav/components/ProfessionalJourneyPreview.tsx` — Add earnings summary
-14. DB migration — Update `calculate_and_update_journey_progress` to 15 steps
+1. `src/components/family/EnhancedFamilyNextStepsPanel.tsx` — Add billing summary card + care_coordination stage group
+2. `src/components/professional/EnhancedProfessionalNextStepsPanel.tsx` — Add compensation card
+3. `src/components/tav/components/FamilyJourneyPreview.tsx` — Add rate summary line
+4. `src/components/tav/components/ProfessionalJourneyPreview.tsx` — Add earnings summary line
+5. `src/components/family/FamilyNextStepsPanel.tsx` — Align step display to 15-step model
+6. `src/components/family/FamilyDashboard.tsx` — Personalize rate info card when agreed rate exists
 
