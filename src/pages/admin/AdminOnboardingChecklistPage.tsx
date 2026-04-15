@@ -694,6 +694,8 @@ function ChecklistTabContent({
   familyMedications,
   familyCarePlanId,
   onToggleApproval,
+  selectedCaregiverWeeklyHours,
+  onCaregiverWeeklyHoursChange,
 }: {
   profiles: ProfileOption[];
   loadingProfiles: boolean;
@@ -724,6 +726,8 @@ function ChecklistTabContent({
   familyMedications?: Array<{ id: string; name: string; dosage?: string; medication_type?: string; instructions?: string; schedule?: any }>;
   familyCarePlanId?: string | null;
   onToggleApproval?: (approvalKey: string) => void;
+  selectedCaregiverWeeklyHours?: number;
+  onCaregiverWeeklyHoursChange?: (hours: number) => void;
 }) {
   const publicGuideUrl = `${window.location.origin}/onboarding-guide`;
   const copyPublicLink = () => {
