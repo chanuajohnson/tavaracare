@@ -415,30 +415,33 @@ export function buildDefaultCareBillingData(
   const nursingTotal = nurseRate * hoursPerWeek;
   const subscriptionRate = 699; // Active Care Management weekly
 
-  // Build base line items
-  const baseLineItems: BillingLineItem[] = overrides.lineItems || [
-    {
-      description: 'Standard Weekly Care — Nursing (40 hrs/wk)',
-      hoursPerWeek,
-      ratePerHour: nurseRate,
-      amount: nursingTotal,
-    },
-    {
-      description: 'Active Care Management — Care Coordination',
-      amount: subscriptionRate,
-      note: '(weekly)',
-    },
-  ];
-
-  // Merge additional line items if provided
   const additionalItems = overrides.additionalLineItems || [];
+  const hasServiceSelections = additionalItems.length > 0;
+
+  // If service selections are provided, use them as primary line items (no hardcoded defaults)
+  const baseLineItems: BillingLineItem[] = overrides.lineItems || 
+    (hasServiceSelections 
+      ? [] // Don't add hardcoded defaults when we have real service data
+      : [
+          {
+            description: 'Standard Weekly Care — Nursing (40 hrs/wk)',
+            hoursPerWeek,
+            ratePerHour: nurseRate,
+            amount: nursingTotal,
+          },
+          {
+            description: 'Active Care Management — Care Coordination',
+            amount: subscriptionRate,
+            note: '(weekly)',
+          },
+        ]);
+
   const allLineItems = [...baseLineItems, ...additionalItems];
 
-  // Recalculate totals including additional items
-  const additionalTotal = additionalItems.reduce((sum, item) => sum + item.amount, 0);
-  const baseSubtotal = overrides.subtotal ?? (nursingTotal + subscriptionRate);
-  const finalSubtotal = baseSubtotal + additionalTotal;
-  const finalTotal = (overrides.total ?? baseSubtotal) + additionalTotal;
+  // Calculate totals from actual line items
+  const calculatedSubtotal = allLineItems.reduce((sum, item) => sum + item.amount, 0);
+  const finalSubtotal = overrides.subtotal ?? calculatedSubtotal;
+  const finalTotal = overrides.total ?? calculatedSubtotal;
 
   return {
     familyName: overrides.familyName,

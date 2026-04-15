@@ -114,7 +114,7 @@ function CareSummaryHeader({ checkedItems, linkedCheckedItems, assignedFamilyNam
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <div className="text-sm">
           <span className="text-muted-foreground">Rate:</span>{" "}
-          <span className="font-medium">{(checkedItems["care_rate"] as string) || "$40/hr (Standard)"}</span>
+          <span className="font-medium">{(checkedItems["care_rate"] as string) || "Not set — update in checklist"}</span>
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Plan:</span>{" "}

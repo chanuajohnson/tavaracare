@@ -128,6 +128,24 @@ const faqs: FAQ[] = [
     question: "Still have questions?",
     answer: "If you couldn't find what you're looking for, feel free to:\n\n✔ Visit our Help Center\n✔ Reach out via WhatsApp Support\n✔ Submit a Support Ticket",
     category: "Support"
+  },
+  {
+    id: "faq-20",
+    question: "What are the caregiver hourly rates?",
+    answer: "Tavara Care uses a standardized three-tier pricing structure for caregiver rates:\n\n💙 Standard Care — $40/hr\nFor families using Tavara's care coordination platform with their own scheduling and management.\n\n💙 Full Service Care — $45/hr\nFor families on an Active or Premium Care Management plan, where Tavara handles scheduling, coordination, and oversight.\n\n💙 Premium/Specialized Care — $50+/hr\nFor specialized care needs such as dementia care, post-surgical recovery, or palliative support.\n\nRates are set transparently and apply consistently across all families. Legacy families who joined before rate updates may retain their original rates as a loyalty benefit.",
+    category: "Care Matching & Services"
+  },
+  {
+    id: "faq-21",
+    question: "How does care plan pricing work?",
+    answer: "Tavara offers two managed care coordination plans:\n\n🚀 Active Care Management — $699/week ($2,499/month)\nIncludes a dedicated care coordinator, structured weekly care coordination, caregiver oversight, billing support, and managed care.\n\n🚀 Premium Care Management — $899/week ($3,299/month)\nIncludes all Active Care features plus concierge-level coordination, 24/7 on-call support, priority matching, and complex family care management.\n\nAdditional one-time services:\n✔ Caregiver Matching & Placement — $299\n✔ Care Assessment & Setup — $499\n\nThese may be waived for early adopters or as part of promotional offers.",
+    category: "Care Management"
+  },
+  {
+    id: "faq-22",
+    question: "Are there discounts for early adopters or legacy families?",
+    answer: "Yes! Tavara honors legacy pricing for families who joined during our early growth phase. This means:\n\n✔ Your original care management rate is preserved (e.g., $499/week instead of $699/week)\n✔ Your caregiver hourly rate remains at the rate agreed upon at the time of hire\n✔ One-time fees such as Caregiver Matching & Placement or Care Assessment & Setup may have been waived\n\nAll legacy pricing is clearly displayed in your billing summary with 'Discounted' or 'Waived' labels for full transparency. We believe in rewarding trust — if you were with us early, you keep your rate.",
+    category: "Subscription & Pricing"
   }
 ];
 

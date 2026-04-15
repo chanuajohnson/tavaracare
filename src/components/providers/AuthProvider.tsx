@@ -224,8 +224,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       userMetadata: user?.user_metadata
     });
     
-    // NEW: Check if user is already on admin pages - skip redirect entirely
+    // Check if user is on admin pages or public pages - skip redirect entirely
     const isOnAdminPage = location.pathname.startsWith('/admin/');
+    const publicPages = ['/faq', '/support/faq', '/about', '/features', '/privacy-policy', '/errands', '/onboarding-guide', '/support'];
+    const isOnPublicPage = publicPages.some(p => location.pathname === p) || location.pathname.startsWith('/urgent-');
     
     const shouldSkipRedirect = 
       isLoading || 
@@ -235,11 +237,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isPasswordRecoveryRef.current ||
       skipRedirectForFlow ||
       currentRedirectLock ||
-      isOnAdminPage;  // NEW: Skip redirect when already on admin pages
+      isOnAdminPage ||
+      isOnPublicPage;
     
     if (shouldSkipRedirect) {
-      if (isOnAdminPage) {
-        console.log('[AuthProvider] SKIPPING post-login redirect - already on admin page');
+      if (isOnAdminPage || isOnPublicPage) {
+        console.log('[AuthProvider] SKIPPING post-login redirect - on admin/public page:', location.pathname);
       } else if (skipEmailVerification) {
         console.log('[AuthProvider] SKIPPING post-login redirect - email verification flag is active');
       } else if (skipRedirectForFlow) {
