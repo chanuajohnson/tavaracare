@@ -685,6 +685,7 @@ function ChecklistTabContent({
   linkedCheckedItems,
   assignedFamilyName,
   familyMedications,
+  familyCarePlanId,
   onToggleApproval,
 }: {
   profiles: ProfileOption[];
