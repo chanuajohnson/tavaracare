@@ -165,7 +165,7 @@ export function UnitEconomicsTable({ clients }: Props) {
                               ))}
                             </div>
                           </div>
-                        )
+                        )}
 
                         {/* Caregiver Breakdown */}
                         <h4 className="text-sm font-semibold">Caregiver Breakdown (payroll month totals)</h4>
