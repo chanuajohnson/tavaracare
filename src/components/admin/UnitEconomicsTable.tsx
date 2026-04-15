@@ -84,6 +84,7 @@ export function UnitEconomicsTable({ clients }: Props) {
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">{fmt(client.monthlySubscriptionRevenue)}</TableCell>
                   <TableCell className="text-right text-muted-foreground">{fmt(client.monthlyCaregiverFees)}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{fmt(client.monthlyServiceRevenue)}</TableCell>
                   <TableCell className="text-right font-medium">{fmt(client.monthlyRevenue)}</TableCell>
                   <TableCell className="text-right">{fmt(client.monthlyCaregiverCost)}</TableCell>
                   <TableCell className="text-right">{fmt(client.monthlyNisCost)}</TableCell>
@@ -98,7 +99,7 @@ export function UnitEconomicsTable({ clients }: Props) {
 
                 {isOpen && (
                   <TableRow>
-                    <TableCell colSpan={13} className="bg-muted/30 p-4">
+                    <TableCell colSpan={14} className="bg-muted/30 p-4">
                       <div className="space-y-3">
                         {/* Payroll Period */}
                         {client.periodStart && client.periodEnd && (
