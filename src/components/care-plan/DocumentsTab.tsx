@@ -144,7 +144,7 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({
       }));
 
     const additionalNotes: string[] = [
-      'NIS (National Insurance) contributions for the assigned caregiver are included and covered by Tavara as required by Trinidad & Tobago law.',
+      'NIS (National Insurance) contributions for assigned caregivers are managed in accordance with Trinidad & Tobago regulations, with Tavara providing guidance, coordination, and support to ensure compliance.',
       'Tavara provides continuity of care — if your assigned caregiver is unavailable, a qualified replacement will be provided at no extra charge.',
       'Rate adjustments may apply if care needs change (e.g., disease progression, additional services).',
     ];
