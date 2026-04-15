@@ -120,7 +120,7 @@ const DocumentGenerationMenu = ({
 
     // Filter out waived $0 items if hideWaivedItems is true
     const filteredApprovedItems = hideWaivedItems
-      ? approvedLineItems.filter(item => !(item.amount === 0 && item.description.includes('[WAIVED]')))
+      ? approvedLineItems.filter(item => !(item.amount === 0 && item.description.includes('[WAIVED')))
       : approvedLineItems;
 
     return buildDefaultCareBillingData({
