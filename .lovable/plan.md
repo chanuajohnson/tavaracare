@@ -1,49 +1,41 @@
 
 
-# Plan: Exclude Waived $0 Line Items for Anna + Include Subscription as Proper Line Item
+# Fix: Subscription Must Appear as Line Item with Correct Total
 
-## Problem
-Anna's quote shows waived $0 items (Caregiver Matching & Placement, Care Assessment & Setup) which confuses her. Also, the $499 subscription isn't in the total — it appears as a separate info box.
+## Current Problem (from screenshot)
+The quote shows only ONE line item (Standard Weekly Care — $1,400) with total $1,400. The subscription "Active Care Management" appears as a separate purple info box showing **$699/week** (ignoring the $499 override) and is **NOT included in the total**. This is wrong.
 
-## Changes
+## Root Cause
+Two issues in `invoiceService.ts`:
 
-### 1. `src/components/admin/care-plans/DocumentGenerationMenu.tsx`
+1. **The subscription info box duplicates the line item** — `buildSubscriptionSection()` renders a visual-only box with `$699/week` (default) even when the subscription is detected at $499 from approved services. This box is shown BELOW the table and confuses the total.
 
-**Filter waived items for specific families**: Add an optional `hideWaivedItems` prop (boolean). When true, filter out any `approvedLineItems` where `amount === 0` and description contains `[WAIVED]` before passing to `buildDefaultCareBillingData`.
+2. **The subscription detection may not fire** — if the `description` from `DocumentGenerationMenu` includes `[Discounted from $699.00]`, the detection works, but the subscription info box STILL renders separately with the wrong rate, creating a visual disconnect.
 
-**Include subscription as line item**: Detect if any approved service selection is a subscription-type item (e.g., "Active Care Management"). If found, include its amount in the line items table so the total reflects it (e.g., $1,400 + $499 = $1,899). Update the `subscriptionRate` override to match the actual override price (e.g., "$499/week" not "$699/week").
+## Fix
 
-### 2. Where Anna's DocumentGenerationMenu is rendered
+### `src/services/care-plans/invoiceService.ts`
 
-Find where Anna's care plan renders `DocumentGenerationMenu` and pass `hideWaivedItems={true}`. This is likely in the admin onboarding checklist or care plan detail page.
+1. **Remove the standalone subscription info box from quotes/invoices** — since the subscription is now a proper line item in the table, `buildSubscriptionSection()` should only show the "Includes:" details as a subtle note beneath the table (no separate price display that contradicts the line item).
 
-**Approach**: Rather than hardcoding Anna's ID, add the `hideWaivedItems` prop to `DocumentGenerationMenu` and set it contextually. For now, the simplest approach: filter out $0 waived items by default (since waived items with $0 add no financial value to a client-facing quote), BUT keep a `showWaivedItems` prop that defaults to `false` for client-facing documents.
+2. **Ensure the subscription line item shows clean label** — strip `[Discounted from ...]` and `[WAIVED ...]` annotations from the subscription line item description when it appears in the PDF table. Show it as: `Active Care Management — Care Coordination` with amount `$499.00` and note `(weekly)`.
 
-Actually, the cleaner approach per the user's request: **For Anna only** — since the user explicitly said "for all others we include all line items." So we need a per-family toggle.
+3. **Verify total calculation** — `allLineItems` already sums correctly in the code, so this is about making sure the subscription IS in `allLineItems`. Add a console.log guard to verify during generation.
 
-**Final approach**: Add `hideWaivedItems?: boolean` prop to `DocumentGenerationMenu`. Default `false`. The admin onboarding checklist page (where Anna is managed) can pass this prop based on a checkbox or the admin's decision. For the immediate fix, we'll filter waived items in `getData()` when `hideWaivedItems` is true.
+### `src/components/admin/care-plans/DocumentGenerationMenu.tsx`
 
-### 3. `src/services/care-plans/invoiceService.ts` — `buildDefaultCareBillingData`
+No changes needed — the subscription item flows correctly from `approvedLineItems` through `additionalLineItems`.
 
-- When `additionalLineItems` includes a subscription-type item (label contains "Care Management" or "Active Care Management"), extract its amount and set `subscriptionRate` to the actual price (e.g., "$499/week")
-- Ensure the subscription item's amount is included in `allLineItems` so it's part of the subtotal/total calculation
-- The subscription info box should still display but without duplicating the price in the total
+## Expected Result for Anna
+| Description | Hours | Rate | Amount |
+|---|---|---|---|
+| Standard Weekly Care — Caregiver (40 hrs/wk) | 40 hrs/wk | $35.00/hr | $1,400.00 |
+| Active Care Management — Care Coordination | — | — | $499.00 |
+| **Subtotal** | | | **$1,899.00** |
+| **Total (TTD)** | | | **$1,899.00** |
 
-### 4. Admin Onboarding Checklist — Add toggle for Anna
-
-In the section where `DocumentGenerationMenu` is rendered for families, add a small checkbox: "Hide waived ($0) items on documents" that passes `hideWaivedItems` to the component. This lets the admin control per-family whether waived items appear.
-
-## Result for Anna's Quote
-- Line 1: Standard Weekly Care — Caregiver (40 hrs/wk) → $1,400.00
-- Line 2: Active Care Management → $499.00 (weekly)  
-- **Total: $1,899.00/week**
-- No $0 waived items shown
-
-## Result for Other Families
-- All line items shown including waived ones (default behavior preserved)
+Below the table: a subtle note listing what the subscription includes (coordinator, replacement guarantee, etc.) — no separate price box.
 
 ## Files Modified
-1. `src/components/admin/care-plans/DocumentGenerationMenu.tsx` — Add `hideWaivedItems` prop, filter logic, subscription-as-line-item logic
-2. `src/services/care-plans/invoiceService.ts` — Update `buildDefaultCareBillingData` to handle subscription in line items and correct `subscriptionRate`
-3. `src/pages/admin/AdminOnboardingChecklistPage.tsx` — Add "Hide waived items" toggle that passes to DocumentGenerationMenu
+1. `src/services/care-plans/invoiceService.ts` — Clean subscription label in line items, change `buildSubscriptionSection` to show only "Includes" without price, verify total
 
