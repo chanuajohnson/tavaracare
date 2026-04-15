@@ -29,6 +29,12 @@ export interface CaregiverBreakdown {
   employeeNis: number;
 }
 
+export interface ServiceRevenueItem {
+  label: string;
+  billingType: string;
+  amount: number;
+}
+
 export interface ClientEconomics {
   carePlanId: string;
   carePlanTitle: string;
@@ -42,6 +48,7 @@ export interface ClientEconomics {
   // Monthly figures
   monthlySubscriptionRevenue: number;
   monthlyCaregiverFees: number;
+  monthlyServiceRevenue: number;
   monthlyRevenue: number;
   monthlyCaregiverCost: number;
   monthlyNisCost: number;
@@ -58,6 +65,7 @@ export interface ClientEconomics {
   marginPercent: number;
   status: 'profitable' | 'at-risk' | 'losing';
   caregiverBreakdowns: CaregiverBreakdown[];
+  serviceBreakdown: ServiceRevenueItem[];
 }
 
 export interface UnitEconomicsSummary {
@@ -182,13 +190,17 @@ export function useUnitEconomics(selectedMonth: string) {
       const carePlanIds = carePlans.map(cp => cp.id);
 
       // Parallel fetches — get ALL payroll entries (not filtered by date)
-      const [profilesRes, subscriptionsRes, payrollRes, teamRes] = await Promise.all([
+      const [profilesRes, subscriptionsRes, payrollRes, teamRes, serviceSelectionsRes] = await Promise.all([
         supabase.from('profiles').select('id, full_name').in('id', familyIds),
         supabase.from('user_subscriptions').select('user_id, plan_id, status').in('user_id', familyIds).eq('status', 'active'),
         supabase.from('payroll_entries').select('care_plan_id, care_team_member_id, regular_hours, regular_rate, overtime_hours, overtime_rate, holiday_hours, holiday_rate, expense_total, employer_contribution, employee_contribution, gross_pay, pay_period_start')
           .in('care_plan_id', carePlanIds)
           .not('pay_period_start', 'is', null),
         supabase.from('care_team_members').select('id, care_plan_id, caregiver_id, display_name').in('care_plan_id', carePlanIds),
+        supabase.from('care_plan_service_selections')
+          .select('care_plan_id, quantity, override_price, billable_service_items(label, billing_type, unit_price, visible_in_unit_economics)')
+          .in('care_plan_id', carePlanIds)
+          .eq('selected', true),
       ]);
 
       // Fetch subscription plans
