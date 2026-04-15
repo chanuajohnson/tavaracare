@@ -477,12 +477,19 @@ export function buildDefaultCareBillingData(
 
   // If subscription detected from approved services, add it as a proper line item
   if (detectedSubscriptionRate !== null && detectedSubscriptionRate > 0) {
+    // Clean label: strip [Discounted from ...] and [WAIVED ...] annotations
+    const cleanLabel = (detectedSubscriptionLabel || 'Active Care Management')
+      .replace(/\s*\[Discounted from[^\]]*\]/gi, '')
+      .replace(/\s*\[WAIVED[^\]]*\]/gi, '')
+      .trim();
     baseLineItems.push({
-      description: detectedSubscriptionLabel || 'Active Care Management — Care Coordination',
+      description: cleanLabel.includes('Care Coordination') ? cleanLabel : `${cleanLabel} — Care Coordination`,
       amount: detectedSubscriptionRate,
       note: '(weekly)',
     });
   }
+
+  console.log('[invoiceService] Line items for document:', allLineItems.map(i => `${i.description}: $${i.amount}`));
 
   const allLineItems = [...baseLineItems, ...nonSubscriptionItems];
 
