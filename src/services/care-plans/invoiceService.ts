@@ -86,7 +86,7 @@ const TERMS_AND_CONDITIONS = [
   'Holiday rates: 1.5× standard rate; Christmas Day and New Year\'s Day: 2× standard rate.',
   'Extended hours beyond the agreed schedule are billed at 1.5× the standard rate.',
   'Care escalation due to changes in condition may require a rate adjustment with prior notice.',
-  'NIS (National Insurance) contributions for the assigned caregiver are covered by Tavara.',
+  'NIS (National Insurance) contributions for assigned caregivers are managed in accordance with Trinidad & Tobago regulations, with Tavara providing guidance, coordination, and support to ensure compliance.',
   'Please send a screenshot of payment/bank transfer confirmation via WhatsApp or email.',
 ];
 
@@ -521,7 +521,7 @@ export function buildDefaultCareBillingData(
       'Caregiver replacement guarantee (within coordinated pool)',
       'Care needs change management',
       'Weekly billing management',
-      'NIS compliance coverage',
+      'NIS compliance guidance and coordination',
     ],
     carePlanId: overrides.carePlanId,
     carePlanTitle: overrides.carePlanTitle,
@@ -532,7 +532,7 @@ export function buildDefaultCareBillingData(
     paymentDate: overrides.paymentDate,
     amountPaid: overrides.amountPaid,
     additionalNotes: overrides.additionalNotes || [
-      'NIS (National Insurance) contributions for the assigned caregiver are included and covered by Tavara as required by Trinidad & Tobago law.',
+      'NIS (National Insurance) contributions for assigned caregivers are managed in accordance with Trinidad & Tobago regulations, with Tavara providing guidance, coordination, and support to ensure compliance.',
       'Tavara provides continuity of care — if your assigned caregiver is unavailable, a qualified replacement will be provided at no extra charge within the coordinated care team pool.',
       'Rate adjustments may apply if care needs change (e.g., disease progression, additional services).',
     ],

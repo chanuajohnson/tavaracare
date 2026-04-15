@@ -563,7 +563,7 @@ function generateProfessionalReport(
   y += 3.5;
   pdf.text(`Payment: Weekly by Tavara (every Friday)   |   Holiday/OT: 1.5x (2x Christmas)`, M, y);
   y += 3.5;
-  pdf.text(`NIS: Covered by Tavara   |   Probationary Period: 30 days   |   Rotation Pool: Yes`, M, y);
+  pdf.text(`NIS: Managed per T&T regulations — Tavara provides guidance & coordination   |   Probation: 30 days   |   Rotation Pool: Yes`, M, y);
   y += 5;
 
   // --- Terms & Conditions Status (prominent) ---
