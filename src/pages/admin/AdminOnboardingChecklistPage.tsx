@@ -32,6 +32,7 @@ import CareSuppliesCard from "@/components/admin/onboarding/CareSuppliesCard";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
 import ServiceSelectionBlock from "@/components/admin/onboarding/ServiceSelectionBlock";
 import BillingSummaryCard from "@/components/admin/onboarding/BillingSummaryCard";
+import CaregiverRateSelector, { parseRateFromString, getWeeklyHoursFromSchedule } from "@/components/admin/onboarding/CaregiverRateSelector";
 import ServiceCommencementConfirmation from "@/components/admin/onboarding/ServiceCommencementConfirmation";
 import { toast } from "sonner";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
