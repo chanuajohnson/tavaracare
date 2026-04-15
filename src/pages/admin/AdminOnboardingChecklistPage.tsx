@@ -714,6 +714,7 @@ function ChecklistTabContent({
   linkedCheckedItems?: Record<string, boolean | string>;
   assignedFamilyName?: string;
   familyMedications?: Array<{ id: string; name: string; dosage?: string; medication_type?: string; instructions?: string; schedule?: any }>;
+  familyCarePlanId?: string | null;
   onToggleApproval?: (approvalKey: string) => void;
 }) {
   const publicGuideUrl = `${window.location.origin}/onboarding-guide`;
