@@ -13,7 +13,7 @@ interface ProfessionalJourneyPreviewProps {
 
 export const ProfessionalJourneyPreview: React.FC<ProfessionalJourneyPreviewProps> = ({ onBack }) => {
   const navigate = useNavigate();
-  const { steps, stages, currentStage, overallProgress, nextStep, completedSteps, totalSteps, loading } = useEnhancedProfessionalProgress();
+  const { steps, stages, currentStage, overallProgress, nextStep, completedSteps, totalSteps, loading, agreedRate, weeklyHours, projectedWeeklyEarnings } = useEnhancedProfessionalProgress();
 
   const getStageIcon = (stage: string) => {
     switch (stage) {
@@ -112,6 +112,17 @@ export const ProfessionalJourneyPreview: React.FC<ProfessionalJourneyPreviewProp
         </div>
 
         <Progress value={overallProgress} className="h-2 bg-gray-100 mb-2" />
+        
+        {/* Earnings summary when available */}
+        {agreedRate && (
+          <div className="flex items-center gap-2 text-xs text-primary mb-1 bg-primary/10 rounded px-2 py-1">
+            <span className="font-medium">Earnings: {agreedRate}</span>
+            {projectedWeeklyEarnings && (
+              <span>• ~${projectedWeeklyEarnings.toLocaleString()}/wk</span>
+            )}
+          </div>
+        )}
+        
         <p className="text-xs text-gray-700 leading-relaxed">
           {stageData.description}
         </p>
