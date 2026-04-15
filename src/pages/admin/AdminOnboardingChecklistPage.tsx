@@ -1027,6 +1027,24 @@ function ChecklistTabContent({
                       </div>
                     )}
 
+                    {/* Helper text banner */}
+                    {section.helperText && (
+                      <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/50 p-3 text-xs text-blue-800 flex items-start gap-2">
+                        <span className="text-blue-500 mt-0.5">ℹ️</span>
+                        <span>{section.helperText}</span>
+                      </div>
+                    )}
+
+                    {/* Service Selection Block for relevant sections */}
+                    {section.serviceCategory && showFamilyData && familyCarePlanId && (
+                      <div className="mb-4">
+                        <ServiceSelectionBlock
+                          carePlanId={familyCarePlanId}
+                          filterCategory={section.serviceCategory}
+                        />
+                      </div>
+                    )}
+
                     <div className="space-y-3 pl-2">
                       {section.items.map((item, i) => {
                         const itemKey = `${section.id}_${i}`;
