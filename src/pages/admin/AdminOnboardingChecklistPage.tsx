@@ -1901,8 +1901,12 @@ export default function AdminOnboardingChecklistPage() {
                       <span className="text-xs text-muted-foreground">Hide waived ($0) items on documents</span>
                     </label>
                   </div>
+                  {!familyCarePlanId && (
+                    <div className="text-xs text-amber-600 mb-1">⚠️ No care plan found — approved services won't appear in documents.</div>
+                  )}
                   <DocumentGenerationMenu
                     familyName={families.find(f => f.id === selectedFamilyId)?.full_name || 'Family'}
+                    carePlanId={familyCarePlanId || undefined}
                     carePlanTitle="Care Services"
                     careRate={(familyCheckedItems["care_rate"] as string) || undefined}
                     weeklyHours={getWeeklyHoursFromSchedule(
