@@ -217,6 +217,7 @@ export default function FamilyOnboardingChecklistPage() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [hasChecklist, setHasChecklist] = useState(false);
   const [medications, setMedications] = useState<any[]>([]);
+  const [familyCarePlanId, setFamilyCarePlanId] = useState<string | null>(null);
   const [emergencyContacts, setEmergencyContacts] = useState<{
     emergency_contact_name?: string;
     emergency_contact_phone?: string;
