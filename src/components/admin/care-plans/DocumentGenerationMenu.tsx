@@ -102,14 +102,14 @@ const DocumentGenerationMenu = ({
 
   const getData = (): CareBillingData => {
     // Build caregiver labor line item from careRate prop
-    const nursingLineItems: BillingLineItem[] = [];
+    const caregiverLineItems: BillingLineItem[] = [];
     if (careRate) {
       const rateMatch = careRate.match(/\$?([\d.]+)/);
       const hourlyRate = rateMatch ? parseFloat(rateMatch[1]) : 0;
       const hrs = weeklyHours || 40;
       if (hourlyRate > 0) {
-        nursingLineItems.push({
-          description: `Standard Weekly Care — Nursing (${hrs} hrs/wk)`,
+        caregiverLineItems.push({
+          description: `Standard Weekly Care — Caregiver (${hrs} hrs/wk)`,
           amount: hourlyRate * hrs,
           note: `(${hrs} hrs × $${hourlyRate.toFixed(2)}/hr weekly)`,
         });
@@ -127,7 +127,7 @@ const DocumentGenerationMenu = ({
       carePlanId,
       carePlanTitle,
       ...billingData,
-      additionalLineItems: [...approvedLineItems, ...nursingLineItems],
+      additionalLineItems: [...approvedLineItems, ...caregiverLineItems],
     });
   };
 

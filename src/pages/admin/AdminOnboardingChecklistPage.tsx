@@ -1165,6 +1165,19 @@ function ChecklistTabContent({
                       />
                     )}
 
+                    {(section.id === "rates_payment" || section.id === "rates_and_changes") && showProfessionalData && linkedCheckedItems?.["care_rate"] && (
+                      <div className="mb-4 rounded-lg border border-green-200 bg-green-50/50 p-4">
+                        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2 text-green-900">
+                          <DollarSign className="h-4 w-4" />
+                          Assigned Rate (from Family)
+                        </h4>
+                        <p className="text-sm font-medium">{linkedCheckedItems["care_rate"] as string}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          This rate is set on the family's care plan. To change, update the family's rate in their onboarding tab.
+                        </p>
+                      </div>
+                    )}
+
                     {(section.id === "rates_payment" || section.id === "rates_and_changes") && (
                       <RateTierReferenceCard />
                     )}
@@ -1208,7 +1221,7 @@ function ChecklistTabContent({
                           assignedFamilyName={assignedFamilyName}
                         />
 
-                        {/* Billing & Care Structure Summary */}
+                        {/* Billing & Care Structure Summary — Family only */}
                         {showFamilyData && familyCarePlanId && (
                           <div className="mb-4">
                             <BillingSummaryCard
@@ -1219,7 +1232,7 @@ function ChecklistTabContent({
                           </div>
                         )}
 
-                        {/* Service Commencement Confirmation */}
+                        {/* Service Commencement Confirmation — Family only */}
                         {showFamilyData && familyCarePlanId && (
                           <div className="mb-4">
                             <ServiceCommencementConfirmation
@@ -1238,6 +1251,66 @@ function ChecklistTabContent({
                             />
                           </div>
                         )}
+
+                        {/* Compensation Summary — Professional only */}
+                        {showProfessionalData && (() => {
+                          const linkedRate = (linkedCheckedItems?.["care_rate"] || checkedItems["care_rate"]) as string | undefined;
+                          const rateMatch = linkedRate?.match(/\$?([\d.]+)/);
+                          const hourlyRate = rateMatch ? parseFloat(rateMatch[1]) : 0;
+                          const schedule = linkedCheckedItems?.["care_schedule"] as string | undefined;
+                          const weeklyHrs = selectedCaregiverWeeklyHours || 40;
+                          const weeklyEarnings = hourlyRate * weeklyHrs;
+                          const monthlyEstimate = weeklyEarnings * 4.33;
+
+                          return linkedRate ? (
+                            <div className="mb-4">
+                              <Card className="border-green-200 bg-green-50/50">
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-sm flex items-center gap-2 text-green-900">
+                                    <DollarSign className="h-4 w-4" />
+                                    Compensation Summary
+                                    {assignedFamilyName && (
+                                      <Badge variant="outline" className="text-[10px]">
+                                        for {assignedFamilyName} assignment
+                                      </Badge>
+                                    )}
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="text-sm">
+                                      <span className="text-muted-foreground">Agreed Rate:</span>{" "}
+                                      <span className="font-semibold">{linkedRate}</span>
+                                    </div>
+                                    <div className="text-sm">
+                                      <span className="text-muted-foreground">Weekly Hours:</span>{" "}
+                                      <span className="font-semibold">{weeklyHrs} hrs/wk</span>
+                                    </div>
+                                    <div className="text-sm">
+                                      <span className="text-muted-foreground">Projected Weekly Earnings:</span>{" "}
+                                      <span className="font-semibold text-green-700">${weeklyEarnings.toFixed(2)}</span>
+                                    </div>
+                                    <div className="text-sm">
+                                      <span className="text-muted-foreground">Est. Monthly Earnings:</span>{" "}
+                                      <span className="font-semibold text-green-700">~${monthlyEstimate.toFixed(2)}</span>
+                                    </div>
+                                    <div className="text-sm">
+                                      <span className="text-muted-foreground">Payment Schedule:</span>{" "}
+                                      <span className="font-medium">Weekly (every Friday)</span>
+                                    </div>
+                                    <div className="text-sm">
+                                      <span className="text-muted-foreground">Holiday/OT:</span>{" "}
+                                      <span className="font-medium">1.5× (2× Christmas)</span>
+                                    </div>
+                                  </div>
+                                  <div className="text-xs text-green-800 border-t border-green-200 pt-2">
+                                    💡 Payments are processed weekly. Complete timesheets and care logs by Thursday to ensure Friday payout.
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </div>
+                          ) : null;
+                        })()}
 
                         {/* Family: Service Commencement Approval block */}
                         {showFamilyData && (() => {
