@@ -132,15 +132,40 @@ export function UnitEconomicsTable({ clients }: Props) {
                                 Actual wages from payroll
                               </span>
                             </div>
+                            {client.monthlyServiceRevenue > 0 && (
+                              <div className="text-xs bg-background rounded p-2 border">
+                                <span className="text-muted-foreground block">Service Revenue</span>
+                                <span className="font-medium text-sm">{fmt(client.monthlyServiceRevenue)}/mo</span>
+                                <span className="text-muted-foreground block text-[10px]">
+                                  {client.serviceBreakdown.length} approved service(s)
+                                </span>
+                              </div>
+                            )}
                             <div className="text-xs bg-background rounded p-2 border border-primary/30">
                               <span className="text-muted-foreground block">Total Revenue</span>
                               <span className="font-semibold text-sm">{fmt(client.monthlyRevenue)}/mo</span>
                               <span className="text-muted-foreground block text-[10px]">
-                                {fmt(client.monthlySubscriptionRevenue)} + {fmt(client.monthlyCaregiverFees)}
+                                {fmt(client.monthlySubscriptionRevenue)} + {fmt(client.monthlyCaregiverFees)}{client.monthlyServiceRevenue > 0 ? ` + ${fmt(client.monthlyServiceRevenue)}` : ''}
                               </span>
                             </div>
                           </div>
                         </div>
+
+                        {/* Service Revenue Breakdown */}
+                        {client.serviceBreakdown.length > 0 && (
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold">Service Revenue Breakdown</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                              {client.serviceBreakdown.map((svc, i) => (
+                                <div key={i} className="text-xs bg-background rounded p-2 border">
+                                  <span className="block font-medium">{svc.label}</span>
+                                  <span className="text-muted-foreground">{svc.billingType}</span>
+                                  <span className="block font-semibold">{fmt(svc.amount)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )
 
                         {/* Caregiver Breakdown */}
                         <h4 className="text-sm font-semibold">Caregiver Breakdown (payroll month totals)</h4>
