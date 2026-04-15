@@ -1382,6 +1382,7 @@ export default function AdminOnboardingChecklistPage() {
   const [familyOpenSections, setFamilyOpenSections] = useState<Record<string, boolean>>({});
   const [familyMedications, setFamilyMedications] = useState<Array<{ id: string; name: string; dosage?: string; medication_type?: string; instructions?: string; schedule?: any }>>([]);
   const [familyCarePlanId, setFamilyCarePlanId] = useState<string | null>(null);
+  const [selectedCaregiverWeeklyHours, setSelectedCaregiverWeeklyHours] = useState<number>(40);
   const familySaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Professional state
