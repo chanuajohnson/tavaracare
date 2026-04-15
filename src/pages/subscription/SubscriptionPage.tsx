@@ -11,7 +11,7 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTracking } from "@/hooks/useTracking";
 import { supabase } from "@/integrations/supabase/client";
-import { PayPalSubscribeButton } from "@/components/subscription/PayPalSubscribeButton";
+
 
 const SubscriptionPage = () => {
   const navigate = useNavigate();
