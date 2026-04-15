@@ -9,13 +9,15 @@ export interface OnboardingSectionLink {
 export interface OnboardingSectionDef {
   id: string;
   title: string;
-  iconName: string; // lucide icon name for portability
+  iconName: string;
   description: string;
   items: string[];
   showFamilyData?: boolean;
   showProfessionalData?: boolean;
-  links?: Record<number, string>; // item index -> URL for clickable links on family page
-  dateFields?: Record<number, string>; // item index -> label for date picker on admin page
+  links?: Record<number, string>;
+  dateFields?: Record<number, string>;
+  helperText?: string;
+  serviceCategory?: string; // maps to billable_service_items.category for this section
 }
 
 export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
@@ -48,7 +50,9 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     id: "pre_call",
     title: "Pre-Call Preparation",
     iconName: "ClipboardCheck",
-    description: "Admin review tasks before the onboarding call",
+    description: "Admin review tasks before the onboarding call — included in your Care Assessment & Setup",
+    helperText: "Care Assessment & Setup — Includes case review, care planning preparation, and onboarding coordination.",
+    serviceCategory: "setup",
     items: [
       "Review family account status (registered, profile complete?)",
       "Review existing care plan (if family already created one) OR note: care plan to be created during/after call",
@@ -63,6 +67,7 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     title: "Review Client Submissions",
     iconName: "Heart",
     description: "Review what the family already submitted — registration, care assessment, and legacy story",
+    helperText: "More complex care situations — such as multiple conditions, dementia, behavioral support, or multi-household needs — may require additional planning and coordination.",
     showFamilyData: true,
     items: [
       "Review registration: care recipient name, relationship, care types, special needs",
@@ -77,9 +82,10 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
   },
   {
     id: "platform_overview",
-    title: "Platform Overview for Family",
+    title: "Guided Platform Activation",
     iconName: "Monitor",
-    description: "Walk the family through core navigation",
+    description: "Your plan includes guided onboarding so your family knows exactly how to use Tavara with confidence",
+    helperText: "Guided activation is included in your care coordination plan — no additional cost.",
     items: [
       "How to log in (email + password or magic link)",
       "Family dashboard layout and shortcuts",
@@ -95,6 +101,8 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     title: "Care Plan Review & Setup",
     iconName: "FileText",
     description: "Collaboratively review and finalize the care plan with the family",
+    helperText: "Care plan setup is included in your coordination plan. Changes to care scope, schedules, or complexity may require a care plan adjustment.",
+    serviceCategory: "care_change",
     items: [
       "Review existing care plan details (if already created by family)",
       "Care plan types (Scheduled Care, On-Demand)",
@@ -110,7 +118,9 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     id: "medication",
     title: "Medication Management",
     iconName: "Pill",
-    description: "How the medication system works for families and caregivers",
+    description: "Structured medication coordination, logging, and reporting for families and caregivers",
+    helperText: "Medication coordination may be included or added depending on the care plan selected and care complexity.",
+    serviceCategory: "weekly_addon",
     items: [
       "How family adds medications (name, dosage, frequency, schedule)",
       "Medication schedule view — today's medications at a glance",
@@ -125,7 +135,9 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     id: "meals",
     title: "Meal Management",
     iconName: "UtensilsCrossed",
-    description: "Meal planning and nutrition features",
+    description: "Meal planning and nutrition features — basic meal support may be included in your care plan",
+    helperText: "Basic daily dietary meal prep is included in standard care. More involved meal preparation or special dietary support may require a care adjustment.",
+    serviceCategory: "weekly_addon",
     items: [
       "Meal planner — weekly meal scheduling",
       "Recipe library — browse and save recipes",
@@ -139,7 +151,8 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     id: "daily_checklist",
     title: "Daily Care Checklist (Caregiver SOP)",
     iconName: "ListChecks",
-    description: "The standard operating procedure caregivers follow each shift",
+    description: "Your care coordination plan helps ensure consistency, accountability, and clear daily care expectations",
+    helperText: "Daily care documentation is included in your care coordination plan — this helps justify and track the quality of care delivered.",
     items: [
       "How the professional fills out the checklist each shift",
       "One log per professional per care plan per day rule",
@@ -153,7 +166,8 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     id: "professional_dashboard",
     title: "Professional Dashboard Overview",
     iconName: "LayoutDashboard",
-    description: "What the caregiver sees on their side",
+    description: "Tavara supports your care team through structure, communication, and documentation tools",
+    helperText: "Professional dashboard access and care team tools are included in your coordination plan.",
     items: [
       "Care assignments and client details",
       "Calendar view with daily log entries",
@@ -167,6 +181,8 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     title: "Caregiver Matching & Introduction",
     iconName: "Users",
     description: "Match the right caregiver and plan introductions",
+    helperText: "Caregiver matching and placement may be included in your care setup or billed as a separate coordination service.",
+    serviceCategory: "setup",
     items: [
       "Discuss caregiver preferences (skills, personality, language)",
       "Explain matching process and timeline",
@@ -180,6 +196,8 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     title: "Rates, Care Changes & Escalation",
     iconName: "DollarSign",
     description: "Pricing transparency, holiday/overtime rates, and how costs evolve as care needs change",
+    helperText: "Changes in scope, complexity, schedule, or service level may require a care adjustment and will always be discussed before taking effect.",
+    serviceCategory: "care_change",
     items: [
       "Review rate tiers: Standard ($35/hr) — GAPP-certified personal care, medication admin & logging, vitals monitoring, basic daily dietary meal prep, daily care documentation, specialized care (dementia, palliative, post-surgical)",
       "Full Service ($40/hr) — Everything in Standard + advanced specialist-directed meal prep (holidays & special occasions), complex medical needs (wound care, catheter care, oxygen management), overnight/live-in shifts, advanced certifications (RN, LPN), behavioral health support",
@@ -199,7 +217,8 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     id: "next_steps",
     title: "Next Steps & Follow-Up",
     iconName: "CalendarCheck",
-    description: "Confirm start date, set up communication, and plan first-week check-in",
+    description: "Your care coordination plan includes activation support and early follow-up to help ensure a smooth start",
+    helperText: "Activation support and first-week check-in are included in your care coordination plan.",
     items: [
       "Confirm care start date (or trial day date)",
       "Set up WhatsApp care group",
@@ -213,7 +232,8 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     id: "communication",
     title: "Communication & Notifications",
     iconName: "MessageSquare",
-    description: "How everyone stays connected",
+    description: "Tavara keeps everyone connected through structured updates, communication, and care visibility",
+    helperText: "Communication tools and care visibility are included in your coordination plan.",
     items: [
       "Care plan edit notifications (bidirectional)",
       "Daily log visibility for family",
@@ -247,7 +267,8 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     id: "post_onboarding",
     title: "Post-Onboarding Summary",
     iconName: "CheckCircle2",
-    description: "Summary of completed onboarding and next steps for the family",
+    description: "Summary of completed onboarding, approved services, and next steps for the family",
+    helperText: "Review the billing & care structure summary below to confirm all approved services before commencement.",
     items: [
       "Onboarding completed successfully — welcome to Tavara.Care!",
       "Care team member confirmed and to be introduced to family",
