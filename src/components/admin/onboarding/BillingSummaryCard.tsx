@@ -19,6 +19,8 @@ interface ServiceItemWithSelection {
 
 interface BillingSummaryCardProps {
   carePlanId: string;
+  careRate?: string;
+  weeklyHours?: number;
 }
 
 function billingLabel(type: string): string {
@@ -31,7 +33,7 @@ function billingLabel(type: string): string {
   }
 }
 
-export default function BillingSummaryCard({ carePlanId }: BillingSummaryCardProps) {
+export default function BillingSummaryCard({ carePlanId, careRate, weeklyHours }: BillingSummaryCardProps) {
   const [items, setItems] = useState<ServiceItemWithSelection[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -91,7 +93,12 @@ export default function BillingSummaryCard({ carePlanId }: BillingSummaryCardPro
   const monthlyTotal = monthly.reduce((sum, i) => sum + getPrice(i), 0);
   const hourlyItems = hourly; // display only, no weekly total
 
-  const projectedWeeklyTotal = corePlanTotal + weeklyAddonsTotal;
+  // Parse caregiver labor from careRate prop
+  const parsedRate = careRate ? parseFloat((careRate.match(/\$?([\d.]+)/) || [])[1] || '0') : 0;
+  const effectiveWeeklyHours = weeklyHours || 40;
+  const caregiverWeeklyLabor = parsedRate * effectiveWeeklyHours;
+
+  const projectedWeeklyTotal = corePlanTotal + weeklyAddonsTotal + caregiverWeeklyLabor;
   const projectedMonthlyRecurring = Math.round((projectedWeeklyTotal * 4.33 + monthlyTotal) * 100) / 100;
 
   const approvedCount = items.filter(i => i.approved_by_family).length;
@@ -187,6 +194,12 @@ export default function BillingSummaryCard({ carePlanId }: BillingSummaryCardPro
         {/* Projected Totals */}
         <div className="bg-muted/50 rounded-lg p-3 space-y-2">
           <p className="font-semibold text-sm mb-2">Projected Totals</p>
+          {caregiverWeeklyLabor > 0 && (
+            <div className="flex justify-between text-sm">
+              <span>Caregiver Weekly Labor ({effectiveWeeklyHours} hrs × ${parsedRate.toFixed(2)})</span>
+              <span className="font-bold">${caregiverWeeklyLabor.toFixed(2)}/wk</span>
+            </div>
+          )}
           <div className="flex justify-between text-sm">
             <span>Projected Weekly Total</span>
             <span className="font-bold">${projectedWeeklyTotal.toFixed(2)}/wk</span>

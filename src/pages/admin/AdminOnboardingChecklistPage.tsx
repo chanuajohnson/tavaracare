@@ -32,6 +32,7 @@ import CareSuppliesCard from "@/components/admin/onboarding/CareSuppliesCard";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
 import ServiceSelectionBlock from "@/components/admin/onboarding/ServiceSelectionBlock";
 import BillingSummaryCard from "@/components/admin/onboarding/BillingSummaryCard";
+import CaregiverRateSelector, { parseRateFromString, getWeeklyHoursFromSchedule } from "@/components/admin/onboarding/CaregiverRateSelector";
 import ServiceCommencementConfirmation from "@/components/admin/onboarding/ServiceCommencementConfirmation";
 import { toast } from "sonner";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -176,6 +177,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 interface ProfileOption {
   id: string;
   full_name: string | null;
+  care_schedule?: string | null;
 }
 
 /** Map raw checklist items to past-tense, agreement-focused language */
@@ -1148,6 +1150,18 @@ function ChecklistTabContent({
                       <CareSuppliesCard />
                     )}
 
+                    {(section.id === "rates_payment" || section.id === "rates_and_changes") && showFamilyData && (
+                      <CaregiverRateSelector
+                        careSchedule={profiles.find(p => p.id === selectedId)?.care_schedule || undefined}
+                        currentRate={(checkedItems["care_rate"] as string) || ''}
+                        onRateChange={(rateStr) => {
+                          const next = { ...checkedItems, care_rate: rateStr };
+                          // We need to trigger save - use onDateChange which saves
+                          onDateChange?.("care_rate", rateStr);
+                        }}
+                      />
+                    )}
+
                     {(section.id === "rates_payment" || section.id === "rates_and_changes") && (
                       <RateTierReferenceCard />
                     )}
@@ -1194,7 +1208,13 @@ function ChecklistTabContent({
                         {/* Billing & Care Structure Summary */}
                         {showFamilyData && familyCarePlanId && (
                           <div className="mb-4">
-                            <BillingSummaryCard carePlanId={familyCarePlanId} />
+                            <BillingSummaryCard
+                              carePlanId={familyCarePlanId}
+                              careRate={(checkedItems["care_rate"] as string) || undefined}
+                              weeklyHours={getWeeklyHoursFromSchedule(
+                                profiles.find(p => p.id === selectedId)?.care_schedule || undefined
+                              )}
+                            />
                           </div>
                         )}
 
@@ -1379,7 +1399,7 @@ export default function AdminOnboardingChecklistPage() {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("id, full_name")
+          .select("id, full_name, care_schedule")
           .eq("role", "family")
           .order("full_name");
         if (error) throw error;
@@ -1794,6 +1814,10 @@ export default function AdminOnboardingChecklistPage() {
                   <DocumentGenerationMenu
                     familyName={families.find(f => f.id === selectedFamilyId)?.full_name || 'Family'}
                     carePlanTitle="Care Services"
+                    careRate={(familyCheckedItems["care_rate"] as string) || undefined}
+                    weeklyHours={getWeeklyHoursFromSchedule(
+                      families.find(f => f.id === selectedFamilyId)?.care_schedule || undefined
+                    )}
                   />
                 </div>
               </CardContent>
