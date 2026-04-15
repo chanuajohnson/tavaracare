@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { List, ArrowRight, Eye, Sparkles, CheckCircle2, Users, ClipboardList } from "lucide-react";
+import { List, ArrowRight, Eye, Sparkles, CheckCircle2, Users, ClipboardList, DollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ScheduleVisitModal } from "./ScheduleVisitModal";
 import { InternalSchedulingModal } from "./InternalSchedulingModal";
@@ -44,7 +44,10 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
     visitDetails,
     trackStepAction,
     isAnonymous,
-    onVisitCancelled
+    onVisitCancelled,
+    agreedRate,
+    weeklyHours,
+    projectedWeeklyCost
   } = useEnhancedJourneyProgress();
 
   // Enhanced lead capture state management
@@ -103,6 +106,17 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         steps: steps.filter(step => step.category === 'scheduling').map(step => ({
           ...step,
           cancelAction: step.step_number === 7 && step.completed ? () => setShowCancelVisitModal(true) : undefined
+        })),
+        subscriptionCTA: null
+      },
+      care_coordination: {
+        name: "Care Team Setup",
+        key: "care_coordination",
+        description: "Your care team is confirmed and care begins",
+        color: "teal",
+        steps: steps.filter(step => step.category === 'care_coordination').map(step => ({
+          ...step,
+          cancelAction: undefined
         })),
         subscriptionCTA: null
       },
@@ -225,8 +239,8 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
 
   const stageGroups = groupStepsByStage();
   const stagesToDisplay = showAllSteps 
-    ? Object.values(stageGroups) 
-    : [stageGroups.foundation, stageGroups.scheduling].filter(stage => stage.steps.length > 0);
+    ? Object.values(stageGroups).filter(stage => stage.steps.length > 0)
+    : [stageGroups.foundation, stageGroups.scheduling, stageGroups.care_coordination].filter(stage => stage.steps.length > 0);
 
   return (
     <>
