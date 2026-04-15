@@ -353,6 +353,37 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
           </CardHeader>
         </Card>
 
+        {/* Care Plan Billing Summary — shown when agreed rate is set */}
+        {agreedRate && !isAnonymous && (
+          <Card className="border border-green-200 bg-green-50/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <DollarSign className="h-5 w-5 text-green-700" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-green-900 text-sm">Your Care Plan Summary</h4>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                    <span className="text-sm text-green-700">
+                      <span className="font-medium">Rate:</span> {agreedRate}
+                    </span>
+                    {weeklyHours && (
+                      <span className="text-sm text-green-700">
+                        <span className="font-medium">Hours:</span> {weeklyHours} hrs/wk
+                      </span>
+                    )}
+                    {projectedWeeklyCost && (
+                      <span className="text-sm text-green-700">
+                        <span className="font-medium">Est. Weekly:</span> ${projectedWeeklyCost.toLocaleString()}/wk
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Enhanced Stage Cards */}
         <div className="space-y-6">
           {stagesToDisplay.map((stage) => (
