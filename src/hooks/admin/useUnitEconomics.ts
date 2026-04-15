@@ -29,6 +29,12 @@ export interface CaregiverBreakdown {
   employeeNis: number;
 }
 
+export interface ServiceRevenueItem {
+  label: string;
+  billingType: string;
+  amount: number;
+}
+
 export interface ClientEconomics {
   carePlanId: string;
   carePlanTitle: string;
@@ -42,6 +48,7 @@ export interface ClientEconomics {
   // Monthly figures
   monthlySubscriptionRevenue: number;
   monthlyCaregiverFees: number;
+  monthlyServiceRevenue: number;
   monthlyRevenue: number;
   monthlyCaregiverCost: number;
   monthlyNisCost: number;
@@ -58,6 +65,7 @@ export interface ClientEconomics {
   marginPercent: number;
   status: 'profitable' | 'at-risk' | 'losing';
   caregiverBreakdowns: CaregiverBreakdown[];
+  serviceBreakdown: ServiceRevenueItem[];
 }
 
 export interface UnitEconomicsSummary {
@@ -182,13 +190,17 @@ export function useUnitEconomics(selectedMonth: string) {
       const carePlanIds = carePlans.map(cp => cp.id);
 
       // Parallel fetches — get ALL payroll entries (not filtered by date)
-      const [profilesRes, subscriptionsRes, payrollRes, teamRes] = await Promise.all([
+      const [profilesRes, subscriptionsRes, payrollRes, teamRes, serviceSelectionsRes] = await Promise.all([
         supabase.from('profiles').select('id, full_name').in('id', familyIds),
         supabase.from('user_subscriptions').select('user_id, plan_id, status').in('user_id', familyIds).eq('status', 'active'),
         supabase.from('payroll_entries').select('care_plan_id, care_team_member_id, regular_hours, regular_rate, overtime_hours, overtime_rate, holiday_hours, holiday_rate, expense_total, employer_contribution, employee_contribution, gross_pay, pay_period_start')
           .in('care_plan_id', carePlanIds)
           .not('pay_period_start', 'is', null),
         supabase.from('care_team_members').select('id, care_plan_id, caregiver_id, display_name').in('care_plan_id', carePlanIds),
+        supabase.from('care_plan_service_selections')
+          .select('care_plan_id, quantity, override_price, billable_service_items(label, billing_type, unit_price, visible_in_unit_economics)')
+          .in('care_plan_id', carePlanIds)
+          .eq('selected', true),
       ]);
 
       // Fetch subscription plans
@@ -286,8 +298,41 @@ export function useUnitEconomics(selectedMonth: string) {
         const monthlySubRevenue = Math.round(weeklySubRevenue * payrollWeeks * 100) / 100;
         const monthlyOpCost = Math.round(weeklyOpCost * payrollWeeks * 100) / 100;
 
+        // Calculate service revenue from selected billable services
+        const cpServices = (serviceSelectionsRes.data || []).filter((s: any) => s.care_plan_id === cp.id);
+        const serviceBreakdown: ServiceRevenueItem[] = [];
+        let monthlyServiceRevenue = 0;
+
+        cpServices.forEach((s: any) => {
+          const svc = s.billable_service_items;
+          if (!svc || svc.visible_in_unit_economics === false) return;
+          const price = s.override_price ?? svc.unit_price ?? 0;
+          const qty = s.quantity || 1;
+          let monthlyAmount = 0;
+          if (svc.billing_type === 'weekly') {
+            monthlyAmount = price * qty * payrollWeeks;
+          } else if (svc.billing_type === 'monthly') {
+            monthlyAmount = price * qty;
+          } else if (svc.billing_type === 'one_time') {
+            // One-time fees only count if payroll weeks > 0 (active month)
+            monthlyAmount = payrollWeeks > 0 ? price * qty : 0;
+          } else if (svc.billing_type === 'hourly') {
+            monthlyAmount = price * qty * payrollWeeks;
+          }
+          if (monthlyAmount > 0) {
+            serviceBreakdown.push({
+              label: svc.label,
+              billingType: svc.billing_type,
+              amount: Math.round(monthlyAmount * 100) / 100,
+            });
+            monthlyServiceRevenue += monthlyAmount;
+          }
+        });
+
+        monthlyServiceRevenue = Math.round(monthlyServiceRevenue * 100) / 100;
+
         const monthlyCaregiverFees = Math.round(totalCaregiverCost * 100) / 100;
-        const monthlyRevenue = monthlySubRevenue + monthlyCaregiverFees;
+        const monthlyRevenue = monthlySubRevenue + monthlyCaregiverFees + monthlyServiceRevenue;
         const monthlyTotalCost = Math.round((totalCaregiverCost + totalEmployerNis + totalExpenses + monthlyOpCost) * 100) / 100;
         const monthlyMargin = Math.round((monthlyRevenue - monthlyTotalCost) * 100) / 100;
         const marginPercent = monthlyRevenue > 0 ? (monthlyMargin / monthlyRevenue) * 100 : (monthlyTotalCost > 0 ? -100 : 0);
@@ -303,6 +348,7 @@ export function useUnitEconomics(selectedMonth: string) {
           periodEnd: latestWeekEnd ? format(latestWeekEnd, 'MMM d, yyyy') : '',
           monthlySubscriptionRevenue: monthlySubRevenue,
           monthlyCaregiverFees,
+          monthlyServiceRevenue,
           monthlyRevenue: Math.round(monthlyRevenue * 100) / 100,
           monthlyCaregiverCost: Math.round(totalCaregiverCost * 100) / 100,
           monthlyNisCost: Math.round(totalEmployerNis * 100) / 100,
@@ -323,6 +369,7 @@ export function useUnitEconomics(selectedMonth: string) {
             employerNis: Math.round(cg.employerNis * 100) / 100,
             employeeNis: Math.round(cg.employeeNis * 100) / 100,
           })),
+          serviceBreakdown,
         };
       });
 
@@ -353,7 +400,7 @@ export function useUnitEconomics(selectedMonth: string) {
       setClients(prev => prev.map(c => {
         const monthlyOpCost = Math.round(weeklyOpCost * c.payrollWeeks * 100) / 100;
         const newTotalCost = c.monthlyCaregiverCost + c.monthlyNisCost + c.monthlyExpenses + monthlyOpCost;
-        const newRevenue = c.monthlySubscriptionRevenue + c.monthlyCaregiverFees;
+        const newRevenue = c.monthlySubscriptionRevenue + c.monthlyCaregiverFees + c.monthlyServiceRevenue;
         const newMargin = newRevenue - newTotalCost;
         const newPct = newRevenue > 0 ? (newMargin / newRevenue) * 100 : (newTotalCost > 0 ? -100 : 0);
         return {

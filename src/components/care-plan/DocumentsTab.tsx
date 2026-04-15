@@ -3,14 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarIcon, FileText, Receipt, FileCheck, Loader2 } from "lucide-react";
-import { format, addDays, addMonths, startOfWeek } from "date-fns";
-import { cn } from "@/lib/utils";
+import { format, addDays, addMonths } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import {
   generateQuotePDF,
@@ -30,6 +26,18 @@ interface DocumentsTabProps {
   familyEmail?: string;
 }
 
+interface ServiceSelection {
+  label: string;
+  description: string;
+  billing_type: string;
+  unit_price: number;
+  override_price: number | null;
+  quantity: number;
+  approved_by_family: boolean;
+  visible_in_quote: boolean;
+  visible_in_invoice: boolean;
+}
+
 export const DocumentsTab: React.FC<DocumentsTabProps> = ({
   carePlanId,
   carePlanTitle,
@@ -42,20 +50,27 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({
   const [selectedPeriodIndex, setSelectedPeriodIndex] = useState<number>(0);
   const [generating, setGenerating] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [includePodiatry, setIncludePodiatry] = useState(false);
+  const [selectedServices, setSelectedServices] = useState<ServiceSelection[]>([]);
 
-  // Load billing config from onboarding_checklists
+  // Load billing config and selected services
   useEffect(() => {
-    const loadBillingConfig = async () => {
+    const loadData = async () => {
       try {
-        const { data } = await supabase
-          .from('onboarding_checklists')
-          .select('checked_items')
-          .eq('family_id', familyId)
-          .maybeSingle();
+        const [configRes, servicesRes] = await Promise.all([
+          supabase
+            .from('onboarding_checklists')
+            .select('checked_items')
+            .eq('family_id', familyId)
+            .maybeSingle(),
+          supabase
+            .from('care_plan_service_selections')
+            .select('*, billable_service_items(*)')
+            .eq('care_plan_id', carePlanId)
+            .eq('selected', true),
+        ]);
 
-        if (data?.checked_items) {
-          const items = data.checked_items as Record<string, unknown>;
+        if (configRes.data?.checked_items) {
+          const items = configRes.data.checked_items as Record<string, unknown>;
           if (items.billing_start_date) {
             setBillingStartDate(new Date(items.billing_start_date as string));
           }
@@ -63,16 +78,29 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({
             setBillingCadence(items.billing_cadence as string);
           }
         }
+
+        if (servicesRes.data) {
+          setSelectedServices((servicesRes.data as any[]).map(s => ({
+            label: s.billable_service_items?.label || 'Unknown',
+            description: s.billable_service_items?.description || '',
+            billing_type: s.billable_service_items?.billing_type || 'one_time',
+            unit_price: s.billable_service_items?.unit_price || 0,
+            override_price: s.override_price,
+            quantity: s.quantity || 1,
+            approved_by_family: s.approved_by_family,
+            visible_in_quote: s.billable_service_items?.visible_in_quote ?? true,
+            visible_in_invoice: s.billable_service_items?.visible_in_invoice ?? true,
+          })));
+        }
       } catch (err) {
-        console.error('Failed to load billing config:', err);
+        console.error('Failed to load billing data:', err);
       } finally {
         setLoading(false);
       }
     };
-    loadBillingConfig();
-  }, [familyId]);
+    loadData();
+  }, [familyId, carePlanId]);
 
-  // Generate billing periods based on start date and cadence
   const getBillingPeriods = () => {
     if (!billingStartDate) return [];
     const periods = [];
@@ -94,7 +122,6 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({
         ? addDays(periodStart, 7)
         : addMonths(periodStart, 1);
 
-      // Stop generating periods far into the future
       if (periodStart > addMonths(now, 3)) break;
     }
     return periods;
@@ -103,18 +130,30 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({
   const periods = getBillingPeriods();
   const selectedPeriod = periods[selectedPeriodIndex] || null;
 
-  const buildBillingData = (): CareBillingData => {
-    const additionalLineItems: BillingLineItem[] = [];
-    const additionalNotes: string[] = [];
+  const buildBillingData = (docType: 'quote' | 'invoice' | 'receipt'): CareBillingData => {
+    // Build additional line items from selected services
+    const additionalLineItems: BillingLineItem[] = selectedServices
+      .filter(s => docType === 'quote' ? s.visible_in_quote : s.visible_in_invoice)
+      .map(s => ({
+        description: s.label,
+        amount: (s.override_price ?? s.unit_price) * s.quantity,
+        note: s.billing_type === 'weekly' ? '(weekly)' :
+              s.billing_type === 'monthly' ? '(monthly)' :
+              s.billing_type === 'hourly' ? '(per hour)' :
+              s.billing_type === 'one_time' ? '(one-time)' : undefined,
+      }));
 
-    if (includePodiatry) {
-      additionalLineItems.push({
-        description: 'Podiatric Care Support (Secondary Household Member)',
-        amount: 349.00,
-        note: 'Twice-daily antifungal treatment — full care cycle: preparation, hygiene protocol, application, and post-care handling',
-      });
+    const additionalNotes: string[] = [
+      'NIS (National Insurance) contributions for the assigned caregiver are included and covered by Tavara as required by Trinidad & Tobago law.',
+      'Tavara provides continuity of care — if your assigned caregiver is unavailable, a qualified replacement will be provided at no extra charge.',
+      'Rate adjustments may apply if care needs change (e.g., disease progression, additional services).',
+    ];
+
+    // Add notes for specific service types
+    const hasPodiatry = selectedServices.some(s => s.label.toLowerCase().includes('podiatric'));
+    if (hasPodiatry) {
       additionalNotes.push(
-        'This service is limited to the defined podiatric care task only and does not extend to general caregiving for the secondary household member. Service continues weekly unless discontinued in writing with one (1) week\'s notice.'
+        'Podiatric care service is limited to the defined task only and does not extend to general caregiving for the secondary household member. Service continues weekly unless discontinued in writing with one (1) week\'s notice.'
       );
     }
 
@@ -129,14 +168,7 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({
       paymentDate: new Date(),
       amountPaid: undefined,
       additionalLineItems,
-      ...(additionalNotes.length > 0 ? {
-        additionalNotes: [
-          'NIS (National Insurance) contributions for the assigned caregiver are included and covered by Tavara as required by Trinidad & Tobago law.',
-          'Tavara provides continuity of care — if your assigned caregiver is unavailable, a qualified replacement will be provided at no extra charge.',
-          'Rate adjustments may apply if care needs change (e.g., disease progression, additional services).',
-          ...additionalNotes,
-        ],
-      } : {}),
+      additionalNotes,
     });
   };
 
@@ -147,7 +179,7 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({
     }
     setGenerating(type);
     try {
-      const data = buildBillingData();
+      const data = buildBillingData(type);
       if (type === 'quote') await generateQuotePDF(data);
       else if (type === 'invoice') await generateInvoicePDF(data);
       else await generateReceiptPDF(data);
@@ -227,30 +259,37 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({
         </CardContent>
       </Card>
 
-      {/* Optional Add-On Services */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">➕ Additional Services</CardTitle>
-          <CardDescription>Optional add-on line items to include in generated documents.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-start space-x-3">
-            <Checkbox
-              id="podiatry-toggle"
-              checked={includePodiatry}
-              onCheckedChange={(checked) => setIncludePodiatry(!!checked)}
-            />
-            <div>
-              <Label htmlFor="podiatry-toggle" className="font-medium text-sm cursor-pointer">
-                Include Podiatric Care Support (Secondary Household Member) — $349.00/week
-              </Label>
-              <p className="text-xs text-muted-foreground mt-1">
-                Twice-daily antifungal treatment — full care cycle: preparation, hygiene protocol, application, and post-care handling.
-              </p>
+      {/* Approved Services Summary */}
+      {selectedServices.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">📋 Approved Services</CardTitle>
+            <CardDescription>These services from the onboarding checklist will be included in generated documents.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {selectedServices.map((svc, i) => (
+                <div key={i} className="flex items-center justify-between text-sm py-1.5 border-b last:border-b-0">
+                  <div className="flex items-center gap-2">
+                    <span>{svc.label}</span>
+                    {svc.approved_by_family && (
+                      <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">
+                        Approved
+                      </Badge>
+                    )}
+                  </div>
+                  <span className="font-medium">
+                    ${((svc.override_price ?? svc.unit_price) * svc.quantity).toFixed(2)}
+                    <span className="text-xs text-muted-foreground ml-1">
+                      {svc.billing_type === 'weekly' ? '/wk' : svc.billing_type === 'monthly' ? '/mo' : svc.billing_type === 'hourly' ? '/hr' : ''}
+                    </span>
+                  </span>
+                </div>
+              ))}
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Document Generation Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

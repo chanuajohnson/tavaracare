@@ -52,6 +52,7 @@ export function UnitEconomicsTable({ clients }: Props) {
             <TableHead>Plan</TableHead>
             <TableHead className="text-right">Sub/mo</TableHead>
             <TableHead className="text-right">CG Fees/mo</TableHead>
+            <TableHead className="text-right">Svc Rev/mo</TableHead>
             <TableHead className="text-right">Revenue/mo</TableHead>
             <TableHead className="text-right">Wages/mo</TableHead>
             <TableHead className="text-right">Employer NIS</TableHead>
@@ -83,6 +84,7 @@ export function UnitEconomicsTable({ clients }: Props) {
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">{fmt(client.monthlySubscriptionRevenue)}</TableCell>
                   <TableCell className="text-right text-muted-foreground">{fmt(client.monthlyCaregiverFees)}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{fmt(client.monthlyServiceRevenue)}</TableCell>
                   <TableCell className="text-right font-medium">{fmt(client.monthlyRevenue)}</TableCell>
                   <TableCell className="text-right">{fmt(client.monthlyCaregiverCost)}</TableCell>
                   <TableCell className="text-right">{fmt(client.monthlyNisCost)}</TableCell>
@@ -97,7 +99,7 @@ export function UnitEconomicsTable({ clients }: Props) {
 
                 {isOpen && (
                   <TableRow>
-                    <TableCell colSpan={13} className="bg-muted/30 p-4">
+                    <TableCell colSpan={14} className="bg-muted/30 p-4">
                       <div className="space-y-3">
                         {/* Payroll Period */}
                         {client.periodStart && client.periodEnd && (
@@ -130,15 +132,40 @@ export function UnitEconomicsTable({ clients }: Props) {
                                 Actual wages from payroll
                               </span>
                             </div>
+                            {client.monthlyServiceRevenue > 0 && (
+                              <div className="text-xs bg-background rounded p-2 border">
+                                <span className="text-muted-foreground block">Service Revenue</span>
+                                <span className="font-medium text-sm">{fmt(client.monthlyServiceRevenue)}/mo</span>
+                                <span className="text-muted-foreground block text-[10px]">
+                                  {client.serviceBreakdown.length} approved service(s)
+                                </span>
+                              </div>
+                            )}
                             <div className="text-xs bg-background rounded p-2 border border-primary/30">
                               <span className="text-muted-foreground block">Total Revenue</span>
                               <span className="font-semibold text-sm">{fmt(client.monthlyRevenue)}/mo</span>
                               <span className="text-muted-foreground block text-[10px]">
-                                {fmt(client.monthlySubscriptionRevenue)} + {fmt(client.monthlyCaregiverFees)}
+                                {fmt(client.monthlySubscriptionRevenue)} + {fmt(client.monthlyCaregiverFees)}{client.monthlyServiceRevenue > 0 ? ` + ${fmt(client.monthlyServiceRevenue)}` : ''}
                               </span>
                             </div>
                           </div>
                         </div>
+
+                        {/* Service Revenue Breakdown */}
+                        {client.serviceBreakdown.length > 0 && (
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold">Service Revenue Breakdown</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                              {client.serviceBreakdown.map((svc, i) => (
+                                <div key={i} className="text-xs bg-background rounded p-2 border">
+                                  <span className="block font-medium">{svc.label}</span>
+                                  <span className="text-muted-foreground">{svc.billingType}</span>
+                                  <span className="block font-semibold">{fmt(svc.amount)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Caregiver Breakdown */}
                         <h4 className="text-sm font-semibold">Caregiver Breakdown (payroll month totals)</h4>
