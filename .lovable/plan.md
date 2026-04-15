@@ -1,56 +1,101 @@
 
 
-## Plan: Subscription Selection → Onboarding Flow Integration
+## Plan: Discount Transparency, Legacy Rate Support, FAQ Route Fix, and Care Summary Updates
 
-### Problem
-1. The subscription page uses `PayPalSubscribeButton` — clicking "Subscribe" tries to initiate PayPal payment. Instead, selecting a plan should save it as the family's chosen care coordination plan, flowing into their onboarding checklist, billing summary, unit economics, and documents.
+This plan addresses all the issues found during the verification walkthrough.
 
-2. The "Care Plan Review & Setup" onboarding card has `serviceCategory: "care_change"`, so it only shows escalation items. It should also show the core plan selections (Active Care Management / Premium Care Management) so the admin can check off which plan the family is on.
+---
 
-### Changes
+### Issue Summary
 
-**1. `src/pages/subscription/SubscriptionPage.tsx`**
-- Remove `PayPalSubscribeButton` from the card footer for family plans
-- Replace with a simple "Select Plan" button that:
-  - Saves the selection to `user_subscriptions` or the family's care plan service selections in `care_plan_service_selections`
-  - Shows a confirmation toast
-  - Navigates back to dashboard
-- The "basic" plan keeps its current "Get Started Free" button behavior
-- For care/premium plans, the button text becomes "Select This Plan" instead of "Subscribe with PayPal"
-- Selection writes the corresponding `billable_service_items` entry (Active Care Management or Premium Care Management) into `care_plan_service_selections` for the family's active care plan
+1. **"Tavara Family Care Plan (weekly)" still displayed** in Care Summary headers across admin, family, and professional onboarding checklists and PDFs — should say "Active Care Management (weekly)"
+2. **$35/hr still hardcoded** in admin Care Summary header and PDF generation — should be dynamic (Ana Maria keeps $35, new default is $40)
+3. **BillingSummaryCard not showing on family onboarding checklist post-onboarding** — it IS rendered but only when `familyCarePlanId` exists; need to verify it renders for the family tab
+4. **No discount/waiver transparency** — when `override_price` differs from `unit_price`, the UI should show the original price struck through and a "Discounted" or "Waived" badge
+5. **FAQ page 404** — route is `/faq` but user navigated to `/support/faq`; need to add `/support/faq` as an alias route
+6. **Unit Economics** should respect `override_price` for Ana Maria (already does via line 309 in useUnitEconomics.ts) but the subscription revenue function uses hardcoded $699/$899 instead of reading the actual override_price from service selections
+7. **Payment note** — "Weekly (due every Friday)" should add a note about making transactions Thursday to ensure timely arrival
 
-**2. `src/components/admin/onboarding/onboardingSections.ts`**
-- Change the `care_plan` section's `serviceCategory` from `"care_change"` to `"core_plan"` (new category)
-- This ensures the Care Plan Review & Setup card shows only the core plan items
+---
 
-**3. Database: Update `billable_service_items` categories**
-- Update Active Care Management (id `0f9bec68...`) category from `weekly_addon` to `core_plan`
-- Update Premium Care Management (id `52f6c507...`) category from `premium_support` to `core_plan`
-- This groups both plans under a dedicated category that the Care Plan Review card can filter on
+### File Changes
 
-**4. `src/components/admin/onboarding/BillingSummaryCard.tsx`**
-- Ensure the "Core Plan" grouping pulls items with category `core_plan` (already structured for this in the recent update — just needs the category alignment)
+**1. `src/pages/admin/AdminOnboardingChecklistPage.tsx`**
 
-### Flow After Changes
+- **CareSummaryHeader** (lines 102-155): Replace hardcoded `$35/hr (Standard)` and `Tavara Family Care Plan (weekly)` with dynamic values read from `checkedItems` (care_rate, billing_cadence). Add payment timing note: "Complete transactions by Thursday to ensure Friday receipt."
+- **PDF generation** (lines 430-435, 550-557): Replace `$35/hr` and `Tavara Family Care Plan (weekly)` with `Active Care Management (weekly)` and dynamic rate from checkedItems
 
+**2. `src/pages/family/FamilyOnboardingChecklistPage.tsx`**
+
+- **CareSummaryHeader** (line 39): Change `Tavara Family Care Plan (weekly/monthly)` to `Active Care Management (weekly/monthly)`
+- Add payment timing note beneath "Weekly (due every Friday)"
+
+**3. `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx`**
+
+- Update `Tavara Family Care Plan (weekly)` reference (line 134) to `Active Care Management (weekly)`
+
+**4. `src/components/admin/onboarding/BillingSummaryCard.tsx` — Discount/Waiver Transparency**
+
+- **ServiceRow**: When `override_price` is set and differs from `unit_price`:
+  - If override_price is 0: show "Waived" badge + original price struck through
+  - If override_price < unit_price: show "Discounted" badge + original price struck through + effective price
+- This automatically handles Ana Maria's case: her Active Care Management at $499 (override of $699), and waived Caregiver Matching ($0 override of $299) and Care Assessment ($0 override of $499)
+
+**5. `src/components/admin/onboarding/ServiceCommencementConfirmation.tsx`**
+
+- Add similar discount/waiver display: show original price struck through when effective_price differs from the billable item's unit_price
+- Need to also fetch `unit_price` from the join so we can compare
+
+**6. `src/components/routing/AppRoutes.tsx`**
+
+- Add route alias: `<Route path="/support/faq" element={<FAQPage />} />` alongside existing `/faq` route
+
+**7. `src/hooks/admin/useUnitEconomics.ts`**
+
+- The service revenue calculation (lines 301-330) already correctly uses `override_price ?? unit_price`, so Ana Maria's discounted $499 and waived items will flow through correctly
+- The `getWeeklySubscriptionRevenue` function (line 78-86) is only used for the legacy `user_subscriptions` table fallback. Since service selections already capture the actual revenue, no change needed here — the service breakdown already reflects correct amounts
+
+**8. `src/components/admin/care-plans/DocumentGenerationMenu.tsx`**
+
+- Quote/invoice line items already use `override_price ?? unit_price` (line 69) — add visual indication of discount in the PDF: show original price with strikethrough and "Discounted" label when override differs
+
+---
+
+### How Ana Maria's Data Will Display After Changes
+
+**Care Plan Commercial Summary (BillingSummaryCard):**
 ```text
-Family visits /subscription
-  → Clicks "Select This Plan" on Active Care Management ($699/week)
-  → System finds family's active care plan
-  → Upserts selection in care_plan_service_selections for the Active Care Management billable item
-  → Toast: "Active Care Management selected for your care plan"
-  → Redirects to dashboard
+CORE PLAN
+Active Care Management ✓   ~~$699.00~~ $499.00 Per week [Discounted]
 
-Admin opens /admin/onboarding-checklist for this family
-  → "Care Plan Review & Setup" card shows ServiceSelectionBlock filtered to core_plan
-  → Active Care Management appears checked (selected by family or admin)
-  → Shows in BillingSummaryCard under "Core Plan"
-  → Shows in post-onboarding summary
-  → Flows to unit economics, quotes, invoices
+ONE-TIME FEES
+Caregiver Matching & Placement ✓   ~~$299.00~~ $0.00 One-time [Waived]
+Care Assessment & Setup ✓          ~~$499.00~~ $0.00 One-time [Waived]
+
+One-Time Total: $0.00
+
+Projected Totals
+Projected Weekly Total: $499.00/wk
+Projected One-Time Total: $0.00
+Projected Monthly Recurring: $2,160.67/mo
 ```
 
+**Care Summary Header:**
+```text
+Rate: $35/hr (Standard)  |  Plan: Active Care Management (weekly)  |  Start Date: April 13, 2026
+Payment: Weekly (due every Friday) — Complete transactions by Thursday to ensure timely receipt
+```
+
+**Unit Economics:** Service breakdown will show "Active Care Management — $499/wk × N weeks" (already works via override_price)
+
+---
+
 ### Files Modified
-1. `src/pages/subscription/SubscriptionPage.tsx` — replace PayPal button with plan selection logic
-2. `src/components/admin/onboarding/onboardingSections.ts` — change care_plan serviceCategory to `core_plan`
-3. Database update: change category for Active/Premium Care Management items to `core_plan`
+1. `src/pages/admin/AdminOnboardingChecklistPage.tsx` — dynamic rate/plan in header + PDFs
+2. `src/pages/family/FamilyOnboardingChecklistPage.tsx` — plan name + payment note
+3. `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx` — plan name
+4. `src/components/admin/onboarding/BillingSummaryCard.tsx` — discount/waiver badges
+5. `src/components/admin/onboarding/ServiceCommencementConfirmation.tsx` — discount display
+6. `src/components/routing/AppRoutes.tsx` — `/support/faq` route alias
+7. `src/components/admin/care-plans/DocumentGenerationMenu.tsx` — discount labels in PDFs
 
