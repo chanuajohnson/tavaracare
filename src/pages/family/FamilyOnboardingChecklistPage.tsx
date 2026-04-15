@@ -255,7 +255,7 @@ export default function FamilyOnboardingChecklistPage() {
           setNotes((checklistRes.data.notes as unknown as OnboardingNote[]) || []);
         }
 
-        // Fetch medications for all care plans
+        // Fetch medications for all care plans and set care plan ID
         if (carePlansRes.data && carePlansRes.data.length > 0) {
           const carePlanIds = carePlansRes.data.map((cp: any) => cp.id);
           const { data: medsData } = await supabase
@@ -263,6 +263,19 @@ export default function FamilyOnboardingChecklistPage() {
             .select("id, name, dosage, frequency, instructions, schedule, care_plan_id")
             .in("care_plan_id", carePlanIds);
           if (medsData) setMedications(medsData);
+        }
+
+        // Fetch care plan ID for service components (prefer active, fall back to draft/pending)
+        const { data: carePlanStatusData } = await supabase
+          .from("care_plans")
+          .select("id, status")
+          .eq("family_id", user.id)
+          .in("status", ["active", "draft", "pending"]);
+
+        if (carePlanStatusData && carePlanStatusData.length > 0) {
+          const activePlan = carePlanStatusData.find((cp: any) => cp.status === "active");
+          const bestPlan = activePlan || carePlanStatusData[0];
+          setFamilyCarePlanId(bestPlan.id);
         }
 
         // Set emergency contacts
