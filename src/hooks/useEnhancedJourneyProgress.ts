@@ -997,6 +997,9 @@ export const useEnhancedJourneyProgress = () => {
     onVisitCancelled,
     trackStepAction,
     isAnonymous,
-    refreshData: fetchUserData
+    refreshData: fetchUserData,
+    agreedRate: financialData.agreedRate,
+    weeklyHours: financialData.weeklyHours,
+    projectedWeeklyCost: financialData.projectedWeeklyCost
   };
 };
