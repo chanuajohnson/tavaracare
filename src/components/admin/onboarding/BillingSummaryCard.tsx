@@ -69,7 +69,10 @@ export default function BillingSummaryCard({ carePlanId }: BillingSummaryCardPro
   };
 
   if (loading) return null;
-  if (!items.length) return null;
+  if (!items.length) {
+    console.log('[BillingSummaryCard] No approved service items found for carePlanId:', carePlanId);
+    return null;
+  }
 
   // Group items by billing logic
   const corePlan = items.filter(i => i.category === 'core_plan');
