@@ -153,6 +153,38 @@ export const EnhancedProfessionalNextStepsPanel = () => {
           </CardHeader>
         </Card>
 
+        {/* Compensation Card — shown when rate is confirmed */}
+        {agreedRate && (
+          <Card className="border border-green-200 bg-green-50/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <DollarSign className="h-5 w-5 text-green-700" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-green-900 text-sm">Your Compensation</h4>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                    <span className="text-sm text-green-700">
+                      <span className="font-medium">Rate:</span> {agreedRate}
+                    </span>
+                    {weeklyHours && (
+                      <span className="text-sm text-green-700">
+                        <span className="font-medium">Hours:</span> {weeklyHours} hrs/wk
+                      </span>
+                    )}
+                    {projectedWeeklyEarnings && (
+                      <span className="text-sm text-green-700">
+                        <span className="font-medium">Est. Weekly:</span> ${projectedWeeklyEarnings.toLocaleString()}/wk
+                      </span>
+                    )}
+                    <span className="text-xs text-green-600">Paid weekly, every Friday</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Journey Stages */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {stages.map((stage, index) => (
