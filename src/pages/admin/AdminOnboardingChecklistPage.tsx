@@ -1828,6 +1828,7 @@ export default function AdminOnboardingChecklistPage() {
             idColumn="family_id"
             showFamilyData
             familyMedications={familyMedications}
+            familyCarePlanId={familyCarePlanId}
             onToggleApproval={(approvalKey) => {
               setFamilyCheckedItems((prev) => {
                 const isCurrentlyApproved = prev[approvalKey] === true;
