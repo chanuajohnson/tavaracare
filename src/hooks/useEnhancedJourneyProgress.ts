@@ -27,6 +27,7 @@ export const useEnhancedJourneyProgress = () => {
   const [careRecipient, setCareRecipient] = useState<any>(null);
   const [visitDetails, setVisitDetails] = useState<any>(null);
   const [trialPayments, setTrialPayments] = useState<any[]>([]);
+  const [financialData, setFinancialData] = useState<{ agreedRate?: string; weeklyHours?: number; projectedWeeklyCost?: number }>({});
   const [journeyProgress, setJourneyProgress] = useState<any>(null);
   
   // Modal states
