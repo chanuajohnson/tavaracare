@@ -625,35 +625,22 @@ const SubscriptionPage = () => {
                       </div>
                     </CardContent>
                     <CardFooter className="flex flex-col gap-2">
-                      {!isCurrentUserPlan && plan.id !== "basic" && <PayPalSubscribeButton planId={plan.id} planName={plan.name} price={getPlanPrice(plan)} className="w-full" variant={plan.popular ? "default" : "outline"} isComingSoon={false} onSuccess={subscriptionId => {
-                    toast({
-                      title: "Subscription Activated",
-                      description: `Successfully subscribed to ${plan.name}!`,
-                      variant: "default"
-                    });
-                    trackEngagement('subscription_completed', {
-                      plan_id: plan.id,
-                      plan_name: plan.name,
-                      feature_accessed: featureType,
-                      price: getPlanPrice(plan),
-                      previous_plan: userSubscription,
-                      action: planAction,
-                      payment_method: 'paypal'
-                    });
-                    setUserSubscription(plan.id);
-                  }} onError={error => {
-                    toast({
-                      title: "Subscription Failed",
-                      description: "There was an error processing your subscription.",
-                      variant: "destructive"
-                    });
-                    trackEngagement('subscription_failed', {
-                      plan_id: plan.id,
-                      plan_name: plan.name,
-                      error: error.message,
-                      payment_method: 'paypal'
-                    });
-                  }} />}
+                      {!isCurrentUserPlan && plan.id !== "basic" && (
+                        <Button
+                          className={`w-full ${getButtonColor(plan)}`}
+                          disabled={processingPayment}
+                          onClick={() => handleSubscribe(plan.id)}
+                        >
+                          {processingPayment && selectedPlan === plan.id ? (
+                            <>
+                              <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                              Selecting...
+                            </>
+                          ) : (
+                            getButtonText(plan)
+                          )}
+                        </Button>
+                      )}
                       
                       
                     </CardFooter>

@@ -102,7 +102,7 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     iconName: "FileText",
     description: "Collaboratively review and finalize the care plan with the family",
     helperText: "Care plan setup is included in your coordination plan. Changes to care scope, schedules, or complexity may require a care plan adjustment.",
-    serviceCategory: "care_change",
+    serviceCategory: "core_plan",
     items: [
       "Review existing care plan details (if already created by family)",
       "Care plan types (Scheduled Care, On-Demand)",
