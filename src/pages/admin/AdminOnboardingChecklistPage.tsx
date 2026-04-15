@@ -1155,9 +1155,11 @@ function ChecklistTabContent({
                         careSchedule={profiles.find(p => p.id === selectedId)?.care_schedule || undefined}
                         currentRate={(checkedItems["care_rate"] as string) || ''}
                         onRateChange={(rateStr) => {
-                          const next = { ...checkedItems, care_rate: rateStr };
-                          // We need to trigger save - use onDateChange which saves
                           onDateChange?.("care_rate", rateStr);
+                        }}
+                        onWeeklyHoursChange={(hrs) => {
+                          // Store selected shift hours for BillingSummaryCard
+                          (window as any).__selectedCaregiverWeeklyHours = hrs;
                         }}
                       />
                     )}
