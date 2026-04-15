@@ -5,6 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import RateTierReferenceCard from "@/components/admin/onboarding/RateTierReferenceCard";
+import ServiceSelectionBlock from "@/components/admin/onboarding/ServiceSelectionBlock";
+import BillingSummaryCard from "@/components/admin/onboarding/BillingSummaryCard";
+import ServiceCommencementConfirmation from "@/components/admin/onboarding/ServiceCommencementConfirmation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -214,6 +217,7 @@ export default function FamilyOnboardingChecklistPage() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [hasChecklist, setHasChecklist] = useState(false);
   const [medications, setMedications] = useState<any[]>([]);
+  const [familyCarePlanId, setFamilyCarePlanId] = useState<string | null>(null);
   const [emergencyContacts, setEmergencyContacts] = useState<{
     emergency_contact_name?: string;
     emergency_contact_phone?: string;
@@ -251,7 +255,7 @@ export default function FamilyOnboardingChecklistPage() {
           setNotes((checklistRes.data.notes as unknown as OnboardingNote[]) || []);
         }
 
-        // Fetch medications for all care plans
+        // Fetch medications for all care plans and set care plan ID
         if (carePlansRes.data && carePlansRes.data.length > 0) {
           const carePlanIds = carePlansRes.data.map((cp: any) => cp.id);
           const { data: medsData } = await supabase
@@ -259,6 +263,19 @@ export default function FamilyOnboardingChecklistPage() {
             .select("id, name, dosage, frequency, instructions, schedule, care_plan_id")
             .in("care_plan_id", carePlanIds);
           if (medsData) setMedications(medsData);
+        }
+
+        // Fetch care plan ID for service components (prefer active, fall back to draft/pending)
+        const { data: carePlanStatusData } = await supabase
+          .from("care_plans")
+          .select("id, status")
+          .eq("family_id", user.id)
+          .in("status", ["active", "draft", "pending"]);
+
+        if (carePlanStatusData && carePlanStatusData.length > 0) {
+          const activePlan = carePlanStatusData.find((cp: any) => cp.status === "active");
+          const bestPlan = activePlan || carePlanStatusData[0];
+          setFamilyCarePlanId(bestPlan.id);
         }
 
         // Set emergency contacts
@@ -496,6 +513,17 @@ export default function FamilyOnboardingChecklistPage() {
                         })}
                 </div>
 
+                {/* Read-only service selections for sections with a serviceCategory */}
+                {section.serviceCategory && familyCarePlanId && (
+                  <div className="mt-3">
+                    <ServiceSelectionBlock
+                      carePlanId={familyCarePlanId}
+                      filterCategory={section.serviceCategory}
+                      readOnly
+                      compact
+                    />
+                  </div>
+                )}
                 {section.id === "medication_confirmation" && medications.length > 0 && (
                   <div className="mt-3 space-y-2 rounded-lg border border-blue-200 bg-blue-50/50 p-4">
                     <h5 className="text-sm font-semibold flex items-center gap-2 text-blue-900 mb-3">
@@ -590,6 +618,16 @@ export default function FamilyOnboardingChecklistPage() {
                 {section.id === "post_onboarding" && (
                   <>
                     <CareSummaryHeader checkedItems={checkedItems} />
+                    {familyCarePlanId && (
+                      <>
+                        <div className="mt-3">
+                          <BillingSummaryCard carePlanId={familyCarePlanId} />
+                        </div>
+                        <div className="mt-3">
+                          <ServiceCommencementConfirmation carePlanId={familyCarePlanId} />
+                        </div>
+                      </>
+                    )}
                     <ServiceCommencementApproval
                       checkedItems={checkedItems}
                       familyId={user?.id}
