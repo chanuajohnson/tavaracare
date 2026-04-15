@@ -626,10 +626,18 @@ export default function FamilyOnboardingChecklistPage() {
                     {familyCarePlanId && (
                       <>
                         <div className="mt-3">
-                          <BillingSummaryCard carePlanId={familyCarePlanId} />
+                          <BillingSummaryCard
+                            carePlanId={familyCarePlanId}
+                            careRate={(checkedItems["care_rate"] as string) || undefined}
+                            weeklyHours={40}
+                          />
                         </div>
                         <div className="mt-3">
-                          <ServiceCommencementConfirmation carePlanId={familyCarePlanId} />
+                          <ServiceCommencementConfirmation
+                            carePlanId={familyCarePlanId}
+                            careRate={(checkedItems["care_rate"] as string) || undefined}
+                            weeklyHours={40}
+                          />
                         </div>
                       </>
                     )}

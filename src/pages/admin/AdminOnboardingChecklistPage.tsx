@@ -1165,6 +1165,19 @@ function ChecklistTabContent({
                       />
                     )}
 
+                    {(section.id === "rates_payment" || section.id === "rates_and_changes") && showProfessionalData && linkedCheckedItems?.["care_rate"] && (
+                      <div className="mb-4 rounded-lg border border-green-200 bg-green-50/50 p-4">
+                        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2 text-green-900">
+                          <DollarSign className="h-4 w-4" />
+                          Assigned Rate (from Family)
+                        </h4>
+                        <p className="text-sm font-medium">{linkedCheckedItems["care_rate"] as string}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          This rate is set on the family's care plan. To change, update the family's rate in their onboarding tab.
+                        </p>
+                      </div>
+                    )}
+
                     {(section.id === "rates_payment" || section.id === "rates_and_changes") && (
                       <RateTierReferenceCard />
                     )}

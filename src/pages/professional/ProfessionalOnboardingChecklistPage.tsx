@@ -119,19 +119,29 @@ function parseLocalDate(dateStr: string): Date {
 /** Care Summary header for post-onboarding */
 function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, boolean | string> }) {
   const startDateStr = checkedItems["post_onboarding_3_date"] as string | undefined;
+  const careRate = (checkedItems["care_rate"] as string) || "$40/hr (Standard)";
+  const rateMatch = careRate.match(/\$?([\d.]+)/);
+  const hourlyRate = rateMatch ? parseFloat(rateMatch[1]) : 0;
+  const weeklyHrs = 40;
+  const weeklyEarnings = hourlyRate * weeklyHrs;
+
   return (
-    <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-      <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-blue-900">
-        💙 Your Care Summary
+    <div className="mb-4 rounded-lg border border-green-200 bg-green-50/50 p-4">
+      <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-green-900">
+        💚 Your Compensation Summary
       </h4>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <div className="text-sm">
-          <span className="text-muted-foreground">Rate:</span>{" "}
-          <span className="font-medium">$40/hr (Standard)</span>
+          <span className="text-muted-foreground">Agreed Rate:</span>{" "}
+          <span className="font-medium">{careRate}</span>
         </div>
         <div className="text-sm">
-          <span className="text-muted-foreground">Plan:</span>{" "}
-          <span className="font-medium">Active Care Management (weekly)</span>
+          <span className="text-muted-foreground">Weekly Hours:</span>{" "}
+          <span className="font-medium">{weeklyHrs} hrs/wk</span>
+        </div>
+        <div className="text-sm">
+          <span className="text-muted-foreground">Projected Weekly Earnings:</span>{" "}
+          <span className="font-semibold text-green-700">${weeklyEarnings.toFixed(2)}</span>
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Start Date:</span>{" "}
@@ -141,18 +151,14 @@ function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, bool
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Payment:</span>{" "}
-          <span className="font-medium">Weekly (due every Friday)</span>
-        </div>
-        <div className="text-sm col-span-full">
-          <span className="text-xs text-blue-700 italic">💡 Complete transactions by Thursday to ensure Friday receipt.</span>
-        </div>
-        <div className="text-sm">
-          <span className="text-muted-foreground">Late Fee:</span>{" "}
-          <span className="font-medium">5% after 3 business days</span>
+          <span className="font-medium">Weekly (every Friday)</span>
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Holiday/OT:</span>{" "}
           <span className="font-medium">1.5× (2× Christmas)</span>
+        </div>
+        <div className="text-sm col-span-full">
+          <span className="text-xs text-green-700 italic">💡 Complete timesheets and care logs by Thursday to ensure Friday payout.</span>
         </div>
       </div>
     </div>
