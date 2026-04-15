@@ -70,9 +70,9 @@ export const FamilyJourneyProgressPanel = ({ userId }: FamilyJourneyProgressPane
     switch (journeyStage) {
       case 'foundation': return 'Foundation';
       case 'scheduling': return 'Scheduling';
-      case 'care_coordination': return 'Care Coordination';
       case 'trial': return 'Trial';
       case 'conversion': return 'Conversion';
+      case 'active': return 'Active';
       default: return 'Foundation';
     }
   };
