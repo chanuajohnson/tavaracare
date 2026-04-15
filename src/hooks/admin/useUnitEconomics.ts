@@ -298,8 +298,41 @@ export function useUnitEconomics(selectedMonth: string) {
         const monthlySubRevenue = Math.round(weeklySubRevenue * payrollWeeks * 100) / 100;
         const monthlyOpCost = Math.round(weeklyOpCost * payrollWeeks * 100) / 100;
 
+        // Calculate service revenue from selected billable services
+        const cpServices = (serviceSelectionsRes.data || []).filter((s: any) => s.care_plan_id === cp.id);
+        const serviceBreakdown: ServiceRevenueItem[] = [];
+        let monthlyServiceRevenue = 0;
+
+        cpServices.forEach((s: any) => {
+          const svc = s.billable_service_items;
+          if (!svc || svc.visible_in_unit_economics === false) return;
+          const price = s.override_price ?? svc.unit_price ?? 0;
+          const qty = s.quantity || 1;
+          let monthlyAmount = 0;
+          if (svc.billing_type === 'weekly') {
+            monthlyAmount = price * qty * payrollWeeks;
+          } else if (svc.billing_type === 'monthly') {
+            monthlyAmount = price * qty;
+          } else if (svc.billing_type === 'one_time') {
+            // One-time fees only count if payroll weeks > 0 (active month)
+            monthlyAmount = payrollWeeks > 0 ? price * qty : 0;
+          } else if (svc.billing_type === 'hourly') {
+            monthlyAmount = price * qty * payrollWeeks;
+          }
+          if (monthlyAmount > 0) {
+            serviceBreakdown.push({
+              label: svc.label,
+              billingType: svc.billing_type,
+              amount: Math.round(monthlyAmount * 100) / 100,
+            });
+            monthlyServiceRevenue += monthlyAmount;
+          }
+        });
+
+        monthlyServiceRevenue = Math.round(monthlyServiceRevenue * 100) / 100;
+
         const monthlyCaregiverFees = Math.round(totalCaregiverCost * 100) / 100;
-        const monthlyRevenue = monthlySubRevenue + monthlyCaregiverFees;
+        const monthlyRevenue = monthlySubRevenue + monthlyCaregiverFees + monthlyServiceRevenue;
         const monthlyTotalCost = Math.round((totalCaregiverCost + totalEmployerNis + totalExpenses + monthlyOpCost) * 100) / 100;
         const monthlyMargin = Math.round((monthlyRevenue - monthlyTotalCost) * 100) / 100;
         const marginPercent = monthlyRevenue > 0 ? (monthlyMargin / monthlyRevenue) * 100 : (monthlyTotalCost > 0 ? -100 : 0);
@@ -315,6 +348,7 @@ export function useUnitEconomics(selectedMonth: string) {
           periodEnd: latestWeekEnd ? format(latestWeekEnd, 'MMM d, yyyy') : '',
           monthlySubscriptionRevenue: monthlySubRevenue,
           monthlyCaregiverFees,
+          monthlyServiceRevenue,
           monthlyRevenue: Math.round(monthlyRevenue * 100) / 100,
           monthlyCaregiverCost: Math.round(totalCaregiverCost * 100) / 100,
           monthlyNisCost: Math.round(totalEmployerNis * 100) / 100,
@@ -335,6 +369,7 @@ export function useUnitEconomics(selectedMonth: string) {
             employerNis: Math.round(cg.employerNis * 100) / 100,
             employeeNis: Math.round(cg.employeeNis * 100) / 100,
           })),
+          serviceBreakdown,
         };
       });
 
