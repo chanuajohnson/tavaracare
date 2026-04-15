@@ -21,8 +21,8 @@ export const FamilyNextStepsPanel = () => {
     setShowCaregiverMatchingModal
   } = useFamilyJourneyProgress();
 
-  // Show only the first 7 steps in the dashboard panel for cleaner UI
-  const dashboardSteps = steps.slice(0, 7);
+  // Show first 8 steps in dashboard panel (now includes care coordination steps)
+  const dashboardSteps = steps.slice(0, 8);
 
   // Helper function to get button text based on step number and completion status
   const getButtonText = (step: any) => {

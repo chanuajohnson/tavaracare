@@ -27,6 +27,7 @@ export const useEnhancedJourneyProgress = () => {
   const [careRecipient, setCareRecipient] = useState<any>(null);
   const [visitDetails, setVisitDetails] = useState<any>(null);
   const [trialPayments, setTrialPayments] = useState<any[]>([]);
+  const [financialData, setFinancialData] = useState<{ agreedRate?: string; weeklyHours?: number; projectedWeeklyCost?: number }>({});
   const [journeyProgress, setJourneyProgress] = useState<any>(null);
   
   // Modal states
@@ -176,6 +177,26 @@ export const useEnhancedJourneyProgress = () => {
         console.error('Error fetching trial payments:', trialPaymentsError);
       } else {
         setTrialPayments(trialPaymentsData || []);
+      }
+
+      // Fetch financial/billing data from onboarding checklist
+      const { data: checklistData } = await supabase
+        .from('onboarding_checklists' as any)
+        .select('checked_items')
+        .eq('user_id', user.id)
+        .eq('user_type', 'family')
+        .maybeSingle();
+      
+      const items = (checklistData as any)?.checked_items;
+      if (items?.care_rate) {
+        const cr = items.care_rate;
+        const rate = cr.rate || cr.hourlyRate;
+        const hours = cr.weeklyHours || cr.hours || 40;
+        setFinancialData({
+          agreedRate: cr.label || cr.tierName || (rate ? `$${rate}/hr` : undefined),
+          weeklyHours: hours,
+          projectedWeeklyCost: rate && hours ? rate * hours : undefined
+        });
       }
 
     } catch (error) {
@@ -976,6 +997,9 @@ export const useEnhancedJourneyProgress = () => {
     onVisitCancelled,
     trackStepAction,
     isAnonymous,
-    refreshData: fetchUserData
+    refreshData: fetchUserData,
+    agreedRate: financialData.agreedRate,
+    weeklyHours: financialData.weeklyHours,
+    projectedWeeklyCost: financialData.projectedWeeklyCost
   };
 };

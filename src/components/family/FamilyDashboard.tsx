@@ -33,7 +33,7 @@ const FamilyDashboard = () => {
   const [showDashboardCaregiverModal, setShowDashboardCaregiverModal] = useState(false);
   
   // Get modal state and journey data from the hook
-  const { setShowCaregiverMatchingModal, visitDetails, steps } = useEnhancedJourneyProgress();
+  const { setShowCaregiverMatchingModal, visitDetails, steps, agreedRate, weeklyHours, projectedWeeklyCost } = useEnhancedJourneyProgress();
   
   // Schedule modal state
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -150,8 +150,15 @@ const FamilyDashboard = () => {
                           <DollarSign className="h-5 w-5 text-blue-700" />
                         </div>
                         <div className="flex-1">
-                          <h4 className="font-semibold text-blue-900">Tavara Care Rates</h4>
-                          <p className="text-sm text-blue-600">$40–$50+/hr · Click to view tier details</p>
+                        <h4 className="font-semibold text-blue-900">
+                          {agreedRate ? 'Your Agreed Care Rate' : 'Tavara Care Rates'}
+                        </h4>
+                        <p className="text-sm text-blue-600">
+                          {agreedRate 
+                            ? `${agreedRate}${weeklyHours ? ` · ${weeklyHours} hrs/wk` : ''}${projectedWeeklyCost ? ` · ~$${projectedWeeklyCost.toLocaleString()}/wk` : ''}`
+                            : '$40–$50+/hr · Click to view tier details'
+                          }
+                        </p>
                         </div>
                         <ChevronDown className="h-4 w-4 text-blue-600 shrink-0 transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
                       </div>

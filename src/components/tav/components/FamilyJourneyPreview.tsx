@@ -45,12 +45,22 @@ export const FamilyJourneyPreview: React.FC<FamilyJourneyPreviewProps> = ({ onBa
           <span className="text-sm font-medium">Your Journey Ahead</span>
           <span className="text-sm text-blue-600 font-semibold">{journeyProgress.completionPercentage}%</span>
         </div>
-        <div className="w-full bg-blue-200 rounded-full h-2 mb-3">
+        <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
           <div 
             className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
             style={{ width: `${journeyProgress.completionPercentage}%` }}
           />
         </div>
+
+        {/* Financial summary when available */}
+        {journeyProgress.agreedRate && (
+          <div className="flex items-center gap-2 text-xs text-blue-700 mb-2 bg-blue-100/60 rounded px-2 py-1">
+            <span className="font-medium">Rate: {journeyProgress.agreedRate}</span>
+            {journeyProgress.weeklyHours && (
+              <span>• {journeyProgress.weeklyHours} hrs/wk</span>
+            )}
+          </div>
+        )}
         
         {/* Display actual journey steps */}
         <div className="space-y-2">

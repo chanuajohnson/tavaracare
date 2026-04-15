@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { List, ArrowRight, Eye, Sparkles, CheckCircle2, Users, ClipboardList } from "lucide-react";
+import { List, ArrowRight, Eye, Sparkles, CheckCircle2, Users, ClipboardList, DollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ScheduleVisitModal } from "./ScheduleVisitModal";
 import { InternalSchedulingModal } from "./InternalSchedulingModal";
@@ -44,7 +44,10 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
     visitDetails,
     trackStepAction,
     isAnonymous,
-    onVisitCancelled
+    onVisitCancelled,
+    agreedRate,
+    weeklyHours,
+    projectedWeeklyCost
   } = useEnhancedJourneyProgress();
 
   // Enhanced lead capture state management
@@ -103,6 +106,17 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         steps: steps.filter(step => step.category === 'scheduling').map(step => ({
           ...step,
           cancelAction: step.step_number === 7 && step.completed ? () => setShowCancelVisitModal(true) : undefined
+        })),
+        subscriptionCTA: null
+      },
+      care_coordination: {
+        name: "Care Team Setup",
+        key: "care_coordination",
+        description: "Your care team is confirmed and care begins",
+        color: "teal",
+        steps: steps.filter(step => step.category === 'care_coordination').map(step => ({
+          ...step,
+          cancelAction: undefined
         })),
         subscriptionCTA: null
       },
@@ -225,8 +239,8 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
 
   const stageGroups = groupStepsByStage();
   const stagesToDisplay = showAllSteps 
-    ? Object.values(stageGroups) 
-    : [stageGroups.foundation, stageGroups.scheduling].filter(stage => stage.steps.length > 0);
+    ? Object.values(stageGroups).filter(stage => stage.steps.length > 0)
+    : [stageGroups.foundation, stageGroups.scheduling, stageGroups.care_coordination].filter(stage => stage.steps.length > 0);
 
   return (
     <>
@@ -338,6 +352,37 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
             </div>
           </CardHeader>
         </Card>
+
+        {/* Care Plan Billing Summary — shown when agreed rate is set */}
+        {agreedRate && !isAnonymous && (
+          <Card className="border border-green-200 bg-green-50/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <DollarSign className="h-5 w-5 text-green-700" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-green-900 text-sm">Your Care Plan Summary</h4>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                    <span className="text-sm text-green-700">
+                      <span className="font-medium">Rate:</span> {agreedRate}
+                    </span>
+                    {weeklyHours && (
+                      <span className="text-sm text-green-700">
+                        <span className="font-medium">Hours:</span> {weeklyHours} hrs/wk
+                      </span>
+                    )}
+                    {projectedWeeklyCost && (
+                      <span className="text-sm text-green-700">
+                        <span className="font-medium">Est. Weekly:</span> ${projectedWeeklyCost.toLocaleString()}/wk
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Enhanced Stage Cards */}
         <div className="space-y-6">
