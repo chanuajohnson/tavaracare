@@ -151,7 +151,7 @@ const FamilyDashboard = () => {
                         </div>
                         <div className="flex-1">
                           <h4 className="font-semibold text-blue-900">Tavara Care Rates</h4>
-                          <p className="text-sm text-blue-600">$35–$45+/hr · Click to view tier details</p>
+                          <p className="text-sm text-blue-600">$40–$50+/hr · Click to view tier details</p>
                         </div>
                         <ChevronDown className="h-4 w-4 text-blue-600 shrink-0 transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
                       </div>
@@ -161,9 +161,9 @@ const FamilyDashboard = () => {
                 <CollapsibleContent>
                   <CardContent className="pt-0 px-4 pb-4">
                     <div className="space-y-1 text-sm border-t border-blue-200 pt-3 ml-10">
-                      <p><span className="font-medium text-blue-800">$35/hr — Standard:</span> <span className="text-blue-700">GAPP-certified personal care, medication admin &amp; logging, vitals monitoring, basic daily dietary meal prep, daily care documentation, specialized care (dementia, palliative, post-surgical)</span></p>
-                      <p><span className="font-medium text-blue-800">$40/hr — Full Service (Recommended):</span> <span className="text-blue-700">Everything in Standard + specialist-directed meal prep (holidays &amp; special occasions), complex medical needs (wound/catheter/oxygen care), overnight/live-in shifts, advanced certifications (RN, LPN)</span></p>
-                      <p><span className="font-medium text-blue-800">$45+/hr — Premium:</span> <span className="text-blue-700">Everything in Full Service + care plan change management, disease progression support, multi-specialist coordination, 24/7 on-call, advanced palliative/end-of-life care, family training &amp; transition planning</span></p>
+                      <p><span className="font-medium text-blue-800">$40/hr — Standard:</span> <span className="text-blue-700">GAPP-certified personal care, medication admin &amp; logging, vitals monitoring, basic daily dietary meal prep, daily care documentation, specialized care (dementia, palliative, post-surgical)</span></p>
+                      <p><span className="font-medium text-blue-800">$45/hr — Full Service (Recommended):</span> <span className="text-blue-700">Everything in Standard + specialist-directed meal prep (holidays &amp; special occasions), complex medical needs (wound/catheter/oxygen care), overnight/live-in shifts, advanced certifications (RN, LPN)</span></p>
+                      <p><span className="font-medium text-blue-800">$50+/hr — Premium:</span> <span className="text-blue-700">Everything in Full Service + care plan change management, disease progression support, multi-specialist coordination, 24/7 on-call, advanced palliative/end-of-life care, family training &amp; transition planning</span></p>
                       <p className="text-xs text-blue-600 pt-1">These rates reflect the professional standards of certified caregivers in Trinidad &amp; Tobago.</p>
                     </div>
                   </CardContent>

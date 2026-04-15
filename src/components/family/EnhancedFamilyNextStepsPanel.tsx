@@ -150,7 +150,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         stages.foundation.subscriptionCTA = {
           show: true,
           title: "Upgrade Your Care Plan",
-          description: "Access dedicated care coordination starting at $199.99/week or $699.99/month.",
+          description: "Access dedicated care coordination starting at $699/week or $2,499/month.",
           buttonText: "View Plans",
           action: "upgrade",
           featureType: "teaser_unlock",

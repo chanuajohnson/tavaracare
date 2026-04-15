@@ -127,7 +127,7 @@ function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, bool
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <div className="text-sm">
           <span className="text-muted-foreground">Rate:</span>{" "}
-          <span className="font-medium">$35/hr (Standard)</span>
+          <span className="font-medium">$40/hr (Standard)</span>
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Plan:</span>{" "}

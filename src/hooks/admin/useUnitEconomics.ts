@@ -79,8 +79,8 @@ function getWeeklySubscriptionRevenue(planName: string | null, price: number | n
   if (!planName || !price) return 0;
   const name = planName.toLowerCase();
   if (name.includes('basic') || name.includes('free')) return 0;
-  if (name.includes('premium')) return Math.round((2499 / 4.33) * 100) / 100;
-  if (name.includes('care')) return 499;
+  if (name.includes('premium')) return 899;
+  if (name.includes('care') || name.includes('active')) return 699;
   if (price > 200) return Math.round((price / 4.33) * 100) / 100;
   return price;
 }

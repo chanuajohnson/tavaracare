@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -8,10 +8,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { FileText, Receipt, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import {
   generateQuotePDF,
   generateInvoicePDF,
@@ -51,23 +50,47 @@ const DocumentGenerationMenu = ({
   size = 'sm',
 }: DocumentGenerationMenuProps) => {
   const [generating, setGenerating] = useState<string | null>(null);
-  const [includePodiatry, setIncludePodiatry] = useState(false);
+  const [approvedLineItems, setApprovedLineItems] = useState<BillingLineItem[]>([]);
+
+  // Fetch approved service selections dynamically
+  useEffect(() => {
+    if (!carePlanId) return;
+    const fetchSelections = async () => {
+      try {
+        const { data: selections } = await supabase
+          .from('care_plan_service_selections')
+          .select('*, billable_service_items(*)')
+          .eq('care_plan_id', carePlanId)
+          .eq('selected', true);
+
+        if (selections && selections.length > 0) {
+          const lineItems: BillingLineItem[] = (selections as any[]).map(s => {
+            const item = s.billable_service_items;
+            const price = s.override_price ?? item?.unit_price ?? 0;
+            const qty = s.quantity || 1;
+            const billingType = item?.billing_type || 'one_time';
+            const noteMap: Record<string, string> = {
+              weekly: '(weekly)',
+              monthly: '(monthly)',
+              hourly: '(per hour)',
+              one_time: '(one-time)',
+            };
+            return {
+              description: item?.label || 'Service',
+              amount: price * qty,
+              note: noteMap[billingType] || '',
+            };
+          });
+          setApprovedLineItems(lineItems);
+        }
+      } catch (err) {
+        console.error('Error fetching approved services for documents:', err);
+      }
+    };
+    fetchSelections();
+  }, [carePlanId]);
 
   const getData = (): CareBillingData => {
-    const additionalLineItems: BillingLineItem[] = [];
-    const additionalNotes: string[] = [];
-
-    if (includePodiatry) {
-      additionalLineItems.push({
-        description: 'Podiatric Care Support (Secondary Household Member)',
-        amount: 349.00,
-        note: 'Twice-daily antifungal treatment — full care cycle: preparation, hygiene protocol, application, and post-care handling',
-      });
-      additionalNotes.push(
-        'This service is limited to the defined podiatric care task only and does not extend to general caregiving for the secondary household member. Service continues weekly unless discontinued in writing with one (1) week\'s notice.'
-      );
-    }
-
     return buildDefaultCareBillingData({
       familyName,
       familyEmail,
@@ -79,15 +102,7 @@ const DocumentGenerationMenu = ({
       carePlanId,
       carePlanTitle,
       ...billingData,
-      additionalLineItems,
-      ...(additionalNotes.length > 0 ? {
-        additionalNotes: [
-          'NIS (National Insurance) contributions for the assigned caregiver are included and covered by Tavara as required by Trinidad & Tobago law.',
-          'Tavara provides continuity of care — if your assigned caregiver is unavailable, a qualified replacement will be provided at no extra charge.',
-          'Rate adjustments may apply if care needs change (e.g., disease progression, additional services).',
-          ...additionalNotes,
-        ],
-      } : {}),
+      additionalLineItems: approvedLineItems,
     });
   };
 
@@ -119,46 +134,39 @@ const DocumentGenerationMenu = ({
   };
 
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex items-start space-x-2">
-        <Checkbox
-          id="podiatry-admin-toggle"
-          checked={includePodiatry}
-          onCheckedChange={(checked) => setIncludePodiatry(!!checked)}
-        />
-        <Label htmlFor="podiatry-admin-toggle" className="text-xs cursor-pointer">
-          + Podiatric Care ($349/wk)
-        </Label>
-      </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant={variant} size={size} disabled={!!generating}>
-            {generating ? (
-              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-            ) : (
-              <FileText className="mr-1 h-3 w-3" />
-            )}
-            {generating ? 'Generating...' : 'Documents'}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuLabel>Generate Document</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => handleGenerate('quote')} disabled={!!generating}>
-            <FileSpreadsheet className="mr-2 h-4 w-4 text-blue-600" />
-            Generate Quote
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleGenerate('invoice')} disabled={!!generating}>
-            <FileText className="mr-2 h-4 w-4 text-amber-600" />
-            Generate Invoice
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleGenerate('receipt')} disabled={!!generating}>
-            <Receipt className="mr-2 h-4 w-4 text-green-600" />
-            Generate Receipt
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant={variant} size={size} disabled={!!generating}>
+          {generating ? (
+            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+          ) : (
+            <FileText className="mr-1 h-3 w-3" />
+          )}
+          {generating ? 'Generating...' : 'Documents'}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuLabel>Generate Document</DropdownMenuLabel>
+        {approvedLineItems.length > 0 && (
+          <div className="px-2 py-1 text-[10px] text-muted-foreground">
+            {approvedLineItems.length} approved service(s) included
+          </div>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => handleGenerate('quote')} disabled={!!generating}>
+          <FileSpreadsheet className="mr-2 h-4 w-4 text-blue-600" />
+          Generate Quote
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleGenerate('invoice')} disabled={!!generating}>
+          <FileText className="mr-2 h-4 w-4 text-amber-600" />
+          Generate Invoice
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleGenerate('receipt')} disabled={!!generating}>
+          <Receipt className="mr-2 h-4 w-4 text-green-600" />
+          Generate Receipt
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 

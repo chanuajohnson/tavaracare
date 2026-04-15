@@ -33,7 +33,7 @@ function parseLocalDate(dateStr: string): Date {
 /** Read-only summary header for Post-Onboarding section */
 function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, boolean | string> }) {
   const startDateStr = (checkedItems["billing_start_date"] || checkedItems["post_onboarding_3_date"]) as string | undefined;
-  const careRate = (checkedItems["care_rate"] as string) || "$35/hr (Standard)";
+  const careRate = (checkedItems["care_rate"] as string) || "$40/hr (Standard)";
   const billingCadence = (checkedItems["billing_cadence"] as string) || "weekly";
   const isWeekly = billingCadence.toLowerCase() === "weekly";
   const planLabel = isWeekly ? "Tavara Family Care Plan (weekly)" : "Tavara Family Care Plan (monthly)";

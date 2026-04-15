@@ -146,12 +146,12 @@ const SubscriptionPage = () => {
     buttonText: "Get Started Free"
   }, {
     id: "care",
-    name: "Family Care",
-    priceWeekly: "$499",
-    priceMonthly: "$1,799",
+    name: "Active Care Management",
+    priceWeekly: "$699",
+    priceMonthly: "$2,499",
     periodWeekly: "week",
     periodMonthly: "month",
-    description: "Active care coordination with dedicated management support",
+    description: "Structured weekly care coordination, oversight, billing support, and managed care",
     features: [{
       name: "Everything in Family Basic",
       included: true
@@ -182,14 +182,14 @@ const SubscriptionPage = () => {
     buttonText: "Start Care Coordination"
   }, {
     id: "premium",
-    name: "Family Premium",
-    priceWeekly: "$2,499",
-    priceMonthly: "$2,499",
-    periodWeekly: "month",
+    name: "Premium Care Management",
+    priceWeekly: "$899",
+    priceMonthly: "$3,299",
+    periodWeekly: "week",
     periodMonthly: "month",
-    description: "Concierge-level coordination for complex or high-touch care needs",
+    description: "High-touch concierge-level coordination for complex or high-touch care needs",
     features: [{
-      name: "Everything in Family Care",
+      name: "Everything in Active Care Management",
       included: true
     }, {
       name: "Priority care team matching and placement",

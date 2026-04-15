@@ -405,15 +405,15 @@ export async function generateReceiptPDF(data: CareBillingData): Promise<void> {
 
 /**
  * Helper to build default billing data for a standard care arrangement
- * e.g., Anna Maria's case: $35/hr nurse + $5/hr platform = $40/hr, 40hrs/wk
+ * Family-facing rate: $40/hr (Standard), 40hrs/wk
  */
 export function buildDefaultCareBillingData(
   overrides: Partial<CareBillingData> & { familyName: string; additionalLineItems?: BillingLineItem[] }
 ): CareBillingData {
-  const nurseRate = 35;
+  const nurseRate = 40;
   const hoursPerWeek = 40;
   const nursingTotal = nurseRate * hoursPerWeek;
-  const subscriptionRate = 199.99; // Family Care weekly
+  const subscriptionRate = 699; // Active Care Management weekly
 
   // Build base line items
   const baseLineItems: BillingLineItem[] = overrides.lineItems || [
@@ -424,7 +424,7 @@ export function buildDefaultCareBillingData(
       amount: nursingTotal,
     },
     {
-      description: 'Family Care Plan — Care Management & Coordination',
+      description: 'Active Care Management — Care Coordination',
       amount: subscriptionRate,
       note: '(weekly)',
     },
@@ -451,11 +451,11 @@ export function buildDefaultCareBillingData(
     lineItems: allLineItems,
     subtotal: finalSubtotal,
     total: finalTotal,
-    subscriptionTier: overrides.subscriptionTier || 'Family Care',
-    subscriptionRate: overrides.subscriptionRate || '$199.99/week',
+    subscriptionTier: overrides.subscriptionTier || 'Active Care Management',
+    subscriptionRate: overrides.subscriptionRate || '$699/week',
     subscriptionIncludes: overrides.subscriptionIncludes || [
       'Dedicated care coordinator',
-      'Caregiver replacement guarantee',
+      'Caregiver replacement guarantee (within coordinated pool)',
       'Care needs change management',
       'Weekly billing management',
       'NIS compliance coverage',
@@ -470,7 +470,7 @@ export function buildDefaultCareBillingData(
     amountPaid: overrides.amountPaid,
     additionalNotes: overrides.additionalNotes || [
       'NIS (National Insurance) contributions for the assigned caregiver are included and covered by Tavara as required by Trinidad & Tobago law.',
-      'Tavara provides continuity of care — if your assigned caregiver is unavailable, a qualified replacement will be provided at no extra charge.',
+      'Tavara provides continuity of care — if your assigned caregiver is unavailable, a qualified replacement will be provided at no extra charge within the coordinated care team pool.',
       'Rate adjustments may apply if care needs change (e.g., disease progression, additional services).',
     ],
   };
