@@ -194,6 +194,12 @@ export default function BillingSummaryCard({ carePlanId, careRate, weeklyHours }
         {/* Projected Totals */}
         <div className="bg-muted/50 rounded-lg p-3 space-y-2">
           <p className="font-semibold text-sm mb-2">Projected Totals</p>
+          {caregiverWeeklyLabor > 0 && (
+            <div className="flex justify-between text-sm">
+              <span>Caregiver Weekly Labor ({effectiveWeeklyHours} hrs × ${parsedRate.toFixed(2)})</span>
+              <span className="font-bold">${caregiverWeeklyLabor.toFixed(2)}/wk</span>
+            </div>
+          )}
           <div className="flex justify-between text-sm">
             <span>Projected Weekly Total</span>
             <span className="font-bold">${projectedWeeklyTotal.toFixed(2)}/wk</span>
