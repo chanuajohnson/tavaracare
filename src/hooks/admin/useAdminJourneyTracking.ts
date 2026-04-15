@@ -28,35 +28,28 @@ export const useAdminJourneyTracking = (): AdminJourneyData => {
     try {
       setLoading(true);
 
-      // Get all family users
       const familyUsers = await fetchFamilyUsers();
       const totalUsers = familyUsers.length;
 
-      // Initialize step tracking
-      const stepCompletionData = {
-        1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0,
-        7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0
-      };
+      // Initialize step tracking for 15 steps
+      const stepCompletionData: Record<number, number> = {};
+      for (let i = 1; i <= 15; i++) {
+        stepCompletionData[i] = 0;
+      }
 
-      // Process each user's journey progress
       const userProgressList = [];
       for (const user of familyUsers) {
         const userProgress = await calculateUserProgress(user);
         userProgressList.push(userProgress);
         
-        // Update step completion data
-        for (let i = 1; i <= Math.min(userProgress.userStepCount, 12); i++) {
-          stepCompletionData[i as keyof typeof stepCompletionData]++;
+        for (let i = 1; i <= Math.min(userProgress.userStepCount, 15); i++) {
+          stepCompletionData[i]++;
         }
       }
 
-      // Aggregate user progress data
       const aggregatedProgress = aggregateUserProgress(userProgressList);
-
-      // Create step data array
       const stepData = createStepData(stepCompletionData, totalUsers);
 
-      // Calculate conversion metrics
       const conversionMetrics = calculateConversionMetrics(
         aggregatedProgress.foundationCompleted,
         aggregatedProgress.schedulingCompleted,
@@ -65,7 +58,6 @@ export const useAdminJourneyTracking = (): AdminJourneyData => {
         aggregatedProgress.directHireConversions
       );
 
-      // Calculate overall completion rate
       const overallCompletionRate = totalUsers > 0 ? (aggregatedProgress.completedJourneyUsers / totalUsers) * 100 : 0;
 
       setJourneyData({
