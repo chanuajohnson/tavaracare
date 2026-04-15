@@ -1225,6 +1225,8 @@ function ChecklistTabContent({
                             <ServiceCommencementConfirmation
                               carePlanId={familyCarePlanId}
                               familyName={assignedFamilyName}
+                              careRate={checkedItems["care_rate"] as string | undefined}
+                              weeklyHours={selectedCaregiverWeeklyHours}
                               startDate={
                                 (checkedItems["billing_start_date"] || checkedItems["post_onboarding_3_date"]) as string | undefined
                                   ? format(parseLocalDate((checkedItems["billing_start_date"] || checkedItems["post_onboarding_3_date"]) as string), "PPP")

@@ -80,12 +80,14 @@ const COMPANY_INFO = {
 
 const TERMS_AND_CONDITIONS = [
   'Payment is due every Friday for weekly billing, or by the 1st of each month for monthly billing.',
-  'Late payment incurs a 5% fee after 3 business days past due date.',
+  'Late payment incurs a 5% fee after 3 business days past due date. Continued non-payment may result in service suspension after 7 days.',
+  '💡 Complete bank transfers by Thursday to ensure Friday receipt.',
   'Operating hours: 8:00 AM – 4:00 PM. All transactions close at 4:30 PM.',
   'Holiday rates: 1.5× standard rate; Christmas Day and New Year\'s Day: 2× standard rate.',
   'Extended hours beyond the agreed schedule are billed at 1.5× the standard rate.',
   'Care escalation due to changes in condition may require a rate adjustment with prior notice.',
   'NIS (National Insurance) contributions for the assigned caregiver are covered by Tavara.',
+  'Please send a screenshot of payment/bank transfer confirmation via WhatsApp or email.',
 ];
 
 // ─── HTML Templates ─────────────────────────────────────────────────

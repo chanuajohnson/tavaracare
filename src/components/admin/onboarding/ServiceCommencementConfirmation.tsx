@@ -22,6 +22,8 @@ interface ServiceCommencementConfirmationProps {
   scheduleSummary?: string;
   startDate?: string;
   billingCadence?: string;
+  careRate?: string;
+  weeklyHours?: number;
 }
 
 function billingLabel(type: string): string {
@@ -41,6 +43,8 @@ export default function ServiceCommencementConfirmation({
   scheduleSummary,
   startDate,
   billingCadence = 'Weekly (every Friday)',
+  careRate,
+  weeklyHours,
 }: ServiceCommencementConfirmationProps) {
   const [services, setServices] = useState<ApprovedService[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +81,24 @@ export default function ServiceCommencementConfirmation({
 
   if (loading) return null;
 
-  const allApproved = services.length > 0 && services.every(s => s.approved_by_family);
+  // Inject synthetic caregiver weekly labor line if rate is provided
+  const parsedRate = careRate ? parseFloat((careRate.match(/\$?([\d.]+)/) || [])[1] || '0') : 0;
+  const effectiveHours = weeklyHours || 40;
+  const caregiverWeeklyTotal = parsedRate * effectiveHours;
+
+  const allServices: ApprovedService[] = [
+    ...services,
+    ...(parsedRate > 0 ? [{
+      label: `Standard Weekly Care — Nursing (${effectiveHours} hrs/wk)`,
+      billing_type: 'weekly',
+      effective_price: caregiverWeeklyTotal,
+      unit_price: caregiverWeeklyTotal,
+      quantity: 1,
+      approved_by_family: true,
+    }] : []),
+  ];
+
+  const allApproved = allServices.length > 0 && allServices.every(s => s.approved_by_family);
 
   return (
     <Card className="border-amber-200 bg-amber-50/50">
@@ -132,7 +153,7 @@ export default function ServiceCommencementConfirmation({
         </div>
 
         {/* Approved Services */}
-        {services.length > 0 && (
+        {allServices.length > 0 && (
           <>
             <Separator />
             <div>
@@ -141,7 +162,7 @@ export default function ServiceCommencementConfirmation({
                 Approved Services
               </h5>
               <div className="space-y-1.5">
-                {services.map((svc, i) => {
+                {allServices.map((svc, i) => {
                   const hasDiscount = svc.effective_price !== svc.unit_price;
                   const isWaived = hasDiscount && svc.effective_price === 0;
                   return (
