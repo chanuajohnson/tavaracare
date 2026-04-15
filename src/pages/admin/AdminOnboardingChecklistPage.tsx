@@ -1161,7 +1161,7 @@ function ChecklistTabContent({
                         onRateChange={(rateStr) => {
                           onDateChange?.("care_rate", rateStr);
                         }}
-                        onWeeklyHoursChange={setSelectedCaregiverWeeklyHours}
+                        onWeeklyHoursChange={onCaregiverWeeklyHoursChange}
                       />
                     )}
 
