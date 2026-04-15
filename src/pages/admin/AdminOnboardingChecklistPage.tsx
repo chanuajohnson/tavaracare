@@ -1214,7 +1214,7 @@ function ChecklistTabContent({
                             <BillingSummaryCard
                               carePlanId={familyCarePlanId}
                               careRate={(checkedItems["care_rate"] as string) || undefined}
-                              weeklyHours={selectedCaregiverWeeklyHours}
+                              weeklyHours={selectedCaregiverWeeklyHours || 40}
                             />
                           </div>
                         )}
