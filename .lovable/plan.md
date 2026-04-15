@@ -1,26 +1,56 @@
 
 
-## Completed: System-Wide Pricing Alignment & Billing Enforcement
+## Plan: Subscription Selection → Onboarding Flow Integration
 
-### Database Changes Applied
-- `Active Care Management` → $699/week (was "Family Care Coordination Plan" at $499)
-- `Premium Care Management` → $899/week (was "Family Premium" at $2,499/month)
-- Legacy "Urgent Care Change / Escalation" deactivated
-- 8 new service items added: Daily Care SOP + Monitoring ($149/wk), Light/Standard/High-Need Secondary Support ($150/$250/$400/wk), Home Setup ($199), Basic/Urgent/Emergency Escalation ($100/$200/$300)
+### Problem
+1. The subscription page uses `PayPalSubscribeButton` — clicking "Subscribe" tries to initiate PayPal payment. Instead, selecting a plan should save it as the family's chosen care coordination plan, flowing into their onboarding checklist, billing summary, unit economics, and documents.
+
+2. The "Care Plan Review & Setup" onboarding card has `serviceCategory: "care_change"`, so it only shows escalation items. It should also show the core plan selections (Active Care Management / Premium Care Management) so the admin can check off which plan the family is on.
+
+### Changes
+
+**1. `src/pages/subscription/SubscriptionPage.tsx`**
+- Remove `PayPalSubscribeButton` from the card footer for family plans
+- Replace with a simple "Select Plan" button that:
+  - Saves the selection to `user_subscriptions` or the family's care plan service selections in `care_plan_service_selections`
+  - Shows a confirmation toast
+  - Navigates back to dashboard
+- The "basic" plan keeps its current "Get Started Free" button behavior
+- For care/premium plans, the button text becomes "Select This Plan" instead of "Subscribe with PayPal"
+- Selection writes the corresponding `billable_service_items` entry (Active Care Management or Premium Care Management) into `care_plan_service_selections` for the family's active care plan
+
+**2. `src/components/admin/onboarding/onboardingSections.ts`**
+- Change the `care_plan` section's `serviceCategory` from `"care_change"` to `"core_plan"` (new category)
+- This ensures the Care Plan Review & Setup card shows only the core plan items
+
+**3. Database: Update `billable_service_items` categories**
+- Update Active Care Management (id `0f9bec68...`) category from `weekly_addon` to `core_plan`
+- Update Premium Care Management (id `52f6c507...`) category from `premium_support` to `core_plan`
+- This groups both plans under a dedicated category that the Care Plan Review card can filter on
+
+**4. `src/components/admin/onboarding/BillingSummaryCard.tsx`**
+- Ensure the "Core Plan" grouping pulls items with category `core_plan` (already structured for this in the recent update — just needs the category alignment)
+
+### Flow After Changes
+
+```text
+Family visits /subscription
+  → Clicks "Select This Plan" on Active Care Management ($699/week)
+  → System finds family's active care plan
+  → Upserts selection in care_plan_service_selections for the Active Care Management billable item
+  → Toast: "Active Care Management selected for your care plan"
+  → Redirects to dashboard
+
+Admin opens /admin/onboarding-checklist for this family
+  → "Care Plan Review & Setup" card shows ServiceSelectionBlock filtered to core_plan
+  → Active Care Management appears checked (selected by family or admin)
+  → Shows in BillingSummaryCard under "Core Plan"
+  → Shows in post-onboarding summary
+  → Flows to unit economics, quotes, invoices
+```
 
 ### Files Modified
-1. `RateTierReferenceCard.tsx` — $40/$45/$50+ rates
-2. `onboardingSections.ts` — rates, SOP serviceCategory, care team pool, plan naming
-3. `SubscriptionPage.tsx` — Active Care $699/wk, Premium $899/wk
-4. `invoiceService.ts` — $40/hr, $699/wk defaults
-5. `DocumentGenerationMenu.tsx` — dynamic line items from care_plan_service_selections
-6. `BillingSummaryCard.tsx` — grouped Care Plan Commercial Summary with projected totals
-7. `useUnitEconomics.ts` — $699/$899 subscription revenue
-8. `FamilyDashboard.tsx` — $40–$50+ rates
-9. `UserNudgeTab.tsx` — $40/$45/$50+ WhatsApp template
-10. `FamilyOnboardingChecklistPage.tsx` — $40/hr default
-11. `professionalOnboardingSections.ts` — $40/$45/$50+ rates
-12. `FAQPage.tsx` — updated plan pricing
-13. `SubscriptionFeaturesPage.tsx` — $699/wk, $3,299/mo
-14. `EnhancedFamilyNextStepsPanel.tsx` — $699/week
-15. `ProfessionalOnboardingChecklistPage.tsx` — $40/hr default
+1. `src/pages/subscription/SubscriptionPage.tsx` — replace PayPal button with plan selection logic
+2. `src/components/admin/onboarding/onboardingSections.ts` — change care_plan serviceCategory to `core_plan`
+3. Database update: change category for Active/Premium Care Management items to `core_plan`
+
