@@ -95,9 +95,9 @@ export const PROFESSIONAL_ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     iconName: "DollarSign",
     description: "Rate tiers, holiday/overtime rates, payment schedule, and change orders",
     items: [
-      "Review rate tiers: Standard ($35/hr) — GAPP-certified personal care, medication admin & logging, vitals monitoring, basic daily dietary meal prep, daily care documentation, specialized care (dementia, palliative, post-surgical)",
-      "Full Service ($40/hr) — Everything in Standard + advanced specialist-directed meal prep (holidays & special occasions), complex medical needs (wound care, catheter care, oxygen management), overnight/live-in shifts, advanced certifications (RN, LPN), behavioral health support",
-      "Premium ($45+/hr) — Everything in Full Service + change-in-care-plan management, disease progression support, multi-specialist coordination, 24/7 on-call availability, advanced palliative/end-of-life care, family training & transition planning",
+      "Review rate tiers: Standard ($40/hr) — GAPP-certified personal care, medication admin & logging, vitals monitoring, basic daily dietary meal prep, daily care documentation, specialized care (dementia, palliative, post-surgical)",
+      "Full Service ($45/hr) — Everything in Standard + advanced specialist-directed meal prep (holidays & special occasions), complex medical needs (wound care, catheter care, oxygen management), overnight/live-in shifts, advanced certifications (RN, LPN), behavioral health support",
+      "Premium ($50+/hr) — Everything in Full Service + change-in-care-plan management, disease progression support, multi-specialist coordination, 24/7 on-call availability, advanced palliative/end-of-life care, family training & transition planning",
       "Holiday rates — time and a half (1.5x); double time (2x) on Christmas",
       "Extended hours / overtime rates — time and a half beyond standard shifts",
       "Payment schedule and method (weekly/bi-weekly)",

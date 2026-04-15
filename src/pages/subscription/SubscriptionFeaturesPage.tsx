@@ -481,15 +481,15 @@ export default function SubscriptionFeaturesPage() {
                     </div>
 
                     <div className="p-3 border-2 border-primary rounded-md bg-primary/5 mb-2">
-                      <h3 className="font-medium text-primary">Family Care</h3>
-                      <p className="text-sm text-muted-foreground">$199.99/week · $699.99/month</p>
-                      <div className="mt-2 text-xs text-muted-foreground">All Basic features + dedicated care coordinator, priority matching, video consultations</div>
+                      <h3 className="font-medium text-primary">Active Care Management</h3>
+                      <p className="text-sm text-muted-foreground">$699/week · $2,499/month</p>
+                      <div className="mt-2 text-xs text-muted-foreground">All Basic features + dedicated care coordinator, structured coordination, billing support</div>
                     </div>
 
                     <div className="p-3 border rounded-md mb-3">
-                      <h3 className="font-medium">Family Premium</h3>
-                      <p className="text-sm text-muted-foreground">$399.99/month · $1,099.99/month</p>
-                      <div className="mt-2 text-xs text-muted-foreground">All Care features + care plan management, 24/7 on-call, billing management</div>
+                      <h3 className="font-medium">Premium Care Management</h3>
+                      <p className="text-sm text-muted-foreground">$899/week · $3,299/month</p>
+                      <div className="mt-2 text-xs text-muted-foreground">All Active Care features + concierge coordination, 24/7 on-call, complex care management</div>
                     </div>
 
                     <Button 

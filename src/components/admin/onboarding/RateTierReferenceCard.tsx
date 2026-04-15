@@ -5,7 +5,7 @@ import { DollarSign } from "lucide-react";
 const RATE_TIERS = [
   {
     name: "Standard",
-    rate: "$35/hr",
+    rate: "$40/hr",
     color: "bg-blue-50 border-blue-200",
     badge: "bg-blue-100 text-blue-800",
     includes: [
@@ -22,7 +22,7 @@ const RATE_TIERS = [
   },
   {
     name: "Full Service",
-    rate: "$40/hr",
+    rate: "$45/hr",
     color: "bg-green-50 border-green-200",
     badge: "bg-green-100 text-green-800",
     includes: [
@@ -36,7 +36,7 @@ const RATE_TIERS = [
   },
   {
     name: "Premium",
-    rate: "$45+/hr",
+    rate: "$50+/hr",
     color: "bg-purple-50 border-purple-200",
     badge: "bg-purple-100 text-purple-800",
     includes: [
