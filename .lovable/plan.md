@@ -1,78 +1,41 @@
 
 
-## Plan: Smart Caregiver Rate Selector in Admin Onboarding Checklist
+## Plan: Fix Weekly Hours to Use Only the Caregiver's Assigned Shift (40 hrs, not 56)
 
 ### Problem
-There is no UI to **set** a family's caregiver hourly rate. The Care Summary Header reads `checkedItems["care_rate"]` but nothing writes to it. Additionally, the rate selector needs to be "smart" — aligned with the family's selected shift schedule and the platform's rate tiers — and must support legacy rates like Anna Maria's $35/hr that predate current pricing.
+The `CaregiverRateSelector` and `BillingSummaryCard` sum ALL shifts in the family's `care_schedule` field. Anna Maria's schedule is `mon_fri_8am_4pm,sat_sun_8am_4pm` which totals 56 hrs/wk. But her caregiver works Mon-Fri 8AM-4PM only — so the labor calculation should use **40 hours**, not 56.
 
-### Design
+The family's care schedule represents total coverage needed (potentially multiple caregivers). The rate selector should let the admin specify which shift applies to THIS caregiver's rate calculation.
 
-The rate selector will be embedded in the **"Rates, Care Changes & Escalation"** section, just above the `RateTierReferenceCard`. It will:
-
-1. **Show the family's active shift schedule** (read from their profile's `care_schedule` field) so the admin sees context like "Mon-Fri 8 AM - 4 PM (8 hrs/day × 5 days = 40 hrs/wk)"
-2. **Offer rate options** aligned with current tiers plus a legacy option:
-   - `$35/hr (Legacy)` — for families onboarded before rate updates
-   - `$40/hr (Standard)` — current standard tier
-   - `$45/hr (Full Service)` — current full service tier
-   - `$50+/hr (Premium)` — current premium tier
-   - `Custom` — free-text input for edge cases
-3. **Save to `checkedItems["care_rate"]`** via the existing upsert mechanism (auto-persists to `onboarding_checklists.checked_items`)
-4. **Calculate and display weekly caregiver labor** based on selected rate × hours from shift schedule
-5. **Flow downstream** into:
-   - Care Summary Header (already reads `care_rate`)
-   - BillingSummaryCard projected totals (add caregiver labor line)
-   - DocumentGenerationMenu quote/invoice (add nursing line item)
-   - PDF reports (already reads `care_rate`)
-
-### How Anna Maria Is Protected
-- Admin selects "$35/hr (Legacy)" for Anna
-- All downstream displays show $35/hr — the $40/$45 tiers never appear in her documents
-- Her quote shows: "Standard Weekly Care — Nursing (40 hrs/wk) × $35.00/hr = $1,400.00"
-- Her projected weekly total = $499 (Active Care Management) + $1,400 (nursing) = $1,899/wk
+### Solution
+The simplest correct fix: let the admin **select which shift** the rate applies to, rather than auto-summing all shifts. When the family has multiple shifts, the selector should show each shift individually and let admin pick one (or override hours manually).
 
 ### File Changes
 
-**1. `src/pages/admin/AdminOnboardingChecklistPage.tsx`**
+**1. `src/components/admin/onboarding/CaregiverRateSelector.tsx`**
 
-- Add `CaregiverRateSelector` inline component rendered inside the `rates_and_changes` section (before `RateTierReferenceCard`)
-- Reads the family's `care_schedule` from the profile data to show shift context
-- Select dropdown with rate options; on change, saves to `checkedItems["care_rate"]` and triggers `saveFamilyToSupabase`
-- Shows calculated weekly hours and projected weekly caregiver cost
+- When `care_schedule` has multiple shifts, show a **shift selector dropdown** so admin picks which shift the rate applies to (e.g., "Mon-Fri 8AM-4PM — 40 hrs/wk")
+- Default to the first/primary shift rather than summing all
+- Add an optional manual hours override input for edge cases
+- The selected shift's hours drive the weekly labor calculation
+- Export the selected shift hours so `BillingSummaryCard` and `DocumentGenerationMenu` use the correct value
 
 **2. `src/components/admin/onboarding/BillingSummaryCard.tsx`**
 
-- Accept optional `careRate` prop (string like "$35/hr (Legacy)")
-- Parse hourly rate number from string
-- Accept optional `weeklyHours` prop (calculated from shift schedule)
-- Add "Caregiver Weekly Labor" row to projected totals section
-- Update projected weekly and monthly totals to include caregiver labor
+- Use the `weeklyHours` prop as-is (already accepts it) — the fix is in the value being passed from the checklist page
 
-**3. `src/components/admin/care-plans/DocumentGenerationMenu.tsx`**
+**3. `src/pages/admin/AdminOnboardingChecklistPage.tsx`**
 
-- Accept optional `careRate` and `weeklyHours` props
-- When building line items with `additionalLineItems`, also append a "Standard Weekly Care — Nursing" line item using the rate and hours
-- This ensures quotes/invoices include the nursing cost alongside the care management fee
+- Pass the correct per-shift hours (from the selected shift, not the total) to `BillingSummaryCard` and `DocumentGenerationMenu`
 
-**4. `src/services/care-plans/invoiceService.ts`**
-
-- No structural changes needed — the nursing line item will be passed via `additionalLineItems` from `DocumentGenerationMenu`
-
-### Rate-Shift Alignment Logic
-```text
-Shift → Hours/day → Days/week → Weekly hours
-
-mon_fri_8am_4pm  → 8 hrs × 5 days = 40 hrs/wk
-mon_fri_8am_6pm  → 10 hrs × 5 days = 50 hrs/wk
-mon_fri_6am_6pm  → 12 hrs × 5 days = 60 hrs/wk
-sat_sun_8am_4pm  → 8 hrs × 2 days = 16 hrs/wk
-weekday_evening_4pm_8am → 16 hrs × 5 days = 80 hrs/wk
-(etc — derived from shiftTimeMapping.ts)
-```
-
-Admin sees: "Active shift: Mon-Fri 8am-4pm (40 hrs/wk) → Rate: $35/hr → Weekly labor: $1,400"
+### Result for Anna Maria
+- Shift selector defaults to "Mon-Fri 8AM-4PM"
+- Weekly hours: **40 hrs** (not 56)
+- Weekly labor: 40 × $35 = **$1,400/wk**
+- Projected weekly total: $499 + $1,400 = **$1,899/wk**
+- Projected monthly: ~$8,222/mo
 
 ### Files Modified
-1. `src/pages/admin/AdminOnboardingChecklistPage.tsx` — Add rate selector UI
-2. `src/components/admin/onboarding/BillingSummaryCard.tsx` — Include caregiver labor in totals
-3. `src/components/admin/care-plans/DocumentGenerationMenu.tsx` — Pass rate into quote/invoice line items
+1. `src/components/admin/onboarding/CaregiverRateSelector.tsx` — Add shift selector for multi-shift schedules
+2. `src/pages/admin/AdminOnboardingChecklistPage.tsx` — Pass per-shift hours instead of total
 
