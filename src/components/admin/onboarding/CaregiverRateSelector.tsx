@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,6 +46,7 @@ interface CaregiverRateSelectorProps {
   careSchedule?: string;
   currentRate?: string;
   onRateChange: (rateString: string) => void;
+  onWeeklyHoursChange?: (hours: number) => void;
 }
 
 export function parseRateFromString(rateStr: string): number {
@@ -53,16 +54,13 @@ export function parseRateFromString(rateStr: string): number {
   return match ? parseFloat(match[1]) : 0;
 }
 
+/** Returns hours for only the first/primary shift (not summed). Use getSelectedShiftHours for UI-selected shift. */
 export function getWeeklyHoursFromSchedule(careSchedule?: string): number {
-  if (!careSchedule) return 40; // default
-  // care_schedule can be comma-separated
+  if (!careSchedule) return 40;
   const shifts = careSchedule.split(',').map(s => s.trim()).filter(Boolean);
-  let total = 0;
-  for (const shift of shifts) {
-    const info = SHIFT_HOURS_MAP[shift];
-    if (info) total += info.weeklyHours;
-  }
-  return total || 40;
+  if (shifts.length === 0) return 40;
+  // Default to first shift only
+  return SHIFT_HOURS_MAP[shifts[0]]?.weeklyHours || 40;
 }
 
 export function getShiftLabelsFromSchedule(careSchedule?: string): string[] {
@@ -71,12 +69,38 @@ export function getShiftLabelsFromSchedule(careSchedule?: string): string[] {
   return shifts.map(s => SHIFT_HOURS_MAP[s]?.label || s).filter(Boolean);
 }
 
-export default function CaregiverRateSelector({ careSchedule, currentRate, onRateChange }: CaregiverRateSelectorProps) {
+/** Parse shifts from care_schedule string */
+function parseShifts(careSchedule?: string): string[] {
+  if (!careSchedule) return [];
+  return careSchedule.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+export default function CaregiverRateSelector({ careSchedule, currentRate, onRateChange, onWeeklyHoursChange }: CaregiverRateSelectorProps) {
   const [customRate, setCustomRate] = useState('');
   const isCustom = currentRate === 'custom' || (currentRate && !RATE_OPTIONS.some(o => o.value === currentRate && o.value !== 'custom'));
 
-  const weeklyHours = getWeeklyHoursFromSchedule(careSchedule);
-  const shiftLabels = getShiftLabelsFromSchedule(careSchedule);
+  const shifts = parseShifts(careSchedule);
+  const hasMultipleShifts = shifts.length > 1;
+  const [selectedShift, setSelectedShift] = useState<string>(shifts[0] || '');
+  const [manualHoursOverride, setManualHoursOverride] = useState('');
+
+  // When careSchedule changes, default to first shift
+  useEffect(() => {
+    const newShifts = parseShifts(careSchedule);
+    if (newShifts.length > 0 && !newShifts.includes(selectedShift)) {
+      setSelectedShift(newShifts[0]);
+    }
+  }, [careSchedule]);
+
+  const shiftInfo = SHIFT_HOURS_MAP[selectedShift];
+  const baseWeeklyHours = shiftInfo?.weeklyHours || 40;
+  const weeklyHours = manualHoursOverride ? parseInt(manualHoursOverride, 10) || baseWeeklyHours : baseWeeklyHours;
+
+  // Notify parent of hours changes
+  useEffect(() => {
+    onWeeklyHoursChange?.(weeklyHours);
+  }, [weeklyHours, onWeeklyHoursChange]);
+
   const hourlyRate = currentRate ? parseRateFromString(currentRate) : 0;
   const weeklyLabor = hourlyRate * weeklyHours;
 
@@ -95,9 +119,6 @@ export default function CaregiverRateSelector({ careSchedule, currentRate, onRat
     }
   };
 
-  const displayValue = isCustom && currentRate !== 'custom' ? currentRate : 
-    RATE_OPTIONS.find(o => o.value === currentRate)?.value || '';
-
   return (
     <div className="mt-4 mb-2 rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
       <h5 className="text-sm font-semibold flex items-center gap-2">
@@ -105,14 +126,67 @@ export default function CaregiverRateSelector({ careSchedule, currentRate, onRat
         Caregiver Rate Selection
       </h5>
 
-      {/* Shift context */}
-      <div className="flex items-start gap-2 text-xs text-muted-foreground">
-        <Clock className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-        <div>
-          <span className="font-medium">Active shift: </span>
-          {shiftLabels.join(' + ')}
-          <span className="ml-1">({weeklyHours} hrs/wk)</span>
+      {/* Shift selector — only when family has multiple shifts */}
+      {hasMultipleShifts ? (
+        <div className="space-y-2">
+          <Label className="text-xs">Apply Rate to Shift</Label>
+          <Select value={selectedShift} onValueChange={setSelectedShift}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Select shift for this rate" />
+            </SelectTrigger>
+            <SelectContent>
+              {shifts.map(shift => {
+                const info = SHIFT_HOURS_MAP[shift];
+                return (
+                  <SelectItem key={shift} value={shift}>
+                    {info?.label || shift} — {info?.weeklyHours || '?'} hrs/wk
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
         </div>
+      ) : (
+        <div className="flex items-start gap-2 text-xs text-muted-foreground">
+          <Clock className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+          <div>
+            <span className="font-medium">Active shift: </span>
+            {shiftInfo?.label || 'Not set'}
+            <span className="ml-1">({weeklyHours} hrs/wk)</span>
+          </div>
+        </div>
+      )}
+
+      {/* Show selected shift context when multi-shift */}
+      {hasMultipleShifts && selectedShift && (
+        <div className="flex items-start gap-2 text-xs text-muted-foreground">
+          <Clock className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+          <div>
+            <span className="font-medium">Selected: </span>
+            {shiftInfo?.label} — {shiftInfo?.hoursPerDay} hrs/day × {shiftInfo?.daysPerWeek} days = <strong>{baseWeeklyHours} hrs/wk</strong>
+          </div>
+        </div>
+      )}
+
+      {/* Manual hours override */}
+      <div className="flex items-center gap-2">
+        <Label className="text-xs whitespace-nowrap">Override hours/wk:</Label>
+        <Input
+          type="number"
+          placeholder={String(baseWeeklyHours)}
+          value={manualHoursOverride}
+          onChange={(e) => setManualHoursOverride(e.target.value)}
+          className="h-7 w-20 text-xs"
+        />
+        {manualHoursOverride && (
+          <button
+            type="button"
+            className="text-xs text-muted-foreground underline"
+            onClick={() => setManualHoursOverride('')}
+          >
+            Reset
+          </button>
+        )}
       </div>
 
       {/* Rate selector */}

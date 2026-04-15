@@ -694,6 +694,8 @@ function ChecklistTabContent({
   familyMedications,
   familyCarePlanId,
   onToggleApproval,
+  selectedCaregiverWeeklyHours,
+  onCaregiverWeeklyHoursChange,
 }: {
   profiles: ProfileOption[];
   loadingProfiles: boolean;
@@ -724,6 +726,8 @@ function ChecklistTabContent({
   familyMedications?: Array<{ id: string; name: string; dosage?: string; medication_type?: string; instructions?: string; schedule?: any }>;
   familyCarePlanId?: string | null;
   onToggleApproval?: (approvalKey: string) => void;
+  selectedCaregiverWeeklyHours?: number;
+  onCaregiverWeeklyHoursChange?: (hours: number) => void;
 }) {
   const publicGuideUrl = `${window.location.origin}/onboarding-guide`;
   const copyPublicLink = () => {
@@ -1155,10 +1159,9 @@ function ChecklistTabContent({
                         careSchedule={profiles.find(p => p.id === selectedId)?.care_schedule || undefined}
                         currentRate={(checkedItems["care_rate"] as string) || ''}
                         onRateChange={(rateStr) => {
-                          const next = { ...checkedItems, care_rate: rateStr };
-                          // We need to trigger save - use onDateChange which saves
                           onDateChange?.("care_rate", rateStr);
                         }}
+                        onWeeklyHoursChange={onCaregiverWeeklyHoursChange}
                       />
                     )}
 
@@ -1211,9 +1214,7 @@ function ChecklistTabContent({
                             <BillingSummaryCard
                               carePlanId={familyCarePlanId}
                               careRate={(checkedItems["care_rate"] as string) || undefined}
-                              weeklyHours={getWeeklyHoursFromSchedule(
-                                profiles.find(p => p.id === selectedId)?.care_schedule || undefined
-                              )}
+                              weeklyHours={selectedCaregiverWeeklyHours || 40}
                             />
                           </div>
                         )}
@@ -1380,6 +1381,7 @@ export default function AdminOnboardingChecklistPage() {
   const [familyOpenSections, setFamilyOpenSections] = useState<Record<string, boolean>>({});
   const [familyMedications, setFamilyMedications] = useState<Array<{ id: string; name: string; dosage?: string; medication_type?: string; instructions?: string; schedule?: any }>>([]);
   const [familyCarePlanId, setFamilyCarePlanId] = useState<string | null>(null);
+  const [selectedCaregiverWeeklyHours, setSelectedCaregiverWeeklyHours] = useState<number>(40);
   const familySaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Professional state
@@ -1858,6 +1860,8 @@ export default function AdminOnboardingChecklistPage() {
             showFamilyData
             familyMedications={familyMedications}
             familyCarePlanId={familyCarePlanId}
+            selectedCaregiverWeeklyHours={selectedCaregiverWeeklyHours}
+            onCaregiverWeeklyHoursChange={setSelectedCaregiverWeeklyHours}
             onToggleApproval={(approvalKey) => {
               setFamilyCheckedItems((prev) => {
                 const isCurrentlyApproved = prev[approvalKey] === true;
