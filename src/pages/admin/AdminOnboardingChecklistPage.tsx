@@ -1046,6 +1046,12 @@ function ChecklistTabContent({
                         />
                       </div>
                     )}
+                    {section.serviceCategory && showFamilyData && !familyCarePlanId && (
+                      <div className="mb-4 p-3 bg-muted/50 border border-border rounded-md text-sm text-muted-foreground flex items-center gap-2">
+                        <span>ℹ️</span>
+                        <span>Service selection requires a linked care plan. Create a care plan for this family to enable billing items.</span>
+                      </div>
+                    )}
 
                     <div className="space-y-3 pl-2">
                       {section.items.map((item, i) => {
@@ -1444,15 +1450,18 @@ export default function AdminOnboardingChecklistPage() {
       try {
         const { data: carePlans } = await supabase
           .from("care_plans")
-          .select("id")
+          .select("id, status")
           .eq("family_id", selectedFamilyId)
-          .eq("status", "active");
+          .in("status", ["active", "draft", "pending"]);
         if (!carePlans || carePlans.length === 0) {
           setFamilyMedications([]);
           setFamilyCarePlanId(null);
           return;
         }
-        setFamilyCarePlanId(carePlans[0].id);
+        // Prefer active plans, fall back to draft/pending
+        const activePlan = carePlans.find(cp => cp.status === 'active');
+        const bestPlan = activePlan || carePlans[0];
+        setFamilyCarePlanId(bestPlan.id);
         const carePlanIds = carePlans.map(cp => cp.id);
         const { data: meds, error } = await supabase
           .from("medications")
