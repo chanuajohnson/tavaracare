@@ -1,43 +1,54 @@
 
 
-## Plan: Add Caregiver Rate to Approved Services + Bank Details & Payment Terms on Documents
+## Plan: Rename "Nursing" to "Caregiver" + Align Professional Tab with Payment (Not Billing) Context
+
+### Key Insight
+The professional is **paid**, not **billed**. The professional tab should show compensation/payment terms — not billing summaries meant for families. The admin professional tab should surface the caregiver's rate, shift, weekly earnings, and payment schedule in a way that aligns with the family billing but is framed as **earnings/compensation**.
 
 ### Changes
 
-**1. `src/components/admin/onboarding/ServiceCommencementConfirmation.tsx`**
-- Accept new optional props: `careRate` (string like "$35/hr (Legacy)") and `weeklyHours` (number)
-- When provided, inject a synthetic "Caregiver — Weekly Nursing" line into the approved services list showing the weekly rate (e.g., "Standard Weekly Care — Nursing (40 hrs/wk)" → $1,400.00 weekly)
-- This appears alongside the existing approved services (Active Care Management, etc.)
+**1. Rename "Nursing" → "Caregiver" across all affected files**
 
-**2. `src/pages/admin/AdminOnboardingChecklistPage.tsx`**
-- Pass `careRate={checkedItems["care_rate"]}` and `weeklyHours={selectedCaregiverWeeklyHours}` to the `ServiceCommencementConfirmation` component
+- `ServiceCommencementConfirmation.tsx` line 92: `Standard Weekly Care — Nursing` → `Standard Weekly Care — Caregiver`
+- `DocumentGenerationMenu.tsx` lines 105, 111-112: `nursingLineItems` → `caregiverLineItems`, label → `Caregiver`
+- `invoiceService.ts` lines 440-458: `nurseRate` → `caregiverRate`, `nursingTotal` → `caregiverTotal`, label → `Caregiver`
 
-**3. `src/services/care-plans/invoiceService.ts`**
-- Add bank details section to Quote, Invoice, and Receipt templates:
-  ```
-  Bank: First Citizens Bank, Point Lisas
-  Account: 2991223
-  Name: Chanua Johnson
-  Type: Savings
-  ```
-- Add payment instruction note: "Complete transactions by Thursday to ensure Friday receipt. Send screenshot of payment/bank transfer via WhatsApp or email to confirm."
-- Update `TERMS_AND_CONDITIONS` to include late payment penalty language (already has "5% fee after 3 business days" — will make more prominent and add bank transfer confirmation requirement)
+**2. Professional tab on admin onboarding — add Compensation Summary (not Billing)**
 
-**4. `src/components/admin/onboarding/BillingSummaryCard.tsx`**
-- Add a small bank details reference card at the bottom of the billing summary for easy admin/family access
+In `AdminOnboardingChecklistPage.tsx`, for `showProfessionalData` in the `post_onboarding` section (after `CareSummaryHeader`):
 
-### Result for Ana Maria
-The Service Commencement Confirmation will show:
-- Active Care Management — Discounted — ~~$699.00~~ $499.00 weekly
-- **Standard Weekly Care — Nursing (40 hrs/wk) — $1,400.00 weekly** ← NEW
-- Caregiver Matching & Placement — Waived — $0.00 one-time
-- Care Assessment & Setup — Waived — $0.00 one-time
+- When a linked family exists with a `care_rate`, show a **"Compensation Summary"** card (not `BillingSummaryCard`) that displays:
+  - Agreed hourly rate (from linked family's `care_rate`)
+  - Assigned shift and weekly hours
+  - Projected weekly earnings (rate × hours)
+  - Payment schedule: "Weekly (every Friday)"
+  - Late payment note
+- This reuses the rate data from `linkedFamilyCheckedItems["care_rate"]` — same source, different framing
+- Does NOT show `BillingSummaryCard` (that's family billing, includes subscription fees irrelevant to the caregiver)
 
-Quotes/Invoices will include bank details and payment deadline disclaimers.
+**3. Professional tab — show CaregiverRateSelector in rates section (read-from-family context)**
+
+In the `rates_and_changes` section, when `showProfessionalData` and a family is linked:
+- Show the `CaregiverRateSelector` reading from `linkedFamilyCheckedItems["care_rate"]` in **read-only** mode (rate is set on family side, professional sees it)
+- Show `RateTierReferenceCard` (already renders for both tabs)
+
+**4. Family-facing onboarding — pass careRate and weeklyHours to BillingSummaryCard and ServiceCommencementConfirmation**
+
+In `FamilyOnboardingChecklistPage.tsx` lines 629-633:
+- Currently passes only `carePlanId` — add `careRate` and `weeklyHours` props from `checkedItems["care_rate"]`
+- This ensures the family sees the caregiver labor line in their approved services
+
+**5. Professional-facing onboarding — update CareSummaryHeader to read actual rate**
+
+In `ProfessionalOnboardingChecklistPage.tsx` line 130:
+- Currently hardcoded to `$40/hr (Standard)` — read from `checkedItems["care_rate"]` or linked family data
+- Show the caregiver's actual rate and projected weekly earnings
 
 ### Files Modified
-1. `src/components/admin/onboarding/ServiceCommencementConfirmation.tsx`
-2. `src/pages/admin/AdminOnboardingChecklistPage.tsx`
-3. `src/services/care-plans/invoiceService.ts`
-4. `src/components/admin/onboarding/BillingSummaryCard.tsx`
+1. `src/components/admin/onboarding/ServiceCommencementConfirmation.tsx` — "Nursing" → "Caregiver"
+2. `src/components/admin/care-plans/DocumentGenerationMenu.tsx` — "Nursing" → "Caregiver"
+3. `src/services/care-plans/invoiceService.ts` — "Nursing" → "Caregiver"
+4. `src/pages/admin/AdminOnboardingChecklistPage.tsx` — Add compensation summary for professional tab, read-only rate display
+5. `src/pages/family/FamilyOnboardingChecklistPage.tsx` — Pass careRate/weeklyHours to components
+6. `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx` — Use actual rate instead of hardcoded $40/hr
 
