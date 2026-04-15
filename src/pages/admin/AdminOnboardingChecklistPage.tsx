@@ -1157,10 +1157,7 @@ function ChecklistTabContent({
                         onRateChange={(rateStr) => {
                           onDateChange?.("care_rate", rateStr);
                         }}
-                        onWeeklyHoursChange={(hrs) => {
-                          // Store selected shift hours for BillingSummaryCard
-                          (window as any).__selectedCaregiverWeeklyHours = hrs;
-                        }}
+                        onWeeklyHoursChange={setSelectedCaregiverWeeklyHours}
                       />
                     )}
 
@@ -1213,9 +1210,7 @@ function ChecklistTabContent({
                             <BillingSummaryCard
                               carePlanId={familyCarePlanId}
                               careRate={(checkedItems["care_rate"] as string) || undefined}
-                              weeklyHours={getWeeklyHoursFromSchedule(
-                                profiles.find(p => p.id === selectedId)?.care_schedule || undefined
-                              )}
+                              weeklyHours={selectedCaregiverWeeklyHours}
                             />
                           </div>
                         )}
