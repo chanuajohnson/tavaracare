@@ -210,6 +210,9 @@ export default function BillingSummaryCard({ carePlanId }: BillingSummaryCardPro
 
 function ServiceRow({ item }: { item: ServiceItemWithSelection }) {
   const effectivePrice = item.override_price ?? item.unit_price;
+  const hasDiscount = item.override_price !== null && item.override_price !== undefined && item.override_price !== item.unit_price;
+  const isWaived = hasDiscount && item.override_price === 0;
+
   return (
     <div className="flex items-center justify-between py-1.5">
       <div className="flex items-center gap-2">
@@ -217,8 +220,19 @@ function ServiceRow({ item }: { item: ServiceItemWithSelection }) {
         {item.approved_by_family && (
           <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
         )}
+        {isWaived && (
+          <Badge className="bg-purple-100 text-purple-800 text-[9px] px-1.5 py-0">Waived</Badge>
+        )}
+        {hasDiscount && !isWaived && (
+          <Badge className="bg-amber-100 text-amber-800 text-[9px] px-1.5 py-0">Discounted</Badge>
+        )}
       </div>
       <div className="text-sm font-medium">
+        {hasDiscount && (
+          <span className="line-through text-muted-foreground mr-1.5">
+            ${item.unit_price.toFixed(2)}
+          </span>
+        )}
         ${effectivePrice.toFixed(2)}
         {item.quantity > 1 && ` × ${item.quantity}`}
         <span className="text-xs text-muted-foreground ml-1">

@@ -114,11 +114,11 @@ function CareSummaryHeader({ checkedItems, linkedCheckedItems, assignedFamilyNam
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <div className="text-sm">
           <span className="text-muted-foreground">Rate:</span>{" "}
-          <span className="font-medium">$35/hr (Standard)</span>
+          <span className="font-medium">{(checkedItems["care_rate"] as string) || "$40/hr (Standard)"}</span>
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Plan:</span>{" "}
-          <span className="font-medium">Tavara Family Care Plan (weekly)</span>
+          <span className="font-medium">Active Care Management (weekly)</span>
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Start Date:</span>{" "}
@@ -129,6 +129,9 @@ function CareSummaryHeader({ checkedItems, linkedCheckedItems, assignedFamilyNam
         <div className="text-sm">
           <span className="text-muted-foreground">Payment:</span>{" "}
           <span className="font-medium">Weekly (due every Friday)</span>
+        </div>
+        <div className="text-sm col-span-full">
+          <span className="text-xs text-blue-700 italic">💡 Complete transactions by Thursday to ensure Friday receipt.</span>
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Late Fee:</span>{" "}
@@ -430,9 +433,10 @@ function generateFamilyReport(
   pdf.setFontSize(7.5);
   pdf.setFont("helvetica", "normal");
   pdf.setTextColor(50);
-  pdf.text(`Rate: $35/hr (Standard)   |   Plan: Tavara Family Care Plan (weekly)   |   Start Date: ${startDateFmt}`, M, y);
+  const careRate = (checkedItems["care_rate"] as string) || "$40/hr (Standard)";
+  pdf.text(`Rate: ${careRate}   |   Plan: Active Care Management (weekly)   |   Start Date: ${startDateFmt}`, M, y);
   y += 3.5;
-  pdf.text(`Payment: Weekly (due every Friday)   |   Late Fee: 5% after 3 business days   |   Holiday/OT: 1.5x (2x Christmas)`, M, y);
+  pdf.text(`Payment: Weekly (due every Friday) — Complete transactions by Thursday for Friday receipt   |   Late Fee: 5% after 3 business days`, M, y);
   y += 5;
 
   // --- Onboarding Progress header ---
@@ -552,7 +556,8 @@ function generateProfessionalReport(
   pdf.setFontSize(7.5);
   pdf.setFont("helvetica", "normal");
   pdf.setTextColor(50);
-  pdf.text(`Rate: $35/hr (Standard)   |   Plan: Tavara Family Care Plan (weekly)   |   Start Date: ${startDateFmt}`, M, y);
+  const careRatePro = (linkedFamilyCheckedItems["care_rate"] || checkedItems["care_rate"] || "$40/hr (Standard)") as string;
+  pdf.text(`Rate: ${careRatePro}   |   Plan: Active Care Management (weekly)   |   Start Date: ${startDateFmt}`, M, y);
   y += 3.5;
   pdf.text(`Payment: Weekly by Tavara (every Friday)   |   Holiday/OT: 1.5x (2x Christmas)`, M, y);
   y += 3.5;

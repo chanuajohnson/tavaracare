@@ -131,7 +131,7 @@ function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, bool
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Plan:</span>{" "}
-          <span className="font-medium">Tavara Family Care Plan (weekly)</span>
+          <span className="font-medium">Active Care Management (weekly)</span>
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Start Date:</span>{" "}
@@ -142,6 +142,9 @@ function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, bool
         <div className="text-sm">
           <span className="text-muted-foreground">Payment:</span>{" "}
           <span className="font-medium">Weekly (due every Friday)</span>
+        </div>
+        <div className="text-sm col-span-full">
+          <span className="text-xs text-blue-700 italic">💡 Complete transactions by Thursday to ensure Friday receipt.</span>
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Late Fee:</span>{" "}
