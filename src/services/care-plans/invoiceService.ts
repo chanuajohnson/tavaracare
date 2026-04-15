@@ -205,6 +205,29 @@ function buildSubscriptionSection(data: CareBillingData): string {
   `;
 }
 
+function buildBankDetailsSection(): string {
+  return `
+    <div style="padding: 12px 32px;">
+      <div style="background: #EBF8FF; border: 1px solid #BEE3F8; border-radius: 6px; padding: 14px 18px;">
+        <div style="font-size: 11px; font-weight: 700; color: #2B6CB0; margin-bottom: 8px;">💳 Payment Details — Bank Transfer</div>
+        <div style="display: flex; gap: 32px; font-size: 11px; color: #333;">
+          <div>
+            <div><strong>Bank:</strong> First Citizens Bank, Point Lisas</div>
+            <div><strong>Account:</strong> 2991223</div>
+          </div>
+          <div>
+            <div><strong>Name:</strong> Chanua Johnson</div>
+            <div><strong>Type:</strong> Savings</div>
+          </div>
+        </div>
+        <div style="font-size: 10px; color: #555; margin-top: 8px; font-style: italic;">
+          💡 Complete transactions by Thursday to ensure Friday receipt. Send screenshot of payment/bank transfer via WhatsApp or email to confirm.
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function buildTermsSection(terms: string[]): string {
   return `
     <div style="padding: 16px 32px;">
@@ -295,6 +318,7 @@ export async function generateQuotePDF(data: CareBillingData): Promise<void> {
           </div>
         </div>
       ` : ''}
+      ${buildBankDetailsSection()}
       ${buildTermsSection(TERMS_AND_CONDITIONS)}
       ${buildFooter(`This quote is valid until ${validUntil}`)}
     </div>
@@ -337,6 +361,7 @@ export async function generateInvoicePDF(data: CareBillingData): Promise<void> {
           </div>
         </div>
       ` : ''}
+      ${buildBankDetailsSection()}
       ${buildTermsSection(TERMS_AND_CONDITIONS)}
       ${buildFooter('Thank you for choosing Tavara Care')}
     </div>
