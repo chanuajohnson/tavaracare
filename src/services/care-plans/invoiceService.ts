@@ -489,9 +489,9 @@ export function buildDefaultCareBillingData(
     });
   }
 
-  console.log('[invoiceService] Line items for document:', allLineItems.map(i => `${i.description}: $${i.amount}`));
 
   const allLineItems = [...baseLineItems, ...nonSubscriptionItems];
+  console.log('[invoiceService] Line items for document:', allLineItems.map(i => `${i.description}: $${i.amount}`));
 
   // Calculate totals from actual line items
   const calculatedSubtotal = allLineItems.reduce((sum, item) => sum + item.amount, 0);
