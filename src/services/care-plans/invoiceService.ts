@@ -437,9 +437,9 @@ export async function generateReceiptPDF(data: CareBillingData): Promise<void> {
 export function buildDefaultCareBillingData(
   overrides: Partial<CareBillingData> & { familyName: string; additionalLineItems?: BillingLineItem[] }
 ): CareBillingData {
-  const nurseRate = 40;
+  const caregiverRate = 40;
   const hoursPerWeek = 40;
-  const nursingTotal = nurseRate * hoursPerWeek;
+  const caregiverTotal = caregiverRate * hoursPerWeek;
   const subscriptionRate = 699; // Active Care Management weekly
 
   const additionalItems = overrides.additionalLineItems || [];
@@ -451,10 +451,10 @@ export function buildDefaultCareBillingData(
       ? [] // Don't add hardcoded defaults when we have real service data
       : [
           {
-            description: 'Standard Weekly Care — Nursing (40 hrs/wk)',
+            description: 'Standard Weekly Care — Caregiver (40 hrs/wk)',
             hoursPerWeek,
-            ratePerHour: nurseRate,
-            amount: nursingTotal,
+            ratePerHour: caregiverRate,
+            amount: caregiverTotal,
           },
           {
             description: 'Active Care Management — Care Coordination',

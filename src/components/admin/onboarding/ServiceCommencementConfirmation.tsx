@@ -89,7 +89,7 @@ export default function ServiceCommencementConfirmation({
   const allServices: ApprovedService[] = [
     ...services,
     ...(parsedRate > 0 ? [{
-      label: `Standard Weekly Care — Nursing (${effectiveHours} hrs/wk)`,
+      label: `Standard Weekly Care — Caregiver (${effectiveHours} hrs/wk)`,
       billing_type: 'weekly',
       effective_price: caregiverWeeklyTotal,
       unit_price: caregiverWeeklyTotal,
