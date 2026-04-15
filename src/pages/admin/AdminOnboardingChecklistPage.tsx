@@ -1208,7 +1208,13 @@ function ChecklistTabContent({
                         {/* Billing & Care Structure Summary */}
                         {showFamilyData && familyCarePlanId && (
                           <div className="mb-4">
-                            <BillingSummaryCard carePlanId={familyCarePlanId} />
+                            <BillingSummaryCard
+                              carePlanId={familyCarePlanId}
+                              careRate={(checkedItems["care_rate"] as string) || undefined}
+                              weeklyHours={getWeeklyHoursFromSchedule(
+                                profiles.find(p => p.id === selectedId)?.care_schedule || undefined
+                              )}
+                            />
                           </div>
                         )}
 
@@ -1808,6 +1814,10 @@ export default function AdminOnboardingChecklistPage() {
                   <DocumentGenerationMenu
                     familyName={families.find(f => f.id === selectedFamilyId)?.full_name || 'Family'}
                     carePlanTitle="Care Services"
+                    careRate={(familyCheckedItems["care_rate"] as string) || undefined}
+                    weeklyHours={getWeeklyHoursFromSchedule(
+                      families.find(f => f.id === selectedFamilyId)?.care_schedule || undefined
+                    )}
                   />
                 </div>
               </CardContent>
