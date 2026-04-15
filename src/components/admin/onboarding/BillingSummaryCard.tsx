@@ -219,6 +219,20 @@ export default function BillingSummaryCard({ carePlanId, careRate, weeklyHours }
         <div className="text-xs text-muted-foreground italic">
           This is a care plan commercial summary — not a final invoice. Changes to care scope or services will always be discussed before taking effect.
         </div>
+
+        {/* Bank Details Reference */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-1">
+          <p className="text-xs font-semibold text-blue-800">💳 Payment — Bank Transfer</p>
+          <div className="grid grid-cols-2 gap-x-4 text-xs text-blue-900">
+            <div><span className="text-muted-foreground">Bank:</span> First Citizens Bank, Point Lisas</div>
+            <div><span className="text-muted-foreground">Name:</span> Chanua Johnson</div>
+            <div><span className="text-muted-foreground">Account:</span> 2991223</div>
+            <div><span className="text-muted-foreground">Type:</span> Savings</div>
+          </div>
+          <p className="text-[10px] text-blue-700 italic mt-1">
+            💡 Complete transactions by Thursday to ensure Friday receipt. Send screenshot via WhatsApp or email to confirm.
+          </p>
+        </div>
       </CardContent>
     </Card>
   );

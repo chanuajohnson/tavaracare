@@ -80,12 +80,14 @@ const COMPANY_INFO = {
 
 const TERMS_AND_CONDITIONS = [
   'Payment is due every Friday for weekly billing, or by the 1st of each month for monthly billing.',
-  'Late payment incurs a 5% fee after 3 business days past due date.',
+  'Late payment incurs a 5% fee after 3 business days past due date. Continued non-payment may result in service suspension after 7 days.',
+  '💡 Complete bank transfers by Thursday to ensure Friday receipt.',
   'Operating hours: 8:00 AM – 4:00 PM. All transactions close at 4:30 PM.',
   'Holiday rates: 1.5× standard rate; Christmas Day and New Year\'s Day: 2× standard rate.',
   'Extended hours beyond the agreed schedule are billed at 1.5× the standard rate.',
   'Care escalation due to changes in condition may require a rate adjustment with prior notice.',
   'NIS (National Insurance) contributions for the assigned caregiver are covered by Tavara.',
+  'Please send a screenshot of payment/bank transfer confirmation via WhatsApp or email.',
 ];
 
 // ─── HTML Templates ─────────────────────────────────────────────────
@@ -203,6 +205,29 @@ function buildSubscriptionSection(data: CareBillingData): string {
   `;
 }
 
+function buildBankDetailsSection(): string {
+  return `
+    <div style="padding: 12px 32px;">
+      <div style="background: #EBF8FF; border: 1px solid #BEE3F8; border-radius: 6px; padding: 14px 18px;">
+        <div style="font-size: 11px; font-weight: 700; color: #2B6CB0; margin-bottom: 8px;">💳 Payment Details — Bank Transfer</div>
+        <div style="display: flex; gap: 32px; font-size: 11px; color: #333;">
+          <div>
+            <div><strong>Bank:</strong> First Citizens Bank, Point Lisas</div>
+            <div><strong>Account:</strong> 2991223</div>
+          </div>
+          <div>
+            <div><strong>Name:</strong> Chanua Johnson</div>
+            <div><strong>Type:</strong> Savings</div>
+          </div>
+        </div>
+        <div style="font-size: 10px; color: #555; margin-top: 8px; font-style: italic;">
+          💡 Complete transactions by Thursday to ensure Friday receipt. Send screenshot of payment/bank transfer via WhatsApp or email to confirm.
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function buildTermsSection(terms: string[]): string {
   return `
     <div style="padding: 16px 32px;">
@@ -293,6 +318,7 @@ export async function generateQuotePDF(data: CareBillingData): Promise<void> {
           </div>
         </div>
       ` : ''}
+      ${buildBankDetailsSection()}
       ${buildTermsSection(TERMS_AND_CONDITIONS)}
       ${buildFooter(`This quote is valid until ${validUntil}`)}
     </div>
@@ -335,6 +361,7 @@ export async function generateInvoicePDF(data: CareBillingData): Promise<void> {
           </div>
         </div>
       ` : ''}
+      ${buildBankDetailsSection()}
       ${buildTermsSection(TERMS_AND_CONDITIONS)}
       ${buildFooter('Thank you for choosing Tavara Care')}
     </div>
