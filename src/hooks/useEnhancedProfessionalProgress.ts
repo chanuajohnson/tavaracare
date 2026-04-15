@@ -40,6 +40,9 @@ interface ProfessionalProgressData {
   totalSteps: number;
   loading: boolean;
   refreshProgress: () => Promise<void>;
+  agreedRate?: string;
+  weeklyHours?: number;
+  projectedWeeklyEarnings?: number;
 }
 
 export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
@@ -48,7 +51,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<any>(null);
   const [documentsData, setDocumentsData] = useState<any[]>([]);
-
+  const [compensationData, setCompensationData] = useState<{ agreedRate?: string; weeklyHours?: number; projectedWeeklyEarnings?: number }>({});
   const storedProgress = useStoredJourneyProgress(user?.id || '', 'professional');
 
   console.log('🔍 Enhanced Professional Progress Data:', {
@@ -302,6 +305,32 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       setProfileData(profile);
       setDocumentsData(documents || []);
 
+      // Fetch compensation data from linked family's onboarding checklist
+      const activeAssignments = assignments?.filter((a: any) => a.status === 'active') || [];
+      if (activeAssignments.length > 0) {
+        const familyId = activeAssignments[0].family_id;
+        if (familyId) {
+          const { data: familyChecklist } = await supabase
+            .from('onboarding_checklists' as any)
+            .select('checked_items')
+            .eq('user_id', familyId)
+            .eq('user_type', 'family')
+            .maybeSingle();
+          
+          const items = (familyChecklist as any)?.checked_items;
+          if (items?.care_rate) {
+            const cr = items.care_rate;
+            const rate = cr.rate || cr.hourlyRate;
+            const hours = cr.weeklyHours || cr.hours || 40;
+            setCompensationData({
+              agreedRate: cr.label || cr.tierName || (rate ? `$${rate}/hr` : undefined),
+              weeklyHours: hours,
+              projectedWeeklyEarnings: rate && hours ? rate * hours : undefined
+            });
+          }
+        }
+      }
+
       const refsCount = references?.length || 0;
       const screeningPassed = screenings?.some(
         (s: any) => s.screening_type === 'head_nurse_interview' && s.status === 'passed'
@@ -442,6 +471,9 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     completedSteps,
     totalSteps,
     loading: loading || storedProgress.loading,
-    refreshProgress
+    refreshProgress,
+    agreedRate: compensationData.agreedRate,
+    weeklyHours: compensationData.weeklyHours,
+    projectedWeeklyEarnings: compensationData.projectedWeeklyEarnings
   };
 };

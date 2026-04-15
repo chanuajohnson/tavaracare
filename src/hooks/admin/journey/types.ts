@@ -2,7 +2,7 @@
 export interface JourneyStepData {
   id: number;
   title: string;
-  category: 'foundation' | 'scheduling' | 'trial' | 'conversion';
+  category: 'foundation' | 'scheduling' | 'care_coordination' | 'trial' | 'conversion';
   completed: boolean;
   completionRate: number;
   avgTimeToComplete?: number;
@@ -31,6 +31,7 @@ export interface UserProgress {
   userStepCount: number;
   foundationCompleted: boolean;
   schedulingCompleted: boolean;
+  careCoordinationCompleted: boolean;
   trialCompleted: boolean;
   subscriptionConversion: boolean;
   directHireConversion: boolean;

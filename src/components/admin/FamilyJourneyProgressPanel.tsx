@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CheckCircle2, Circle, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle2, Circle, Clock, ChevronDown, ChevronUp, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 
@@ -15,6 +16,35 @@ interface FamilyJourneyProgressPanelProps {
 export const FamilyJourneyProgressPanel = ({ userId }: FamilyJourneyProgressPanelProps) => {
   const { steps, completionPercentage, nextStep, loading, journeyStage } = useSharedFamilyJourneyData(userId);
   const [isOpen, setIsOpen] = useState(false);
+  const [rateData, setRateData] = useState<{ label?: string; rate?: number; weeklyHours?: number } | null>(null);
+
+  // Fetch billing context from onboarding checklist
+  useEffect(() => {
+    const fetchRateData = async () => {
+      try {
+        const { data: checklist } = await supabase
+          .from('onboarding_checklists' as any)
+          .select('checked_items')
+          .eq('user_id', userId)
+          .eq('user_type', 'family')
+          .maybeSingle();
+
+        const items = (checklist as any)?.checked_items;
+        if (items?.care_rate) {
+          const careRate = items.care_rate;
+          setRateData({
+            label: careRate.label || careRate.tierName,
+            rate: careRate.rate || careRate.hourlyRate,
+            weeklyHours: careRate.weeklyHours || careRate.hours || 40
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching rate data:', error);
+      }
+    };
+
+    if (userId) fetchRateData();
+  }, [userId]);
 
   const getStatusColor = () => {
     if (completionPercentage >= 75) return 'text-green-700';
@@ -42,6 +72,7 @@ export const FamilyJourneyProgressPanel = ({ userId }: FamilyJourneyProgressPane
       case 'scheduling': return 'Scheduling';
       case 'trial': return 'Trial';
       case 'conversion': return 'Conversion';
+      case 'active': return 'Active';
       default: return 'Foundation';
     }
   };
@@ -92,6 +123,30 @@ export const FamilyJourneyProgressPanel = ({ userId }: FamilyJourneyProgressPane
                 </Badge>
               </div>
               <Progress value={completionPercentage} className="h-3" />
+
+              {/* Compact billing context when rate is set */}
+              {rateData && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <DollarSign className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-800">Billing Summary</span>
+                  </div>
+                  <div className="flex flex-wrap gap-3 text-xs text-blue-700">
+                    {rateData.label && (
+                      <span>Rate: <strong>{rateData.label}</strong></span>
+                    )}
+                    {rateData.rate && (
+                      <span>${rateData.rate}/hr</span>
+                    )}
+                    {rateData.weeklyHours && (
+                      <span>{rateData.weeklyHours} hrs/wk</span>
+                    )}
+                    {rateData.rate && rateData.weeklyHours && (
+                      <span>≈ <strong>${(rateData.rate * rateData.weeklyHours).toLocaleString()}/wk</strong></span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Toggle button */}
               <CollapsibleTrigger asChild>

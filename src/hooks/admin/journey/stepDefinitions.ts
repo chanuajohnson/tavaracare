@@ -10,15 +10,19 @@ export const STEP_TITLES = [
   'Meal Planning',
   'Schedule Visit',
   'Confirm Visit',
+  'Care Team Confirmed',
+  'Initial Family Meeting',
+  'Care Begins',
   'Schedule Trial',
   'Pay for Trial',
   'Begin Trial',
   'Choose Path'
 ];
 
-export const STEP_CATEGORIES: Array<'foundation' | 'scheduling' | 'trial' | 'conversion'> = [
+export const STEP_CATEGORIES: Array<'foundation' | 'scheduling' | 'care_coordination' | 'trial' | 'conversion'> = [
   'foundation', 'foundation', 'foundation', 'foundation', 'foundation', 'foundation',
   'scheduling', 'scheduling',
+  'care_coordination', 'care_coordination', 'care_coordination',
   'trial', 'trial', 'trial',
   'conversion'
 ];
