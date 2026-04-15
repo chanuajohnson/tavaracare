@@ -440,10 +440,25 @@ export function buildDefaultCareBillingData(
   const caregiverRate = 40;
   const hoursPerWeek = 40;
   const caregiverTotal = caregiverRate * hoursPerWeek;
-  const subscriptionRate = 699; // Active Care Management weekly
+  const defaultSubscriptionRate = 699; // Active Care Management weekly
 
   const additionalItems = overrides.additionalLineItems || [];
   const hasServiceSelections = additionalItems.length > 0;
+
+  // Detect subscription item from approved service selections
+  let detectedSubscriptionRate: number | null = null;
+  let detectedSubscriptionLabel: string | null = null;
+  const nonSubscriptionItems: BillingLineItem[] = [];
+
+  for (const item of additionalItems) {
+    const desc = item.description.toLowerCase();
+    if (desc.includes('care management') || desc.includes('active care management') || desc.includes('premium care management')) {
+      detectedSubscriptionRate = item.amount;
+      detectedSubscriptionLabel = item.description.replace(/\s*\[.*?\]\s*/g, '').trim();
+    } else {
+      nonSubscriptionItems.push(item);
+    }
+  }
 
   // If service selections are provided, use them as primary line items (no hardcoded defaults)
   const baseLineItems: BillingLineItem[] = overrides.lineItems || 
@@ -458,17 +473,31 @@ export function buildDefaultCareBillingData(
           },
           {
             description: 'Active Care Management — Care Coordination',
-            amount: subscriptionRate,
+            amount: defaultSubscriptionRate,
             note: '(weekly)',
           },
         ]);
 
-  const allLineItems = [...baseLineItems, ...additionalItems];
+  // If subscription detected from approved services, add it as a proper line item
+  if (detectedSubscriptionRate !== null && detectedSubscriptionRate > 0) {
+    baseLineItems.push({
+      description: detectedSubscriptionLabel || 'Active Care Management — Care Coordination',
+      amount: detectedSubscriptionRate,
+      note: '(weekly)',
+    });
+  }
+
+  const allLineItems = [...baseLineItems, ...nonSubscriptionItems];
 
   // Calculate totals from actual line items
   const calculatedSubtotal = allLineItems.reduce((sum, item) => sum + item.amount, 0);
   const finalSubtotal = overrides.subtotal ?? calculatedSubtotal;
   const finalTotal = overrides.total ?? calculatedSubtotal;
+
+  // Determine subscription display rate from detected data or override
+  const displaySubscriptionRate = detectedSubscriptionRate !== null
+    ? `$${detectedSubscriptionRate.toFixed(0)}/week`
+    : (overrides.subscriptionRate || `$${defaultSubscriptionRate}/week`);
 
   return {
     familyName: overrides.familyName,
@@ -482,7 +511,7 @@ export function buildDefaultCareBillingData(
     subtotal: finalSubtotal,
     total: finalTotal,
     subscriptionTier: overrides.subscriptionTier || 'Active Care Management',
-    subscriptionRate: overrides.subscriptionRate || '$699/week',
+    subscriptionRate: displaySubscriptionRate,
     subscriptionIncludes: overrides.subscriptionIncludes || [
       'Dedicated care coordinator',
       'Caregiver replacement guarantee (within coordinated pool)',

@@ -35,6 +35,7 @@ interface DocumentGenerationMenuProps {
   size?: 'default' | 'sm' | 'lg';
   careRate?: string;
   weeklyHours?: number;
+  hideWaivedItems?: boolean;
 }
 
 const DocumentGenerationMenu = ({
