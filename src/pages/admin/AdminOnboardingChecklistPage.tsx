@@ -1860,6 +1860,8 @@ export default function AdminOnboardingChecklistPage() {
             showFamilyData
             familyMedications={familyMedications}
             familyCarePlanId={familyCarePlanId}
+            selectedCaregiverWeeklyHours={selectedCaregiverWeeklyHours}
+            onCaregiverWeeklyHoursChange={setSelectedCaregiverWeeklyHours}
             onToggleApproval={(approvalKey) => {
               setFamilyCheckedItems((prev) => {
                 const isCurrentlyApproved = prev[approvalKey] === true;
