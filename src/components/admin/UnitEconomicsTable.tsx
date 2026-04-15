@@ -52,6 +52,7 @@ export function UnitEconomicsTable({ clients }: Props) {
             <TableHead>Plan</TableHead>
             <TableHead className="text-right">Sub/mo</TableHead>
             <TableHead className="text-right">CG Fees/mo</TableHead>
+            <TableHead className="text-right">Svc Rev/mo</TableHead>
             <TableHead className="text-right">Revenue/mo</TableHead>
             <TableHead className="text-right">Wages/mo</TableHead>
             <TableHead className="text-right">Employer NIS</TableHead>

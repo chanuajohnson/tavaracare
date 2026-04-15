@@ -400,7 +400,7 @@ export function useUnitEconomics(selectedMonth: string) {
       setClients(prev => prev.map(c => {
         const monthlyOpCost = Math.round(weeklyOpCost * c.payrollWeeks * 100) / 100;
         const newTotalCost = c.monthlyCaregiverCost + c.monthlyNisCost + c.monthlyExpenses + monthlyOpCost;
-        const newRevenue = c.monthlySubscriptionRevenue + c.monthlyCaregiverFees;
+        const newRevenue = c.monthlySubscriptionRevenue + c.monthlyCaregiverFees + c.monthlyServiceRevenue;
         const newMargin = newRevenue - newTotalCost;
         const newPct = newRevenue > 0 ? (newMargin / newRevenue) * 100 : (newTotalCost > 0 ? -100 : 0);
         return {
