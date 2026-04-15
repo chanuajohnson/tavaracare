@@ -1385,10 +1385,11 @@ export default function AdminOnboardingChecklistPage() {
     load();
   }, [selectedFamilyId]);
 
-  // Load family medications
+  // Load family medications and care plan ID
   useEffect(() => {
     if (!selectedFamilyId) {
       setFamilyMedications([]);
+      setFamilyCarePlanId(null);
       return;
     }
     const loadMeds = async () => {
@@ -1396,11 +1397,14 @@ export default function AdminOnboardingChecklistPage() {
         const { data: carePlans } = await supabase
           .from("care_plans")
           .select("id")
-          .eq("family_id", selectedFamilyId);
+          .eq("family_id", selectedFamilyId)
+          .eq("status", "active");
         if (!carePlans || carePlans.length === 0) {
           setFamilyMedications([]);
+          setFamilyCarePlanId(null);
           return;
         }
+        setFamilyCarePlanId(carePlans[0].id);
         const carePlanIds = carePlans.map(cp => cp.id);
         const { data: meds, error } = await supabase
           .from("medications")
@@ -1412,6 +1416,7 @@ export default function AdminOnboardingChecklistPage() {
       } catch (err) {
         console.error("Failed to load family medications:", err);
         setFamilyMedications([]);
+        setFamilyCarePlanId(null);
       }
     };
     loadMeds();
