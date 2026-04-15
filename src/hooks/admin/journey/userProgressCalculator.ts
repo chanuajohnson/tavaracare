@@ -107,7 +107,7 @@ export const calculateUserProgress = async (user: any): Promise<UserProgress> =>
 
   // Steps 10-11: Check onboarding_checklists for introduction_date and care_start_date
   const { data: checklist } = await supabase
-    .from('onboarding_checklists')
+    .from('onboarding_checklists' as any)
     .select('checked_items')
     .eq('user_id', user.id)
     .eq('user_type', 'family')
