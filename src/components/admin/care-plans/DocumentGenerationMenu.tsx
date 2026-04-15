@@ -66,7 +66,8 @@ const DocumentGenerationMenu = ({
         if (selections && selections.length > 0) {
           const lineItems: BillingLineItem[] = (selections as any[]).map(s => {
             const item = s.billable_service_items;
-            const price = s.override_price ?? item?.unit_price ?? 0;
+            const unitPrice = item?.unit_price ?? 0;
+            const price = s.override_price ?? unitPrice;
             const qty = s.quantity || 1;
             const billingType = item?.billing_type || 'one_time';
             const noteMap: Record<string, string> = {
@@ -75,8 +76,13 @@ const DocumentGenerationMenu = ({
               hourly: '(per hour)',
               one_time: '(one-time)',
             };
+            const hasDiscount = s.override_price !== null && s.override_price !== undefined && s.override_price !== unitPrice;
+            const isWaived = hasDiscount && s.override_price === 0;
+            let discountNote = '';
+            if (isWaived) discountNote = ' [WAIVED — value: $' + unitPrice.toFixed(2) + ']';
+            else if (hasDiscount) discountNote = ' [Discounted from $' + unitPrice.toFixed(2) + ']';
             return {
-              description: item?.label || 'Service',
+              description: (item?.label || 'Service') + discountNote,
               amount: price * qty,
               note: noteMap[billingType] || '',
             };

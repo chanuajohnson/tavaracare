@@ -36,7 +36,7 @@ function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, bool
   const careRate = (checkedItems["care_rate"] as string) || "$40/hr (Standard)";
   const billingCadence = (checkedItems["billing_cadence"] as string) || "weekly";
   const isWeekly = billingCadence.toLowerCase() === "weekly";
-  const planLabel = isWeekly ? "Tavara Family Care Plan (weekly)" : "Tavara Family Care Plan (monthly)";
+  const planLabel = isWeekly ? "Active Care Management (weekly)" : "Active Care Management (monthly)";
   const paymentLabel = isWeekly ? "Weekly (due every Friday)" : "Monthly";
 
   return (
@@ -71,6 +71,11 @@ function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, bool
           <span className="text-muted-foreground">Holiday/OT:</span>{" "}
           <span className="font-medium">1.5× (2× Christmas)</span>
         </div>
+        {isWeekly && (
+          <div className="text-sm col-span-full">
+            <span className="text-xs text-blue-700 italic">💡 Complete transactions by Thursday to ensure Friday receipt.</span>
+          </div>
+        )}
       </div>
       <div className="mt-3 pt-3 border-t border-blue-200">
         <p className="text-xs text-blue-800 font-medium">

@@ -10,6 +10,7 @@ interface ApprovedService {
   label: string;
   billing_type: string;
   effective_price: number;
+  unit_price: number;
   quantity: number;
   approved_by_family: boolean;
 }
@@ -62,6 +63,7 @@ export default function ServiceCommencementConfirmation({
           label: s.billable_service_items?.label || 'Unknown',
           billing_type: s.billable_service_items?.billing_type || 'one_time',
           effective_price: s.override_price ?? s.billable_service_items?.unit_price ?? 0,
+          unit_price: s.billable_service_items?.unit_price ?? 0,
           quantity: s.quantity || 1,
           approved_by_family: s.approved_by_family,
         })));
@@ -139,21 +141,36 @@ export default function ServiceCommencementConfirmation({
                 Approved Services
               </h5>
               <div className="space-y-1.5">
-                {services.map((svc, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      {svc.approved_by_family ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
-                      ) : (
-                        <div className="h-3.5 w-3.5 rounded-full border-2 border-amber-400" />
-                      )}
-                      <span>{svc.label}</span>
+                {services.map((svc, i) => {
+                  const hasDiscount = svc.effective_price !== svc.unit_price;
+                  const isWaived = hasDiscount && svc.effective_price === 0;
+                  return (
+                    <div key={i} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        {svc.approved_by_family ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                        ) : (
+                          <div className="h-3.5 w-3.5 rounded-full border-2 border-amber-400" />
+                        )}
+                        <span>{svc.label}</span>
+                        {isWaived && (
+                          <Badge className="bg-purple-100 text-purple-800 text-[9px] px-1.5 py-0">Waived</Badge>
+                        )}
+                        {hasDiscount && !isWaived && (
+                          <Badge className="bg-amber-100 text-amber-800 text-[9px] px-1.5 py-0">Discounted</Badge>
+                        )}
+                      </div>
+                      <span className="font-medium">
+                        {hasDiscount && (
+                          <span className="line-through text-muted-foreground mr-1.5">
+                            ${svc.unit_price.toFixed(2)}
+                          </span>
+                        )}
+                        ${svc.effective_price.toFixed(2)} {billingLabel(svc.billing_type)}
+                      </span>
                     </div>
-                    <span className="font-medium">
-                      ${svc.effective_price.toFixed(2)} {billingLabel(svc.billing_type)}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </>

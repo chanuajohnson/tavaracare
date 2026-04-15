@@ -114,6 +114,7 @@ export const AppRoutes = () => {
       <Route path="/about" element={<AboutPage />} />
       <Route path="/errands" element={<ErrandsPage />} />
       <Route path="/faq" element={<FAQPage />} />
+      <Route path="/support/faq" element={<FAQPage />} />
       <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
       <Route path="/urgent-caregivers" element={<UrgentCaregiversPage />} />
       <Route path="/urgent-families" element={<UrgentFamiliesPage />} />
