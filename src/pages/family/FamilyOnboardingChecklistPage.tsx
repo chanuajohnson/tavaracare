@@ -524,6 +524,7 @@ export default function FamilyOnboardingChecklistPage() {
                     />
                   </div>
                 )}
+                {section.id === "medication_confirmation" && medications.length > 0 && (
                   <div className="mt-3 space-y-2 rounded-lg border border-blue-200 bg-blue-50/50 p-4">
                     <h5 className="text-sm font-semibold flex items-center gap-2 text-blue-900 mb-3">
                       <Pill className="h-4 w-4" /> Your Medications on File
