@@ -1,26 +1,35 @@
-## Plan: Add Read-Only Service Components to Family Onboarding Checklist
 
-### Problem
 
-The family-facing onboarding page (`/family/onboarding-checklist`) does not show any of the billable service components (ServiceSelectionBlock, BillingSummaryCard, ServiceCommencementConfirmation). These were only added to the admin page. I not seeing it on admin for Families like Chanua Johnson and Ana Maria — and need iton family page as wellwho already have active care plans — cannot see their approved services.
+## Plan: Fix Missing `familyCarePlanId` Prop in Admin Onboarding Checklist
 
-### Changes
+### Root Cause
 
-**File: `src/pages/family/FamilyOnboardingChecklistPage.tsx**`
+The `familyCarePlanId` state variable is correctly fetched (line 1357, 1451-1464) and the `ChecklistTabContent` component correctly accepts and uses it (line 688, 718, 1041-1054). However, the prop is **never passed** when `ChecklistTabContent` is rendered for the family tab (lines 1797-1852).
 
-1. **Fetch `familyCarePlanId**` — Add a query in the existing `useEffect` load function to fetch the user's care plan ID (matching the admin page logic: prefer `active`, fall back to `draft`/`pending`).
-2. **Import and render `ServiceSelectionBlock**` (read-only, compact) — For each section that has a `serviceCategory`, render `<ServiceSelectionBlock carePlanId={familyCarePlanId} filterCategory={section.serviceCategory} readOnly compact />` inside the collapsible content. This shows families which services are selected/approved for their care plan without allowing edits.
-3. **Import and render `BillingSummaryCard**` (read-only) — In the `post_onboarding` section, add `<BillingSummaryCard carePlanId={familyCarePlanId} />` alongside the existing `CareSummaryHeader` and `ServiceCommencementApproval`.
-4. **Import and render `ServiceCommencementConfirmation**` (read-only) — In the `post_onboarding` section, add `<ServiceCommencementConfirmation carePlanId={familyCarePlanId} readOnly />` so families can see the formal summary of their approved service structure.
+This means `familyCarePlanId` inside `ChecklistTabContent` is always `undefined`, so:
+- `ServiceSelectionBlock` never renders (line 1041 condition fails)
+- The fallback "Service selection requires a linked care plan" message shows instead (line 1049)
+- `BillingSummaryCard` and `ServiceCommencementConfirmation` in post-onboarding also never render (lines 1190, 1197)
 
-### Technical Details
+### Fix
 
-- `ServiceSelectionBlock` already supports `readOnly` and `compact` props — no changes needed to that component
-- `BillingSummaryCard` is already read-only by nature
-- `ServiceCommencementConfirmation` will need a check: if it doesn't have a `readOnly` prop, we'll pass it anyway (it may already be display-only)
-- The care plan query uses `.in('status', ['active', 'draft', 'pending'])` to match families in any onboarding stage
-- Both Chanua Johnson (care plan `4848aec5...`) and Ana Maria (care plan `3d634783...`) have `active` care plans, so they will immediately see their service selections once services are selected via the admin page
+**File: `src/pages/admin/AdminOnboardingChecklistPage.tsx` (~line 1830)**
+
+Add the missing prop to the `ChecklistTabContent` component for the family tab:
+
+```tsx
+familyCarePlanId={familyCarePlanId}
+```
+
+This single line addition connects the already-fetched care plan ID to the component that needs it. Ana Maria's active care plan (`3d634783-...`) will then be passed through, enabling all three service components to render.
+
+### Result
+
+For Ana Maria (and any family with an active/draft/pending care plan):
+1. `ServiceSelectionBlock` will appear in Pre-Call, Care Plan Review, Medication, Meals, Caregiver Matching, and Rates sections
+2. `BillingSummaryCard` will appear in Post-Onboarding Summary
+3. `ServiceCommencementConfirmation` will appear in Post-Onboarding Summary
 
 ### Files Modified
+1. `src/pages/admin/AdminOnboardingChecklistPage.tsx` — add `familyCarePlanId={familyCarePlanId}` prop to family tab's `ChecklistTabContent`
 
-1. `src/pages/family/FamilyOnboardingChecklistPage.tsx` — add care plan fetch, import and render 3 service components in read-only mode
