@@ -30,6 +30,7 @@ const STAGE_ORDER = [
   'screening',
   'onboarding',
   'post_onboarding',
+  'billing',
   'ready_to_commence',
   'manual',
 ];
@@ -39,6 +40,7 @@ const STAGE_LABELS: Record<string, string> = {
   screening: '🔍 Screening',
   onboarding: '📋 Onboarding',
   post_onboarding: '✅ Post-Onboarding',
+  billing: '💰 Billing & Payments',
   ready_to_commence: '🚀 Ready to Commence',
   manual: '✉️ Manual',
 };
