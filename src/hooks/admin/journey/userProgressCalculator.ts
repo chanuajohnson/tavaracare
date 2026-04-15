@@ -113,7 +113,7 @@ export const calculateUserProgress = async (user: any): Promise<UserProgress> =>
     .eq('user_type', 'family')
     .maybeSingle();
 
-  const checkedItems = checklist?.checked_items as Record<string, any> | null;
+  const checkedItems = (checklist as any)?.checked_items as Record<string, any> | null;
 
   // Step 10: Initial Family Meeting
   if (checkedItems?.introduction_date) {
