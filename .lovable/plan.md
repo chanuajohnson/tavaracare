@@ -1,41 +1,43 @@
 
 
-## Plan: Fix Weekly Hours to Use Only the Caregiver's Assigned Shift (40 hrs, not 56)
+## Plan: Add Caregiver Rate to Approved Services + Bank Details & Payment Terms on Documents
 
-### Problem
-The `CaregiverRateSelector` and `BillingSummaryCard` sum ALL shifts in the family's `care_schedule` field. Anna Maria's schedule is `mon_fri_8am_4pm,sat_sun_8am_4pm` which totals 56 hrs/wk. But her caregiver works Mon-Fri 8AM-4PM only — so the labor calculation should use **40 hours**, not 56.
+### Changes
 
-The family's care schedule represents total coverage needed (potentially multiple caregivers). The rate selector should let the admin specify which shift applies to THIS caregiver's rate calculation.
+**1. `src/components/admin/onboarding/ServiceCommencementConfirmation.tsx`**
+- Accept new optional props: `careRate` (string like "$35/hr (Legacy)") and `weeklyHours` (number)
+- When provided, inject a synthetic "Caregiver — Weekly Nursing" line into the approved services list showing the weekly rate (e.g., "Standard Weekly Care — Nursing (40 hrs/wk)" → $1,400.00 weekly)
+- This appears alongside the existing approved services (Active Care Management, etc.)
 
-### Solution
-The simplest correct fix: let the admin **select which shift** the rate applies to, rather than auto-summing all shifts. When the family has multiple shifts, the selector should show each shift individually and let admin pick one (or override hours manually).
+**2. `src/pages/admin/AdminOnboardingChecklistPage.tsx`**
+- Pass `careRate={checkedItems["care_rate"]}` and `weeklyHours={selectedCaregiverWeeklyHours}` to the `ServiceCommencementConfirmation` component
 
-### File Changes
+**3. `src/services/care-plans/invoiceService.ts`**
+- Add bank details section to Quote, Invoice, and Receipt templates:
+  ```
+  Bank: First Citizens Bank, Point Lisas
+  Account: 2991223
+  Name: Chanua Johnson
+  Type: Savings
+  ```
+- Add payment instruction note: "Complete transactions by Thursday to ensure Friday receipt. Send screenshot of payment/bank transfer via WhatsApp or email to confirm."
+- Update `TERMS_AND_CONDITIONS` to include late payment penalty language (already has "5% fee after 3 business days" — will make more prominent and add bank transfer confirmation requirement)
 
-**1. `src/components/admin/onboarding/CaregiverRateSelector.tsx`**
+**4. `src/components/admin/onboarding/BillingSummaryCard.tsx`**
+- Add a small bank details reference card at the bottom of the billing summary for easy admin/family access
 
-- When `care_schedule` has multiple shifts, show a **shift selector dropdown** so admin picks which shift the rate applies to (e.g., "Mon-Fri 8AM-4PM — 40 hrs/wk")
-- Default to the first/primary shift rather than summing all
-- Add an optional manual hours override input for edge cases
-- The selected shift's hours drive the weekly labor calculation
-- Export the selected shift hours so `BillingSummaryCard` and `DocumentGenerationMenu` use the correct value
+### Result for Ana Maria
+The Service Commencement Confirmation will show:
+- Active Care Management — Discounted — ~~$699.00~~ $499.00 weekly
+- **Standard Weekly Care — Nursing (40 hrs/wk) — $1,400.00 weekly** ← NEW
+- Caregiver Matching & Placement — Waived — $0.00 one-time
+- Care Assessment & Setup — Waived — $0.00 one-time
 
-**2. `src/components/admin/onboarding/BillingSummaryCard.tsx`**
-
-- Use the `weeklyHours` prop as-is (already accepts it) — the fix is in the value being passed from the checklist page
-
-**3. `src/pages/admin/AdminOnboardingChecklistPage.tsx`**
-
-- Pass the correct per-shift hours (from the selected shift, not the total) to `BillingSummaryCard` and `DocumentGenerationMenu`
-
-### Result for Anna Maria
-- Shift selector defaults to "Mon-Fri 8AM-4PM"
-- Weekly hours: **40 hrs** (not 56)
-- Weekly labor: 40 × $35 = **$1,400/wk**
-- Projected weekly total: $499 + $1,400 = **$1,899/wk**
-- Projected monthly: ~$8,222/mo
+Quotes/Invoices will include bank details and payment deadline disclaimers.
 
 ### Files Modified
-1. `src/components/admin/onboarding/CaregiverRateSelector.tsx` — Add shift selector for multi-shift schedules
-2. `src/pages/admin/AdminOnboardingChecklistPage.tsx` — Pass per-shift hours instead of total
+1. `src/components/admin/onboarding/ServiceCommencementConfirmation.tsx`
+2. `src/pages/admin/AdminOnboardingChecklistPage.tsx`
+3. `src/services/care-plans/invoiceService.ts`
+4. `src/components/admin/onboarding/BillingSummaryCard.tsx`
 
