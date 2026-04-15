@@ -1180,6 +1180,31 @@ function ChecklistTabContent({
                           assignedFamilyName={assignedFamilyName}
                         />
 
+                        {/* Billing & Care Structure Summary */}
+                        {showFamilyData && familyCarePlanId && (
+                          <div className="mb-4">
+                            <BillingSummaryCard carePlanId={familyCarePlanId} />
+                          </div>
+                        )}
+
+                        {/* Service Commencement Confirmation */}
+                        {showFamilyData && familyCarePlanId && (
+                          <div className="mb-4">
+                            <ServiceCommencementConfirmation
+                              carePlanId={familyCarePlanId}
+                              familyName={assignedFamilyName}
+                              startDate={
+                                (checkedItems["billing_start_date"] || checkedItems["post_onboarding_3_date"]) as string | undefined
+                                  ? format(parseLocalDate((checkedItems["billing_start_date"] || checkedItems["post_onboarding_3_date"]) as string), "PPP")
+                                  : undefined
+                              }
+                              billingCadence={
+                                (checkedItems["billing_cadence"] as string) === "monthly" ? "Monthly" : "Weekly (every Friday)"
+                              }
+                            />
+                          </div>
+                        )}
+
                         {/* Family: Service Commencement Approval block */}
                         {showFamilyData && (() => {
                           const famApproved = checkedItems["family_approval_confirmed"] === true;
