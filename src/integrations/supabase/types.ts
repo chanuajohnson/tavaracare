@@ -398,6 +398,54 @@ export type Database = {
           },
         ]
       }
+      billable_service_items: {
+        Row: {
+          billing_type: string
+          category: string
+          created_at: string | null
+          default_quantity: number | null
+          description: string
+          id: string
+          is_active: boolean | null
+          label: string
+          sort_order: number | null
+          unit_price: number
+          visible_in_invoice: boolean | null
+          visible_in_quote: boolean | null
+          visible_in_unit_economics: boolean | null
+        }
+        Insert: {
+          billing_type: string
+          category: string
+          created_at?: string | null
+          default_quantity?: number | null
+          description: string
+          id?: string
+          is_active?: boolean | null
+          label: string
+          sort_order?: number | null
+          unit_price: number
+          visible_in_invoice?: boolean | null
+          visible_in_quote?: boolean | null
+          visible_in_unit_economics?: boolean | null
+        }
+        Update: {
+          billing_type?: string
+          category?: string
+          created_at?: string | null
+          default_quantity?: number | null
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          sort_order?: number | null
+          unit_price?: number
+          visible_in_invoice?: boolean | null
+          visible_in_quote?: boolean | null
+          visible_in_unit_economics?: boolean | null
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           calendar_id: string
@@ -646,6 +694,60 @@ export type Database = {
             columns: ["care_plan_id"]
             isOneToOne: false
             referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_plan_service_selections: {
+        Row: {
+          approved_by_family: boolean | null
+          care_plan_id: string
+          created_at: string | null
+          id: string
+          notes: string | null
+          override_price: number | null
+          quantity: number | null
+          selected: boolean | null
+          service_item_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          approved_by_family?: boolean | null
+          care_plan_id: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          override_price?: number | null
+          quantity?: number | null
+          selected?: boolean | null
+          service_item_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          approved_by_family?: boolean | null
+          care_plan_id?: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          override_price?: number | null
+          quantity?: number | null
+          selected?: boolean | null
+          service_item_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_plan_service_selections_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_plan_service_selections_service_item_id_fkey"
+            columns: ["service_item_id"]
+            isOneToOne: false
+            referencedRelation: "billable_service_items"
             referencedColumns: ["id"]
           },
         ]

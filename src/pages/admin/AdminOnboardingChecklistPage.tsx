@@ -30,6 +30,9 @@ import ProfessionalSubmissionReview from "@/components/admin/onboarding/Professi
 import RateTierReferenceCard from "@/components/admin/onboarding/RateTierReferenceCard";
 import CareSuppliesCard from "@/components/admin/onboarding/CareSuppliesCard";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
+import ServiceSelectionBlock from "@/components/admin/onboarding/ServiceSelectionBlock";
+import BillingSummaryCard from "@/components/admin/onboarding/BillingSummaryCard";
+import ServiceCommencementConfirmation from "@/components/admin/onboarding/ServiceCommencementConfirmation";
 import { toast } from "sonner";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import jsPDF from "jspdf";
@@ -682,6 +685,7 @@ function ChecklistTabContent({
   linkedCheckedItems,
   assignedFamilyName,
   familyMedications,
+  familyCarePlanId,
   onToggleApproval,
 }: {
   profiles: ProfileOption[];
@@ -711,6 +715,7 @@ function ChecklistTabContent({
   linkedCheckedItems?: Record<string, boolean | string>;
   assignedFamilyName?: string;
   familyMedications?: Array<{ id: string; name: string; dosage?: string; medication_type?: string; instructions?: string; schedule?: any }>;
+  familyCarePlanId?: string | null;
   onToggleApproval?: (approvalKey: string) => void;
 }) {
   const publicGuideUrl = `${window.location.origin}/onboarding-guide`;
@@ -1024,6 +1029,24 @@ function ChecklistTabContent({
                       </div>
                     )}
 
+                    {/* Helper text banner */}
+                    {section.helperText && (
+                      <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/50 p-3 text-xs text-blue-800 flex items-start gap-2">
+                        <span className="text-blue-500 mt-0.5">ℹ️</span>
+                        <span>{section.helperText}</span>
+                      </div>
+                    )}
+
+                    {/* Service Selection Block for relevant sections */}
+                    {section.serviceCategory && showFamilyData && familyCarePlanId && (
+                      <div className="mb-4">
+                        <ServiceSelectionBlock
+                          carePlanId={familyCarePlanId}
+                          filterCategory={section.serviceCategory}
+                        />
+                      </div>
+                    )}
+
                     <div className="space-y-3 pl-2">
                       {section.items.map((item, i) => {
                         const itemKey = `${section.id}_${i}`;
@@ -1300,6 +1323,7 @@ export default function AdminOnboardingChecklistPage() {
   const [familyNotes, setFamilyNotes] = useState<OnboardingNote[]>([]);
   const [familyOpenSections, setFamilyOpenSections] = useState<Record<string, boolean>>({});
   const [familyMedications, setFamilyMedications] = useState<Array<{ id: string; name: string; dosage?: string; medication_type?: string; instructions?: string; schedule?: any }>>([]);
+  const [familyCarePlanId, setFamilyCarePlanId] = useState<string | null>(null);
   const familySaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Professional state
@@ -1384,10 +1408,11 @@ export default function AdminOnboardingChecklistPage() {
     load();
   }, [selectedFamilyId]);
 
-  // Load family medications
+  // Load family medications and care plan ID
   useEffect(() => {
     if (!selectedFamilyId) {
       setFamilyMedications([]);
+      setFamilyCarePlanId(null);
       return;
     }
     const loadMeds = async () => {
@@ -1395,11 +1420,14 @@ export default function AdminOnboardingChecklistPage() {
         const { data: carePlans } = await supabase
           .from("care_plans")
           .select("id")
-          .eq("family_id", selectedFamilyId);
+          .eq("family_id", selectedFamilyId)
+          .eq("status", "active");
         if (!carePlans || carePlans.length === 0) {
           setFamilyMedications([]);
+          setFamilyCarePlanId(null);
           return;
         }
+        setFamilyCarePlanId(carePlans[0].id);
         const carePlanIds = carePlans.map(cp => cp.id);
         const { data: meds, error } = await supabase
           .from("medications")
@@ -1411,6 +1439,7 @@ export default function AdminOnboardingChecklistPage() {
       } catch (err) {
         console.error("Failed to load family medications:", err);
         setFamilyMedications([]);
+        setFamilyCarePlanId(null);
       }
     };
     loadMeds();
