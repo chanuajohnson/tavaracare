@@ -22,6 +22,7 @@ export const aggregateUserProgress = (userProgressList: UserProgress[]) => {
     foundationCompleted: 0,
     schedulingCompleted: 0,
     careCoordinationCompleted: 0,
+    careEnvironmentCompleted: 0,
     trialCompleted: 0,
     subscriptionConversions: 0,
     directHireConversions: 0,
@@ -33,11 +34,12 @@ export const aggregateUserProgress = (userProgressList: UserProgress[]) => {
     if (progress.foundationCompleted) aggregation.foundationCompleted++;
     if (progress.schedulingCompleted) aggregation.schedulingCompleted++;
     if (progress.careCoordinationCompleted) aggregation.careCoordinationCompleted++;
+    if (progress.careEnvironmentCompleted) aggregation.careEnvironmentCompleted++;
     if (progress.trialCompleted) aggregation.trialCompleted++;
     if (progress.subscriptionConversion) aggregation.subscriptionConversions++;
     if (progress.directHireConversion) aggregation.directHireConversions++;
     if (progress.userStepCount > 0) aggregation.activeJourneyUsers++;
-    if (progress.userStepCount >= 15) aggregation.completedJourneyUsers++;
+    if (progress.userStepCount >= 17) aggregation.completedJourneyUsers++;
   });
 
   return aggregation;
