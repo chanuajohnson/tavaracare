@@ -367,19 +367,28 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
             completed = !!startDate || hasActiveCareTeam;
             accessible = !!introductionDate || !!startDate || hasActiveCareTeam;
             break;
-          case 12: // Schedule trial day
+          case 12: // Care Readiness Assessment
+            const careBegun12 = !!startDate || !!(carePlansData && carePlansData.length > 0 && hasCaregiverAssigned);
+            completed = careBegun12; // Auto-completes when care has started (walkthrough done in week 1)
+            accessible = hasCaregiverAssigned || careBegun12;
+            break;
+          case 13: // Home Environment Optimization
+            completed = false; // Will be marked via care_plan_service_selections
+            accessible = hasCaregiverAssigned || !!(carePlansData && carePlansData.length > 0);
+            break;
+          case 14: // Schedule trial day
             completed = hasTrialPayment;
             accessible = profile?.visit_scheduling_status === 'completed';
             break;
-          case 13: // Pay for trial day
+          case 15: // Pay for trial day
             completed = hasTrialPayment;
             accessible = profile?.visit_scheduling_status === 'completed';
             break;
-          case 14: // Begin trial
+          case 16: // Begin trial
             completed = hasTrialPayment;
             accessible = hasTrialPayment;
             break;
-          case 15: // Rate & choose path
+          case 17: // Rate & choose path
             const careBegunCheck = !!startDate || !!(carePlansData && carePlansData.length > 0 && hasCaregiverAssigned);
             completed = !!visitNotes?.care_model || !!visitNotes?.care_option || careBegunCheck;
             accessible = profile?.visit_scheduling_status === 'completed' || hasTrialPayment || careBegunCheck;
