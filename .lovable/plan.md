@@ -1,52 +1,86 @@
 
 
-## Plan: Fix Ana Maria's economics + Plan label rename
+## Plan: Restructure Unit Economics into 3-Layer Cost Model
 
-### What's actually happening for Ana (DB-confirmed)
+### The core fix
+Move shared overhead OUT of per-client costing. Allocate it across active clients instead. Result: per-client margins reflect true marginal profitability, not "every client carries the entire founder salary."
 
-- Subscription row: plan = **"Family Care"** at **$499** (a legacy monthly plan, not weekly)
-- Service selections on her care plan include:
-  - ✅ "Active Care Management" — `weekly` @ $499 override (this is double-billing — her $499 sub already IS this)
-  - ✅ 3 one-time setup fees (Care Assessment, Caregiver Matching, Care Readiness)
-- Hook bug 1 — `getWeeklySubscriptionRevenue()` line 92: matches "care" in "Family Care" → returns hard-coded **$699/wk**, ignoring the actual $499 price which is a **monthly** amount. So Sub/mo shows $699 instead of $499.
-- Hook bug 2 — Active Care Management service selection contributes $499 to Svc Rev/mo, double-counting the subscription.
+### New 3-layer model
 
-### Three fixes
+```
+LAYER 1: DIRECT CARE COSTS (per client, scales 1:1)
+  - Caregiver wages
+  - Employer NIS
+  - Employee NIS pass-through display
 
-**1. Treat "Family Care" $499 as a flat monthly legacy plan**
-In `src/hooks/admin/useUnitEconomics.ts` `getWeeklySubscriptionRevenue()`:
-- Add explicit case: if `name === 'family care'` → treat `price` as **monthly** flat → return `price / 4.33` weekly so monthly math = $499 exactly.
-- Reorder checks so this matches BEFORE the generic "care/active" → $699 fallback.
-- Keep current "Care" tier ($699/wk) and "Premium" tier ($899/wk) for new-style subscriptions.
+LAYER 2: CARE OPERATIONS (semi-direct, per-client controlled)
+  - Care coordination labor
+  - Training & shadow shift stipends
+  - Backup caregiver buffer
+  - Quality oversight
 
-**2. Rename Plan label in the table to the meaningful service**
-The "Plan" column currently shows the raw subscription_plans.name ("Family Care"). Change `subscriptionPlan` resolution to a **friendly label**:
-- If plan name === "Family Care" (legacy $499) → display **"Active Care Management"** in the table.
-- If plan name contains "premium" → display "Premium Care Management".
-- If plan name contains "care" / "active" (new tier) → display "Active Care Management".
-- Otherwise pass through the raw name.
-- Implemented as small `friendlyPlanLabel(name)` helper in the hook so both the table chip and the tooltip use the same label.
+LAYER 3: PLATFORM & OPERATIONS (shared overhead, allocated)
+  - Founder & Admin time
+  - Software & SaaS (incl. CapCut/Canva/etc.)
+  - Devices & Equipment
+  - Marketing
+  - Professional Services (legal/accounting)
+  - Banking & Financial fees
+  - T&T Statutory levies
+  
+  → Allocated per client = Total Platform Cost / Active Clients
+```
 
-**3. Suppress the duplicate "Active Care Management" service line for Ana (and any future legacy $499 family)**
-Two options — recommend (a):
-- (a) **Filter rule in the hook**: when subscription is the legacy "Family Care" $499 plan AND a selected service has label "Active Care Management", **skip it from `monthlyServiceRevenue` and `serviceBreakdown`** (it would be double-counted). Add an inline console.warn so admins can see the suppression.
-- (b) Manually deselect that row in care_plan_service_selections — but this would happen again on any other legacy family.
+### Per-client margin formula (new)
 
-→ Going with (a) — code-level guardrail, no DB write, applies forever.
+```
+Revenue
+  − Direct Care Costs (Layer 1)
+  − Care Operations (Layer 2, prorated by hours)
+  − Allocated Ops (Layer 3, equal-split or revenue-weighted)
+= TRUE MARGIN
+```
 
-### Files
+### File changes
 
 | File | Change |
 |---|---|
-| `src/hooks/admin/useUnitEconomics.ts` | (1) Fix `getWeeklySubscriptionRevenue` — explicit "Family Care" legacy case returning `price / 4.33`. (2) Add `friendlyPlanLabel()` helper, set `subscriptionPlan` to the friendly label. (3) Skip "Active Care Management" service line when sub is legacy Family Care. |
+| `src/hooks/admin/operatingCostFramework.ts` | Add `layer: 'direct' \| 'care_ops' \| 'platform'` field to each `CostCategory`. Tag existing 8 categories: Care Operations → `care_ops`; Software, Devices, Founder/Admin, Marketing, Professional Services, Banking, T&T Statutory → `platform`. Add helper `weeklyByLayer(framework)` returning `{ careOps, platform }` weekly totals. Migration handles old saved frameworks. |
+| `src/hooks/admin/useUnitEconomics.ts` | Split `monthlyOperatingCost` into `monthlyCareOpsCost` (per-client, weeks-based) + `monthlyAllocatedPlatformCost` (total platform / active client count). Add `platformSummary: { weeklyTotal, monthlyTotal, perClientAllocation, activeClientCount }`. Add `scenarioClientCount` parameter so admin can simulate scaling. Recalculate margin = revenue − direct − careOps − allocatedPlatform. |
+| `src/components/admin/OperatingCostConfig.tsx` | Group categories visually under 2 headers: **"Care Operations (per-client)"** and **"Platform & Shared Overhead (allocated)"**. Tooltip on each header explaining direct vs allocated. Per-layer subtotals. |
+| `src/components/admin/UnitEconomicsTable.tsx` | Replace single "Ops/mo" column with two: **"Care Ops"** and **"Allocated Ops"**. Update Total Cost + Margin to use new formula. Expanded row breakdown shows all 3 layers separately with explanation. |
+| `src/components/admin/PlatformOperationsCard.tsx` | NEW. Section 3 — grouped breakdown of platform overhead (6 sub-groups: Founder & Admin, Software & SaaS, Devices, Marketing, Professional, Financial). Shows weekly + monthly + per-client allocation. |
+| `src/components/admin/ScenarioControlsCard.tsx` | NEW. Section 4 — slider/input "Simulate active clients: [1—50]". Shows projected: per-client allocation, average margin, break-even client count. Pure read-only what-if (doesn't persist). |
+| `src/pages/admin/UnitEconomicsPage.tsx` | Restructure into 4 sections: Summary, Per-Client Economics, Platform & Operations, Scenario Controls. Update summary cards: replace "Total Cost" with "Platform Cost/mo". Add "Allocated/Client" mini-stat. |
+| `mem://admin/unit-economics-dashboard` | Update to reflect 3-layer model. |
 
-### Expected result for Ana (April 2026)
+### What stays the same
+- Storage: localStorage (with backward-compat migration)
+- All existing care plan data, payroll integration, NIS calc
+- Custom line items + pre-seeded software placeholders
+- Draft care plans card
+- Quarterly Action Plan tab
+- "Family Care" legacy plan handling for Ana
 
-- Plan column → **"Active Care Management"** (was "Family Care")
-- Sub/mo → **$499** (was $699)
-- Svc Rev/mo → **$0** (was $499) — duplicate suppressed
-- Revenue/mo → **$1,899** ($499 sub + $1,400 caregiver fees) (was $2,598)
-- Status / margin recalculate accordingly with fewer phantom dollars
+### Backward compatibility
+The framework migration assigns layer tags to any existing saved categories by key match. If an admin's localStorage has an unknown custom category, it defaults to `platform`. No data loss.
 
-No DB writes required. Pure hook-level fix. Chanua/Peltier unaffected (different plan).
+### Expected result for current data (Apr 2026)
+
+Before: Both clients show "Losing" because each absorbs ~$2K of founder/SaaS/marketing weekly
+After: 
+- **Direct margins** visible (caregiver wages vs revenue) — likely positive for both
+- **After Care Ops**: still healthy
+- **After Allocated Platform** (total platform ÷ 2 clients): may be tight or negative — but that's the **real** picture, and the scenario tool shows breakeven at, e.g., 8 clients
+- Investor-ready story: "Marginal profitability is strong; we scale into platform overhead"
+
+### UX details
+- Tooltip on "Allocated Ops" column: *"Your share of platform overhead. Total platform cost ÷ active clients. Decreases as you add more clients."*
+- Color coding: Direct (blue), Care Ops (amber), Platform (purple) — consistent across table, config, and breakdown
+- Summary card "Avg Margin" recalculates with full formula so it matches the table
+
+### Tests after build
+1. Toggle a Software item amount up — confirm allocated/client increases, but per-client direct cost unchanged
+2. Move scenario slider from 2 → 10 clients — allocated/client drops, margins improve
+3. Confirm Ana shows: Sub $499 + caregiver pass-through, direct margin healthy, full margin reflects allocated share
 
