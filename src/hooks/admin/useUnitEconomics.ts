@@ -288,7 +288,7 @@ export function useUnitEconomics(selectedMonth: string) {
 
       const result: ClientEconomics[] = carePlans.map(cp => {
         // Filter payroll entries for this care plan AND the selected payroll month
-        const allEntries = (payrollRes.data || []).filter(pe => pe.care_plan_id === cp.id);
+        const allEntries = payrollArr.filter(pe => pe.care_plan_id === cp.id);
         const monthEntries = allEntries.filter(pe =>
           pe.pay_period_start && getPayrollMonthKey(pe.pay_period_start) === selectedMonth
         );
@@ -311,6 +311,7 @@ export function useUnitEconomics(selectedMonth: string) {
         });
 
         const payrollWeeks = weekKeys.size || 0;
+        if (payrollWeeks === 0) plansWithoutPayroll += 1;
 
         // Aggregate by caregiver
         const cgMap: Record<string, CaregiverBreakdown> = {};
@@ -349,12 +350,9 @@ export function useUnitEconomics(selectedMonth: string) {
 
         const sub = subMap[cp.family_id];
         const weeklySubRevenue = sub ? getWeeklySubscriptionRevenue(sub.planName, sub.price) : 0;
-        // Scale subscription and ops by actual payroll weeks
-        const monthlySubRevenue = Math.round(weeklySubRevenue * payrollWeeks * 100) / 100;
-        const monthlyOpCost = Math.round(weeklyOpCost * payrollWeeks * 100) / 100;
 
         // Calculate service revenue from selected billable services
-        const cpServices = (serviceSelectionsRes.data || []).filter((s: any) => s.care_plan_id === cp.id);
+        const cpServices = serviceSelectionsArr.filter((s: any) => s.care_plan_id === cp.id);
         const serviceBreakdown: ServiceRevenueItem[] = [];
         let monthlyServiceRevenue = 0;
 
