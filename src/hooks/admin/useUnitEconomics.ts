@@ -458,7 +458,7 @@ export function useUnitEconomics(selectedMonth: string) {
           carePlanTitle: cp.title,
           familyId: cp.family_id,
           familyName: profilesMap[cp.family_id] || 'Unknown',
-          subscriptionPlan: sub?.planName || 'No subscription',
+          subscriptionPlan: friendlyPlanLabel(sub?.planName),
           payrollWeeks,
           periodStart: earliestDate ? format(earliestDate, 'MMM d, yyyy') : '',
           periodEnd: latestWeekEnd ? format(latestWeekEnd, 'MMM d, yyyy') : '',
