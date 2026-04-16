@@ -425,6 +425,12 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
           case 11:
             action = () => navigate('/family/care-management');
             break;
+          case 12:
+            action = () => navigate('/family/care-management');
+            break;
+          case 13:
+            action = () => navigate('/family/care-management');
+            break;
           default:
             action = undefined;
         }
