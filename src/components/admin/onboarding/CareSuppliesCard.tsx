@@ -52,7 +52,7 @@ const SUPPLY_CATEGORIES = [
   },
   {
     emoji: "🧼",
-    title: "Home Setup",
+    title: "Home Workspace Access",
     items: [
       "Clear workspace for the caregiver",
       "Access to kitchen and basic utilities",
@@ -73,6 +73,9 @@ const SUPPLY_CATEGORIES = [
 export default function CareSuppliesCard() {
   return (
     <div className="mt-6 border-t pt-4">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
+        Part 2 — Supplies & Readiness
+      </p>
       <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
         📋 Basic Care Supplies — Family Responsibility
       </h4>

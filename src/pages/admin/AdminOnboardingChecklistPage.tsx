@@ -29,6 +29,7 @@ import FamilySubmissionReview from "@/components/admin/onboarding/FamilySubmissi
 import ProfessionalSubmissionReview from "@/components/admin/onboarding/ProfessionalSubmissionReview";
 import RateTierReferenceCard from "@/components/admin/onboarding/RateTierReferenceCard";
 import CareSuppliesCard from "@/components/admin/onboarding/CareSuppliesCard";
+import CareEnvironmentIntroCard from "@/components/admin/onboarding/CareEnvironmentIntroCard";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
 import ServiceSelectionBlock from "@/components/admin/onboarding/ServiceSelectionBlock";
 import BillingSummaryCard from "@/components/admin/onboarding/BillingSummaryCard";
@@ -1148,6 +1149,10 @@ function ChecklistTabContent({
                           ))}
                         </div>
                       </div>
+                    )}
+
+                    {section.id === "care_environment" && (
+                      <CareEnvironmentIntroCard />
                     )}
 
                     {(section.id === "daily_checklist" || section.id === "daily_checklist_sop") && (

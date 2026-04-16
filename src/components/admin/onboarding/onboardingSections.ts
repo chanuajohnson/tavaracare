@@ -148,6 +148,22 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     ],
   },
   {
+    id: "care_environment",
+    title: "Preparing Your Home for Care",
+    iconName: "Leaf",
+    description: "Support in preparing the home as a safe, dignified care environment — for your loved one's comfort and the caregiver's effectiveness",
+    helperText: "Tavara helps the home become ready for care. This service supports comfort, dignity, safety, and caregiver sustainability — not cleaning or housekeeping.",
+    serviceCategory: "care_environment_support",
+    items: [
+      "Home walkthrough and caregiver workflow mapping",
+      "Hygiene, safety, and airflow assessment",
+      "Decluttering recommendations and space optimization",
+      "Caregiver workspace and movement considerations",
+      "Light organization and sanitation planning guidance",
+      "Coordination of deeper resets when needed (vendor management)",
+    ],
+  },
+  {
     id: "daily_checklist",
     title: "Daily Care Checklist (Caregiver SOP)",
     iconName: "ListChecks",
