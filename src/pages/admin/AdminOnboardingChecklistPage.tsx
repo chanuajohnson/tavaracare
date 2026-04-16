@@ -1238,7 +1238,9 @@ function ChecklistTabContent({
                         )}
 
                         {/* Service Commencement Confirmation — Family only */}
-                        {showFamilyData && familyCarePlanId && (
+                        {showFamilyData && familyCarePlanId && (() => {
+                          console.log('[AdminOnboarding] ServiceCommencementConfirmation carePlanId:', familyCarePlanId);
+                          return (
                           <div className="mb-4">
                             <ServiceCommencementConfirmation
                               carePlanId={familyCarePlanId}
@@ -1255,7 +1257,8 @@ function ChecklistTabContent({
                               }
                             />
                           </div>
-                        )}
+                          );
+                        })()}
 
                         {/* Compensation Summary — Professional only */}
                         {showProfessionalData && (() => {
