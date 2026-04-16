@@ -23,7 +23,7 @@ function formatMonthLabel(m: string) {
 
 export default function UnitEconomicsPage() {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth);
-  const { clients, summary, loading, operatingCosts, updateOperatingCosts, availableMonths } = useUnitEconomics(selectedMonth);
+  const { clients, summary, loading, framework, updateFramework, availableMonths, carePlansWithoutPayroll, fetchErrors } = useUnitEconomics(selectedMonth);
 
   const marginColor = summary.avgMarginPercent >= 20
     ? 'text-green-700'
