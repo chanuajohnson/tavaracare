@@ -55,9 +55,11 @@ export default function OnboardingNotesCard({ notes, onAddNote, onEditNote, onDe
     ? notes.filter((n) => n.assigned_to === filterAssignee)
     : notes;
 
-  const getRealIndex = (filteredIdx: number): number => {
-    if (!filterAssignee) return filteredIdx;
-    const note = filteredNotes[filteredIdx];
+  // Display newest notes first
+  const displayNotes = [...filteredNotes].reverse();
+
+  const getRealIndex = (displayIdx: number): number => {
+    const note = displayNotes[displayIdx];
     return notes.findIndex((n) => n === note);
   };
 
@@ -181,13 +183,13 @@ export default function OnboardingNotesCard({ notes, onAddNote, onEditNote, onDe
           </div>
         )}
 
-        {filteredNotes.length === 0 ? (
+        {displayNotes.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
             {readOnly ? "No notes yet." : "No notes yet. Add notes as you go through the call."}
           </p>
         ) : (
           <div className="space-y-2">
-            {filteredNotes.map((note, i) => (
+            {displayNotes.map((note, i) => (
               <NoteItem
                 key={i}
                 note={note}

@@ -122,6 +122,20 @@ export const PROFESSIONAL_ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     ],
   },
   {
+    id: "care_environment_awareness",
+    title: "Care Environment Readiness",
+    iconName: "Leaf",
+    description: "Understand the family's home readiness process and your role in supporting a safe, effective care environment",
+    items: [
+      "Understand the Care Readiness Assessment process (home walkthrough, workflow mapping)",
+      "Awareness of family's supply checklist responsibilities (gloves, first aid, hygiene products, etc.)",
+      "How to flag environmental concerns (hygiene hazards, safety risks, workflow blockers)",
+      "Guided Home Reset process — what the family is coordinating (decluttering, hygiene, workspace setup)",
+      "Ongoing care environment support — pest control, seasonal resets, vendor coordination",
+      "How care environment observations feed back to the coordinator and family",
+    ],
+  },
+  {
     id: "next_steps_assignment",
     title: "Next Steps & First Assignment",
     iconName: "CalendarCheck",
