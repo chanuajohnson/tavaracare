@@ -1,107 +1,52 @@
 
 
-## Plan: Fix Missing Care Plans + Comprehensive Operating Cost Framework
+## Plan: Restore care plans + add custom software rows + expand cost catalog
 
-### Issue 1: Care plans not showing on Per-Client Economics
+### A. Why per-client plans aren't showing
 
-**Root cause**: The query `supabase.from('care_plans').select(...).eq('status', 'active')` returns 2 plans (Peltier + Mum), but the table renders empty. Most likely causes:
-- Silent error in one of the parallel fetches causing the whole `fetchData` to throw before `setClients` runs
-- RLS on `payroll_entries` or `care_plan_service_selections` blocking admin reads (admin should bypass but worth verifying)
-- April 2026 has only 3 entries for Peltier and none for Mum — both rows SHOULD still render with zeros, but if the query throws we get an empty array
+Even though the table is built to render zero-payroll plans with a "No payroll this month" badge, the screen shows "No active care plans found" — that empty state only appears when `clients.length === 0`. Two likely causes:
 
-**Fix**:
-1. Wrap each parallel query in its own try/catch so a single failure doesn't blank the whole page
-2. Add a clear console error trace + a yellow info banner when care plans exist but no payroll for the selected month (so the user knows *why* numbers are zero, not that data is "missing")
-3. Always render care plans even with zero payroll for the month — show "No payroll this month" inline instead of dropping the row
+1. **Care plans status filter too strict**: `useUnitEconomics.ts` line 200 hard-filters `.eq('status', 'active')`. If Peltier/Mum got flipped to another status (e.g. `pending`, `in_progress`, `completed`) the query returns 0 rows. The earlier session showed both as active, but a recent edit elsewhere may have changed status.
+2. **Silent RLS rejection**: if `care_plans` returns `[]` with no error under admin context, the dashboard correctly empties. We need a visible diagnostic (count of plans found per status) to confirm.
 
-### Issue 2: Operating costs are not comprehensive — rebuild as a real chart of accounts
+### B. Fix — three changes
 
-Replace the 6 hardcoded sliders with a **structured operating cost framework** organized into 8 categories matching real business accounting (and aligned to T&T BIR expense classes). Each category contains multiple line items with expected ranges. All editable, all summed live.
+1. **Loosen + diagnose the care plans query** (`src/hooks/admin/useUnitEconomics.ts`):
+   - Fetch `care_plans` without status filter, then split into `active` vs. `draft/other` in code.
+   - Expose a new `draftCarePlans: ClientEconomics[]` and `statusCounts: Record<string, number>` from the hook.
+   - Console-log the row counts so we can see in dev tools exactly what's returned.
 
-#### New comprehensive cost framework (per-week defaults shown, all editable)
+2. **"Active Plans Without Payroll Data" draft section** (`src/pages/admin/UnitEconomicsPage.tsx` + `UnitEconomicsTable.tsx`):
+   - Per your answer: keep the main payroll-driven table for plans with payroll, render a **separate compact "Draft / No-Payroll Plans"** card below listing every other active plan with a status badge and a "Log first hours" link to the family schedule page.
+   - Status-counts banner at top: "Found X active, Y draft, Z completed care plans this month."
 
-**1. Software & SaaS** (recurring)
-- Lovable subscription
-- Supabase (DB + storage + edge functions)
-- OpenAI / AI gateway usage
-- WhatsApp Business API
-- Domain & DNS (tavara.care)
-- Google Workspace / email
-- Resend / transactional email
-- Analytics & monitoring (Sentry, PostHog, etc.)
-- Other SaaS
+3. **Custom software rows in the Operating Cost Framework** (`src/components/admin/OperatingCostConfig.tsx` + `operatingCostFramework.ts`):
+   - Per your answer: add an "**+ Add line item**" button inside every category that opens a tiny inline form (label, amount, recurrence, tax-deductible toggle, optional notes).
+   - Custom items get `isCustom: true` and a delete button. They persist in the same localStorage shape.
+   - Bonus: pre-seed empty placeholder rows in Software & SaaS for the tools you named so you can fill them in immediately without clicking Add (they don't add to totals until you enter an amount):
+     - 🎬 CapCut Pro (content creation)
+     - ✂️ OpusClip (AI clip generation)
+     - ☁️ iCloud+ storage
+     - 🎨 Canva Pro
+     - 🤖 mAregtig content tools
+     - 📝 Captions / subtitle tooling
+     - 🎙️ Audio tools (Descript, ElevenLabs, etc.)
+   - Adds a "Suggested categories" hint footer with examples for each section so you remember what to log.
 
-**2. Devices & Equipment** (depreciated weekly)
-- Laptops (with 24-month depreciation auto-calc)
-- Phones / tablets
-- Peripherals (monitor, headset, etc.)
-- Printer & supplies
-
-**3. Founder & Admin Time** (true cost of business)
-- Founder hours/week × hourly rate
-- Admin/VA hours/week × hourly rate
-- Bookkeeper time
-
-**4. Care Operations** (direct platform overhead per client)
-- Care coordination labor
-- Training & shadow shift stipends (the $140 example)
-- Replacement / backup buffer
-- Quality oversight & spot-checks
-- Documentation & report generation
-
-**5. Marketing & Acquisition**
-- Social media ads (Meta, Google)
-- Content production
-- Referral payouts
-- Print marketing (flyers, business cards)
-- Event sponsorships
-
-**6. Professional Services**
-- Accountant / bookkeeping fees
-- Legal counsel
-- BIR / tax filing fees
-- Insurance (professional liability, general liability)
-
-**7. Banking & Financial**
-- Payment processing fees (% of revenue + fixed)
-- Bank account fees
-- Wire / ACH fees
-- FX conversion costs (USD↔TTD)
-
-**8. T&T Statutory Costs** (NEW — matches research)
-- Business Levy provision (0.6% of gross revenue, auto-calc)
-- Green Fund Levy provision (0.3% of gross revenue, auto-calc)
-- Health Surcharge (if applicable per employee class)
-- VAT input cost when not yet registered (12.5% absorbed)
-- Annual Corporation Tax provision (30% of estimated net profit, prorated weekly)
-
-Each line item has:
-- Editable amount (per week)
-- Recurrence flag (one-time / weekly / monthly / yearly — auto-normalized to weekly view)
-- Tax-deductible flag (T&T BIR)
-- Notes field
-- Subcategory grouping with collapsible sections
-
-Total bar at top showing weekly + monthly + annual run-rate, plus a "compared to revenue" % indicator.
-
-### Storage approach
-
-Keep the current localStorage pattern for now (no DB migration needed — quick win), but structure the data as nested categories so the upcoming `business_expenses` ledger (from previously-approved plan) becomes the persistent source of truth later. Migration path: when ledger exists, this config becomes the **default/baseline** and ledger becomes the **actuals**, with a toggle (already planned).
-
-### Files
+### C. Files
 
 | File | Change |
 |---|---|
-| `src/hooks/admin/useUnitEconomics.ts` | Wrap parallel fetches in try/catch; expose `carePlansWithoutPayroll` count; never blank the list on partial failure |
-| `src/hooks/admin/operatingCostFramework.ts` | NEW — full category/subcategory taxonomy with defaults, recurrence normalization, T&T flags |
-| `src/hooks/admin/useUnitEconomics.ts` | Update `OperatingCosts` interface to nested structure; add `totalOperatingCostFromFramework()` helper; backward-compat migration from old flat shape |
-| `src/components/admin/OperatingCostConfig.tsx` | Rewrite as collapsible accordion: 8 categories, each with line items, recurrence toggles, T&T-deductible badges, running totals per category |
-| `src/components/admin/UnitEconomicsTable.tsx` | Show "No payroll this month" inline when `payrollWeeks === 0` instead of disappearing |
-| `src/pages/admin/UnitEconomicsPage.tsx` | Add info banner when care plans exist but no payroll for selected month |
+| `src/hooks/admin/useUnitEconomics.ts` | Drop `.eq('status','active')` filter, split in JS, expose `draftCarePlans` + `statusCounts`. Keep current zero-payroll handling for active plans. |
+| `src/hooks/admin/operatingCostFramework.ts` | Add `isCustom?: boolean` to `CostLineItem`. Add 7 zero-amount Software & SaaS placeholders for CapCut/OpusClip/iCloud/Canva/mAregtig/Captions/Audio tools. Helper `addCustomItem(framework, catKey, item)` and `removeItem(framework, catKey, itemKey)`. |
+| `src/components/admin/OperatingCostConfig.tsx` | "+ Add line item" button per category opening inline form. Delete button on custom items. Suggested-categories hint footer. |
+| `src/pages/admin/UnitEconomicsPage.tsx` | New "Active Plans Without Payroll Data" card under the main table. Show `statusCounts` summary. |
+| `src/components/admin/UnitEconomicsTable.tsx` | Optional: show small `statusCounts` chip row above the table. |
+| `mem://admin/unit-economics-dashboard` | Update to reflect custom line items + draft plans section. |
 
-### Result
-- Both care plans visible always (Peltier + Mum), with clear messaging when one has no payroll for the month
-- Operating costs go from 6 vague sliders to ~35 line items across 8 real accounting categories
-- T&T statutory costs (Business Levy, Green Fund, Corp Tax provision) auto-calculated against gross revenue
-- Foundation laid for the persistent `business_expenses` ledger to plug in next
+### D. Result
+
+- Peltier and Mum will reappear — either inside the payroll table (if active + has hours logged for the month) or in the new "Active Plans Without Payroll Data" card with a status badge.
+- You can add CapCut, OpusClip, iCloud, Canva, mAregtig, captions, etc. directly in the Software & SaaS category (and create your own items in any other category) without code changes.
+- Diagnostic counts make it impossible for plans to disappear silently again.
 
