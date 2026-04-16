@@ -86,12 +86,32 @@ export interface UnitEconomicsSummary {
 
 function getWeeklySubscriptionRevenue(planName: string | null, price: number | null): number {
   if (!planName || !price) return 0;
-  const name = planName.toLowerCase();
-  if (name.includes('basic') || name.includes('free')) return 0;
+  const name = planName.toLowerCase().trim();
+  if (name === 'basic' || name === 'free' || name.includes('basic') || name.includes('free')) return 0;
+  // Legacy "Family Care" plan: $499 is a flat MONTHLY rate, not weekly
+  if (name === 'family care') return Math.round((price / 4.33) * 100) / 100;
   if (name.includes('premium')) return 899;
   if (name.includes('care') || name.includes('active')) return 699;
   if (price > 200) return Math.round((price / 4.33) * 100) / 100;
   return price;
+}
+
+/**
+ * Map raw subscription plan names to friendly, customer-facing labels
+ * used in the unit economics table and tooltips.
+ */
+function friendlyPlanLabel(planName: string | null | undefined): string {
+  if (!planName) return 'No subscription';
+  const name = planName.toLowerCase().trim();
+  if (name === 'family care') return 'Active Care Management'; // legacy $499 plan
+  if (name.includes('premium')) return 'Premium Care Management';
+  if (name.includes('care') || name.includes('active')) return 'Active Care Management';
+  return planName;
+}
+
+/** True when the subscription is the legacy Family Care $499 plan (which already includes Active Care Management). */
+function isLegacyFamilyCarePlan(planName: string | null | undefined): boolean {
+  return !!planName && planName.toLowerCase().trim() === 'family care';
 }
 
 function getStatus(marginPercent: number): 'profitable' | 'at-risk' | 'losing' {
