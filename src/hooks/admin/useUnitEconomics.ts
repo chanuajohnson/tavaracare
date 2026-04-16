@@ -86,12 +86,32 @@ export interface UnitEconomicsSummary {
 
 function getWeeklySubscriptionRevenue(planName: string | null, price: number | null): number {
   if (!planName || !price) return 0;
-  const name = planName.toLowerCase();
-  if (name.includes('basic') || name.includes('free')) return 0;
+  const name = planName.toLowerCase().trim();
+  if (name === 'basic' || name === 'free' || name.includes('basic') || name.includes('free')) return 0;
+  // Legacy "Family Care" plan: $499 is a flat MONTHLY rate, not weekly
+  if (name === 'family care') return Math.round((price / 4.33) * 100) / 100;
   if (name.includes('premium')) return 899;
   if (name.includes('care') || name.includes('active')) return 699;
   if (price > 200) return Math.round((price / 4.33) * 100) / 100;
   return price;
+}
+
+/**
+ * Map raw subscription plan names to friendly, customer-facing labels
+ * used in the unit economics table and tooltips.
+ */
+function friendlyPlanLabel(planName: string | null | undefined): string {
+  if (!planName) return 'No subscription';
+  const name = planName.toLowerCase().trim();
+  if (name === 'family care') return 'Active Care Management'; // legacy $499 plan
+  if (name.includes('premium')) return 'Premium Care Management';
+  if (name.includes('care') || name.includes('active')) return 'Active Care Management';
+  return planName;
+}
+
+/** True when the subscription is the legacy Family Care $499 plan (which already includes Active Care Management). */
+function isLegacyFamilyCarePlan(planName: string | null | undefined): boolean {
+  return !!planName && planName.toLowerCase().trim() === 'family care';
 }
 
 function getStatus(marginPercent: number): 'profitable' | 'at-risk' | 'losing' {
@@ -379,9 +399,19 @@ export function useUnitEconomics(selectedMonth: string) {
         const serviceBreakdown: ServiceRevenueItem[] = [];
         let monthlyServiceRevenue = 0;
 
+        const subIsLegacyFamilyCare = isLegacyFamilyCarePlan(sub?.planName);
+
         cpServices.forEach((s: any) => {
           const svc = s.billable_service_items;
           if (!svc || svc.visible_in_unit_economics === false) return;
+
+          // Guardrail: legacy "Family Care" $499 sub already includes "Active Care Management".
+          // Suppress the duplicate service line so it isn't double-counted.
+          if (subIsLegacyFamilyCare && typeof svc.label === 'string' && svc.label.toLowerCase().includes('active care management')) {
+            console.warn(`[unit-economics] Suppressing duplicate "Active Care Management" service for care plan ${cp.id} — already billed via legacy Family Care $499 subscription.`);
+            return;
+          }
+
           const price = s.override_price ?? svc.unit_price ?? 0;
           const qty = s.quantity || 1;
           let monthlyAmount = 0;
@@ -428,7 +458,7 @@ export function useUnitEconomics(selectedMonth: string) {
           carePlanTitle: cp.title,
           familyId: cp.family_id,
           familyName: profilesMap[cp.family_id] || 'Unknown',
-          subscriptionPlan: sub?.planName || 'No subscription',
+          subscriptionPlan: friendlyPlanLabel(sub?.planName),
           payrollWeeks,
           periodStart: earliestDate ? format(earliestDate, 'MMM d, yyyy') : '',
           periodEnd: latestWeekEnd ? format(latestWeekEnd, 'MMM d, yyyy') : '',
