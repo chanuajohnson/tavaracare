@@ -119,9 +119,27 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       category: 'scheduling',
       accessible: false
     },
-    // Trial Steps (12-14)
+    // Care Environment Steps (12-13)
+    {
+      id: 12,
+      title: "Care Readiness Assessment",
+      description: "A home walkthrough completed by your care team during their first week to assess readiness for sustainable caregiving.",
+      completed: false,
+      category: 'care_environment',
+      accessible: false
+    },
+    {
+      id: 13,
+      title: "Home Environment Optimization",
+      description: "Guided or full care environment coordination to prepare your home for safe, comfortable caregiving.",
+      completed: false,
+      optional: true,
+      category: 'care_environment',
+      accessible: false
+    },
+    // Trial Steps (14-16)
     { 
-      id: 12, 
+      id: 14, 
       title: "Schedule Trial Day (Optional)", 
       description: "Choose a trial date with your matched caregiver. This is an optional step before choosing your care model.", 
       completed: false, 
@@ -130,7 +148,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       accessible: false
     },
     { 
-      id: 13, 
+      id: 15, 
       title: "Pay for Trial Day (Optional)", 
       description: "Complete payment for an optional 8-hour caregiver trial experience.", 
       completed: false, 
@@ -139,7 +157,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       accessible: false
     },
     { 
-      id: 14, 
+      id: 16, 
       title: "Begin Your Trial (Optional)", 
       description: "Your caregiver begins the scheduled trial session.", 
       completed: false, 
@@ -147,9 +165,9 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       category: 'trial',
       accessible: false
     },
-    // Conversion Step (15)
+    // Conversion Step (17)
     { 
-      id: 15, 
+      id: 17, 
       title: "Rate & Choose Your Path", 
       description: "Choose your care model — view subscription plans or hire directly.", 
       completed: false, 
