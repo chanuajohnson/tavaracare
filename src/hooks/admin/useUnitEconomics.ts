@@ -1,7 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parse, startOfWeek, endOfWeek, getMonth, getYear } from 'date-fns';
+import {
+  CostCategory,
+  loadFramework,
+  saveFramework,
+  frameworkWeeklyTotal,
+  statutoryWeeklyFromRevenue,
+  DEFAULT_FRAMEWORK,
+} from './operatingCostFramework';
 
+/** @deprecated Use CostCategory[] framework instead. Kept for backward-compat consumers. */
 export interface OperatingCosts {
   careCoordination: number;
   replacementBuffer: number;
@@ -103,6 +112,7 @@ export function saveOperatingCosts(costs: OperatingCosts) {
   localStorage.setItem('tavara_operating_costs', JSON.stringify(costs));
 }
 
+/** Sum of legacy flat operating costs object (per-week) */
 export function totalOperatingCost(costs: OperatingCosts): number {
   return Object.values(costs).reduce((s, v) => s + v, 0);
 }
@@ -130,11 +140,19 @@ export function useUnitEconomics(selectedMonth: string) {
   const [clients, setClients] = useState<ClientEconomics[]>([]);
   const [loading, setLoading] = useState(true);
   const [operatingCosts, setOperatingCosts] = useState<OperatingCosts>(loadOperatingCosts);
+  const [framework, setFramework] = useState<CostCategory[]>(loadFramework);
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+  const [carePlansWithoutPayroll, setCarePlansWithoutPayroll] = useState<number>(0);
+  const [fetchErrors, setFetchErrors] = useState<string[]>([]);
 
   const updateOperatingCosts = (costs: OperatingCosts) => {
     setOperatingCosts(costs);
     saveOperatingCosts(costs);
+  };
+
+  const updateFramework = (next: CostCategory[]) => {
+    setFramework(next);
+    saveFramework(next);
   };
 
   useEffect(() => {
@@ -173,15 +191,24 @@ export function useUnitEconomics(selectedMonth: string) {
 
   const fetchData = async () => {
     setLoading(true);
+    const errors: string[] = [];
     try {
       // Fetch active care plans
-      const { data: carePlans } = await supabase
+      const carePlansRes = await supabase
         .from('care_plans')
         .select('id, title, family_id, status')
         .eq('status', 'active');
 
+      if (carePlansRes.error) {
+        console.error('[unit-economics] care_plans fetch error:', carePlansRes.error);
+        errors.push(`Care plans: ${carePlansRes.error.message}`);
+      }
+
+      const carePlans = carePlansRes.data;
       if (!carePlans?.length) {
         setClients([]);
+        setCarePlansWithoutPayroll(0);
+        setFetchErrors(errors);
         setLoading(false);
         return;
       }
@@ -189,51 +216,79 @@ export function useUnitEconomics(selectedMonth: string) {
       const familyIds = [...new Set(carePlans.map(cp => cp.family_id))];
       const carePlanIds = carePlans.map(cp => cp.id);
 
-      // Parallel fetches — get ALL payroll entries (not filtered by date)
-      const [profilesRes, subscriptionsRes, payrollRes, teamRes, serviceSelectionsRes] = await Promise.all([
-        supabase.from('profiles').select('id, full_name').in('id', familyIds),
-        supabase.from('user_subscriptions').select('user_id, plan_id, status').in('user_id', familyIds).eq('status', 'active'),
-        supabase.from('payroll_entries').select('care_plan_id, care_team_member_id, regular_hours, regular_rate, overtime_hours, overtime_rate, holiday_hours, holiday_rate, expense_total, employer_contribution, employee_contribution, gross_pay, pay_period_start')
+      // Parallel fetches — each isolated so a single failure doesn't blank the dashboard
+      const safeFetch = async <T,>(label: string, p: Promise<{ data: T | null; error: any }>): Promise<T | null> => {
+        try {
+          const res = await p;
+          if (res.error) {
+            console.error(`[unit-economics] ${label} error:`, res.error);
+            errors.push(`${label}: ${res.error.message}`);
+            return null;
+          }
+          return res.data;
+        } catch (err: any) {
+          console.error(`[unit-economics] ${label} threw:`, err);
+          errors.push(`${label}: ${err?.message || 'unknown error'}`);
+          return null;
+        }
+      };
+
+      const [profilesData, subscriptionsData, payrollData, teamData, serviceSelectionsData] = await Promise.all([
+        safeFetch('profiles', supabase.from('profiles').select('id, full_name').in('id', familyIds) as any),
+        safeFetch('user_subscriptions', supabase.from('user_subscriptions').select('user_id, plan_id, status').in('user_id', familyIds).eq('status', 'active') as any),
+        safeFetch('payroll_entries', supabase.from('payroll_entries').select('care_plan_id, care_team_member_id, regular_hours, regular_rate, overtime_hours, overtime_rate, holiday_hours, holiday_rate, expense_total, employer_contribution, employee_contribution, gross_pay, pay_period_start')
           .in('care_plan_id', carePlanIds)
-          .not('pay_period_start', 'is', null),
-        supabase.from('care_team_members').select('id, care_plan_id, caregiver_id, display_name').in('care_plan_id', carePlanIds),
-        supabase.from('care_plan_service_selections')
+          .not('pay_period_start', 'is', null) as any),
+        safeFetch('care_team_members', supabase.from('care_team_members').select('id, care_plan_id, caregiver_id, display_name').in('care_plan_id', carePlanIds) as any),
+        safeFetch('care_plan_service_selections', supabase.from('care_plan_service_selections')
           .select('care_plan_id, quantity, override_price, billable_service_items(label, billing_type, unit_price, visible_in_unit_economics)')
           .in('care_plan_id', carePlanIds)
-          .eq('selected', true),
+          .eq('selected', true) as any),
       ]);
 
+      const profilesArr = (profilesData as any[]) || [];
+      const subscriptionsArr = (subscriptionsData as any[]) || [];
+      const payrollArr = (payrollData as any[]) || [];
+      const teamArr = (teamData as any[]) || [];
+      const serviceSelectionsArr = (serviceSelectionsData as any[]) || [];
+
       // Fetch subscription plans
-      const planIds = [...new Set((subscriptionsRes.data || []).map(s => s.plan_id).filter(Boolean))];
+      const planIds = [...new Set(subscriptionsArr.map(s => s.plan_id).filter(Boolean))];
       let plansMap: Record<string, { name: string; price: number }> = {};
       if (planIds.length) {
-        const { data: plans } = await supabase.from('subscription_plans').select('id, name, price').in('id', planIds);
-        (plans || []).forEach(p => { plansMap[p.id] = { name: p.name, price: p.price }; });
+        const plansRes = await supabase.from('subscription_plans').select('id, name, price').in('id', planIds);
+        if (plansRes.error) {
+          console.error('[unit-economics] subscription_plans error:', plansRes.error);
+          errors.push(`Subscription plans: ${plansRes.error.message}`);
+        }
+        (plansRes.data || []).forEach(p => { plansMap[p.id] = { name: p.name, price: p.price }; });
       }
 
       const profilesMap: Record<string, string> = {};
-      (profilesRes.data || []).forEach(p => { profilesMap[p.id] = p.full_name || 'Unknown'; });
+      profilesArr.forEach(p => { profilesMap[p.id] = p.full_name || 'Unknown'; });
 
       const subMap: Record<string, { planName: string; price: number }> = {};
-      (subscriptionsRes.data || []).forEach(s => {
+      subscriptionsArr.forEach(s => {
         if (s.plan_id && plansMap[s.plan_id]) {
           subMap[s.user_id] = { planName: plansMap[s.plan_id].name, price: plansMap[s.plan_id].price };
         }
       });
 
       const teamMap: Record<string, Record<string, string>> = {};
-      (teamRes.data || []).forEach(tm => {
+      teamArr.forEach(tm => {
         if (tm.care_plan_id) {
           if (!teamMap[tm.care_plan_id]) teamMap[tm.care_plan_id] = {};
           teamMap[tm.care_plan_id][tm.id] = tm.display_name || 'Caregiver';
         }
       });
 
-      const weeklyOpCost = totalOperatingCost(operatingCosts);
+      // Use new framework for operating costs (falls back to legacy if framework empty)
+      const baseWeeklyOpCost = frameworkWeeklyTotal(framework) || totalOperatingCost(operatingCosts);
+      let plansWithoutPayroll = 0;
 
       const result: ClientEconomics[] = carePlans.map(cp => {
         // Filter payroll entries for this care plan AND the selected payroll month
-        const allEntries = (payrollRes.data || []).filter(pe => pe.care_plan_id === cp.id);
+        const allEntries = payrollArr.filter(pe => pe.care_plan_id === cp.id);
         const monthEntries = allEntries.filter(pe =>
           pe.pay_period_start && getPayrollMonthKey(pe.pay_period_start) === selectedMonth
         );
@@ -256,6 +311,7 @@ export function useUnitEconomics(selectedMonth: string) {
         });
 
         const payrollWeeks = weekKeys.size || 0;
+        if (payrollWeeks === 0) plansWithoutPayroll += 1;
 
         // Aggregate by caregiver
         const cgMap: Record<string, CaregiverBreakdown> = {};
@@ -294,12 +350,9 @@ export function useUnitEconomics(selectedMonth: string) {
 
         const sub = subMap[cp.family_id];
         const weeklySubRevenue = sub ? getWeeklySubscriptionRevenue(sub.planName, sub.price) : 0;
-        // Scale subscription and ops by actual payroll weeks
-        const monthlySubRevenue = Math.round(weeklySubRevenue * payrollWeeks * 100) / 100;
-        const monthlyOpCost = Math.round(weeklyOpCost * payrollWeeks * 100) / 100;
 
         // Calculate service revenue from selected billable services
-        const cpServices = (serviceSelectionsRes.data || []).filter((s: any) => s.care_plan_id === cp.id);
+        const cpServices = serviceSelectionsArr.filter((s: any) => s.care_plan_id === cp.id);
         const serviceBreakdown: ServiceRevenueItem[] = [];
         let monthlyServiceRevenue = 0;
 
@@ -332,6 +385,16 @@ export function useUnitEconomics(selectedMonth: string) {
         monthlyServiceRevenue = Math.round(monthlyServiceRevenue * 100) / 100;
 
         const monthlyCaregiverFees = Math.round(totalCaregiverCost * 100) / 100;
+        const monthlySubRevenue = Math.round(weeklySubRevenue * payrollWeeks * 100) / 100;
+
+        // Compute weekly gross revenue first so statutory costs (% of revenue) can include it
+        const weeklyGrossRevenue = payrollWeeks > 0
+          ? (monthlySubRevenue + monthlyCaregiverFees + monthlyServiceRevenue) / payrollWeeks
+          : 0;
+        const statutoryWeekly = statutoryWeeklyFromRevenue(framework, weeklyGrossRevenue);
+        const effectiveWeeklyOpCost = baseWeeklyOpCost + statutoryWeekly;
+        const monthlyOpCost = Math.round(effectiveWeeklyOpCost * payrollWeeks * 100) / 100;
+
         const monthlyRevenue = monthlySubRevenue + monthlyCaregiverFees + monthlyServiceRevenue;
         const monthlyTotalCost = Math.round((totalCaregiverCost + totalEmployerNis + totalExpenses + monthlyOpCost) * 100) / 100;
         const monthlyMargin = Math.round((monthlyRevenue - monthlyTotalCost) * 100) / 100;
@@ -359,7 +422,7 @@ export function useUnitEconomics(selectedMonth: string) {
           monthlyMargin,
           weeklyRevenue: payrollWeeks > 0 ? Math.round((monthlyRevenue / payrollWeeks) * 100) / 100 : 0,
           weeklyCaregiverCost: payrollWeeks > 0 ? Math.round((totalCaregiverCost / payrollWeeks) * 100) / 100 : 0,
-          weeklyOperatingCost: weeklyOpCost,
+          weeklyOperatingCost: effectiveWeeklyOpCost,
           marginPercent: Math.round(marginPercent * 10) / 10,
           status: getStatus(marginPercent),
           caregiverBreakdowns: Object.values(cgMap).map(cg => ({
@@ -374,8 +437,11 @@ export function useUnitEconomics(selectedMonth: string) {
       });
 
       setClients(result);
+      setCarePlansWithoutPayroll(plansWithoutPayroll);
+      setFetchErrors(errors);
     } catch (err) {
       console.error('Error fetching unit economics:', err);
+      setFetchErrors([...errors, (err as any)?.message || 'unknown error']);
     } finally {
       setLoading(false);
     }
@@ -392,13 +458,16 @@ export function useUnitEconomics(selectedMonth: string) {
     };
   }, [clients]);
 
-  // Recalculate margins when operating costs change
+  // Recalculate margins when operating costs framework changes
   useEffect(() => {
     if (clients.length > 0 && selectedMonth) {
-      const weeklyOpCost = totalOperatingCost(operatingCosts);
+      const baseWeeklyOpCost = frameworkWeeklyTotal(framework) || totalOperatingCost(operatingCosts);
 
       setClients(prev => prev.map(c => {
-        const monthlyOpCost = Math.round(weeklyOpCost * c.payrollWeeks * 100) / 100;
+        const weeklyGross = c.payrollWeeks > 0 ? c.monthlyRevenue / c.payrollWeeks : 0;
+        const statutoryWeekly = statutoryWeeklyFromRevenue(framework, weeklyGross);
+        const effectiveWeekly = baseWeeklyOpCost + statutoryWeekly;
+        const monthlyOpCost = Math.round(effectiveWeekly * c.payrollWeeks * 100) / 100;
         const newTotalCost = c.monthlyCaregiverCost + c.monthlyNisCost + c.monthlyExpenses + monthlyOpCost;
         const newRevenue = c.monthlySubscriptionRevenue + c.monthlyCaregiverFees + c.monthlyServiceRevenue;
         const newMargin = newRevenue - newTotalCost;
@@ -406,7 +475,7 @@ export function useUnitEconomics(selectedMonth: string) {
         return {
           ...c,
           monthlyOperatingCost: monthlyOpCost,
-          weeklyOperatingCost: weeklyOpCost,
+          weeklyOperatingCost: effectiveWeekly,
           monthlyRevenue: Math.round(newRevenue * 100) / 100,
           monthlyTotalCost: Math.round(newTotalCost * 100) / 100,
           monthlyMargin: Math.round(newMargin * 100) / 100,
@@ -415,7 +484,20 @@ export function useUnitEconomics(selectedMonth: string) {
         };
       }));
     }
-  }, [operatingCosts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [operatingCosts, framework]);
 
-  return { clients, summary, loading, operatingCosts, updateOperatingCosts, availableMonths, refetch: fetchData };
+  return {
+    clients,
+    summary,
+    loading,
+    operatingCosts,
+    updateOperatingCosts,
+    framework,
+    updateFramework,
+    availableMonths,
+    carePlansWithoutPayroll,
+    fetchErrors,
+    refetch: fetchData,
+  };
 }
