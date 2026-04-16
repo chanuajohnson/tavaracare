@@ -310,7 +310,15 @@ export function loadFramework(): CostCategory[] {
           const userItem = userCat.items.find(i => i.key === defItem.key);
           return userItem ? { ...defItem, ...userItem } : defItem;
         });
-        return { ...defCat, items };
+        // Always force the layer from the default (source of truth) so legacy
+        // saved frameworks without `layer` get tagged correctly.
+        return { ...defCat, ...userCat, items, layer: defCat.layer };
+      });
+      // Append any user-added custom categories not in defaults (default → platform)
+      parsed.forEach(userCat => {
+        if (!merged.find(c => c.key === userCat.key)) {
+          merged.push({ ...userCat, layer: userCat.layer || 'platform' });
+        }
       });
       return merged;
     }
