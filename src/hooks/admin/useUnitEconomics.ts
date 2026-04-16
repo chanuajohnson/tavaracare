@@ -190,7 +190,7 @@ export interface DraftCarePlan {
   status: string;
 }
 
-export function useUnitEconomics(selectedMonth: string) {
+export function useUnitEconomics(selectedMonth: string, scenarioClientCount?: number) {
   const [clients, setClients] = useState<ClientEconomics[]>([]);
   const [draftCarePlans, setDraftCarePlans] = useState<DraftCarePlan[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
@@ -200,6 +200,7 @@ export function useUnitEconomics(selectedMonth: string) {
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
   const [carePlansWithoutPayroll, setCarePlansWithoutPayroll] = useState<number>(0);
   const [fetchErrors, setFetchErrors] = useState<string[]>([]);
+  const [activeClientCount, setActiveClientCount] = useState<number>(0);
 
   const updateOperatingCosts = (costs: OperatingCosts) => {
     setOperatingCosts(costs);
