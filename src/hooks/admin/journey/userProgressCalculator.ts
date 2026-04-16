@@ -6,13 +6,13 @@ export const calculateUserProgress = async (user: any): Promise<UserProgress> =>
   const stepCompletionData: Record<number, boolean> = {};
   let userStepCount = 0;
 
-  // Step 1: Check profile completion
+  // Step 1: Profile completion
   if (user.full_name) {
     stepCompletionData[1] = true;
     userStepCount++;
   }
 
-  // Step 2: Check care assessment
+  // Step 2: Care assessment
   const { data: careAssessment } = await supabase
     .from('care_needs_family')
     .select('id')
@@ -24,7 +24,7 @@ export const calculateUserProgress = async (user: any): Promise<UserProgress> =>
     userStepCount++;
   }
 
-  // Step 3: Check care recipient profile
+  // Step 3: Care recipient profile (Legacy Story)
   const { data: careRecipient } = await supabase
     .from('care_recipient_profiles')
     .select('id, full_name')
@@ -42,7 +42,7 @@ export const calculateUserProgress = async (user: any): Promise<UserProgress> =>
     userStepCount++;
   }
 
-  // Check care plans and related data
+  // Care plans (used by multiple steps)
   const { data: carePlans } = await supabase
     .from('care_plans')
     .select('id')
@@ -84,7 +84,7 @@ export const calculateUserProgress = async (user: any): Promise<UserProgress> =>
     userStepCount++;
   }
 
-  // Step 9: Care Team Confirmed (check caregiver_assignments or admin_match_interventions)
+  // Step 9: Care Team Confirmed
   const { data: assignments } = await supabase
     .from('caregiver_assignments')
     .select('id')
@@ -105,7 +105,7 @@ export const calculateUserProgress = async (user: any): Promise<UserProgress> =>
     userStepCount++;
   }
 
-  // Steps 10-11: Check onboarding_checklists for introduction_date and care_start_date
+  // Steps 10-11: Onboarding checklist
   const { data: checklist } = await supabase
     .from('onboarding_checklists' as any)
     .select('checked_items')
@@ -127,7 +127,30 @@ export const calculateUserProgress = async (user: any): Promise<UserProgress> =>
     userStepCount++;
   }
 
-  // Steps 12-14: Trial payments
+  // Step 12: Care Readiness Assessment — auto-completes when care has started
+  // (mirrors useSharedFamilyJourneyData logic: care plan + assigned caregiver)
+  if ((carePlans?.length || 0) > 0 && hasCareTeam) {
+    stepCompletionData[12] = true;
+    userStepCount++;
+  }
+
+  // Step 13: Home Environment Optimization — care_plan_service_selections w/ care_environment_support category
+  if (carePlans?.length) {
+    const { data: envSelections } = await supabase
+      .from('care_plan_service_selections')
+      .select('id, billable_service_items!inner(category)')
+      .in('care_plan_id', carePlans.map(cp => cp.id))
+      .eq('selected', true)
+      .eq('billable_service_items.category', 'care_environment_support')
+      .limit(1);
+
+    if (envSelections?.length) {
+      stepCompletionData[13] = true;
+      userStepCount++;
+    }
+  }
+
+  // Steps 14-16: Trial payments
   const { data: trialPayments } = await supabase
     .from('payment_transactions')
     .select('*')
@@ -136,13 +159,13 @@ export const calculateUserProgress = async (user: any): Promise<UserProgress> =>
     .eq('status', 'completed');
 
   if (trialPayments?.length) {
-    stepCompletionData[12] = true;
-    stepCompletionData[13] = true;
     stepCompletionData[14] = true;
+    stepCompletionData[15] = true;
+    stepCompletionData[16] = true;
     userStepCount += 3;
   }
 
-  // Step 15: Care model selection
+  // Step 17: Care model selection (Choose Path)
   let visitNotes = null;
   try {
     visitNotes = user.visit_notes ? JSON.parse(user.visit_notes) : null;
@@ -154,7 +177,7 @@ export const calculateUserProgress = async (user: any): Promise<UserProgress> =>
   let directHireConversion = false;
 
   if (visitNotes?.care_model) {
-    stepCompletionData[15] = true;
+    stepCompletionData[17] = true;
     userStepCount++;
     
     if (visitNotes.care_model === 'tavara_subscribed') {
@@ -169,7 +192,8 @@ export const calculateUserProgress = async (user: any): Promise<UserProgress> =>
     foundationCompleted: userStepCount >= 6,
     schedulingCompleted: userStepCount >= 8,
     careCoordinationCompleted: userStepCount >= 11,
-    trialCompleted: userStepCount >= 14,
+    careEnvironmentCompleted: !!(stepCompletionData[12] || stepCompletionData[13]),
+    trialCompleted: userStepCount >= 16,
     subscriptionConversion,
     directHireConversion
   };

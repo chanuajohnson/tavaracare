@@ -31,9 +31,9 @@ export const useAdminJourneyTracking = (): AdminJourneyData => {
       const familyUsers = await fetchFamilyUsers();
       const totalUsers = familyUsers.length;
 
-      // Initialize step tracking for 15 steps
+      // Initialize step tracking for 17 steps
       const stepCompletionData: Record<number, number> = {};
-      for (let i = 1; i <= 15; i++) {
+      for (let i = 1; i <= 17; i++) {
         stepCompletionData[i] = 0;
       }
 
@@ -42,7 +42,7 @@ export const useAdminJourneyTracking = (): AdminJourneyData => {
         const userProgress = await calculateUserProgress(user);
         userProgressList.push(userProgress);
         
-        for (let i = 1; i <= Math.min(userProgress.userStepCount, 15); i++) {
+        for (let i = 1; i <= Math.min(userProgress.userStepCount, 17); i++) {
           stepCompletionData[i]++;
         }
       }

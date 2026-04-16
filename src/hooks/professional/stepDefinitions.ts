@@ -73,6 +73,15 @@ export const baseSteps = [
     category: "training",
     stage: "training",
     isInteractive: true
+  },
+  {
+    id: 9,
+    title: "Care Environment Awareness",
+    description: "Understand the family's home readiness process and your role in supporting a safe care environment",
+    link: "/professional/profile?tab=onboarding#care_environment_awareness",
+    category: "care_environment_awareness",
+    stage: "active",
+    isInteractive: true
   }
 ];
 
@@ -117,6 +126,7 @@ export const getButtonText = (step: typeof baseSteps[0], completed: boolean, acc
       case 6: return "✓ Screening Complete";
       case 7: return "View Family Matches";
       case 8: return "Continue Training";
+      case 9: return "✓ Acknowledged";
       default: return "✓ Complete";
     }
   }
@@ -140,6 +150,7 @@ export const getButtonText = (step: typeof baseSteps[0], completed: boolean, acc
     case 6: return "Awaiting Screening";
     case 7: return "View Family Matches";
     case 8: return "Start Training";
+    case 9: return "Review Briefing";
     default: return "Complete";
   }
 };

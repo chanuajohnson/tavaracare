@@ -117,7 +117,7 @@ export const TavaraAssistantPanel: React.FC = () => {
         nextAction: nextStep?.description || 'Complete your next step',
         journeyStage: journeyStage || 'foundation',
         completedSteps: steps?.filter((s: any) => s.completed).length || 0,
-        totalSteps: steps?.length || 15,
+        totalSteps: steps?.length || 17,
         agreedRate: (familyJourneyProgress as any)?.agreedRate,
         weeklyHours: (familyJourneyProgress as any)?.weeklyHours,
       };
