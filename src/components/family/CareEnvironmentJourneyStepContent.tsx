@@ -17,29 +17,29 @@ export const CareEnvironmentJourneyStepContent = ({
     {
       level: 1,
       label: "Care Readiness Assessment",
-      price: "$199",
-      billing: "one-time",
-      description: "A professional walkthrough of your home to identify adjustments that support safe, comfortable caregiving.",
+      price: "$0",
+      originalPrice: "$199",
+      billing: "waived",
+      description: "Structured home walkthrough, caregiver workflow mapping, hygiene and safety assessment, decluttering recommendations, and space optimization plan. Provided as part of your care onboarding.",
       icon: Home,
-      included: true
     },
     {
       level: 2,
       label: "Guided Home Reset",
       price: "$499",
-      billing: "one-time",
-      description: "Hands-on coordination to reorganize and prepare key areas for your care team's daily workflow.",
+      originalPrice: null,
+      billing: "one-time coordination fee",
+      description: "Decluttering the space, lightening the home, and addressing hygiene concerns. Tavara coordinates and guides this process — the $499 covers our hands-on coordination until completion. External contractor costs are quoted separately.",
       icon: Sparkles,
-      included: false
     },
     {
       level: 3,
       label: "Full Care Environment Reset",
       price: "Custom",
-      billing: "quote-based",
-      description: "Comprehensive environment transition with vendor coordination, decluttering support, and space optimization.",
+      originalPrice: null,
+      billing: "ongoing / quote-based",
+      description: "Ongoing care environment support — including recurring pest control coordination, contractor management, and sustained home readiness. Continued oversight for monthly pest control, seasonal deep cleaning, and evolving environmental needs.",
       icon: ShieldCheck,
-      included: false
     }
   ];
 
@@ -77,8 +77,8 @@ export const CareEnvironmentJourneyStepContent = ({
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-medium">{tier.label}</span>
                       {tier.level === 1 && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                          Included with care
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-green-300 text-green-700">
+                          Waived
                         </Badge>
                       )}
                     </div>
@@ -87,6 +87,9 @@ export const CareEnvironmentJourneyStepContent = ({
                 </div>
                 <div className="text-right flex-shrink-0">
                   <span className="text-sm font-semibold">{tier.price}</span>
+                  {tier.originalPrice && (
+                    <span className="text-xs text-muted-foreground line-through ml-1">{tier.originalPrice}</span>
+                  )}
                   <p className="text-[10px] text-muted-foreground">{tier.billing}</p>
                 </div>
               </div>
