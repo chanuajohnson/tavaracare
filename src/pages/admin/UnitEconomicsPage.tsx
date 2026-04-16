@@ -108,8 +108,22 @@ export default function UnitEconomicsPage() {
         </TabsList>
 
         <TabsContent value="per_client" className="space-y-6 mt-4">
-          {/* Operating Cost Config */}
-          <OperatingCostConfig costs={operatingCosts} onChange={updateOperatingCosts} />
+          {fetchErrors && fetchErrors.length > 0 && (
+            <div className="rounded border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              <strong>Some data could not be loaded:</strong>
+              <ul className="list-disc list-inside text-xs mt-1">
+                {fetchErrors.map((e, i) => <li key={i}>{e}</li>)}
+              </ul>
+            </div>
+          )}
+          {!loading && carePlansWithoutPayroll > 0 && (
+            <div className="rounded border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+              <strong>{carePlansWithoutPayroll}</strong> active care plan{carePlansWithoutPayroll !== 1 ? 's have' : ' has'} no payroll entries for {formatMonthLabel(selectedMonth)}. They are still listed below with zero values — log work hours to populate revenue and cost data.
+            </div>
+          )}
+
+          {/* Operating Cost Framework */}
+          <OperatingCostConfig framework={framework} onChange={updateFramework} />
 
           {/* Per-Client Table */}
           <Card>
