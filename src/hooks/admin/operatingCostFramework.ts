@@ -11,6 +11,14 @@
 
 export type Recurrence = 'weekly' | 'monthly' | 'yearly' | 'one_time';
 
+/**
+ * Cost layer for the 3-tier unit economics model:
+ *   - 'direct'    → Direct Care Costs (per client, scales 1:1 — wages/NIS)
+ *   - 'care_ops'  → Care Operations (per-client, prorated by hours)
+ *   - 'platform'  → Shared overhead, allocated per active client
+ */
+export type CostLayer = 'direct' | 'care_ops' | 'platform';
+
 export interface CostLineItem {
   key: string;
   label: string;
@@ -33,7 +41,25 @@ export interface CostCategory {
   key: string;
   label: string;
   description: string;
+  /** Cost layer — defaults to 'platform' if missing on legacy saved frameworks */
+  layer: CostLayer;
   items: CostLineItem[];
+}
+
+/** Map a category key to its layer (used for backward-compat migration). */
+const CATEGORY_LAYER_MAP: Record<string, CostLayer> = {
+  care_ops: 'care_ops',
+  software: 'platform',
+  devices: 'platform',
+  founder_admin: 'platform',
+  marketing: 'platform',
+  professional: 'platform',
+  banking: 'platform',
+  statutory: 'platform',
+};
+
+export function getCategoryLayer(cat: CostCategory): CostLayer {
+  return cat.layer || CATEGORY_LAYER_MAP[cat.key] || 'platform';
 }
 
 /**
