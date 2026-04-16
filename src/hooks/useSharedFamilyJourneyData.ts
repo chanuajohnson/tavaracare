@@ -9,7 +9,7 @@ interface JourneyStep {
   description: string;
   completed: boolean;
   optional?: boolean;
-  category: 'foundation' | 'scheduling' | 'trial' | 'conversion';
+  category: 'foundation' | 'scheduling' | 'care_environment' | 'trial' | 'conversion';
   accessible?: boolean;
 }
 
@@ -18,13 +18,13 @@ interface SharedFamilyJourneyData {
   completionPercentage: number;
   nextStep?: JourneyStep;
   loading: boolean;
-  journeyStage: 'foundation' | 'scheduling' | 'trial' | 'conversion' | 'active';
+  journeyStage: 'foundation' | 'scheduling' | 'care_environment' | 'trial' | 'conversion' | 'active';
 }
 
 export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyData => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [journeyStage, setJourneyStage] = useState<'foundation' | 'scheduling' | 'trial' | 'conversion' | 'active'>('foundation');
+  const [journeyStage, setJourneyStage] = useState<'foundation' | 'scheduling' | 'care_environment' | 'trial' | 'conversion' | 'active'>('foundation');
 
   const [steps, setSteps] = useState<JourneyStep[]>([
     // Foundation Steps (1-6)
