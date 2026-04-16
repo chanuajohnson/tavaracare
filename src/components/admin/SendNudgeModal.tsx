@@ -36,8 +36,11 @@ interface SendNudgeModalProps {
 }
 
 const populateTemplate = (message: string, user: User, progressPercent: number): string => {
+  const firstName = user.full_name?.split(' ')[0] || 'there';
   return message
-    .replace(/\[Name\]/gi, user.full_name?.split(' ')[0] || 'there')
+    .replace(/\[Name\]/gi, firstName)
+    .replace(/\{\{family_name\}\}/gi, firstName)
+    .replace(/\{\{caregiver_name\}\}/gi, firstName)
     .replace(/\[X\]/gi, String(progressPercent))
     .replace(/\[Role\]/gi, user.role || 'member');
 };

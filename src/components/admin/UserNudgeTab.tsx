@@ -61,6 +61,8 @@ const populateTemplate = (
   const firstName = userName?.split(' ')[0] || 'there';
   return template
     .replace(/\[Name\]/g, firstName)
+    .replace(/\{\{family_name\}\}/gi, firstName)
+    .replace(/\{\{caregiver_name\}\}/gi, firstName)
     .replace(/\[X\]/g, String(Math.round(completionPercentage)))
     .replace(/\[Role\]/g, role || 'user');
 };
