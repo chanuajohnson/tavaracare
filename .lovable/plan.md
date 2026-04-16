@@ -1,59 +1,45 @@
 
 
-# Plan: Add Care Environment Support as New Journey Stage on Family Dashboard
+# Plan: Update Care Environment Cards — Add Supplies Checklist + Refine Service Tier Descriptions
 
 ## Summary
-Add "Care Environment Readiness" as a new journey stage in the family dashboard progress tracker, positioned after Care Coordination (scheduling) and before Trial Experience. This stage surfaces the 3-tier care environment service (Assessment $199, Guided Reset $499, Full Reset custom) with clear mandatory vs optional framing.
+Two changes across admin and family-facing onboarding:
+1. Move the "Basic Care Supplies" checklist from the Daily Care Checklist SOP card into the "Preparing Your Home for Care" (`CareEnvironmentIntroCard`) card — this is the foundational readiness step Anna should see
+2. Update all 3 service tier descriptions (in both `CareEnvironmentIntroCard.tsx` and `CareEnvironmentJourneyStepContent.tsx`) to accurately reflect the business model
 
 ## What Changes
 
-### 1. Add new journey steps to `useSharedFamilyJourneyData.ts`
-Insert 2 new steps (IDs 12-13, shifting existing trial/conversion IDs to 14-17) under a new `care_environment` category:
-- **Step 12**: "Care Readiness Assessment" — Mandatory when flagged by caregiver. Description: home walkthrough completed by your care team during their first week. Links to care environment info/action.
-- **Step 13**: "Home Environment Optimization" — Optional unless health/safety concern flagged. Description: guided or full reset coordination. Links to care environment service options.
+### 1. Add Care Supplies checklist to `CareEnvironmentIntroCard.tsx`
+Import and render the `SUPPLY_CATEGORIES` data (from `CareSuppliesCard.tsx`) inside the "Preparing Your Home for Care" card, positioned before the service tiers. This makes the supplies list part of the care environment readiness flow rather than buried in the caregiver SOP section.
 
-### 2. Add new journey steps to `useEnhancedJourneyProgress.ts`
-Mirror the same 2 steps in the mock anonymous steps and the real step generation logic, with `category: 'care_environment'`.
+- Export `SUPPLY_CATEGORIES` from `CareSuppliesCard.tsx` so it can be reused
+- Render the supplies grid inside `CareEnvironmentIntroCard` with a heading like "📋 Basic Care Supplies — Family Responsibility"
 
-### 3. Add `care_environment` stage to `EnhancedFamilyNextStepsPanel.tsx`
-In `groupStepsByStage()`, add a new stage between `scheduling` and `trial`:
-```
-care_environment: {
-  name: "Care Environment Readiness",
-  key: "care_environment_stage",
-  description: "Preparing your home for sustainable, safe caregiving",
-  color: "emerald",
-  steps: steps.filter(step => step.category === 'care_environment'),
-  subscriptionCTA: null
-}
-```
+### 2. Update service tier descriptions in both components
 
-Update `stagesToDisplay` to include this new stage.
+**Level 1 — Care Readiness Assessment**
+- Price: Show as "Waived" (not $199) with a strikethrough on the original price, or simply "$0 — Waived"
+- Description update: "Structured home walkthrough, caregiver workflow mapping, hygiene and safety assessment, decluttering recommendations, and space optimization plan. Provided as part of your care onboarding."
+- Badge: "Waived" instead of "Included with care" on the family journey component
 
-### 4. Update `useUserJourneyProgress.ts`
-Add link mappings for the new step IDs pointing to `/family/care-management` or a future care environment page.
+**Level 2 — Guided Home Reset ($499)**
+- Price stays $499 (one-time coordination fee)
+- Description update: "Decluttering the space, lightening the home, and addressing hygiene concerns. Tavara coordinates and guides this process — the $499 covers our hands-on coordination until completion. External contractor costs (cleaning, pest treatment, etc.) are the family's responsibility and quoted separately."
+- Clarify this also covers guidance on what the Full Care Environment Reset would entail
 
-### 5. Create `CareEnvironmentJourneyStepContent.tsx`
-A small component rendered inside the journey step when expanded, showing:
-- The 3 tiers (Assessment $199, Guided Reset $499, Full Reset custom)
-- "Mandatory" badge when caregiver flags health/safety concern
-- "Recommended" badge otherwise
-- CTA to message care coordinator or view details
-- Dignity-centered copy (not cleaning — readiness, transition, workflow)
+**Level 3 — Full Care Environment Reset (Custom)**
+- Price stays "Custom"
+- Description update: "Ongoing care environment support — including recurring pest control coordination, contractor management, and sustained home readiness. After the initial guided reset, this provides continued oversight for things like monthly pest control, seasonal deep cleaning, and any evolving environmental needs. Coordinated and managed by Tavara."
+- Billing label: "ongoing / quote-based" instead of just "quote-based"
 
-### 6. Update step completion logic
-In `useSharedFamilyJourneyData.ts`, check for care environment service selections in `care_plan_service_selections` with `service_category = 'care_environment_support'` to auto-mark steps as completed.
-
-### 7. Professional dashboard consideration
-No changes needed — the professional doesn't track the family's home readiness journey. The caregiver's role is to flag observations through daily care logs, which the admin then acts on.
+### 3. Also render supplies on Family Onboarding Checklist
+In `FamilyOnboardingChecklistPage.tsx`, add `<CareSuppliesCard />` inside the `care_environment` section (alongside `CareEnvironmentIntroCard`), so Anna sees the full supplies list when she views her onboarding.
 
 ## Files Modified
 | File | Change |
 |------|--------|
-| `src/hooks/useSharedFamilyJourneyData.ts` | Add 2 care_environment steps, shift IDs, add completion logic |
-| `src/hooks/useEnhancedJourneyProgress.ts` | Add care_environment steps to mock data and real step generation |
-| `src/components/family/EnhancedFamilyNextStepsPanel.tsx` | Add care_environment stage group, include in display |
-| `src/hooks/useUserJourneyProgress.ts` | Add link mappings for new step IDs |
-| `src/components/family/CareEnvironmentJourneyStepContent.tsx` | **New** — tier display component for the journey step |
-| `mem://journey/family-journey-architecture-v3` | Update to reflect 17-step journey with care environment stage |
+| `src/components/admin/onboarding/CareSuppliesCard.tsx` | Export `SUPPLY_CATEGORIES` as named export |
+| `src/components/admin/onboarding/CareEnvironmentIntroCard.tsx` | Add supplies checklist, update tier descriptions |
+| `src/components/family/CareEnvironmentJourneyStepContent.tsx` | Update tier descriptions, waived pricing for Level 1, ongoing label for Level 3 |
+| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Add `CareSuppliesCard` to `care_environment` section |
 
