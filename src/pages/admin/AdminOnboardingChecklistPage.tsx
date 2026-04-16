@@ -987,6 +987,8 @@ function ChecklistTabContent({
         );
       })()}
 
+      <PlatformPositioningDisclaimer variant="inline" className="mb-2" />
+
       <div className="space-y-3">
         {sectionDefs.map((section) => {
           let checked = 0;
