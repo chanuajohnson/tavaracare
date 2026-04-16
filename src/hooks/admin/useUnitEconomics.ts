@@ -55,18 +55,28 @@ export interface ClientEconomics {
   payrollWeeks: number;
   periodStart: string;
   periodEnd: string;
-  // Monthly figures
+  // Monthly revenue
   monthlySubscriptionRevenue: number;
   monthlyCaregiverFees: number;
   monthlyServiceRevenue: number;
   monthlyRevenue: number;
+  // Layer 1 — Direct Care Costs (per client, scales 1:1)
   monthlyCaregiverCost: number;
   monthlyNisCost: number;
   monthlyEmployeeNis: number;
   monthlyExpenses: number;
+  monthlyDirectCost: number;
+  // Layer 2 — Care Operations (per-client, prorated)
+  monthlyCareOpsCost: number;
+  // Layer 3 — Allocated Platform Overhead (shared / active clients)
+  monthlyAllocatedPlatformCost: number;
+  // Combined ops (= careOps + allocatedPlatform) — back-compat
   monthlyOperatingCost: number;
   monthlyTotalCost: number;
   monthlyMargin: number;
+  // Pre-allocation margin (revenue − direct − careOps) — "marginal profitability"
+  monthlyDirectMargin: number;
+  monthlyDirectMarginPercent: number;
   // Weekly averages
   weeklyRevenue: number;
   weeklyCaregiverCost: number;
@@ -78,11 +88,26 @@ export interface ClientEconomics {
   serviceBreakdown: ServiceRevenueItem[];
 }
 
+export interface PlatformSummary {
+  weeklyTotal: number;
+  monthlyTotal: number;
+  yearlyTotal: number;
+  perClientWeeklyAllocation: number;
+  perClientMonthlyAllocation: number;
+  activeClientCount: number;
+  /** Effective divisor used to allocate platform costs (max(scenario, 1)) */
+  allocationDivisor: number;
+}
+
 export interface UnitEconomicsSummary {
   totalActiveClients: number;
   totalMonthlyRevenue: number;
   totalMonthlyCost: number;
+  totalMonthlyDirectCost: number;
+  totalMonthlyCareOpsCost: number;
+  totalMonthlyPlatformCost: number;
   avgMarginPercent: number;
+  avgDirectMarginPercent: number;
 }
 
 function getWeeklySubscriptionRevenue(planName: string | null, price: number | null): number {
