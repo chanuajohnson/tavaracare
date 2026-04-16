@@ -9,7 +9,7 @@ interface JourneyStep {
   description: string;
   completed: boolean;
   optional?: boolean;
-  category: 'foundation' | 'scheduling' | 'trial' | 'conversion';
+  category: 'foundation' | 'scheduling' | 'care_environment' | 'trial' | 'conversion';
   accessible?: boolean;
 }
 
@@ -18,13 +18,13 @@ interface SharedFamilyJourneyData {
   completionPercentage: number;
   nextStep?: JourneyStep;
   loading: boolean;
-  journeyStage: 'foundation' | 'scheduling' | 'trial' | 'conversion' | 'active';
+  journeyStage: 'foundation' | 'scheduling' | 'care_environment' | 'trial' | 'conversion' | 'active';
 }
 
 export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyData => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [journeyStage, setJourneyStage] = useState<'foundation' | 'scheduling' | 'trial' | 'conversion' | 'active'>('foundation');
+  const [journeyStage, setJourneyStage] = useState<'foundation' | 'scheduling' | 'care_environment' | 'trial' | 'conversion' | 'active'>('foundation');
 
   const [steps, setSteps] = useState<JourneyStep[]>([
     // Foundation Steps (1-6)
@@ -119,9 +119,27 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       category: 'scheduling',
       accessible: false
     },
-    // Trial Steps (12-14)
+    // Care Environment Steps (12-13)
+    {
+      id: 12,
+      title: "Care Readiness Assessment",
+      description: "A home walkthrough completed by your care team during their first week to assess readiness for sustainable caregiving.",
+      completed: false,
+      category: 'care_environment',
+      accessible: false
+    },
+    {
+      id: 13,
+      title: "Home Environment Optimization",
+      description: "Guided or full care environment coordination to prepare your home for safe, comfortable caregiving.",
+      completed: false,
+      optional: true,
+      category: 'care_environment',
+      accessible: false
+    },
+    // Trial Steps (14-16)
     { 
-      id: 12, 
+      id: 14, 
       title: "Schedule Trial Day (Optional)", 
       description: "Choose a trial date with your matched caregiver. This is an optional step before choosing your care model.", 
       completed: false, 
@@ -130,7 +148,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       accessible: false
     },
     { 
-      id: 13, 
+      id: 15, 
       title: "Pay for Trial Day (Optional)", 
       description: "Complete payment for an optional 8-hour caregiver trial experience.", 
       completed: false, 
@@ -139,7 +157,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       accessible: false
     },
     { 
-      id: 14, 
+      id: 16, 
       title: "Begin Your Trial (Optional)", 
       description: "Your caregiver begins the scheduled trial session.", 
       completed: false, 
@@ -147,9 +165,9 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       category: 'trial',
       accessible: false
     },
-    // Conversion Step (15)
+    // Conversion Step (17)
     { 
-      id: 15, 
+      id: 17, 
       title: "Rate & Choose Your Path", 
       description: "Choose your care model — view subscription plans or hire directly.", 
       completed: false, 
@@ -349,19 +367,28 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
             completed = !!startDate || hasActiveCareTeam;
             accessible = !!introductionDate || !!startDate || hasActiveCareTeam;
             break;
-          case 12: // Schedule trial day
+          case 12: // Care Readiness Assessment
+            const careBegun12 = !!startDate || !!(carePlansData && carePlansData.length > 0 && hasCaregiverAssigned);
+            completed = careBegun12; // Auto-completes when care has started (walkthrough done in week 1)
+            accessible = hasCaregiverAssigned || careBegun12;
+            break;
+          case 13: // Home Environment Optimization
+            completed = false; // Will be marked via care_plan_service_selections
+            accessible = hasCaregiverAssigned || !!(carePlansData && carePlansData.length > 0);
+            break;
+          case 14: // Schedule trial day
             completed = hasTrialPayment;
             accessible = profile?.visit_scheduling_status === 'completed';
             break;
-          case 13: // Pay for trial day
+          case 15: // Pay for trial day
             completed = hasTrialPayment;
             accessible = profile?.visit_scheduling_status === 'completed';
             break;
-          case 14: // Begin trial
+          case 16: // Begin trial
             completed = hasTrialPayment;
             accessible = hasTrialPayment;
             break;
-          case 15: // Rate & choose path
+          case 17: // Rate & choose path
             const careBegunCheck = !!startDate || !!(carePlansData && carePlansData.length > 0 && hasCaregiverAssigned);
             completed = !!visitNotes?.care_model || !!visitNotes?.care_option || careBegunCheck;
             accessible = profile?.visit_scheduling_status === 'completed' || hasTrialPayment || careBegunCheck;
@@ -398,6 +425,12 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
           case 11:
             action = () => navigate('/family/care-management');
             break;
+          case 12:
+            action = () => navigate('/family/care-management');
+            break;
+          case 13:
+            action = () => navigate('/family/care-management');
+            break;
           default:
             action = undefined;
         }
@@ -411,20 +444,25 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       const completedSteps = updatedSteps.filter(s => s.completed);
       const foundationSteps = completedSteps.filter(s => s.category === 'foundation');
       const schedulingSteps = completedSteps.filter(s => s.category === 'scheduling');
+      const careEnvSteps = completedSteps.filter(s => s.category === 'care_environment');
       const trialSteps = completedSteps.filter(s => s.category === 'trial');
       
       // Count total steps per category for "all complete" checks
       const totalSchedulingSteps = updatedSteps.filter(s => s.category === 'scheduling');
+      const totalCareEnvSteps = updatedSteps.filter(s => s.category === 'care_environment');
       const conversionStep = updatedSteps.find(s => s.category === 'conversion');
       const allSchedulingComplete = totalSchedulingSteps.length > 0 && totalSchedulingSteps.every(s => s.completed);
+      const allCareEnvComplete = totalCareEnvSteps.length > 0 && totalCareEnvSteps.every(s => s.completed || s.optional);
       const conversionComplete = conversionStep?.completed || false;
       
       if (allSchedulingComplete && conversionComplete) {
         setJourneyStage('active');
       } else if (trialSteps.length > 0 || visitNotes?.care_model) {
         setJourneyStage('conversion');
+      } else if (allCareEnvComplete || careEnvSteps.length > 0) {
+        setJourneyStage('trial');
       } else if (allSchedulingComplete) {
-        setJourneyStage('conversion');
+        setJourneyStage('care_environment');
       } else if (schedulingSteps.length > 0) {
         setJourneyStage('scheduling');
       } else if (foundationSteps.length >= 4) {

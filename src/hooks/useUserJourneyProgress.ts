@@ -54,10 +54,15 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
             step.id === 6 ? "/family/care-management" :
             step.id === 7 ? "/family/schedule-visit" :
             step.id === 8 ? "/family/schedule-visit" :
-            step.id === 9 ? "/family/schedule-visit" :
-            step.id === 10 ? "/family/schedule-visit" :
-            step.id === 11 ? "/family/schedule-visit" :
-            step.id === 12 ? "/family/schedule-visit" : "/dashboard"
+            step.id === 9 ? "/family/care-management" :
+            step.id === 10 ? "/family/care-management" :
+            step.id === 11 ? "/family/care-management" :
+            step.id === 12 ? "/family/care-management" :
+            step.id === 13 ? "/family/care-management" :
+            step.id === 14 ? "/family/schedule-visit" :
+            step.id === 15 ? "/family/schedule-visit" :
+            step.id === 16 ? "/family/schedule-visit" :
+            step.id === 17 ? "/family/schedule-visit" : "/dashboard"
     }));
 
     // Use stored completion percentage if available, otherwise use calculated
