@@ -30,6 +30,7 @@ import ProfessionalSubmissionReview from "@/components/admin/onboarding/Professi
 import RateTierReferenceCard from "@/components/admin/onboarding/RateTierReferenceCard";
 import CareSuppliesCard from "@/components/admin/onboarding/CareSuppliesCard";
 import CareEnvironmentIntroCard from "@/components/admin/onboarding/CareEnvironmentIntroCard";
+import { PlatformPositioningDisclaimer } from "@/components/shared/PlatformPositioningDisclaimer";
 import OnboardingNotesCard, { OnboardingNote } from "@/components/admin/onboarding/OnboardingNotesCard";
 import ServiceSelectionBlock from "@/components/admin/onboarding/ServiceSelectionBlock";
 import BillingSummaryCard from "@/components/admin/onboarding/BillingSummaryCard";
@@ -985,6 +986,8 @@ function ChecklistTabContent({
           </Card>
         );
       })()}
+
+      <PlatformPositioningDisclaimer variant="inline" className="mb-2" />
 
       <div className="space-y-3">
         {sectionDefs.map((section) => {

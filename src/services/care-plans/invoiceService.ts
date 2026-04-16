@@ -79,6 +79,7 @@ const COMPANY_INFO = {
 };
 
 const TERMS_AND_CONDITIONS = [
+  'Tavara is a Care Coordination & Management Platform — not an employment or placement agency. Families engage caregivers directly; coordination fees fund platform operations.',
   'Payment is due every Friday for weekly billing, or by the 1st of each month for monthly billing.',
   'Late payment incurs a 5% fee after 3 business days past due date. Continued non-payment may result in service suspension after 7 days.',
   '💡 Complete bank transfers by Thursday to ensure Friday receipt.',
@@ -86,7 +87,7 @@ const TERMS_AND_CONDITIONS = [
   'Holiday rates: 1.5× standard rate; Christmas Day and New Year\'s Day: 2× standard rate.',
   'Extended hours beyond the agreed schedule are billed at 1.5× the standard rate.',
   'Care escalation due to changes in condition may require a rate adjustment with prior notice.',
-  'NIS (National Insurance) contributions for assigned caregivers are managed in accordance with Trinidad & Tobago regulations, with Tavara providing guidance, coordination, and support to ensure compliance.',
+  'NIS (National Insurance) contributions for assigned caregivers are managed in accordance with Trinidad & Tobago regulations, with Tavara providing guidance, coordination, and support to ensure compliance. The family remains the employer of record for NIS purposes.',
   'Please send a screenshot of payment/bank transfer confirmation via WhatsApp or email.',
 ];
 

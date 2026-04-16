@@ -3994,6 +3994,60 @@ export type Database = {
         }
         Relationships: []
       }
+      quarterly_action_items: {
+        Row: {
+          category: string
+          completed_at: string | null
+          completion_notes: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          owner: string | null
+          quarter: string
+          sort_order: number
+          status: string
+          target_date: string | null
+          title: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          category?: string
+          completed_at?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          owner?: string | null
+          quarter: string
+          sort_order?: number
+          status?: string
+          target_date?: string | null
+          title: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          category?: string
+          completed_at?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          owner?: string | null
+          quarter?: string
+          sort_order?: number
+          status?: string
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       recipes: {
         Row: {
           category: string | null

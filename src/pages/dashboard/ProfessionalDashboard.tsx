@@ -18,6 +18,7 @@ import { Link } from "react-router-dom";
 import { Users, Briefcase, ChevronDown, ChevronUp, TrendingUp, Target, AlertCircle } from "lucide-react";
 import { UserJourneyTracker } from "@/components/tracking/UserJourneyTracker";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
+import { PlatformPositioningDisclaimer } from "@/components/shared/PlatformPositioningDisclaimer";
 import { useState, useEffect } from "react";
 
 const ProfessionalDashboard = () => {
@@ -299,6 +300,9 @@ const ProfessionalDashboard = () => {
                 </CardContent>
               </Card>
             </motion.div>
+          </div>
+          <div className="container mx-auto px-4 mt-6">
+            <PlatformPositioningDisclaimer variant="compact" />
           </div>
         </div>
       </div>
