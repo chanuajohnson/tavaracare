@@ -619,7 +619,10 @@ export default function FamilyOnboardingChecklistPage() {
                 )}
 
                 {section.id === "care_environment" && (
-                  <CareEnvironmentIntroCard />
+                  <>
+                    <CareEnvironmentIntroCard />
+                    <CareSuppliesCard />
+                  </>
                 )}
 
                 {section.id === "rates_and_changes" && (
