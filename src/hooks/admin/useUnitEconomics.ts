@@ -191,15 +191,24 @@ export function useUnitEconomics(selectedMonth: string) {
 
   const fetchData = async () => {
     setLoading(true);
+    const errors: string[] = [];
     try {
       // Fetch active care plans
-      const { data: carePlans } = await supabase
+      const carePlansRes = await supabase
         .from('care_plans')
         .select('id, title, family_id, status')
         .eq('status', 'active');
 
+      if (carePlansRes.error) {
+        console.error('[unit-economics] care_plans fetch error:', carePlansRes.error);
+        errors.push(`Care plans: ${carePlansRes.error.message}`);
+      }
+
+      const carePlans = carePlansRes.data;
       if (!carePlans?.length) {
         setClients([]);
+        setCarePlansWithoutPayroll(0);
+        setFetchErrors(errors);
         setLoading(false);
         return;
       }
@@ -207,47 +216,75 @@ export function useUnitEconomics(selectedMonth: string) {
       const familyIds = [...new Set(carePlans.map(cp => cp.family_id))];
       const carePlanIds = carePlans.map(cp => cp.id);
 
-      // Parallel fetches — get ALL payroll entries (not filtered by date)
-      const [profilesRes, subscriptionsRes, payrollRes, teamRes, serviceSelectionsRes] = await Promise.all([
-        supabase.from('profiles').select('id, full_name').in('id', familyIds),
-        supabase.from('user_subscriptions').select('user_id, plan_id, status').in('user_id', familyIds).eq('status', 'active'),
-        supabase.from('payroll_entries').select('care_plan_id, care_team_member_id, regular_hours, regular_rate, overtime_hours, overtime_rate, holiday_hours, holiday_rate, expense_total, employer_contribution, employee_contribution, gross_pay, pay_period_start')
+      // Parallel fetches — each isolated so a single failure doesn't blank the dashboard
+      const safeFetch = async <T,>(label: string, p: Promise<{ data: T | null; error: any }>): Promise<T | null> => {
+        try {
+          const res = await p;
+          if (res.error) {
+            console.error(`[unit-economics] ${label} error:`, res.error);
+            errors.push(`${label}: ${res.error.message}`);
+            return null;
+          }
+          return res.data;
+        } catch (err: any) {
+          console.error(`[unit-economics] ${label} threw:`, err);
+          errors.push(`${label}: ${err?.message || 'unknown error'}`);
+          return null;
+        }
+      };
+
+      const [profilesData, subscriptionsData, payrollData, teamData, serviceSelectionsData] = await Promise.all([
+        safeFetch('profiles', supabase.from('profiles').select('id, full_name').in('id', familyIds) as any),
+        safeFetch('user_subscriptions', supabase.from('user_subscriptions').select('user_id, plan_id, status').in('user_id', familyIds).eq('status', 'active') as any),
+        safeFetch('payroll_entries', supabase.from('payroll_entries').select('care_plan_id, care_team_member_id, regular_hours, regular_rate, overtime_hours, overtime_rate, holiday_hours, holiday_rate, expense_total, employer_contribution, employee_contribution, gross_pay, pay_period_start')
           .in('care_plan_id', carePlanIds)
-          .not('pay_period_start', 'is', null),
-        supabase.from('care_team_members').select('id, care_plan_id, caregiver_id, display_name').in('care_plan_id', carePlanIds),
-        supabase.from('care_plan_service_selections')
+          .not('pay_period_start', 'is', null) as any),
+        safeFetch('care_team_members', supabase.from('care_team_members').select('id, care_plan_id, caregiver_id, display_name').in('care_plan_id', carePlanIds) as any),
+        safeFetch('care_plan_service_selections', supabase.from('care_plan_service_selections')
           .select('care_plan_id, quantity, override_price, billable_service_items(label, billing_type, unit_price, visible_in_unit_economics)')
           .in('care_plan_id', carePlanIds)
-          .eq('selected', true),
+          .eq('selected', true) as any),
       ]);
 
+      const profilesArr = (profilesData as any[]) || [];
+      const subscriptionsArr = (subscriptionsData as any[]) || [];
+      const payrollArr = (payrollData as any[]) || [];
+      const teamArr = (teamData as any[]) || [];
+      const serviceSelectionsArr = (serviceSelectionsData as any[]) || [];
+
       // Fetch subscription plans
-      const planIds = [...new Set((subscriptionsRes.data || []).map(s => s.plan_id).filter(Boolean))];
+      const planIds = [...new Set(subscriptionsArr.map(s => s.plan_id).filter(Boolean))];
       let plansMap: Record<string, { name: string; price: number }> = {};
       if (planIds.length) {
-        const { data: plans } = await supabase.from('subscription_plans').select('id, name, price').in('id', planIds);
-        (plans || []).forEach(p => { plansMap[p.id] = { name: p.name, price: p.price }; });
+        const plansRes = await supabase.from('subscription_plans').select('id, name, price').in('id', planIds);
+        if (plansRes.error) {
+          console.error('[unit-economics] subscription_plans error:', plansRes.error);
+          errors.push(`Subscription plans: ${plansRes.error.message}`);
+        }
+        (plansRes.data || []).forEach(p => { plansMap[p.id] = { name: p.name, price: p.price }; });
       }
 
       const profilesMap: Record<string, string> = {};
-      (profilesRes.data || []).forEach(p => { profilesMap[p.id] = p.full_name || 'Unknown'; });
+      profilesArr.forEach(p => { profilesMap[p.id] = p.full_name || 'Unknown'; });
 
       const subMap: Record<string, { planName: string; price: number }> = {};
-      (subscriptionsRes.data || []).forEach(s => {
+      subscriptionsArr.forEach(s => {
         if (s.plan_id && plansMap[s.plan_id]) {
           subMap[s.user_id] = { planName: plansMap[s.plan_id].name, price: plansMap[s.plan_id].price };
         }
       });
 
       const teamMap: Record<string, Record<string, string>> = {};
-      (teamRes.data || []).forEach(tm => {
+      teamArr.forEach(tm => {
         if (tm.care_plan_id) {
           if (!teamMap[tm.care_plan_id]) teamMap[tm.care_plan_id] = {};
           teamMap[tm.care_plan_id][tm.id] = tm.display_name || 'Caregiver';
         }
       });
 
-      const weeklyOpCost = totalOperatingCost(operatingCosts);
+      // Use new framework for operating costs (falls back to legacy if framework empty)
+      const baseWeeklyOpCost = frameworkWeeklyTotal(framework) || totalOperatingCost(operatingCosts);
+      let plansWithoutPayroll = 0;
 
       const result: ClientEconomics[] = carePlans.map(cp => {
         // Filter payroll entries for this care plan AND the selected payroll month
