@@ -1,45 +1,47 @@
 
 
-# Plan: Update Care Environment Cards — Add Supplies Checklist + Refine Service Tier Descriptions
+# Plan: Reverse Note Order + Add Care Environment to Professional Checklist
 
-## Summary
-Two changes across admin and family-facing onboarding:
-1. Move the "Basic Care Supplies" checklist from the Daily Care Checklist SOP card into the "Preparing Your Home for Care" (`CareEnvironmentIntroCard`) card — this is the foundational readiness step Anna should see
-2. Update all 3 service tier descriptions (in both `CareEnvironmentIntroCard.tsx` and `CareEnvironmentJourneyStepContent.tsx`) to accurately reflect the business model
+## 1. Reverse notes to show newest first
 
-## What Changes
+**File**: `src/components/admin/onboarding/OnboardingNotesCard.tsx`
 
-### 1. Add Care Supplies checklist to `CareEnvironmentIntroCard.tsx`
-Import and render the `SUPPLY_CATEGORIES` data (from `CareSuppliesCard.tsx`) inside the "Preparing Your Home for Care" card, positioned before the service tiers. This makes the supplies list part of the care environment readiness flow rather than buried in the caregiver SOP section.
+Currently `filteredNotes` renders in array order (oldest first). The fix:
+- Create a reversed copy of `filteredNotes` for display: `const displayNotes = [...filteredNotes].reverse()`
+- Update the `getRealIndex` helper to correctly map reversed display indices back to the original `notes` array index (critical for edit/delete/acknowledge operations)
+- Render `displayNotes.map(...)` instead of `filteredNotes.map(...)`
 
-- Export `SUPPLY_CATEGORIES` from `CareSuppliesCard.tsx` so it can be reused
-- Render the supplies grid inside `CareEnvironmentIntroCard` with a heading like "📋 Basic Care Supplies — Family Responsibility"
+This ensures newest notes appear at the top on both family and professional onboarding checklists.
 
-### 2. Update service tier descriptions in both components
+## 2. Add Care Environment section to professional onboarding checklist
 
-**Level 1 — Care Readiness Assessment**
-- Price: Show as "Waived" (not $199) with a strikethrough on the original price, or simply "$0 — Waived"
-- Description update: "Structured home walkthrough, caregiver workflow mapping, hygiene and safety assessment, decluttering recommendations, and space optimization plan. Provided as part of your care onboarding."
-- Badge: "Waived" instead of "Included with care" on the family journey component
+**File**: `src/components/admin/onboarding/professionalOnboardingSections.ts`
 
-**Level 2 — Guided Home Reset ($499)**
-- Price stays $499 (one-time coordination fee)
-- Description update: "Decluttering the space, lightening the home, and addressing hygiene concerns. Tavara coordinates and guides this process — the $499 covers our hands-on coordination until completion. External contractor costs (cleaning, pest treatment, etc.) are the family's responsibility and quoted separately."
-- Clarify this also covers guidance on what the Full Care Environment Reset would entail
+Add a new section (positioned after "Communication & Support", before "Next Steps & First Assignment") so professionals can see what the family is being guided through regarding home readiness:
 
-**Level 3 — Full Care Environment Reset (Custom)**
-- Price stays "Custom"
-- Description update: "Ongoing care environment support — including recurring pest control coordination, contractor management, and sustained home readiness. After the initial guided reset, this provides continued oversight for things like monthly pest control, seasonal deep cleaning, and any evolving environmental needs. Coordinated and managed by Tavara."
-- Billing label: "ongoing / quote-based" instead of just "quote-based"
+```
+{
+  id: "care_environment_awareness",
+  title: "Care Environment Readiness",
+  iconName: "Leaf",
+  description: "Understand the family's home readiness process and your role in supporting a safe, effective care environment",
+  items: [
+    "Understand the Care Readiness Assessment process (home walkthrough, workflow mapping)",
+    "Awareness of family's supply checklist responsibilities (gloves, first aid, hygiene products, etc.)",
+    "How to flag environmental concerns (hygiene hazards, safety risks, workflow blockers)",
+    "Guided Home Reset process — what the family is coordinating (decluttering, hygiene, workspace setup)",
+    "Ongoing care environment support — pest control, seasonal resets, vendor coordination",
+    "How care environment observations feed back to the coordinator and family",
+  ],
+}
+```
 
-### 3. Also render supplies on Family Onboarding Checklist
-In `FamilyOnboardingChecklistPage.tsx`, add `<CareSuppliesCard />` inside the `care_environment` section (alongside `CareEnvironmentIntroCard`), so Anna sees the full supplies list when she views her onboarding.
+This mirrors the family-side "Preparing Your Home for Care" section but from the professional's perspective — what they need to know about the home readiness process and how to participate in it.
 
 ## Files Modified
+
 | File | Change |
 |------|--------|
-| `src/components/admin/onboarding/CareSuppliesCard.tsx` | Export `SUPPLY_CATEGORIES` as named export |
-| `src/components/admin/onboarding/CareEnvironmentIntroCard.tsx` | Add supplies checklist, update tier descriptions |
-| `src/components/family/CareEnvironmentJourneyStepContent.tsx` | Update tier descriptions, waived pricing for Level 1, ongoing label for Level 3 |
-| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Add `CareSuppliesCard` to `care_environment` section |
+| `src/components/admin/onboarding/OnboardingNotesCard.tsx` | Reverse display order of notes (newest first), fix index mapping |
+| `src/components/admin/onboarding/professionalOnboardingSections.ts` | Add "Care Environment Readiness" section for professional awareness |
 
