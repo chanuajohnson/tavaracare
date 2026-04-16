@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DollarSign, Users, TrendingUp, TrendingDown } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { DollarSign, Users, TrendingUp, TrendingDown, FileEdit, ArrowRight } from 'lucide-react';
 import { useUnitEconomics } from '@/hooks/admin/useUnitEconomics';
 import { UnitEconomicsTable } from '@/components/admin/UnitEconomicsTable';
 import { OperatingCostConfig } from '@/components/admin/OperatingCostConfig';
@@ -23,7 +26,18 @@ function formatMonthLabel(m: string) {
 
 export default function UnitEconomicsPage() {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth);
-  const { clients, summary, loading, framework, updateFramework, availableMonths, carePlansWithoutPayroll, fetchErrors } = useUnitEconomics(selectedMonth);
+  const {
+    clients,
+    draftCarePlans,
+    statusCounts,
+    summary,
+    loading,
+    framework,
+    updateFramework,
+    availableMonths,
+    carePlansWithoutPayroll,
+    fetchErrors,
+  } = useUnitEconomics(selectedMonth);
 
   const marginColor = summary.avgMarginPercent >= 20
     ? 'text-green-700'
