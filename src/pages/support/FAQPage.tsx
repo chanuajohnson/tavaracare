@@ -16,9 +16,27 @@ interface FAQ {
 
 const faqs: FAQ[] = [
   {
+    id: "faq-model-1",
+    question: "Is Tavara a care agency?",
+    answer: "No. Tavara is a Care Coordination & Management Platform. Families engage caregivers directly. Tavara coordinates matching, scheduling, training oversight, payroll calculation, and quality oversight — but is not an employment agency, placement agency, or employer of caregivers.",
+    category: "About Tavara's Model"
+  },
+  {
+    id: "faq-model-2",
+    question: "Who employs the caregiver?",
+    answer: "The family is the employer of record for NIS (National Insurance) purposes. Tavara handles NIS calculations, government form generation (NI 184, NI 187), and payroll coordination as a service — but the employment relationship is between the family and the caregiver.",
+    category: "About Tavara's Model"
+  },
+  {
+    id: "faq-model-3",
+    question: "What does Tavara's coordination fee cover?",
+    answer: "Caregiver matching, schedule coordination, payroll calculation, training oversight, dispute resolution, NIS form generation, daily care log oversight, and platform infrastructure. It does not cover caregiver wages — those flow directly as a transparent pass-through from the family to the caregiver.",
+    category: "About Tavara's Model"
+  },
+  {
     id: "faq-1",
     question: "What is Tavara.care?",
-    answer: "Tavara.care is a care coordination platform designed to help families, care professionals, and communities connect for better caregiving solutions. We provide tools for care matching, task management, messaging, and professional networking, ensuring quality care experiences.",
+    answer: "Tavara.care is a Care Coordination & Management Platform designed to help families, care professionals, and communities connect for better caregiving solutions. We provide tools for care matching, task management, messaging, and professional networking, ensuring quality care experiences. Tavara is not an employment or placement agency — families engage caregivers directly.",
     category: "General"
   },
   {
