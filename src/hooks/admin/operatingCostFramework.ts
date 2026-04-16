@@ -25,6 +25,8 @@ export interface CostLineItem {
   depreciationMonths?: number;
   /** Auto-calculated from gross revenue (used for statutory items) */
   autoCalcPercentOfRevenue?: number;
+  /** User-added custom item (deletable) */
+  isCustom?: boolean;
 }
 
 export interface CostCategory {
@@ -97,6 +99,13 @@ export const DEFAULT_FRAMEWORK: CostCategory[] = [
       { key: 'google_workspace', label: 'Google Workspace / email', recurrence: 'monthly', amount: 18, taxDeductible: true },
       { key: 'resend', label: 'Resend / transactional email', recurrence: 'monthly', amount: 20, taxDeductible: true },
       { key: 'monitoring', label: 'Analytics & monitoring (Sentry, PostHog)', recurrence: 'monthly', amount: 15, taxDeductible: true },
+      { key: 'capcut', label: '🎬 CapCut Pro (content creation)', recurrence: 'monthly', amount: 0, taxDeductible: true },
+      { key: 'opusclip', label: '✂️ OpusClip (AI clip generation)', recurrence: 'monthly', amount: 0, taxDeductible: true },
+      { key: 'icloud', label: '☁️ iCloud+ storage', recurrence: 'monthly', amount: 0, taxDeductible: true },
+      { key: 'canva', label: '🎨 Canva Pro', recurrence: 'monthly', amount: 0, taxDeductible: true },
+      { key: 'maregtig', label: '🤖 mAregtig content tools', recurrence: 'monthly', amount: 0, taxDeductible: true },
+      { key: 'captions', label: '📝 Captions / subtitle tooling', recurrence: 'monthly', amount: 0, taxDeductible: true },
+      { key: 'audio_tools', label: '🎙️ Audio tools (Descript, ElevenLabs)', recurrence: 'monthly', amount: 0, taxDeductible: true },
       { key: 'other_saas', label: 'Other SaaS', recurrence: 'monthly', amount: 0, taxDeductible: true },
     ],
   },
@@ -264,4 +273,43 @@ export const RECURRENCE_LABELS: Record<Recurrence, string> = {
   monthly: '/mo',
   yearly: '/yr',
   one_time: 'one-time',
+};
+
+/** Add a custom line item to a category. Returns a new framework array. */
+export function addCustomItem(
+  framework: CostCategory[],
+  catKey: string,
+  item: Omit<CostLineItem, 'key' | 'isCustom'>
+): CostCategory[] {
+  const key = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  return framework.map(c =>
+    c.key === catKey
+      ? { ...c, items: [...c.items, { ...item, key, isCustom: true }] }
+      : c
+  );
+}
+
+/** Remove an item (only allowed for custom items). Returns a new framework array. */
+export function removeItem(
+  framework: CostCategory[],
+  catKey: string,
+  itemKey: string
+): CostCategory[] {
+  return framework.map(c =>
+    c.key === catKey
+      ? { ...c, items: c.items.filter(i => !(i.key === itemKey && i.isCustom)) }
+      : c
+  );
+}
+
+/** Suggested examples shown as hints in the UI per category */
+export const CATEGORY_HINTS: Record<string, string> = {
+  software: 'e.g. CapCut, OpusClip, iCloud, Canva, Notion, Figma, Zapier, ChatGPT Plus',
+  devices: 'e.g. laptop, phone, tablet, monitor, headset, ring light, microphone',
+  founder_admin: 'e.g. founder time, VA, bookkeeper, executive assistant',
+  care_ops: 'e.g. coordination, training stipends, replacement buffer, oversight',
+  marketing: 'e.g. Meta ads, Google ads, influencers, print, events, swag',
+  professional: 'e.g. accountant, lawyer, BIR filing, insurance, consultants',
+  banking: 'e.g. processing fees, bank fees, FX, wire fees, currency conversion',
+  statutory: 'T&T BIR: Business Levy 0.6%, Green Fund 0.3%, Health Surcharge, Corp Tax',
 };
