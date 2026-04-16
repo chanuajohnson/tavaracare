@@ -112,6 +112,7 @@ export function saveOperatingCosts(costs: OperatingCosts) {
   localStorage.setItem('tavara_operating_costs', JSON.stringify(costs));
 }
 
+/** Sum of legacy flat operating costs object (per-week) */
 export function totalOperatingCost(costs: OperatingCosts): number {
   return Object.values(costs).reduce((s, v) => s + v, 0);
 }
