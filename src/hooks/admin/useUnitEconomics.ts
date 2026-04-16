@@ -140,11 +140,19 @@ export function useUnitEconomics(selectedMonth: string) {
   const [clients, setClients] = useState<ClientEconomics[]>([]);
   const [loading, setLoading] = useState(true);
   const [operatingCosts, setOperatingCosts] = useState<OperatingCosts>(loadOperatingCosts);
+  const [framework, setFramework] = useState<CostCategory[]>(loadFramework);
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+  const [carePlansWithoutPayroll, setCarePlansWithoutPayroll] = useState<number>(0);
+  const [fetchErrors, setFetchErrors] = useState<string[]>([]);
 
   const updateOperatingCosts = (costs: OperatingCosts) => {
     setOperatingCosts(costs);
     saveOperatingCosts(costs);
+  };
+
+  const updateFramework = (next: CostCategory[]) => {
+    setFramework(next);
+    saveFramework(next);
   };
 
   useEffect(() => {
