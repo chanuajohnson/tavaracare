@@ -458,13 +458,16 @@ export function useUnitEconomics(selectedMonth: string) {
     };
   }, [clients]);
 
-  // Recalculate margins when operating costs change
+  // Recalculate margins when operating costs framework changes
   useEffect(() => {
     if (clients.length > 0 && selectedMonth) {
-      const weeklyOpCost = totalOperatingCost(operatingCosts);
+      const baseWeeklyOpCost = frameworkWeeklyTotal(framework) || totalOperatingCost(operatingCosts);
 
       setClients(prev => prev.map(c => {
-        const monthlyOpCost = Math.round(weeklyOpCost * c.payrollWeeks * 100) / 100;
+        const weeklyGross = c.payrollWeeks > 0 ? c.monthlyRevenue / c.payrollWeeks : 0;
+        const statutoryWeekly = statutoryWeeklyFromRevenue(framework, weeklyGross);
+        const effectiveWeekly = baseWeeklyOpCost + statutoryWeekly;
+        const monthlyOpCost = Math.round(effectiveWeekly * c.payrollWeeks * 100) / 100;
         const newTotalCost = c.monthlyCaregiverCost + c.monthlyNisCost + c.monthlyExpenses + monthlyOpCost;
         const newRevenue = c.monthlySubscriptionRevenue + c.monthlyCaregiverFees + c.monthlyServiceRevenue;
         const newMargin = newRevenue - newTotalCost;
@@ -472,7 +475,7 @@ export function useUnitEconomics(selectedMonth: string) {
         return {
           ...c,
           monthlyOperatingCost: monthlyOpCost,
-          weeklyOperatingCost: weeklyOpCost,
+          weeklyOperatingCost: effectiveWeekly,
           monthlyRevenue: Math.round(newRevenue * 100) / 100,
           monthlyTotalCost: Math.round(newTotalCost * 100) / 100,
           monthlyMargin: Math.round(newMargin * 100) / 100,
@@ -481,7 +484,20 @@ export function useUnitEconomics(selectedMonth: string) {
         };
       }));
     }
-  }, [operatingCosts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [operatingCosts, framework]);
 
-  return { clients, summary, loading, operatingCosts, updateOperatingCosts, availableMonths, refetch: fetchData };
+  return {
+    clients,
+    summary,
+    loading,
+    operatingCosts,
+    updateOperatingCosts,
+    framework,
+    updateFramework,
+    availableMonths,
+    carePlansWithoutPayroll,
+    fetchErrors,
+    refetch: fetchData,
+  };
 }
