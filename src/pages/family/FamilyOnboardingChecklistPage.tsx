@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import RateTierReferenceCard from "@/components/admin/onboarding/RateTierReferenceCard";
+import CareEnvironmentIntroCard from "@/components/admin/onboarding/CareEnvironmentIntroCard";
 import ServiceSelectionBlock from "@/components/admin/onboarding/ServiceSelectionBlock";
 import BillingSummaryCard from "@/components/admin/onboarding/BillingSummaryCard";
 import ServiceCommencementConfirmation from "@/components/admin/onboarding/ServiceCommencementConfirmation";
@@ -614,6 +615,10 @@ export default function FamilyOnboardingChecklistPage() {
                       </div>
                     )}
                   </div>
+                )}
+
+                {section.id === "care_environment" && (
+                  <CareEnvironmentIntroCard />
                 )}
 
                 {section.id === "rates_and_changes" && (
