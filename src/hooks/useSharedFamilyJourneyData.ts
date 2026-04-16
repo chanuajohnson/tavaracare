@@ -444,20 +444,25 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       const completedSteps = updatedSteps.filter(s => s.completed);
       const foundationSteps = completedSteps.filter(s => s.category === 'foundation');
       const schedulingSteps = completedSteps.filter(s => s.category === 'scheduling');
+      const careEnvSteps = completedSteps.filter(s => s.category === 'care_environment');
       const trialSteps = completedSteps.filter(s => s.category === 'trial');
       
       // Count total steps per category for "all complete" checks
       const totalSchedulingSteps = updatedSteps.filter(s => s.category === 'scheduling');
+      const totalCareEnvSteps = updatedSteps.filter(s => s.category === 'care_environment');
       const conversionStep = updatedSteps.find(s => s.category === 'conversion');
       const allSchedulingComplete = totalSchedulingSteps.length > 0 && totalSchedulingSteps.every(s => s.completed);
+      const allCareEnvComplete = totalCareEnvSteps.length > 0 && totalCareEnvSteps.every(s => s.completed || s.optional);
       const conversionComplete = conversionStep?.completed || false;
       
       if (allSchedulingComplete && conversionComplete) {
         setJourneyStage('active');
       } else if (trialSteps.length > 0 || visitNotes?.care_model) {
         setJourneyStage('conversion');
+      } else if (allCareEnvComplete || careEnvSteps.length > 0) {
+        setJourneyStage('trial');
       } else if (allSchedulingComplete) {
-        setJourneyStage('conversion');
+        setJourneyStage('care_environment');
       } else if (schedulingSteps.length > 0) {
         setJourneyStage('scheduling');
       } else if (foundationSteps.length >= 4) {
