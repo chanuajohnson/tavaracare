@@ -48,6 +48,7 @@ export default function ServiceCommencementConfirmation({
 }: ServiceCommencementConfirmationProps) {
   const [services, setServices] = useState<ApprovedService[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchServices();
@@ -56,13 +57,22 @@ export default function ServiceCommencementConfirmation({
   const fetchServices = async () => {
     setLoading(true);
     try {
-      const { data } = await supabase
+      console.log('[ServiceCommencementConfirmation] Fetching services for carePlanId:', carePlanId);
+      const { data, error } = await supabase
         .from('care_plan_service_selections')
         .select('*, billable_service_items(*)')
         .eq('care_plan_id', carePlanId)
         .eq('selected', true);
 
-      if (data) {
+      if (error) {
+        console.error('[ServiceCommencementConfirmation] Query error:', error);
+        setError(error.message);
+        return;
+      }
+
+      console.log('[ServiceCommencementConfirmation] Query returned:', data?.length, 'services', data);
+
+      if (data && data.length > 0) {
         setServices((data as any[]).map(s => ({
           label: s.billable_service_items?.label || 'Unknown',
           billing_type: s.billable_service_items?.billing_type || 'one_time',
@@ -73,13 +83,18 @@ export default function ServiceCommencementConfirmation({
         })));
       }
     } catch (err) {
-      console.error('Error fetching services for confirmation:', err);
+      console.error('[ServiceCommencementConfirmation] Error fetching services:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) return null;
+
+  if (error) {
+    console.warn('[ServiceCommencementConfirmation] Rendering with error:', error);
+  }
 
   // Inject synthetic caregiver weekly labor line if rate is provided
   const parsedRate = careRate ? parseFloat((careRate.match(/\$?([\d.]+)/) || [])[1] || '0') : 0;
