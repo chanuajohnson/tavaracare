@@ -94,6 +94,37 @@ export function frameworkWeeklyTotal(framework: CostCategory[]): number {
 }
 
 /**
+ * Split the weekly framework total by cost layer.
+ *   - direct   → wages/NIS (always 0 here, those come from payroll, not the framework)
+ *   - careOps  → per-client care operations (prorated by hours)
+ *   - platform → shared overhead (allocated equally across active clients)
+ *
+ * Statutory items are NOT included here because they depend on revenue —
+ * use `statutoryWeeklyFromRevenue()` separately and add to the platform layer.
+ */
+export interface LayerTotals {
+  direct: number;
+  careOps: number;
+  platform: number;
+}
+
+export function weeklyByLayer(framework: CostCategory[]): LayerTotals {
+  const totals: LayerTotals = { direct: 0, careOps: 0, platform: 0 };
+  for (const cat of framework) {
+    const layer = getCategoryLayer(cat);
+    // Skip statutory auto-calc items — they're handled separately via revenue
+    const weekly = cat.items.reduce((s, i) => {
+      if (i.autoCalcPercentOfRevenue) return s;
+      return s + normalizeToWeekly(i);
+    }, 0);
+    if (layer === 'direct') totals.direct += weekly;
+    else if (layer === 'care_ops') totals.careOps += weekly;
+    else totals.platform += weekly;
+  }
+  return totals;
+}
+
+/**
  * Compute statutory costs that depend on gross revenue.
  * Returns the additional weekly cost from statutory provisions.
  */
