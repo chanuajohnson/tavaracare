@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DollarSign, Users, TrendingUp, TrendingDown } from 'lucide-react';
 import { useUnitEconomics } from '@/hooks/admin/useUnitEconomics';
 import { UnitEconomicsTable } from '@/components/admin/UnitEconomicsTable';
 import { OperatingCostConfig } from '@/components/admin/OperatingCostConfig';
+import { QuarterlyActionPlanTab } from '@/components/admin/expenses/QuarterlyActionPlanTab';
 import { format, parse } from 'date-fns';
 
 function getCurrentMonth() {
@@ -98,22 +100,36 @@ export default function UnitEconomicsPage() {
         </Card>
       </div>
 
-      {/* Operating Cost Config */}
-      <OperatingCostConfig costs={operatingCosts} onChange={updateOperatingCosts} />
+      {/* Tabbed sections */}
+      <Tabs defaultValue="per_client" className="w-full">
+        <TabsList>
+          <TabsTrigger value="per_client">Per-Client Economics</TabsTrigger>
+          <TabsTrigger value="quarterly_plan">Quarterly Action Plan</TabsTrigger>
+        </TabsList>
 
-      {/* Per-Client Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Per-Client Economics — {formatMonthLabel(selectedMonth)} (Payroll Month)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p className="text-center text-muted-foreground py-8">Loading economics data...</p>
-          ) : (
-            <UnitEconomicsTable clients={clients} />
-          )}
-        </CardContent>
-      </Card>
+        <TabsContent value="per_client" className="space-y-6 mt-4">
+          {/* Operating Cost Config */}
+          <OperatingCostConfig costs={operatingCosts} onChange={updateOperatingCosts} />
+
+          {/* Per-Client Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Per-Client Economics — {formatMonthLabel(selectedMonth)} (Payroll Month)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <p className="text-center text-muted-foreground py-8">Loading economics data...</p>
+              ) : (
+                <UnitEconomicsTable clients={clients} />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="quarterly_plan" className="mt-4">
+          <QuarterlyActionPlanTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
