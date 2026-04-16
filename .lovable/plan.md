@@ -1,96 +1,40 @@
 
 
-# Plan: Tavara Care Environment Support — New Premium Service Arm
+# Plan: Fix Missing Services in Service Commencement Confirmation
 
-## Summary
-Reposition the existing $199 "Home Setup Support / Care Readiness" into a 3-tier "Care Environment Support" service arm, add a new onboarding section with warm dignity-centered copy, and wire everything into billing/invoicing/unit economics.
+## Problem
+The Service Commencement Confirmation card for Anna only shows the synthetic "Standard Weekly Care — Caregiver" line at $1400/wk. Her 3 approved service selections from the database are not appearing:
+- **Active Care Management** — $499/wk (overridden from $699 — this is her legacy plan rate)
+- **Care Assessment & Setup** — $0 (waived from $499)
+- **Caregiver Matching & Placement** — $0 (waived from $299)
 
----
+## Root Cause Investigation
+The query pattern `select('*, billable_service_items(*)')` is used identically across BillingSummaryCard, DocumentsTab, DocumentGenerationMenu, and useUnitEconomics — all working. The RLS policies allow admin full access. The data exists in the database (confirmed via direct query). The most likely cause is either:
+1. A silent query error not being surfaced (the catch block logs but returns empty)
+2. The `carePlanId` prop being passed incorrectly from the parent
 
-## Technical Details
+## Changes
 
-### 1. Database: Update existing + insert new billable service items
+### 1. `ServiceCommencementConfirmation.tsx` — Add error visibility and debug logging
+- Add `console.log` for the query result to surface any silent failures
+- Add error display when query fails so missing data is visible
+- Ensure `data` check handles edge cases (empty array vs null)
 
-**Update existing item** (id: `a01245d4-f5a2-4b1e-a7b2-002c3c5dfcb3`):
-- Change label: `Home Setup Support / Care Readiness` → `Care Readiness Assessment`
-- Change category: `setup` → `care_environment_support`
-- Update description to reflect assessment + guidance positioning
-- Keep price at $199
+### 2. `ServiceCommencementConfirmation.tsx` — Add subscription plan line support
+- Add optional `subscriptionLabel` and `subscriptionRate` props so the parent can inject a plan line (e.g., "Care Coordination — $499/wk (Legacy)")
+- This synthetic line shows alongside the DB services and caregiver line, giving a complete billing picture
 
-**Insert 2 new items** into `billable_service_items`:
-- **Guided Home Reset** — $499, one_time, category `care_environment_support`, sort_order 3
-- **Full Care Environment Reset** — $0 (custom/quote-based), one_time, category `care_environment_support`, sort_order 3
+### 3. `AdminOnboardingChecklistPage.tsx` — Pass subscription plan data
+- Pass the subscription plan details from the onboarding checklist items to `ServiceCommencementConfirmation`
+- Look up the `billing_plan` or `subscription_tier` checked item values to determine the label and rate
 
-### 2. New Onboarding Section in `onboardingSections.ts`
+### 4. Verify `familyCarePlanId` is correct
+- Add a console log in the admin page to confirm the correct care plan ID is being passed to the component
+- If it's wrong or undefined, the query returns empty — this would explain why no services appear
 
-Add a new section **before** `daily_checklist` (or alongside it):
-
-```
-{
-  id: "care_environment",
-  title: "Preparing Your Home for Care",
-  iconName: "Leaf",
-  description: "Support in preparing the home as a safe, dignified care environment",
-  serviceCategory: "care_environment_support",
-  helperText: "warm positioning copy...",
-  items: [
-    "Home walkthrough and caregiver workflow mapping",
-    "Hygiene, safety, and airflow assessment",
-    "Decluttering recommendations and space optimization",
-    "Caregiver workspace and movement considerations",
-    "Light organization and sanitation planning guidance",
-    "Coordination of deeper resets when needed (vendor management)",
-  ],
-}
-```
-
-This will automatically render the `ServiceSelectionBlock` for `care_environment_support` category items in both admin and family onboarding pages.
-
-### 3. New Component: `CareEnvironmentIntroCard.tsx`
-
-A warm intro card rendered above `CareSuppliesCard` when the `care_environment` section is active. Contains the dignity-centered copy from the request, plus the 3 service tiers as informational display. The actual selection happens via `ServiceSelectionBlock`.
-
-### 4. Update `CareSuppliesCard.tsx`
-
-- Add a "Part 2" framing: keep existing supplies list but add a subtle header indicating it's part of the readiness flow
-- Remove the "Home Setup" supply category (items 56-61) since that's now covered by the new service arm
-
-### 5. Update `AdminOnboardingChecklistPage.tsx`
-
-- Render `CareEnvironmentIntroCard` when `section.id === "care_environment"`
-- Keep `CareSuppliesCard` rendering for `daily_checklist` section (existing behavior preserved)
-
-### 6. Update `FamilyOnboardingChecklistPage.tsx`
-
-- Same pattern: render the intro card for the `care_environment` section
-- The `ServiceSelectionBlock` already auto-renders via `serviceCategory` matching
-
-### 7. Billing Integration — Already Handled
-
-The existing architecture automatically handles:
-- **Quotes/Invoices**: `DocumentGenerationMenu.tsx` and `DocumentsTab.tsx` pull from `care_plan_service_selections` joined with `billable_service_items` — new items will appear automatically
-- **Billing Summary**: `BillingSummaryCard.tsx` groups by `billing_type` — one-time items will appear in "One-Time Fees"
-- **Unit Economics**: `useUnitEconomics.ts` reads `care_plan_service_selections` with `billable_service_items` — new items with `visible_in_unit_economics: true` will appear automatically
-- **Service Commencement**: `ServiceCommencementConfirmation.tsx` reads all selected services — no changes needed
-
-### 8. Memory Update
-
-Save `mem://features/care-environment-support` with the 3-tier structure, language rules, and positioning.
-
----
-
-## Files Changed
-
+## Files Modified
 | File | Change |
 |------|--------|
-| `billable_service_items` (DB) | Update 1 row + insert 2 new rows |
-| `src/components/admin/onboarding/onboardingSections.ts` | Add `care_environment` section |
-| `src/components/admin/onboarding/CareEnvironmentIntroCard.tsx` | **New** — warm intro + tier descriptions |
-| `src/components/admin/onboarding/CareSuppliesCard.tsx` | Minor: remove "Home Setup" category, add Part 2 framing |
-| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Render `CareEnvironmentIntroCard` for new section |
-| `src/pages/family/FamilyOnboardingChecklistPage.tsx` | Same rendering for family view |
-| `mem://features/care-environment-support` | **New** memory file |
-| `mem://index.md` | Add reference |
-
-No changes needed to invoice, quote, unit economics, or billing summary — the existing `billable_service_items` + `care_plan_service_selections` architecture handles it automatically.
+| `src/components/admin/onboarding/ServiceCommencementConfirmation.tsx` | Add debug logging, error display, subscription plan line support |
+| `src/pages/admin/AdminOnboardingChecklistPage.tsx` | Pass subscription plan props, add debug log for carePlanId |
 
