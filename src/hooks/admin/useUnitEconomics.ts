@@ -136,8 +136,18 @@ function getWeekKey(dateStr: string): string {
   return format(ws, 'yyyy-MM-dd');
 }
 
+export interface DraftCarePlan {
+  carePlanId: string;
+  carePlanTitle: string;
+  familyId: string;
+  familyName: string;
+  status: string;
+}
+
 export function useUnitEconomics(selectedMonth: string) {
   const [clients, setClients] = useState<ClientEconomics[]>([]);
+  const [draftCarePlans, setDraftCarePlans] = useState<DraftCarePlan[]>([]);
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [operatingCosts, setOperatingCosts] = useState<OperatingCosts>(loadOperatingCosts);
   const [framework, setFramework] = useState<CostCategory[]>(loadFramework);
@@ -193,27 +203,40 @@ export function useUnitEconomics(selectedMonth: string) {
     setLoading(true);
     const errors: string[] = [];
     try {
-      // Fetch active care plans
+      // Fetch ALL care plans (no status filter — split client-side for diagnostics)
       const carePlansRes = await supabase
         .from('care_plans')
-        .select('id, title, family_id, status')
-        .eq('status', 'active');
+        .select('id, title, family_id, status');
 
       if (carePlansRes.error) {
         console.error('[unit-economics] care_plans fetch error:', carePlansRes.error);
         errors.push(`Care plans: ${carePlansRes.error.message}`);
       }
 
-      const carePlans = carePlansRes.data;
-      if (!carePlans?.length) {
+      const allCarePlans = carePlansRes.data || [];
+
+      // Diagnostic: count by status
+      const counts: Record<string, number> = {};
+      allCarePlans.forEach(cp => {
+        const s = cp.status || 'unknown';
+        counts[s] = (counts[s] || 0) + 1;
+      });
+      console.log('[unit-economics] care plans by status:', counts, '— total:', allCarePlans.length);
+      setStatusCounts(counts);
+
+      const carePlans = allCarePlans.filter(cp => cp.status === 'active');
+      const nonActivePlans = allCarePlans.filter(cp => cp.status !== 'active');
+
+      if (!carePlans.length) {
         setClients([]);
         setCarePlansWithoutPayroll(0);
+        setDraftCarePlans([]);
         setFetchErrors(errors);
         setLoading(false);
         return;
       }
 
-      const familyIds = [...new Set(carePlans.map(cp => cp.family_id))];
+      const familyIds = [...new Set([...carePlans.map(cp => cp.family_id), ...nonActivePlans.map(cp => cp.family_id)])];
       const carePlanIds = carePlans.map(cp => cp.id);
 
       // Parallel fetches — each isolated so a single failure doesn't blank the dashboard
@@ -438,6 +461,18 @@ export function useUnitEconomics(selectedMonth: string) {
 
       setClients(result);
       setCarePlansWithoutPayroll(plansWithoutPayroll);
+
+      // Build draft list (active-but-not-shown should never happen, but include any non-active here)
+      const drafts: DraftCarePlan[] = nonActivePlans.map(cp => ({
+        carePlanId: cp.id,
+        carePlanTitle: cp.title,
+        familyId: cp.family_id,
+        familyName: profilesMap[cp.family_id] || 'Unknown',
+        status: cp.status || 'unknown',
+      }));
+      setDraftCarePlans(drafts);
+      console.log('[unit-economics] active rendered:', result.length, '| draft/other:', drafts.length);
+
       setFetchErrors(errors);
     } catch (err) {
       console.error('Error fetching unit economics:', err);
@@ -489,6 +524,8 @@ export function useUnitEconomics(selectedMonth: string) {
 
   return {
     clients,
+    draftCarePlans,
+    statusCounts,
     summary,
     loading,
     operatingCosts,
