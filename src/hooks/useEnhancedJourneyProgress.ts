@@ -787,6 +787,36 @@ export const useEnhancedJourneyProgress = () => {
       {
         id: "12",
         step_number: 12,
+        title: "Care Readiness Assessment",
+        description: "A home walkthrough completed by your care team during their first week to assess readiness for sustainable caregiving",
+        completed: !!(carePlans && carePlans.length > 0 && hasCaregiverAssigned), // Auto-complete when care has started
+        accessible: hasCaregiverAssigned || !!(carePlans && carePlans.length > 0),
+        category: 'care_environment',
+        icon_name: 'Home',
+        tooltip_content: 'Care environment assessment',
+        detailed_explanation: 'Your care team assesses your home for sustainable caregiving during their first week',
+        time_estimate_minutes: 0,
+        is_optional: false,
+        action: () => navigate('/family/care-management')
+      },
+      {
+        id: "13",
+        step_number: 13,
+        title: "Home Environment Optimization",
+        description: "Guided or full care environment coordination to prepare your home for safe, comfortable caregiving",
+        completed: false, // Marked via care_plan_service_selections
+        accessible: hasCaregiverAssigned || !!(carePlans && carePlans.length > 0),
+        category: 'care_environment',
+        icon_name: 'Sparkles',
+        tooltip_content: 'Optimize home for care',
+        detailed_explanation: 'Choose from our care environment readiness services to prepare your home',
+        time_estimate_minutes: 0,
+        is_optional: true,
+        action: () => navigate('/family/care-management')
+      },
+      {
+        id: "14",
+        step_number: 14,
         title: "Schedule Trial Day (Optional)",
         description: "Choose a trial date with your matched caregiver",
         completed: hasTrialPayment,
@@ -802,8 +832,8 @@ export const useEnhancedJourneyProgress = () => {
         }
       },
       {
-        id: "13",
-        step_number: 13,
+        id: "15",
+        step_number: 15,
         title: "Pay for Trial Day (Optional)",
         description: "Complete payment for an optional 8-hour caregiver trial experience",
         completed: hasTrialPayment,
@@ -819,8 +849,8 @@ export const useEnhancedJourneyProgress = () => {
         }
       },
       {
-        id: "14",
-        step_number: 14,
+        id: "16",
+        step_number: 16,
         title: "Begin Your Trial (Optional)",
         description: "Your caregiver begins the scheduled trial session",
         completed: hasTrialPayment,
@@ -836,8 +866,8 @@ export const useEnhancedJourneyProgress = () => {
         }
       },
       {
-        id: "15",
-        step_number: 15,
+        id: "17",
+        step_number: 17,
         title: "Rate & Choose Your Path",
         description: "Choose your care model — view subscription plans or hire directly",
         completed: !!visitNotes?.care_model || !!visitNotes?.care_option || (hasCaregiverAssigned && carePlans.length > 0),
