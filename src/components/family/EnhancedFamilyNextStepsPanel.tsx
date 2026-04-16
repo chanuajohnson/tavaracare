@@ -120,6 +120,17 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         })),
         subscriptionCTA: null
       },
+      care_environment: {
+        name: "Care Environment Readiness",
+        key: "care_environment",
+        description: "Preparing your home for sustainable, safe caregiving",
+        color: "emerald",
+        steps: steps.filter(step => step.category === 'care_environment').map(step => ({
+          ...step,
+          cancelAction: undefined
+        })),
+        subscriptionCTA: null
+      },
       trial: {
         name: "Trial Experience",
         key: "trial", 
@@ -240,7 +251,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
   const stageGroups = groupStepsByStage();
   const stagesToDisplay = showAllSteps 
     ? Object.values(stageGroups).filter(stage => stage.steps.length > 0)
-    : [stageGroups.foundation, stageGroups.scheduling, stageGroups.care_coordination].filter(stage => stage.steps.length > 0);
+    : [stageGroups.foundation, stageGroups.scheduling, stageGroups.care_coordination, stageGroups.care_environment].filter(stage => stage.steps.length > 0);
 
   return (
     <>

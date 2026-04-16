@@ -941,6 +941,16 @@ export const useEnhancedJourneyProgress = () => {
       steps: steps_calculated.filter(s => s.category === 'scheduling') 
     },
     { 
+      id: 'care_environment', 
+      name: 'Care Environment', 
+      path_name: 'Care Environment Readiness',
+      path_description: 'Preparing your home for sustainable, safe caregiving',
+      step_ids: steps_calculated.filter(s => s.category === 'care_environment').map(s => parseInt(s.id)),
+      path_color: 'emerald',
+      is_recommended: false,
+      steps: steps_calculated.filter(s => s.category === 'care_environment') 
+    },
+    { 
       id: 'trial', 
       name: 'Trial', 
       path_name: 'Trial',
