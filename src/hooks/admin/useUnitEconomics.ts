@@ -580,50 +580,104 @@ export function useUnitEconomics(selectedMonth: string, scenarioClientCount?: nu
   };
 
   const summary: UnitEconomicsSummary = useMemo(() => {
-    if (!clients.length) return { totalActiveClients: 0, totalMonthlyRevenue: 0, totalMonthlyCost: 0, avgMarginPercent: 0 };
+    if (!clients.length) {
+      return {
+        totalActiveClients: 0,
+        totalMonthlyRevenue: 0,
+        totalMonthlyCost: 0,
+        totalMonthlyDirectCost: 0,
+        totalMonthlyCareOpsCost: 0,
+        totalMonthlyPlatformCost: 0,
+        avgMarginPercent: 0,
+        avgDirectMarginPercent: 0,
+      };
+    }
     const n = clients.length;
     return {
       totalActiveClients: n,
       totalMonthlyRevenue: Math.round(clients.reduce((s, c) => s + c.monthlyRevenue, 0)),
       totalMonthlyCost: Math.round(clients.reduce((s, c) => s + c.monthlyTotalCost, 0)),
+      totalMonthlyDirectCost: Math.round(clients.reduce((s, c) => s + c.monthlyDirectCost, 0)),
+      totalMonthlyCareOpsCost: Math.round(clients.reduce((s, c) => s + c.monthlyCareOpsCost, 0)),
+      totalMonthlyPlatformCost: Math.round(clients.reduce((s, c) => s + c.monthlyAllocatedPlatformCost, 0)),
       avgMarginPercent: Math.round(clients.reduce((s, c) => s + c.marginPercent, 0) / n * 10) / 10,
+      avgDirectMarginPercent: Math.round(clients.reduce((s, c) => s + c.monthlyDirectMarginPercent, 0) / n * 10) / 10,
     };
   }, [clients]);
 
-  // Recalculate margins when operating costs framework changes
-  useEffect(() => {
-    if (clients.length > 0 && selectedMonth) {
-      const baseWeeklyOpCost = frameworkWeeklyTotal(framework) || totalOperatingCost(operatingCosts);
+  // Platform overhead summary (read-only, scenario-aware)
+  const platformSummary: PlatformSummary = useMemo(() => {
+    const layered = weeklyByLayer(framework);
+    const realActive = activeClientCount;
+    const divisor = Math.max(scenarioClientCount ?? realActive ?? 1, 1);
+    const weeklyTotal = Math.round(layered.platform * 100) / 100;
+    const monthlyTotal = Math.round(weeklyTotal * 4.333 * 100) / 100;
+    const yearlyTotal = Math.round(weeklyTotal * 52 * 100) / 100;
+    const perClientWeeklyAllocation = Math.round((layered.platform / divisor) * 100) / 100;
+    const perClientMonthlyAllocation = Math.round(perClientWeeklyAllocation * 4.333 * 100) / 100;
+    return {
+      weeklyTotal,
+      monthlyTotal,
+      yearlyTotal,
+      perClientWeeklyAllocation,
+      perClientMonthlyAllocation,
+      activeClientCount: realActive,
+      allocationDivisor: divisor,
+    };
+  }, [framework, activeClientCount, scenarioClientCount]);
 
-      setClients(prev => prev.map(c => {
-        const weeklyGross = c.payrollWeeks > 0 ? c.monthlyRevenue / c.payrollWeeks : 0;
-        const statutoryWeekly = statutoryWeeklyFromRevenue(framework, weeklyGross);
-        const effectiveWeekly = baseWeeklyOpCost + statutoryWeekly;
-        const monthlyOpCost = Math.round(effectiveWeekly * c.payrollWeeks * 100) / 100;
-        const newTotalCost = c.monthlyCaregiverCost + c.monthlyNisCost + c.monthlyExpenses + monthlyOpCost;
-        const newRevenue = c.monthlySubscriptionRevenue + c.monthlyCaregiverFees + c.monthlyServiceRevenue;
-        const newMargin = newRevenue - newTotalCost;
-        const newPct = newRevenue > 0 ? (newMargin / newRevenue) * 100 : (newTotalCost > 0 ? -100 : 0);
-        return {
-          ...c,
-          monthlyOperatingCost: monthlyOpCost,
-          weeklyOperatingCost: effectiveWeekly,
-          monthlyRevenue: Math.round(newRevenue * 100) / 100,
-          monthlyTotalCost: Math.round(newTotalCost * 100) / 100,
-          monthlyMargin: Math.round(newMargin * 100) / 100,
-          marginPercent: Math.round(newPct * 10) / 10,
-          status: getStatus(newPct),
-        };
-      }));
-    }
+  // Recalculate margins when framework or scenario changes (without re-fetching)
+  useEffect(() => {
+    if (clients.length === 0) return;
+    const layered = weeklyByLayer(framework);
+    const realActive = clients.filter(c => c.payrollWeeks > 0).length;
+    const divisor = Math.max(scenarioClientCount ?? realActive ?? 1, 1);
+    const platformWeeklyPerClient = layered.platform / divisor;
+
+    setClients(prev => prev.map(c => {
+      const weeklyGross = c.payrollWeeks > 0 ? c.monthlyRevenue / c.payrollWeeks : 0;
+      const statutoryWeekly = statutoryWeeklyFromRevenue(framework, weeklyGross);
+      const monthlyCareOpsCost = Math.round(layered.careOps * c.payrollWeeks * 100) / 100;
+      const monthlyAllocatedPlatformCost = Math.round(
+        ((platformWeeklyPerClient + statutoryWeekly) * c.payrollWeeks) * 100
+      ) / 100;
+      const monthlyOperatingCost = Math.round((monthlyCareOpsCost + monthlyAllocatedPlatformCost) * 100) / 100;
+      const monthlyTotalCost = Math.round((c.monthlyDirectCost + monthlyOperatingCost) * 100) / 100;
+      const monthlyMargin = Math.round((c.monthlyRevenue - monthlyTotalCost) * 100) / 100;
+      const marginPercent = c.monthlyRevenue > 0
+        ? Math.round((monthlyMargin / c.monthlyRevenue) * 1000) / 10
+        : (monthlyTotalCost > 0 ? -100 : 0);
+      const monthlyDirectMargin = Math.round((c.monthlyRevenue - c.monthlyDirectCost - monthlyCareOpsCost) * 100) / 100;
+      const monthlyDirectMarginPercent = c.monthlyRevenue > 0
+        ? Math.round((monthlyDirectMargin / c.monthlyRevenue) * 1000) / 10
+        : (c.monthlyDirectCost + monthlyCareOpsCost > 0 ? -100 : 0);
+      const weeklyOperatingCost = c.payrollWeeks > 0
+        ? Math.round((monthlyOperatingCost / c.payrollWeeks) * 100) / 100
+        : Math.round((layered.careOps + platformWeeklyPerClient) * 100) / 100;
+
+      return {
+        ...c,
+        monthlyCareOpsCost,
+        monthlyAllocatedPlatformCost,
+        monthlyOperatingCost,
+        monthlyTotalCost,
+        monthlyMargin,
+        monthlyDirectMargin,
+        monthlyDirectMarginPercent,
+        marginPercent,
+        status: getStatus(marginPercent),
+        weeklyOperatingCost,
+      };
+    }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [operatingCosts, framework]);
+  }, [framework, scenarioClientCount]);
 
   return {
     clients,
     draftCarePlans,
     statusCounts,
     summary,
+    platformSummary,
     loading,
     operatingCosts,
     updateOperatingCosts,
@@ -632,6 +686,7 @@ export function useUnitEconomics(selectedMonth: string, scenarioClientCount?: nu
     availableMonths,
     carePlansWithoutPayroll,
     fetchErrors,
+    activeClientCount,
     refetch: fetchData,
   };
 }
