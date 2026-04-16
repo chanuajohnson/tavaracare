@@ -50,14 +50,10 @@ export function UnitEconomicsTable({ clients }: Props) {
             <TableHead className="w-8"></TableHead>
             <TableHead>Client</TableHead>
             <TableHead>Plan</TableHead>
-            <TableHead className="text-right">Sub/mo</TableHead>
-            <TableHead className="text-right">CG Fees/mo</TableHead>
-            <TableHead className="text-right">Svc Rev/mo</TableHead>
             <TableHead className="text-right">Revenue/mo</TableHead>
-            <TableHead className="text-right">Wages/mo</TableHead>
-            <TableHead className="text-right">Employer NIS</TableHead>
-            <TableHead className="text-right">Employee NIS</TableHead>
-            <TableHead className="text-right">Ops/mo</TableHead>
+            <TableHead className="text-right" title="Direct Care Costs: caregiver wages + employer NIS + reimbursable expenses (scales 1:1 with this client)">Direct Care</TableHead>
+            <TableHead className="text-right" title="Care Operations: per-client coordination, training, oversight (prorated by weeks active)">Care Ops</TableHead>
+            <TableHead className="text-right" title="Allocated Ops: this client's share of platform overhead (total platform cost ÷ active clients). Decreases as you scale.">Allocated Ops</TableHead>
             <TableHead className="text-right">Total Cost/mo</TableHead>
             <TableHead className="text-right">Margin</TableHead>
             <TableHead>Status</TableHead>
@@ -86,14 +82,10 @@ export function UnitEconomicsTable({ clients }: Props) {
                       <Badge variant="outline" className="text-xs">{client.subscriptionPlan}</Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right text-muted-foreground">{fmt(client.monthlySubscriptionRevenue)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{fmt(client.monthlyCaregiverFees)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{fmt(client.monthlyServiceRevenue)}</TableCell>
                   <TableCell className="text-right font-medium">{fmt(client.monthlyRevenue)}</TableCell>
-                  <TableCell className="text-right">{fmt(client.monthlyCaregiverCost)}</TableCell>
-                  <TableCell className="text-right">{fmt(client.monthlyNisCost)}</TableCell>
-                  <TableCell className="text-right">{fmt(client.monthlyEmployeeNis)}</TableCell>
-                  <TableCell className="text-right">{fmt(client.monthlyOperatingCost)}</TableCell>
+                  <TableCell className="text-right text-blue-700">{fmt(client.monthlyDirectCost)}</TableCell>
+                  <TableCell className="text-right text-amber-700">{fmt(client.monthlyCareOpsCost)}</TableCell>
+                  <TableCell className="text-right text-purple-700">{fmt(client.monthlyAllocatedPlatformCost)}</TableCell>
                   <TableCell className="text-right font-medium">{fmt(client.monthlyTotalCost)}</TableCell>
                   <TableCell className="text-right">
                     <MarginCell value={client.monthlyMargin} percent={client.marginPercent} />
@@ -103,7 +95,7 @@ export function UnitEconomicsTable({ clients }: Props) {
 
                 {isOpen && (
                   <TableRow>
-                    <TableCell colSpan={14} className="bg-muted/30 p-4">
+                    <TableCell colSpan={10} className="bg-muted/30 p-4">
                       <div className="space-y-3">
                         {/* Payroll Period */}
                         {client.periodStart && client.periodEnd && (

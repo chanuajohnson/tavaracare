@@ -11,6 +11,14 @@
 
 export type Recurrence = 'weekly' | 'monthly' | 'yearly' | 'one_time';
 
+/**
+ * Cost layer for the 3-tier unit economics model:
+ *   - 'direct'    → Direct Care Costs (per client, scales 1:1 — wages/NIS)
+ *   - 'care_ops'  → Care Operations (per-client, prorated by hours)
+ *   - 'platform'  → Shared overhead, allocated per active client
+ */
+export type CostLayer = 'direct' | 'care_ops' | 'platform';
+
 export interface CostLineItem {
   key: string;
   label: string;
@@ -33,7 +41,25 @@ export interface CostCategory {
   key: string;
   label: string;
   description: string;
+  /** Cost layer — defaults to 'platform' if missing on legacy saved frameworks */
+  layer: CostLayer;
   items: CostLineItem[];
+}
+
+/** Map a category key to its layer (used for backward-compat migration). */
+const CATEGORY_LAYER_MAP: Record<string, CostLayer> = {
+  care_ops: 'care_ops',
+  software: 'platform',
+  devices: 'platform',
+  founder_admin: 'platform',
+  marketing: 'platform',
+  professional: 'platform',
+  banking: 'platform',
+  statutory: 'platform',
+};
+
+export function getCategoryLayer(cat: CostCategory): CostLayer {
+  return cat.layer || CATEGORY_LAYER_MAP[cat.key] || 'platform';
 }
 
 /**
@@ -68,6 +94,37 @@ export function frameworkWeeklyTotal(framework: CostCategory[]): number {
 }
 
 /**
+ * Split the weekly framework total by cost layer.
+ *   - direct   → wages/NIS (always 0 here, those come from payroll, not the framework)
+ *   - careOps  → per-client care operations (prorated by hours)
+ *   - platform → shared overhead (allocated equally across active clients)
+ *
+ * Statutory items are NOT included here because they depend on revenue —
+ * use `statutoryWeeklyFromRevenue()` separately and add to the platform layer.
+ */
+export interface LayerTotals {
+  direct: number;
+  careOps: number;
+  platform: number;
+}
+
+export function weeklyByLayer(framework: CostCategory[]): LayerTotals {
+  const totals: LayerTotals = { direct: 0, careOps: 0, platform: 0 };
+  for (const cat of framework) {
+    const layer = getCategoryLayer(cat);
+    // Skip statutory auto-calc items — they're handled separately via revenue
+    const weekly = cat.items.reduce((s, i) => {
+      if (i.autoCalcPercentOfRevenue) return s;
+      return s + normalizeToWeekly(i);
+    }, 0);
+    if (layer === 'direct') totals.direct += weekly;
+    else if (layer === 'care_ops') totals.careOps += weekly;
+    else totals.platform += weekly;
+  }
+  return totals;
+}
+
+/**
  * Compute statutory costs that depend on gross revenue.
  * Returns the additional weekly cost from statutory provisions.
  */
@@ -90,6 +147,7 @@ export const DEFAULT_FRAMEWORK: CostCategory[] = [
     key: 'software',
     label: 'Software & SaaS',
     description: 'Recurring platform, AI, and infrastructure subscriptions',
+    layer: 'platform',
     items: [
       { key: 'lovable', label: 'Lovable subscription', recurrence: 'monthly', amount: 25, taxDeductible: true },
       { key: 'supabase', label: 'Supabase (DB + storage + edge functions)', recurrence: 'monthly', amount: 25, taxDeductible: true },
@@ -113,6 +171,7 @@ export const DEFAULT_FRAMEWORK: CostCategory[] = [
     key: 'devices',
     label: 'Devices & Equipment',
     description: 'Capital equipment depreciated over useful life',
+    layer: 'platform',
     items: [
       { key: 'laptop', label: 'Laptop (24-mo depreciation)', recurrence: 'one_time', amount: 1500, depreciationMonths: 24, taxDeductible: true },
       { key: 'phone', label: 'Phone / tablet (24-mo depreciation)', recurrence: 'one_time', amount: 800, depreciationMonths: 24, taxDeductible: true },
@@ -124,6 +183,7 @@ export const DEFAULT_FRAMEWORK: CostCategory[] = [
     key: 'founder_admin',
     label: 'Founder & Admin Time',
     description: 'True cost of business — founder and support hours',
+    layer: 'platform',
     items: [
       { key: 'founder_time', label: 'Founder hours (40 hrs/wk × $50)', recurrence: 'weekly', amount: 2000, taxDeductible: false, notes: 'Founder time — tax deductible only if paid as director fees per BIR' },
       { key: 'admin_va', label: 'Admin / Virtual Assistant', recurrence: 'weekly', amount: 200, taxDeductible: true },
@@ -133,7 +193,8 @@ export const DEFAULT_FRAMEWORK: CostCategory[] = [
   {
     key: 'care_ops',
     label: 'Care Operations',
-    description: 'Direct platform overhead per active client',
+    description: 'Per-client operations — coordination, training, oversight (scales with active clients)',
+    layer: 'care_ops',
     items: [
       { key: 'coordination', label: 'Care coordination labor', recurrence: 'weekly', amount: 75, taxDeductible: true },
       { key: 'training_stipend', label: 'Training & shadow shift stipends', recurrence: 'weekly', amount: 35, taxDeductible: true, notes: 'Log as contractor stipend / training pay — never as wages' },
@@ -146,6 +207,7 @@ export const DEFAULT_FRAMEWORK: CostCategory[] = [
     key: 'marketing',
     label: 'Marketing & Acquisition',
     description: 'Customer acquisition and brand spend',
+    layer: 'platform',
     items: [
       { key: 'social_ads', label: 'Social media ads (Meta, Google)', recurrence: 'monthly', amount: 200, taxDeductible: true },
       { key: 'content', label: 'Content production', recurrence: 'monthly', amount: 100, taxDeductible: true },
@@ -158,6 +220,7 @@ export const DEFAULT_FRAMEWORK: CostCategory[] = [
     key: 'professional',
     label: 'Professional Services',
     description: 'External advisors and risk coverage',
+    layer: 'platform',
     items: [
       { key: 'accountant', label: 'Accountant / bookkeeping fees', recurrence: 'monthly', amount: 250, taxDeductible: true },
       { key: 'legal', label: 'Legal counsel', recurrence: 'yearly', amount: 1500, taxDeductible: true },
@@ -169,6 +232,7 @@ export const DEFAULT_FRAMEWORK: CostCategory[] = [
     key: 'banking',
     label: 'Banking & Financial',
     description: 'Transaction, banking, and FX costs',
+    layer: 'platform',
     items: [
       { key: 'payment_processing', label: 'Payment processing fees', recurrence: 'weekly', amount: 30, taxDeductible: true, notes: '~3% of revenue typically' },
       { key: 'bank_fees', label: 'Bank account fees', recurrence: 'monthly', amount: 25, taxDeductible: true },
@@ -180,6 +244,7 @@ export const DEFAULT_FRAMEWORK: CostCategory[] = [
     key: 'statutory',
     label: 'T&T Statutory Costs',
     description: 'Trinidad & Tobago BIR provisions — auto-calculated from gross revenue where noted',
+    layer: 'platform',
     items: [
       { key: 'business_levy', label: 'Business Levy provision', recurrence: 'weekly', amount: 0, taxDeductible: false, autoCalcPercentOfRevenue: 0.6, notes: 'Auto: 0.6% of gross revenue' },
       { key: 'green_fund', label: 'Green Fund Levy provision', recurrence: 'weekly', amount: 0, taxDeductible: false, autoCalcPercentOfRevenue: 0.3, notes: 'Auto: 0.3% of gross revenue' },
@@ -245,7 +310,15 @@ export function loadFramework(): CostCategory[] {
           const userItem = userCat.items.find(i => i.key === defItem.key);
           return userItem ? { ...defItem, ...userItem } : defItem;
         });
-        return { ...defCat, items };
+        // Always force the layer from the default (source of truth) so legacy
+        // saved frameworks without `layer` get tagged correctly.
+        return { ...defCat, ...userCat, items, layer: defCat.layer };
+      });
+      // Append any user-added custom categories not in defaults (default → platform)
+      parsed.forEach(userCat => {
+        if (!merged.find(c => c.key === userCat.key)) {
+          merged.push({ ...userCat, layer: userCat.layer || 'platform' });
+        }
       });
       return merged;
     }
