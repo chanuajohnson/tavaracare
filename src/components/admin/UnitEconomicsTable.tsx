@@ -80,7 +80,11 @@ export function UnitEconomicsTable({ clients }: Props) {
                     <div className="text-xs text-muted-foreground">{client.carePlanTitle}</div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="text-xs">{client.subscriptionPlan}</Badge>
+                    {client.payrollWeeks === 0 ? (
+                      <Badge variant="outline" className="text-xs text-muted-foreground">No payroll this month</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs">{client.subscriptionPlan}</Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">{fmt(client.monthlySubscriptionRevenue)}</TableCell>
                   <TableCell className="text-right text-muted-foreground">{fmt(client.monthlyCaregiverFees)}</TableCell>
