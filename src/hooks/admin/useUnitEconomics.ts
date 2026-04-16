@@ -385,6 +385,16 @@ export function useUnitEconomics(selectedMonth: string) {
         monthlyServiceRevenue = Math.round(monthlyServiceRevenue * 100) / 100;
 
         const monthlyCaregiverFees = Math.round(totalCaregiverCost * 100) / 100;
+        const monthlySubRevenue = Math.round(weeklySubRevenue * payrollWeeks * 100) / 100;
+
+        // Compute weekly gross revenue first so statutory costs (% of revenue) can include it
+        const weeklyGrossRevenue = payrollWeeks > 0
+          ? (monthlySubRevenue + monthlyCaregiverFees + monthlyServiceRevenue) / payrollWeeks
+          : 0;
+        const statutoryWeekly = statutoryWeeklyFromRevenue(framework, weeklyGrossRevenue);
+        const effectiveWeeklyOpCost = baseWeeklyOpCost + statutoryWeekly;
+        const monthlyOpCost = Math.round(effectiveWeeklyOpCost * payrollWeeks * 100) / 100;
+
         const monthlyRevenue = monthlySubRevenue + monthlyCaregiverFees + monthlyServiceRevenue;
         const monthlyTotalCost = Math.round((totalCaregiverCost + totalEmployerNis + totalExpenses + monthlyOpCost) * 100) / 100;
         const monthlyMargin = Math.round((monthlyRevenue - monthlyTotalCost) * 100) / 100;
@@ -412,7 +422,7 @@ export function useUnitEconomics(selectedMonth: string) {
           monthlyMargin,
           weeklyRevenue: payrollWeeks > 0 ? Math.round((monthlyRevenue / payrollWeeks) * 100) / 100 : 0,
           weeklyCaregiverCost: payrollWeeks > 0 ? Math.round((totalCaregiverCost / payrollWeeks) * 100) / 100 : 0,
-          weeklyOperatingCost: weeklyOpCost,
+          weeklyOperatingCost: effectiveWeeklyOpCost,
           marginPercent: Math.round(marginPercent * 10) / 10,
           status: getStatus(marginPercent),
           caregiverBreakdowns: Object.values(cgMap).map(cg => ({
@@ -427,8 +437,11 @@ export function useUnitEconomics(selectedMonth: string) {
       });
 
       setClients(result);
+      setCarePlansWithoutPayroll(plansWithoutPayroll);
+      setFetchErrors(errors);
     } catch (err) {
       console.error('Error fetching unit economics:', err);
+      setFetchErrors([...errors, (err as any)?.message || 'unknown error']);
     } finally {
       setLoading(false);
     }
