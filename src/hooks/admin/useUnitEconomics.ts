@@ -399,9 +399,19 @@ export function useUnitEconomics(selectedMonth: string) {
         const serviceBreakdown: ServiceRevenueItem[] = [];
         let monthlyServiceRevenue = 0;
 
+        const subIsLegacyFamilyCare = isLegacyFamilyCarePlan(sub?.planName);
+
         cpServices.forEach((s: any) => {
           const svc = s.billable_service_items;
           if (!svc || svc.visible_in_unit_economics === false) return;
+
+          // Guardrail: legacy "Family Care" $499 sub already includes "Active Care Management".
+          // Suppress the duplicate service line so it isn't double-counted.
+          if (subIsLegacyFamilyCare && typeof svc.label === 'string' && svc.label.toLowerCase().includes('active care management')) {
+            console.warn(`[unit-economics] Suppressing duplicate "Active Care Management" service for care plan ${cp.id} — already billed via legacy Family Care $499 subscription.`);
+            return;
+          }
+
           const price = s.override_price ?? svc.unit_price ?? 0;
           const qty = s.quantity || 1;
           let monthlyAmount = 0;
