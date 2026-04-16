@@ -461,6 +461,18 @@ export function useUnitEconomics(selectedMonth: string) {
 
       setClients(result);
       setCarePlansWithoutPayroll(plansWithoutPayroll);
+
+      // Build draft list (active-but-not-shown should never happen, but include any non-active here)
+      const drafts: DraftCarePlan[] = nonActivePlans.map(cp => ({
+        carePlanId: cp.id,
+        carePlanTitle: cp.title,
+        familyId: cp.family_id,
+        familyName: profilesMap[cp.family_id] || 'Unknown',
+        status: cp.status || 'unknown',
+      }));
+      setDraftCarePlans(drafts);
+      console.log('[unit-economics] active rendered:', result.length, '| draft/other:', drafts.length);
+
       setFetchErrors(errors);
     } catch (err) {
       console.error('Error fetching unit economics:', err);
@@ -512,6 +524,8 @@ export function useUnitEconomics(selectedMonth: string) {
 
   return {
     clients,
+    draftCarePlans,
+    statusCounts,
     summary,
     loading,
     operatingCosts,
