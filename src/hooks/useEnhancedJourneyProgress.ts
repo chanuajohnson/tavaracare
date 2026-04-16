@@ -51,10 +51,12 @@ export const useEnhancedJourneyProgress = () => {
       { id: "9", step_number: 9, title: "Care Team Confirmed", description: "A care team member has been selected and coordinated for your family", completed: false, accessible: false, category: 'scheduling', icon_name: 'UserCheck', tooltip_content: 'View your care team member', detailed_explanation: 'Your care team member has been confirmed. View your care team.', time_estimate_minutes: 0, is_optional: false, action: () => {} },
       { id: "10", step_number: 10, title: "Initial Family Meeting", description: "Meet and greet with your care team member at your home", completed: false, accessible: false, category: 'scheduling', icon_name: 'Home', tooltip_content: 'Family meeting scheduled', detailed_explanation: 'Introduction visit at your home', time_estimate_minutes: 60, is_optional: false, action: () => {} },
       { id: "11", step_number: 11, title: "Care Begins", description: "Your care team begins providing support", completed: false, accessible: false, category: 'scheduling', icon_name: 'Play', tooltip_content: 'Care has started', detailed_explanation: 'View your care plan for schedules and details', time_estimate_minutes: 0, is_optional: false, action: () => {} },
-      { id: "12", step_number: 12, title: "Schedule Trial Day (Optional)", description: "Choose a trial date with your matched caregiver", completed: false, accessible: false, category: 'trial', icon_name: 'Calendar', tooltip_content: 'Schedule optional trial with caregiver', detailed_explanation: 'Optional step before choosing your care model', time_estimate_minutes: 15, is_optional: true, action: () => {} },
-      { id: "13", step_number: 13, title: "Pay for Trial Day (Optional)", description: "Complete payment for an optional 8-hour caregiver trial experience", completed: false, accessible: false, category: 'trial', icon_name: 'CreditCard', tooltip_content: 'Complete trial payment', detailed_explanation: 'Pay for your optional trial day', time_estimate_minutes: 5, is_optional: true, action: () => {} },
-      { id: "14", step_number: 14, title: "Begin Your Trial (Optional)", description: "Your caregiver begins the scheduled trial session", completed: false, accessible: false, category: 'trial', icon_name: 'Play', tooltip_content: 'Start your trial experience', detailed_explanation: 'Begin your trial with the matched caregiver', time_estimate_minutes: 480, is_optional: true, action: () => {} },
-      { id: "15", step_number: 15, title: "Rate & Choose Your Path", description: "Choose your care model — view subscription plans or hire directly", completed: false, accessible: false, category: 'conversion', icon_name: 'Star', tooltip_content: 'Choose your care model', detailed_explanation: 'Select your preferred care arrangement', time_estimate_minutes: 10, is_optional: false, action: () => {} }
+      { id: "12", step_number: 12, title: "Care Readiness Assessment", description: "A home walkthrough completed by your care team during their first week", completed: false, accessible: false, category: 'care_environment', icon_name: 'Home', tooltip_content: 'Care environment assessment', detailed_explanation: 'Your care team assesses your home for sustainable caregiving', time_estimate_minutes: 0, is_optional: false, action: () => {} },
+      { id: "13", step_number: 13, title: "Home Environment Optimization", description: "Guided or full care environment coordination", completed: false, accessible: false, category: 'care_environment', icon_name: 'Sparkles', tooltip_content: 'Optimize home for care', detailed_explanation: 'Prepare your home for safe, comfortable caregiving', time_estimate_minutes: 0, is_optional: true, action: () => {} },
+      { id: "14", step_number: 14, title: "Schedule Trial Day (Optional)", description: "Choose a trial date with your matched caregiver", completed: false, accessible: false, category: 'trial', icon_name: 'Calendar', tooltip_content: 'Schedule optional trial with caregiver', detailed_explanation: 'Optional step before choosing your care model', time_estimate_minutes: 15, is_optional: true, action: () => {} },
+      { id: "15", step_number: 15, title: "Pay for Trial Day (Optional)", description: "Complete payment for an optional 8-hour caregiver trial experience", completed: false, accessible: false, category: 'trial', icon_name: 'CreditCard', tooltip_content: 'Complete trial payment', detailed_explanation: 'Pay for your optional trial day', time_estimate_minutes: 5, is_optional: true, action: () => {} },
+      { id: "16", step_number: 16, title: "Begin Your Trial (Optional)", description: "Your caregiver begins the scheduled trial session", completed: false, accessible: false, category: 'trial', icon_name: 'Play', tooltip_content: 'Start your trial experience', detailed_explanation: 'Begin your trial with the matched caregiver', time_estimate_minutes: 480, is_optional: true, action: () => {} },
+      { id: "17", step_number: 17, title: "Rate & Choose Your Path", description: "Choose your care model — view subscription plans or hire directly", completed: false, accessible: false, category: 'conversion', icon_name: 'Star', tooltip_content: 'Choose your care model', detailed_explanation: 'Select your preferred care arrangement', time_estimate_minutes: 10, is_optional: false, action: () => {} }
     ];
   };
 
@@ -415,6 +417,14 @@ export const useEnhancedJourneyProgress = () => {
                 break;
               case 11:
                 console.log('🚀 Navigating to care management');
+                navigate('/family/care-management');
+                break;
+              case 12:
+                console.log('🚀 Navigating to care management (care environment)');
+                navigate('/family/care-management');
+                break;
+              case 13:
+                console.log('🚀 Navigating to care management (home optimization)');
                 navigate('/family/care-management');
                 break;
             }
