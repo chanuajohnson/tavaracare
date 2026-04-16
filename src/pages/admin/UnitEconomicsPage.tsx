@@ -130,6 +130,19 @@ export default function UnitEconomicsPage() {
               </ul>
             </div>
           )}
+
+          {/* Status counts diagnostic */}
+          {!loading && Object.keys(statusCounts).length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded px-3 py-2">
+              <span className="font-medium text-foreground">Care plans found:</span>
+              {Object.entries(statusCounts).map(([status, count]) => (
+                <Badge key={status} variant="outline" className="text-[10px]">
+                  {count} {status}
+                </Badge>
+              ))}
+            </div>
+          )}
+
           {!loading && carePlansWithoutPayroll > 0 && (
             <div className="rounded border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
               <strong>{carePlansWithoutPayroll}</strong> active care plan{carePlansWithoutPayroll !== 1 ? 's have' : ' has'} no payroll entries for {formatMonthLabel(selectedMonth)}. They are still listed below with zero values — log work hours to populate revenue and cost data.
@@ -152,6 +165,41 @@ export default function UnitEconomicsPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Active Plans Without Payroll Data (drafts / non-active statuses) */}
+          {!loading && draftCarePlans.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileEdit className="h-4 w-4" />
+                  Care Plans Not in Active Payroll ({draftCarePlans.length})
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  These care plans exist but are not in <code>active</code> status. They don't appear in the unit economics table above. Click "Open" to review and activate.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {draftCarePlans.map(p => (
+                    <div key={p.carePlanId} className="flex items-center justify-between border rounded px-3 py-2 hover:bg-muted/50">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">{p.carePlanTitle}</div>
+                        <div className="text-xs text-muted-foreground truncate">{p.familyName}</div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Badge variant="outline" className="text-[10px] capitalize">{p.status}</Badge>
+                        <Button asChild size="sm" variant="ghost">
+                          <Link to={`/family/care-management/${p.carePlanId}`}>
+                            Open <ArrowRight className="h-3 w-3 ml-1" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="quarterly_plan" className="mt-4">
