@@ -1,52 +1,52 @@
 
 
-## Plan: Restore care plans + add custom software rows + expand cost catalog
+## Plan: Fix Ana Maria's economics + Plan label rename
 
-### A. Why per-client plans aren't showing
+### What's actually happening for Ana (DB-confirmed)
 
-Even though the table is built to render zero-payroll plans with a "No payroll this month" badge, the screen shows "No active care plans found" — that empty state only appears when `clients.length === 0`. Two likely causes:
+- Subscription row: plan = **"Family Care"** at **$499** (a legacy monthly plan, not weekly)
+- Service selections on her care plan include:
+  - ✅ "Active Care Management" — `weekly` @ $499 override (this is double-billing — her $499 sub already IS this)
+  - ✅ 3 one-time setup fees (Care Assessment, Caregiver Matching, Care Readiness)
+- Hook bug 1 — `getWeeklySubscriptionRevenue()` line 92: matches "care" in "Family Care" → returns hard-coded **$699/wk**, ignoring the actual $499 price which is a **monthly** amount. So Sub/mo shows $699 instead of $499.
+- Hook bug 2 — Active Care Management service selection contributes $499 to Svc Rev/mo, double-counting the subscription.
 
-1. **Care plans status filter too strict**: `useUnitEconomics.ts` line 200 hard-filters `.eq('status', 'active')`. If Peltier/Mum got flipped to another status (e.g. `pending`, `in_progress`, `completed`) the query returns 0 rows. The earlier session showed both as active, but a recent edit elsewhere may have changed status.
-2. **Silent RLS rejection**: if `care_plans` returns `[]` with no error under admin context, the dashboard correctly empties. We need a visible diagnostic (count of plans found per status) to confirm.
+### Three fixes
 
-### B. Fix — three changes
+**1. Treat "Family Care" $499 as a flat monthly legacy plan**
+In `src/hooks/admin/useUnitEconomics.ts` `getWeeklySubscriptionRevenue()`:
+- Add explicit case: if `name === 'family care'` → treat `price` as **monthly** flat → return `price / 4.33` weekly so monthly math = $499 exactly.
+- Reorder checks so this matches BEFORE the generic "care/active" → $699 fallback.
+- Keep current "Care" tier ($699/wk) and "Premium" tier ($899/wk) for new-style subscriptions.
 
-1. **Loosen + diagnose the care plans query** (`src/hooks/admin/useUnitEconomics.ts`):
-   - Fetch `care_plans` without status filter, then split into `active` vs. `draft/other` in code.
-   - Expose a new `draftCarePlans: ClientEconomics[]` and `statusCounts: Record<string, number>` from the hook.
-   - Console-log the row counts so we can see in dev tools exactly what's returned.
+**2. Rename Plan label in the table to the meaningful service**
+The "Plan" column currently shows the raw subscription_plans.name ("Family Care"). Change `subscriptionPlan` resolution to a **friendly label**:
+- If plan name === "Family Care" (legacy $499) → display **"Active Care Management"** in the table.
+- If plan name contains "premium" → display "Premium Care Management".
+- If plan name contains "care" / "active" (new tier) → display "Active Care Management".
+- Otherwise pass through the raw name.
+- Implemented as small `friendlyPlanLabel(name)` helper in the hook so both the table chip and the tooltip use the same label.
 
-2. **"Active Plans Without Payroll Data" draft section** (`src/pages/admin/UnitEconomicsPage.tsx` + `UnitEconomicsTable.tsx`):
-   - Per your answer: keep the main payroll-driven table for plans with payroll, render a **separate compact "Draft / No-Payroll Plans"** card below listing every other active plan with a status badge and a "Log first hours" link to the family schedule page.
-   - Status-counts banner at top: "Found X active, Y draft, Z completed care plans this month."
+**3. Suppress the duplicate "Active Care Management" service line for Ana (and any future legacy $499 family)**
+Two options — recommend (a):
+- (a) **Filter rule in the hook**: when subscription is the legacy "Family Care" $499 plan AND a selected service has label "Active Care Management", **skip it from `monthlyServiceRevenue` and `serviceBreakdown`** (it would be double-counted). Add an inline console.warn so admins can see the suppression.
+- (b) Manually deselect that row in care_plan_service_selections — but this would happen again on any other legacy family.
 
-3. **Custom software rows in the Operating Cost Framework** (`src/components/admin/OperatingCostConfig.tsx` + `operatingCostFramework.ts`):
-   - Per your answer: add an "**+ Add line item**" button inside every category that opens a tiny inline form (label, amount, recurrence, tax-deductible toggle, optional notes).
-   - Custom items get `isCustom: true` and a delete button. They persist in the same localStorage shape.
-   - Bonus: pre-seed empty placeholder rows in Software & SaaS for the tools you named so you can fill them in immediately without clicking Add (they don't add to totals until you enter an amount):
-     - 🎬 CapCut Pro (content creation)
-     - ✂️ OpusClip (AI clip generation)
-     - ☁️ iCloud+ storage
-     - 🎨 Canva Pro
-     - 🤖 mAregtig content tools
-     - 📝 Captions / subtitle tooling
-     - 🎙️ Audio tools (Descript, ElevenLabs, etc.)
-   - Adds a "Suggested categories" hint footer with examples for each section so you remember what to log.
+→ Going with (a) — code-level guardrail, no DB write, applies forever.
 
-### C. Files
+### Files
 
 | File | Change |
 |---|---|
-| `src/hooks/admin/useUnitEconomics.ts` | Drop `.eq('status','active')` filter, split in JS, expose `draftCarePlans` + `statusCounts`. Keep current zero-payroll handling for active plans. |
-| `src/hooks/admin/operatingCostFramework.ts` | Add `isCustom?: boolean` to `CostLineItem`. Add 7 zero-amount Software & SaaS placeholders for CapCut/OpusClip/iCloud/Canva/mAregtig/Captions/Audio tools. Helper `addCustomItem(framework, catKey, item)` and `removeItem(framework, catKey, itemKey)`. |
-| `src/components/admin/OperatingCostConfig.tsx` | "+ Add line item" button per category opening inline form. Delete button on custom items. Suggested-categories hint footer. |
-| `src/pages/admin/UnitEconomicsPage.tsx` | New "Active Plans Without Payroll Data" card under the main table. Show `statusCounts` summary. |
-| `src/components/admin/UnitEconomicsTable.tsx` | Optional: show small `statusCounts` chip row above the table. |
-| `mem://admin/unit-economics-dashboard` | Update to reflect custom line items + draft plans section. |
+| `src/hooks/admin/useUnitEconomics.ts` | (1) Fix `getWeeklySubscriptionRevenue` — explicit "Family Care" legacy case returning `price / 4.33`. (2) Add `friendlyPlanLabel()` helper, set `subscriptionPlan` to the friendly label. (3) Skip "Active Care Management" service line when sub is legacy Family Care. |
 
-### D. Result
+### Expected result for Ana (April 2026)
 
-- Peltier and Mum will reappear — either inside the payroll table (if active + has hours logged for the month) or in the new "Active Plans Without Payroll Data" card with a status badge.
-- You can add CapCut, OpusClip, iCloud, Canva, mAregtig, captions, etc. directly in the Software & SaaS category (and create your own items in any other category) without code changes.
-- Diagnostic counts make it impossible for plans to disappear silently again.
+- Plan column → **"Active Care Management"** (was "Family Care")
+- Sub/mo → **$499** (was $699)
+- Svc Rev/mo → **$0** (was $499) — duplicate suppressed
+- Revenue/mo → **$1,899** ($499 sub + $1,400 caregiver fees) (was $2,598)
+- Status / margin recalculate accordingly with fewer phantom dollars
+
+No DB writes required. Pure hook-level fix. Chanua/Peltier unaffected (different plan).
 
