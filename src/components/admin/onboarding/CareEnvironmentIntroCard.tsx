@@ -1,28 +1,32 @@
 
 import React from "react";
 import { Leaf, CheckCircle2 } from "lucide-react";
+import { SUPPLY_CATEGORIES } from "./CareSuppliesCard";
 
 const SERVICE_TIERS = [
   {
     level: "Level 1",
     name: "Care Readiness Assessment",
-    price: "$199",
+    price: "$0 — Waived",
+    originalPrice: "$199",
     description:
-      "Structured home walkthrough, caregiver workflow mapping, hygiene and safety assessment, decluttering recommendations, and space optimization plan.",
+      "Structured home walkthrough, caregiver workflow mapping, hygiene and safety assessment, decluttering recommendations, and space optimization plan. Provided as part of your care onboarding.",
   },
   {
     level: "Level 2",
     name: "Guided Home Reset",
-    price: "From $499",
+    price: "$499",
+    originalPrice: null,
     description:
-      "Decluttering guidance with family, caregiver workspace setup, light organization, sanitation planning, and basic hazard removal.",
+      "Decluttering the space, lightening the home, and addressing hygiene concerns. Tavara coordinates and guides this process — the $499 covers our hands-on coordination until completion. External contractor costs (cleaning, pest treatment, etc.) are the family's responsibility and quoted separately.",
   },
   {
     level: "Level 3",
     name: "Full Care Environment Reset",
     price: "Custom",
+    originalPrice: null,
     description:
-      "Comprehensive care-space restructuring — including deep cleaning coordination, pest control coordination, removal of unsafe items, and full environment preparation. Coordinated and managed by Tavara.",
+      "Ongoing care environment support — including recurring pest control coordination, contractor management, and sustained home readiness. After the initial guided reset, this provides continued oversight for things like monthly pest control, seasonal deep cleaning, and any evolving environmental needs. Coordinated and managed by Tavara.",
   },
 ];
 
@@ -58,9 +62,45 @@ export default function CareEnvironmentIntroCard() {
         </p>
       </div>
 
+      {/* Basic Care Supplies — Family Responsibility */}
+      <div className="mb-5">
+        <h5 className="font-semibold text-sm mb-3 flex items-center gap-2">
+          📋 Basic Care Supplies — Family Responsibility
+        </h5>
+        <p className="text-xs text-muted-foreground mb-3">
+          The family is responsible for providing the following supplies to support the caregiver during each shift.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {SUPPLY_CATEGORIES.map((cat) => (
+            <div
+              key={cat.title}
+              className="rounded-lg border bg-white/60 p-3"
+            >
+              <p className="font-medium text-sm mb-2">
+                {cat.emoji} {cat.title}
+              </p>
+              <ul className="space-y-1">
+                {cat.items.map((item, i) => (
+                  <li
+                    key={i}
+                    className="text-xs text-muted-foreground flex items-start gap-1.5"
+                  >
+                    <span className="mt-0.5">•</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <h5 className="text-sm font-medium mb-3 text-green-800">
         Tavara Care Environment Support — Service Tiers
       </h5>
+      <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+        To be clear — this isn't work we do ourselves, but it's something we help coordinate, guide, and manage for you at this stage in your care journey.
+      </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {SERVICE_TIERS.map((tier) => (
@@ -75,9 +115,16 @@ export default function CareEnvironmentIntroCard() {
               </span>
             </div>
             <p className="text-sm font-medium mb-0.5">{tier.name}</p>
-            <p className="text-xs font-semibold text-primary mb-1.5">
-              {tier.price}
-            </p>
+            <div className="mb-1.5">
+              <span className="text-xs font-semibold text-primary">
+                {tier.price}
+              </span>
+              {tier.originalPrice && (
+                <span className="text-xs text-muted-foreground line-through ml-1.5">
+                  {tier.originalPrice}
+                </span>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground leading-relaxed flex-1">
               {tier.description}
             </p>

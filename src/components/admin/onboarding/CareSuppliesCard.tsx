@@ -1,7 +1,7 @@
 
 import React from "react";
 
-const SUPPLY_CATEGORIES = [
+export const SUPPLY_CATEGORIES = [
   {
     emoji: "🧤",
     title: "Basic Care Supplies",

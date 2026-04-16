@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import RateTierReferenceCard from "@/components/admin/onboarding/RateTierReferenceCard";
 import CareEnvironmentIntroCard from "@/components/admin/onboarding/CareEnvironmentIntroCard";
+import CareSuppliesCard from "@/components/admin/onboarding/CareSuppliesCard";
 import ServiceSelectionBlock from "@/components/admin/onboarding/ServiceSelectionBlock";
 import BillingSummaryCard from "@/components/admin/onboarding/BillingSummaryCard";
 import ServiceCommencementConfirmation from "@/components/admin/onboarding/ServiceCommencementConfirmation";
