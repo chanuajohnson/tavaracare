@@ -1,7 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parse, startOfWeek, endOfWeek, getMonth, getYear } from 'date-fns';
+import {
+  CostCategory,
+  loadFramework,
+  saveFramework,
+  frameworkWeeklyTotal,
+  statutoryWeeklyFromRevenue,
+  DEFAULT_FRAMEWORK,
+} from './operatingCostFramework';
 
+/** @deprecated Use CostCategory[] framework instead. Kept for backward-compat consumers. */
 export interface OperatingCosts {
   careCoordination: number;
   replacementBuffer: number;
