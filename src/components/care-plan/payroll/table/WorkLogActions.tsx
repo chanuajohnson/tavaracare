@@ -1,10 +1,17 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Receipt, Check, X, Trash2 } from "lucide-react";
+import { Receipt, Check, X, Trash2, ChevronDown } from "lucide-react";
 import { RejectWorkLogDialog } from "../RejectWorkLogDialog";
 import { PayrollStatusBadge } from "../PayrollStatusBadge";
 import type { WorkLog } from "@/services/care-plans/types/workLogTypes";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +28,7 @@ interface WorkLogActionsProps {
   onApprove: (id: string) => void;
   onReject: (id: string, reason: string) => Promise<boolean>;
   onGenerateReceipt: (workLog: WorkLog) => void;
+  onGenerateRangeReceipt?: (workLog: WorkLog, mode: 'week' | 'month' | 'custom') => void;
   onDelete?: (id: string) => Promise<boolean>;
   isProfessionalView?: boolean;
 }
@@ -30,6 +38,7 @@ export const WorkLogActions = ({
   onApprove,
   onReject,
   onGenerateReceipt,
+  onGenerateRangeReceipt,
   onDelete,
   isProfessionalView = false
 }: WorkLogActionsProps) => {
@@ -43,6 +52,46 @@ export const WorkLogActions = ({
     setIsDeleting(false);
     setDeleteDialogOpen(false);
   };
+
+  const ReceiptMenu = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 px-2"
+          title="Generate Care Receipt"
+        >
+          <Receipt className="h-4 w-4" />
+          <ChevronDown className="h-3 w-3 ml-0.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56 bg-popover">
+        <DropdownMenuItem onClick={() => onGenerateReceipt(workLog)}>
+          Daily Care Receipt (this shift)
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          disabled={!onGenerateRangeReceipt}
+          onClick={() => onGenerateRangeReceipt?.(workLog, 'week')}
+        >
+          Weekly Care Receipt…
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={!onGenerateRangeReceipt}
+          onClick={() => onGenerateRangeReceipt?.(workLog, 'month')}
+        >
+          Monthly Care Receipt…
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={!onGenerateRangeReceipt}
+          onClick={() => onGenerateRangeReceipt?.(workLog, 'custom')}
+        >
+          Custom Date Range…
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   const DeleteButton = () => (
     workLog.status === 'pending' && onDelete ? (
@@ -88,15 +137,7 @@ export const WorkLogActions = ({
   if (isProfessionalView) {
     return (
       <div className="flex justify-end items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 w-8 p-0"
-          title="Generate Receipt"
-          onClick={() => onGenerateReceipt(workLog)}
-        >
-          <Receipt className="h-4 w-4" />
-        </Button>
+        <ReceiptMenu />
         <DeleteButton />
         {workLog.status === 'pending' ? (
           <span className="text-sm font-medium text-yellow-700 bg-yellow-100 px-2.5 py-0.5 rounded-full">
@@ -121,16 +162,8 @@ export const WorkLogActions = ({
   return (
     <>
       <div className="flex justify-end gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 w-8 p-0"
-          title="Generate Receipt"
-          onClick={() => onGenerateReceipt(workLog)}
-        >
-          <Receipt className="h-4 w-4" />
-        </Button>
-        
+        <ReceiptMenu />
+
         <DeleteButton />
         
         {workLog.status === 'pending' && (
