@@ -110,16 +110,35 @@ export interface UnitEconomicsSummary {
   avgDirectMarginPercent: number;
 }
 
-function getWeeklySubscriptionRevenue(planName: string | null, price: number | null): number {
-  if (!planName || !price) return 0;
+export type SubscriptionCadence = 'weekly' | 'monthly_flat' | 'none';
+
+export interface ResolvedSubscriptionRevenue {
+  weeklyRevenue: number;
+  monthlyFlat: number | null;
+  cadence: SubscriptionCadence;
+}
+
+function resolveSubscriptionRevenue(planName: string | null, price: number | null): ResolvedSubscriptionRevenue {
+  if (!planName || !price) return { weeklyRevenue: 0, monthlyFlat: null, cadence: 'none' };
   const name = planName.toLowerCase().trim();
-  if (name === 'basic' || name === 'free' || name.includes('basic') || name.includes('free')) return 0;
-  // Legacy "Family Care" plan: $499 is a flat MONTHLY rate, not weekly
-  if (name === 'family care') return Math.round((price / 4.33) * 100) / 100;
-  if (name.includes('premium')) return 899;
-  if (name.includes('care') || name.includes('active')) return 699;
-  if (price > 200) return Math.round((price / 4.33) * 100) / 100;
-  return price;
+  if (name === 'basic' || name === 'free' || name.includes('basic') || name.includes('free')) {
+    return { weeklyRevenue: 0, monthlyFlat: null, cadence: 'none' };
+  }
+  // Legacy "Family Care" plan: $499 is a flat MONTHLY rate — billed once/month if active
+  if (name === 'family care') {
+    return { weeklyRevenue: 0, monthlyFlat: price, cadence: 'monthly_flat' };
+  }
+  if (name.includes('premium')) {
+    return { weeklyRevenue: 899, monthlyFlat: null, cadence: 'weekly' };
+  }
+  if (name.includes('care') || name.includes('active')) {
+    return { weeklyRevenue: 699, monthlyFlat: null, cadence: 'weekly' };
+  }
+  // Generic: prices > $200 assumed monthly flat; otherwise treat as weekly
+  if (price > 200) {
+    return { weeklyRevenue: 0, monthlyFlat: price, cadence: 'monthly_flat' };
+  }
+  return { weeklyRevenue: price, monthlyFlat: null, cadence: 'weekly' };
 }
 
 /**
