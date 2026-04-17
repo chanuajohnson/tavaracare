@@ -313,7 +313,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                               <span className="font-semibold">${month.totalEmployeeNIS.toFixed(2)}</span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground block text-xs">Employer NIS</span>
+                              <span className="text-muted-foreground block text-xs">NIS Contribution (Caregiver)</span>
                               <span className="font-semibold">${month.totalEmployerNIS.toFixed(2)}</span>
                             </div>
                             <div>
@@ -479,7 +479,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                                     <span className="font-medium">${week.employeeContribution.toFixed(2)}</span>
                                   </div>
                                   <div>
-                                    <span className="text-muted-foreground block text-xs">Employer NIS</span>
+                                    <span className="text-muted-foreground block text-xs">NIS Contribution (Caregiver)</span>
                                     <span className="font-medium">${week.employerContribution.toFixed(2)}</span>
                                   </div>
                                   <div>

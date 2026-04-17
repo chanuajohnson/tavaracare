@@ -125,7 +125,7 @@ export const ProcessPaymentDialog: React.FC<ProcessPaymentDialogProps> = ({
                         -${weeklyData.employeeContribution.toFixed(2)}
                       </span>
                       
-                      <span className="text-muted-foreground">Employer NIS (remaining):</span>
+                      <span className="text-muted-foreground">NIS Contribution (Caregiver) (remaining):</span>
                       <span className="font-medium text-right">
                         ${weeklyData.employerContribution.toFixed(2)}
                       </span>

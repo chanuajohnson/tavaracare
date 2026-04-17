@@ -203,7 +203,7 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
     if (nisApplicable) {
       doc.setFontSize(9);
       doc.text(
-        `Employer NIS Liability: $${employerContribution.toFixed(2)} (not deducted from worker pay)`,
+        `NIS Contribution (Caregiver) Liability: $${employerContribution.toFixed(2)} (not deducted from worker pay)`,
         20, tableEndY + 10
       );
     } else if (!isWorkLog(entry)) {
