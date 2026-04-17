@@ -106,35 +106,16 @@ export function OperatingCostConfig({ framework, onChange }: Props) {
   const totalWeekly = frameworkWeeklyTotal(framework);
   const totalMonthly = totalWeekly * 4.333;
   const totalYearly = totalWeekly * 52;
+  const layered = weeklyByLayer(framework);
 
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <span>Operating Cost Framework — Chart of Accounts</span>
-          <div className="flex flex-wrap gap-2 text-xs font-normal">
-            <Badge variant="outline">{fmt(totalWeekly)}/wk</Badge>
-            <Badge variant="outline">{fmt(totalMonthly)}/mo</Badge>
-            <Badge variant="outline">{fmt(totalYearly)}/yr run-rate</Badge>
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/40 rounded px-3 py-2 mb-2">
-          <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-          <span>
-            All amounts auto-normalize to weekly for unit economics. T&T statutory items
-            (Business Levy 0.6%, Green Fund 0.3%) auto-calculate from gross revenue.
-            Use <strong>+ Add line item</strong> in any category to log tools, vendors, or expenses
-            specific to your business.
-          </span>
-        </div>
+  const careOpsCats = framework.filter(c => getCategoryLayer(c) === 'care_ops');
+  const platformCats = framework.filter(c => getCategoryLayer(c) === 'platform');
 
-        {framework.map(cat => {
-          const isOpen = openCats.has(cat.key);
-          const catWeekly = categoryWeeklyTotal(cat);
-          const isAdding = addingCat === cat.key;
-          return (
+  const renderCategory = (cat: CostCategory) => {
+    const isOpen = openCats.has(cat.key);
+    const catWeekly = categoryWeeklyTotal(cat);
+    const isAdding = addingCat === cat.key;
+    return (
             <Collapsible key={cat.key} open={isOpen} onOpenChange={() => toggleCat(cat.key)}>
               <CollapsibleTrigger className="w-full">
                 <div className="flex items-center justify-between w-full px-3 py-2 hover:bg-muted/50 rounded border">
