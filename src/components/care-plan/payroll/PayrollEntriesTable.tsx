@@ -30,6 +30,12 @@ interface PayrollEntriesTableProps {
   onUndoPayment?: (id: string) => Promise<boolean>;
   onRecalculateNIS?: (entryId: string) => Promise<boolean>;
   onRecordBankTransfer?: (payrollId: string) => void;
+  /**
+   * When true, hides destructive/admin controls (bulk delete, undo, recalc NIS,
+   * record bank transfer, process payment, selection checkboxes). Receipt
+   * generation and row expansion remain available. Default: false.
+   */
+  readOnly?: boolean;
 }
 
 export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
@@ -38,7 +44,8 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   onDeleteEntries,
   onUndoPayment,
   onRecalculateNIS,
-  onRecordBankTransfer
+  onRecordBankTransfer,
+  readOnly = false
 }) => {
   const isMobile = useIsMobile();
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
