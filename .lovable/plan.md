@@ -1,77 +1,90 @@
 
 
-## Plan: Smart, dynamic filenames for downloaded Care Receipts
+## Plan: Surface "what was paid / received" on Family + Professional sides
 
-### Goal
-Replace generic `receipt-1716a4ea (1).pdf` with descriptive names like:
-- **Daily**: `2026-DN-Receipt-April13.pdf`
-- **Weekly/Monthly/Custom range**: `2026-DN-Receipt-April13-19.pdf`
-- **Cross-month range**: `2026-DN-Receipt-April28-May04.pdf`
-- **Cross-year range** (rare): `2026-DN-Receipt-Dec30-2027-Jan05.pdf`
+### What exists today
+- **Family side** (`/family/care-management/:id` → "Care Payments & Hours" tab) is the **authoritative hub** — already shows Work Logs, Care Payments (with Paid/Pending status, bank transfer ref, receipts), and NIS Reports. Nothing more is needed here. The recent receipt download (smart filename) flows from this tab.
+- **Family Documents tab** (separate) generates Quotes / Invoices / Receipts for **family→Tavara** subscription billing — a different concept.
+- **Professional Profile Hub** (`/professional/profile`) currently has tabs: **Schedule · Medications · Meal Planning · Admin Assist · Documents · References**. There is no surface where the caregiver sees "what was paid to me, when, and the receipt".
 
-### Filename pattern
+### What you actually asked for
+1. **Caregiver (professional) side**: a new tab AFTER Schedule on the Profile Hub showing **payments received by the caregiver** (their care payments + receipts). Must NOT show what the family paid Tavara — only what the caregiver was paid.
+2. **Family side**: confirm/clarify where this lives. Already exists at care-plan → "Care Payments & Hours". No new tab needed unless you want a roll-up across all care plans.
 
+### Concrete changes
+
+#### 1. NEW caregiver tab: "Care Payments" on Professional Profile Hub
+**File**: `src/components/professional/profile/CarePlanTabs.tsx`
+- Insert a new tab between `schedule` and `medications`:
+  ```
+  Schedule | Care Payments | Medications | Meal Planning | Admin Assist | Documents | References
+  ```
+- `value: "care-payments"`, icon `Receipt` (from lucide-react), label "Care Payments".
+- Update `gridCols`: `grid-cols-7` when care plans visible (was 6), `grid-cols-3` otherwise (unchanged).
+- Add new `<HorizontalTabsContent value="care-payments">` rendering a NEW component `<ProfessionalPayrollView carePlanId={selectedCarePlanId} />`.
+
+#### 2. NEW component: `src/components/professional/profile/ProfessionalPayrollView.tsx`
+A **read-only, caregiver-scoped** view of payment activity for the selected care plan. It will:
+- Fetch `payroll_entries` filtered by:
+  - `care_plan_id = selectedCarePlanId`
+  - `care_team_member_id` belonging to the **logged-in professional** (resolved via `care_team_members` where `caregiver_id = user.id`).
+- Reuse the existing `PayrollEntriesTable` in a **read-only mode** — pass new prop `readOnly={true}` to hide:
+  - Bulk delete / undo / recalculate / record bank transfer / mark paid actions
+  - Status edit controls
+- Keep visible: Caregiver/Period · Hours · Gross Amount · NIS (Employee) · NIS (Employer) · Net Amount · Status badge · **Receipt action (view/download)**.
+- Add a small header: *"Payments received for [care plan title]. This is what has been paid (or is pending payment) to you for shifts on this care plan."*
+- Empty state: *"No care payments yet for this care plan."*
+
+#### 3. Tiny extension to `PayrollEntriesTable.tsx`
+- Add optional `readOnly?: boolean` prop. When true:
+  - Hide selection checkboxes, bulk action toolbar, "Record Monthly Bank Transfer", "Process Payment", "Undo Payment", "Recalculate NIS", "Delete" controls.
+  - Keep: row expansion, NIS breakdown, Receipt download dropdown (caregiver wants to download their own receipt).
+- Default `readOnly = false` → existing family/admin behavior unchanged.
+
+#### 4. Family side — NO new tab
+The family already has the full "Care Payments & Hours" tab on each care plan page. Confirmed: this surface already shows everything needed (paid status, bank transfer ref, receipt download with the new smart filename). No changes here.
+
+> If you later want a **cross-care-plan rollup** for families with multiple plans (e.g. on `/family/care-management`), that would be a separate small card. Not in this scope unless you confirm.
+
+### Visual placement (Professional Profile Hub)
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Schedule │ Care Payments │ Medications │ Meal Planning │ Admin │ Docs │ Refs │
+└─────────────────────────────────────────────────────────────────────────┘
+            ↑ NEW TAB
+   ┌────────────────────────────────────────────────────────────┐
+   │ Care Payments — [Care plan for Mum]                        │
+   │ Payments received for shifts on this care plan.            │
+   │                                                             │
+   │ ▾ April 2026  (1 week)   40h   $1400   $75.30   $1324.70  │
+   │   denise Narcis  Apr 13–19, 2026  · 5 entries   [paid]    │
+   │   [📄 Receipt ▾]                                           │
+   └────────────────────────────────────────────────────────────┘
 ```
-{YYYY}-{INITIALS}-Receipt-{Month}{startDay}[-{endDay} | -{Month2}{endDay}].{ext}
-```
 
-Components:
-- **YYYY** — 4-digit year of the start date
-- **INITIALS** — caregiver initials (uppercase, max 3 chars). Source priority:
-  1. `workLog.caregiver_name` / consolidated `caregiverName` → first letter of each word
-  2. Fallback to `professionalDetails.full_name` lookup
-  3. Final fallback: `CG` (CareGiver)
-- **Month** — full month name (e.g. `April`, not `Apr`) — matches the user's example
-- **startDay / endDay** — zero-padded 2-digit day (`13`, `19`, `04`)
-- **ext** — `pdf` or `jpg`
+### Privacy guardrail (critical)
+- The query is **filtered by the logged-in caregiver's `care_team_member_id`** at the data layer — caregivers can never see other caregivers' payments on the same care plan.
+- The view shows ONLY caregiver-relevant columns (their pay). It does NOT show:
+  - What the family pays Tavara in subscription/coordination fees
+  - Other caregivers' rates or amounts
+  - Family billing documents (Quotes/Invoices)
+- Matches the existing `mem://admin/care-log-visibility-logic` privacy pattern (caregivers see only their own log activity).
 
-Sanitisation: strip any character not in `[A-Za-z0-9-]` to keep cross-OS-safe.
-
-### Where it applies
-
-Two download paths today:
-
-| Location | Current filename | New filename |
-|---|---|---|
-| `ShareReceiptDialog.tsx` line 60 — `receipt-${workLog.id.slice(0, 8)}.pdf` | `receipt-1716a4ea.pdf` | smart name |
-| `WorkLogsTable.tsx` consolidated/range path (download button after generation) | same generic | smart name |
-| Any future JPG export (currently PDF-only — extend the helper to support `.jpg` for future use) | — | smart name |
-
-### Implementation — 2 files
-
-**1. NEW: `src/utils/receiptFilename.ts`** — single source of truth
-```ts
-export interface ReceiptFilenameInput {
-  caregiverName?: string | null;
-  startDate: Date;
-  endDate?: Date | null;   // omit or === startDate → daily
-  extension?: 'pdf' | 'jpg'; // default 'pdf'
-}
-export function buildReceiptFilename(input: ReceiptFilenameInput): string;
-```
-Pure function, fully unit-testable. Handles:
-- Daily (no endDate or same-day) → `2026-DN-Receipt-April13.pdf`
-- Same-month range → `2026-DN-Receipt-April13-19.pdf`
-- Cross-month range → `2026-DN-Receipt-April28-May04.pdf`
-- Cross-year range → `2026-DN-Receipt-Dec30-2027-Jan05.pdf`
-- Missing caregiver name → uses `CG`
-- Sanitisation of weird characters in names
-
-**2. `src/components/care-plan/payroll/ShareReceiptDialog.tsx`**
-- Accept new optional props: `caregiverName?: string`, `rangeStart?: Date`, `rangeEnd?: Date`
-- Replace line 60's `link.download = ...` with `buildReceiptFilename({...})`
-- Backward compatible: if range props not supplied, derive `startDate` from `workLog.start_time` (daily case)
-
-**3. `src/components/care-plan/payroll/WorkLogsTable.tsx`** (caller for ranged receipts)
-- When opening `ShareReceiptDialog` after a Weekly/Monthly/Custom generation, pass `caregiverName`, `rangeStart`, `rangeEnd` so the dialog builds the right filename.
-
-### What stays the same
-- ✅ `ShareReceiptDialog` UI, share/copy/email behavior — untouched
-- ✅ Receipt PDF content & layout — untouched
-- ✅ Daily-receipt flow still works without code changes at call sites that don't pass range props (defaults to start_time)
-- ✅ No DB / route / auth changes
+### Files touched
+1. `src/components/professional/profile/CarePlanTabs.tsx` — add new tab + content
+2. `src/components/professional/profile/ProfessionalPayrollView.tsx` — **NEW**
+3. `src/components/care-plan/payroll/PayrollEntriesTable.tsx` — add optional `readOnly` prop, gate destructive controls
 
 ### Out of scope
-- JPG export feature (helper supports `.jpg` extension but no JPG export UI is being added now)
-- Renaming server-side stored receipt files (this only changes the download filename in the browser)
+- Cross-care-plan rollup on family `/family/care-management` (can add later)
+- Showing family→Tavara subscription receipts inside the caregiver view (correctly excluded — that's family-private)
+- Notifications/badges for "new payment received" (separate feature)
+- Any changes to receipt PDF content or filename logic (already complete)
+
+### What stays the same
+- ✅ Family-side "Care Payments & Hours" tab — untouched, fully functional
+- ✅ Existing Documents tab (Quote/Invoice/Receipt for family billing) — untouched
+- ✅ All payroll DB fields, NIS forms, receipt generation — untouched
+- ✅ Routes, auth, navigation — untouched
 
