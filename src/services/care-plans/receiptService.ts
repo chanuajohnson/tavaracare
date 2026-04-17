@@ -82,7 +82,7 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
 
     // Header Configuration
     doc.setFontSize(16);
-    doc.text('Pay Receipt', 105, 20, { align: 'center' });
+    doc.text('Care Receipt', 105, 20, { align: 'center' });
     
     doc.setFontSize(10);
     const headerText = [
@@ -159,7 +159,7 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
 
     // Build footer rows
     const footRows: string[][] = [
-      ['Gross Pay', '', '', '', `$${total.toFixed(2)}`]
+      ['Gross Amount', '', '', '', `$${total.toFixed(2)}`]
     ];
 
     if (nisApplicable) {
@@ -168,7 +168,7 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
         '', '', '', `-$${employeeContribution.toFixed(2)}`
       ]);
       footRows.push([
-        'Net Pay After NIS', '', '', '', `$${netPayAfterNis.toFixed(2)}`
+        'Net Amount After NIS', '', '', '', `$${netPayAfterNis.toFixed(2)}`
       ]);
     }
 
@@ -259,7 +259,7 @@ const generateConsolidatedReceiptContent = async (doc: jsPDF, entries: PayrollEn
     });
     
     doc.setFontSize(16);
-    doc.text('Consolidated Pay Receipt', 105, 20, { align: 'center' });
+    doc.text('Consolidated Care Receipt', 105, 20, { align: 'center' });
     
     doc.setFontSize(10);
     const headerText = [
