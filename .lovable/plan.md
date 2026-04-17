@@ -1,60 +1,55 @@
 
 
-## Plan: Rename "wages/salary" → "caregiver compensation" across user-facing copy
+## Plan: Rename "Employer NIS" → "NIS Contribution (Caregiver)" in user-facing copy
 
 ### Audit findings
 
-**User-facing copy** (the only places that should change):
+**User-facing copy** (will be renamed):
 
-| File | Lines | Current text |
-|---|---|---|
-| `src/components/admin/UnitEconomicsTable.tsx` | 54 | tooltip: *"Direct Care Costs: caregiver **wages** + employer NIS..."* |
-| same | 127 | label: *"Caregiver **Wages** Pass-through"* |
-| same | 130 | sublabel: *"Actual **wages** from payroll"* |
-| same | 207 | breakdown: *"**Wages**: $..."* |
-| `src/components/admin/OperatingCostConfig.tsx` | 146 | warning: *"Never label as \"**wages**\" or \"**salary**\" — Tavara is a coordination platform..."* |
-| `src/components/shared/PlatformPositioningDisclaimer.tsx` | 63 | *"Caregiver **wages** flow as a transparent pass-through..."* |
-| `src/pages/support/FAQPage.tsx` | 33 | *"It does not cover caregiver **wages** — those flow directly..."* |
-| `src/hooks/admin/useUnitEconomics.ts` | 495 | code comment only (not user-visible) |
-| `src/hooks/admin/operatingCostFramework.ts` | 16, 98, 200 | code comments + `notes` field on training stipend item ("never as wages") |
+| File | Line | Current text | Context |
+|---|---|---|---|
+| `src/components/admin/UnitEconomicsTable.tsx` | 54 | tooltip: *"...caregiver compensation + **employer NIS** + reimbursable expenses..."* | Direct Care column header tooltip |
+| same | 177 | column header: **"Employer NIS"** | Caregiver breakdown table |
+| same | 187 | data cell value `cg.employerNis` (kept — variable name, not text) | — |
+| same | 208 | breakdown row: *"**Employer NIS**: $X"* | Layer 1 cost breakdown |
+| `src/components/care-plan/payroll/PayrollEntriesTable.tsx` | 316 | label: **"Employer NIS"** | Monthly payroll breakdown card |
+| same | 482 | label: **"Employer NIS"** | Weekly payroll breakdown card |
+| `src/components/care-plan/payroll/ProcessPaymentDialog.tsx` | 128 | label: *"**Employer NIS** (remaining):"* | Payment dialog summary |
+| `src/services/care-plans/receiptService.ts` | 206 | PDF receipt text: *"**Employer NIS** Liability: $X (not deducted from worker pay)"* | Generated PDF receipt |
 
-**What we will NOT touch** (intentional — these are correct, legal, or external):
+**What we will NOT touch** (intentional — internal/legal/code identifiers):
 
-- `src/services/care-plans/work-logs/payrollService.ts` — `getWageEarnings()` is internal NIS-API math (the official NIS classification term *is* "wages" per government rules). Renaming would misalign with NI 184/187 forms.
-- `src/services/care-plans/reports/ni184Generator.ts` — `SALARY` constant maps to the **government PDF column header** "Salary for Period". Cannot rename.
-- `src/types/jobOpportunity.ts`, `src/components/professional/JobListings.tsx`, `src/integrations/supabase/types.ts`, `src/adapters/jobOpportunityAdapter.ts`, `supabase/functions/update-job-data/index.ts` — these are about **external job listings** (employer-posted job ads with salary ranges), not Tavara caregiver compensation. Leave untouched.
-- DB columns (`gross_pay`, etc.), function names like `calculatePayrollEntry`, `payroll_entries` table, "Payroll" tab label — these are correct accounting terms, not "wages/salary".
+- `src/components/care-plan/settings/EmployerSettingsForm.tsx` lines 68, 71 — *"Employer / NIS Settings"* and *"employer NIS registration details"* refer to the **family's own employer registration with the government** (NI 184/187 filings). This is the legal employer-of-record concept, not a per-payroll cost label. Renaming would break the legal meaning.
+- `src/services/care-plans/reports/ni184Generator.ts` & `ni187Generator.ts` — official government PDF forms; column headers must match form fields exactly.
+- `src/services/care-plans/work-logs/payrollService.ts` — internal NIS calc service (variables `employerContribution`, `employer_contribution` are DB columns / API contracts).
+- `src/types/careTypes.ts` line 163 — code comment for the `EmployerSettings` interface (refers to the legal settings entity).
+- DB columns (`employer_contribution`), variable names (`employerNis`, `totalEmployerNIS`, `employerContribution`) — code identifiers, not user-visible.
+- The phrase "not deducted from worker pay" stays in the PDF receipt — important transparency for caregivers.
 
-### Replacement rules
+### Replacement rule
 
 | Old | New |
 |---|---|
-| "Caregiver Wages Pass-through" | "Caregiver Compensation Pass-through" |
-| "Caregiver wages flow as a transparent pass-through" | "Caregiver compensation flows as a transparent pass-through" |
-| "It does not cover caregiver wages" | "It does not cover caregiver compensation" |
-| tooltip "caregiver wages + employer NIS" | "caregiver compensation + employer NIS" |
-| breakdown row "Wages: $X" | "Compensation: $X" |
-| sublabel "Actual wages from payroll" | "Actual compensation from payroll" |
-| warning *"Never label as \"wages\" or \"salary\""* | *"Never label as \"wages\" or \"salary\" in caregiver-facing materials"* — keep as-is, this is a legal anti-pattern reminder *to admins*; renaming would erase the reminder's purpose. **Leave unchanged.** |
+| `Employer NIS` | `NIS Contribution (Caregiver)` |
+| `employer NIS` (mid-sentence) | `NIS contribution (caregiver)` |
 
 ### Files to edit (5)
 
-1. `src/components/admin/UnitEconomicsTable.tsx` — 4 string updates (lines 54, 127, 130, 207)
-2. `src/components/shared/PlatformPositioningDisclaimer.tsx` — 1 update (line 63)
-3. `src/pages/support/FAQPage.tsx` — 1 update (line 33)
-4. `src/hooks/admin/useUnitEconomics.ts` — 1 comment update (line 495, optional consistency)
-5. `src/hooks/admin/operatingCostFramework.ts` — 2 comment updates (lines 16, 98, optional consistency)
+1. **`src/components/admin/UnitEconomicsTable.tsx`** — 3 string updates (tooltip line 54, column header line 177, breakdown row line 208)
+2. **`src/components/care-plan/payroll/PayrollEntriesTable.tsx`** — 2 string updates (lines 316, 482)
+3. **`src/components/care-plan/payroll/ProcessPaymentDialog.tsx`** — 1 string update (line 128)
+4. **`src/services/care-plans/receiptService.ts`** — 1 string update (line 206 — PDF receipt text)
+5. *(no others)*
 
 ### Files explicitly NOT touched
-- `OperatingCostConfig.tsx` line 146 (anti-pattern reminder text — must keep "wages/salary" wording)
-- All NIS/payroll service files, NI 184/187 generators, government form constants
-- All job-opportunity files (external employer postings)
-- DB schemas, types, payroll tab labels
+- `EmployerSettingsForm.tsx`, `careTypes.ts` — refer to legal employer registration entity, not the per-pay line item
+- All `payrollService.ts`, `ni184Generator.ts`, `ni187Generator.ts` — internal math, DB columns, government form alignment
+- All variable names, DB columns, type/interface names — code identifiers untouched
 
 ### Verification after build
-1. `/admin/unit-economics` → expand a client row → breakdown shows "Compensation:" not "Wages:"
-2. `/admin/unit-economics` → tooltip on **Direct Care** column reads "caregiver compensation + employer NIS..."
-3. `/support/faq` → coordination-fee answer reads "caregiver compensation"
-4. PlatformPositioningDisclaimer (shown on multiple pages) reads "Caregiver compensation flows..."
-5. `/admin/unit-economics` → Operating Cost config still shows the "Never label as wages/salary" warning on training stipend (intentional, unchanged)
+1. `/admin/unit-economics` → expand a client row → caregiver breakdown table column reads **"NIS Contribution (Caregiver)"**, Layer 1 breakdown shows *"NIS Contribution (Caregiver): $X"*, Direct Care tooltip uses lowercase *"nis contribution (caregiver)"*
+2. Family payroll tab → monthly + weekly expanded breakdowns show **"NIS Contribution (Caregiver)"** label
+3. Process Payment dialog → reads *"NIS Contribution (Caregiver) (remaining):"*
+4. Generated payroll receipt PDF → reads *"NIS Contribution (Caregiver) Liability: $X (not deducted from worker pay)"*
+5. Payroll → NIS Reports tab → still shows **"Employer / NIS Settings"** card (intentional, legal)
 
