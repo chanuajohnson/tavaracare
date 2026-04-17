@@ -192,23 +192,70 @@ export function UnitEconomicsTable({ clients }: Props) {
                           <p className="text-sm text-muted-foreground">No payroll data for this month.</p>
                         )}
 
-                        {/* Cost Summary */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
-                          <div className="text-xs">
-                            <span className="text-muted-foreground">Employer NIS:</span>
-                            <span className="ml-1 font-medium">{fmt(client.monthlyNisCost)}</span>
+                        {/* 3-Layer Cost Breakdown */}
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-semibold">3-Layer Cost Breakdown</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="text-xs bg-background rounded p-3 border border-blue-200">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-semibold text-blue-700">Layer 1 — Direct Care</span>
+                                <span className="font-bold text-blue-700">{fmt(client.monthlyDirectCost)}</span>
+                              </div>
+                              <div className="text-[10px] text-muted-foreground space-y-0.5">
+                                <div>Wages: {fmt(client.monthlyCaregiverCost)}</div>
+                                <div>Employer NIS: {fmt(client.monthlyNisCost)}</div>
+                                <div>Expenses: {fmt(client.monthlyExpenses)}</div>
+                                <div className="italic pt-0.5">Scales 1:1 with this client</div>
+                              </div>
+                            </div>
+                            <div className="text-xs bg-background rounded p-3 border border-amber-200">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-semibold text-amber-700">Layer 2 — Care Ops</span>
+                                <span className="font-bold text-amber-700">{fmt(client.monthlyCareOpsCost)}</span>
+                              </div>
+                              <div className="text-[10px] text-muted-foreground space-y-0.5">
+                                <div>Coordination, training, oversight</div>
+                                <div>Prorated by {client.payrollWeeks} active week{client.payrollWeeks !== 1 ? 's' : ''}</div>
+                                <div className="italic pt-0.5">Per-client, controlled spend</div>
+                              </div>
+                            </div>
+                            <div className="text-xs bg-background rounded p-3 border border-purple-200">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-semibold text-purple-700">Layer 3 — Allocated Platform</span>
+                                <span className="font-bold text-purple-700">{fmt(client.monthlyAllocatedPlatformCost)}</span>
+                              </div>
+                              <div className="text-[10px] text-muted-foreground space-y-0.5">
+                                <div>Founder, software, marketing, admin</div>
+                                <div>This client's share of shared overhead</div>
+                                <div className="italic pt-0.5">Decreases as you add more clients</div>
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-xs">
-                            <span className="text-muted-foreground">Employee NIS:</span>
-                            <span className="ml-1 font-medium">{fmt(client.monthlyEmployeeNis)}</span>
+                        </div>
+
+                        {/* Marginal vs Final Profit */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                          <div className="bg-background rounded p-3 border-2 border-dashed">
+                            <div className="text-xs text-muted-foreground mb-1">
+                              👉 Marginal Profit <span className="italic">(before allocation)</span>
+                            </div>
+                            <div className={`text-lg font-bold ${client.monthlyDirectMargin >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                              {fmt(client.monthlyDirectMargin)} <span className="text-sm">({client.monthlyDirectMarginPercent}%)</span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              Revenue − Direct − Care Ops · True per-client contribution
+                            </div>
                           </div>
-                          <div className="text-xs">
-                            <span className="text-muted-foreground">Expenses:</span>
-                            <span className="ml-1 font-medium">{fmt(client.monthlyExpenses)}</span>
-                          </div>
-                          <div className="text-xs">
-                            <span className="text-muted-foreground">Operating ({client.payrollWeeks} wks × {fmt(client.weeklyOperatingCost)}):</span>
-                            <span className="ml-1 font-medium">{fmt(client.monthlyOperatingCost)}</span>
+                          <div className="bg-background rounded p-3 border-2 border-primary/40">
+                            <div className="text-xs text-muted-foreground mb-1">
+                              👉 Final Profit <span className="italic">(after platform allocation)</span>
+                            </div>
+                            <div className={`text-lg font-bold ${client.monthlyMargin >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                              {fmt(client.monthlyMargin)} <span className="text-sm">({client.marginPercent}%)</span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              After absorbing share of platform overhead
+                            </div>
                           </div>
                         </div>
                       </div>
