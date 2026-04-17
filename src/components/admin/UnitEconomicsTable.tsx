@@ -118,7 +118,9 @@ export function UnitEconomicsTable({ clients }: Props) {
                                 {fmt(client.monthlySubscriptionRevenue)}/mo
                               </span>
                               <span className="text-muted-foreground block text-[10px]">
-                                {client.subscriptionPlan} — {fmt(client.weeklyOperatingCost > 0 ? client.monthlySubscriptionRevenue / client.payrollWeeks : 0)}/wk × {client.payrollWeeks} weeks
+                                {client.subscriptionCadence === 'monthly_flat'
+                                  ? `${client.subscriptionPlan} — ${fmt(client.monthlySubscriptionRevenue)} flat monthly`
+                                  : `${client.subscriptionPlan} — ${fmt(client.payrollWeeks > 0 ? client.monthlySubscriptionRevenue / client.payrollWeeks : 0)}/wk × ${client.payrollWeeks} weeks`}
                               </span>
                             </div>
                             <div className="text-xs bg-background rounded p-2 border">

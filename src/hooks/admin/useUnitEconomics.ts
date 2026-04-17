@@ -51,6 +51,7 @@ export interface ClientEconomics {
   familyId: string;
   familyName: string;
   subscriptionPlan: string;
+  subscriptionCadence: 'weekly' | 'monthly_flat' | 'none';
   // Payroll month info
   payrollWeeks: number;
   periodStart: string;
@@ -110,16 +111,35 @@ export interface UnitEconomicsSummary {
   avgDirectMarginPercent: number;
 }
 
-function getWeeklySubscriptionRevenue(planName: string | null, price: number | null): number {
-  if (!planName || !price) return 0;
+export type SubscriptionCadence = 'weekly' | 'monthly_flat' | 'none';
+
+export interface ResolvedSubscriptionRevenue {
+  weeklyRevenue: number;
+  monthlyFlat: number | null;
+  cadence: SubscriptionCadence;
+}
+
+function resolveSubscriptionRevenue(planName: string | null, price: number | null): ResolvedSubscriptionRevenue {
+  if (!planName || !price) return { weeklyRevenue: 0, monthlyFlat: null, cadence: 'none' };
   const name = planName.toLowerCase().trim();
-  if (name === 'basic' || name === 'free' || name.includes('basic') || name.includes('free')) return 0;
-  // Legacy "Family Care" plan: $499 is a flat MONTHLY rate, not weekly
-  if (name === 'family care') return Math.round((price / 4.33) * 100) / 100;
-  if (name.includes('premium')) return 899;
-  if (name.includes('care') || name.includes('active')) return 699;
-  if (price > 200) return Math.round((price / 4.33) * 100) / 100;
-  return price;
+  if (name === 'basic' || name === 'free' || name.includes('basic') || name.includes('free')) {
+    return { weeklyRevenue: 0, monthlyFlat: null, cadence: 'none' };
+  }
+  // Legacy "Family Care" plan: $499 is a flat MONTHLY rate — billed once/month if active
+  if (name === 'family care') {
+    return { weeklyRevenue: 0, monthlyFlat: price, cadence: 'monthly_flat' };
+  }
+  if (name.includes('premium')) {
+    return { weeklyRevenue: 899, monthlyFlat: null, cadence: 'weekly' };
+  }
+  if (name.includes('care') || name.includes('active')) {
+    return { weeklyRevenue: 699, monthlyFlat: null, cadence: 'weekly' };
+  }
+  // Generic: prices > $200 assumed monthly flat; otherwise treat as weekly
+  if (price > 200) {
+    return { weeklyRevenue: 0, monthlyFlat: price, cadence: 'monthly_flat' };
+  }
+  return { weeklyRevenue: price, monthlyFlat: null, cadence: 'weekly' };
 }
 
 /**
@@ -432,7 +452,8 @@ export function useUnitEconomics(selectedMonth: string, scenarioClientCount?: nu
         });
 
         const sub = subMap[cp.family_id];
-        const weeklySubRevenue = sub ? getWeeklySubscriptionRevenue(sub.planName, sub.price) : 0;
+        const subInfo = sub ? resolveSubscriptionRevenue(sub.planName, sub.price) : { weeklyRevenue: 0, monthlyFlat: null, cadence: 'none' as SubscriptionCadence };
+        const weeklySubRevenue = subInfo.weeklyRevenue;
 
         const cpServices = serviceSelectionsArr.filter((s: any) => s.care_plan_id === cp.id);
         const serviceBreakdown: ServiceRevenueItem[] = [];
@@ -465,7 +486,10 @@ export function useUnitEconomics(selectedMonth: string, scenarioClientCount?: nu
 
         monthlyServiceRevenue = Math.round(monthlyServiceRevenue * 100) / 100;
         const monthlyCaregiverFees = Math.round(totalCaregiverCost * 100) / 100;
-        const monthlySubRevenue = Math.round(weeklySubRevenue * payrollWeeks * 100) / 100;
+        // Flat-monthly subs: bill once/month if active. Weekly subs: prorate by ISO weeks active.
+        const monthlySubRevenue = subInfo.cadence === 'monthly_flat'
+          ? (payrollWeeks > 0 ? Math.round((subInfo.monthlyFlat ?? 0) * 100) / 100 : 0)
+          : Math.round(weeklySubRevenue * payrollWeeks * 100) / 100;
         const monthlyRevenue = monthlySubRevenue + monthlyCaregiverFees + monthlyServiceRevenue;
 
         // Layer 1 — Direct Care Costs (caregiver wages + employer NIS + reimbursable expenses)
@@ -489,6 +513,7 @@ export function useUnitEconomics(selectedMonth: string, scenarioClientCount?: nu
           familyId: cp.family_id,
           familyName: profilesMap[cp.family_id] || 'Unknown',
           subscriptionPlan: friendlyPlanLabel(sub?.planName),
+          subscriptionCadence: subInfo.cadence,
           payrollWeeks,
           periodStart: earliestDate ? format(earliestDate, 'MMM d, yyyy') : '',
           periodEnd: latestWeekEnd ? format(latestWeekEnd, 'MMM d, yyyy') : '',
