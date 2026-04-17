@@ -1,87 +1,73 @@
 
 
-## Plan: Group "Direct Care" + "Care Ops" under a "Care Delivery Cost" parent label
+## Plan: Date-range picker for receipts + remove all "Pay" language → "Care"
 
-### Where the grouping will appear (3 locations)
+### Part A — User-selectable week/month for receipts
 
-**Location 1 — Operating Cost Framework configurator** (`OperatingCostConfig.tsx`)
-Currently has 2 sibling section headers:
-- A. Care Operations (Per Client) — amber
-- B. Platform & Shared Overhead (Distributed) — purple
+The previous plan picked the week/month based on the row you clicked. You want to **choose** which week or month explicitly.
 
-Change: introduce a parent wrapper section **"Care Delivery Cost"** that visually contains Direct Care + Care Ops as sub-sections, while Platform & Shared Overhead stays a sibling, fully separate.
-
-**Location 2 — Per-Client Economics table** (`UnitEconomicsTable.tsx`)
-Currently has 3 separate cost columns: `Direct Care | Care Ops | Allocated Ops`.
-Change: add a top-tier grouped header row spanning the first two columns labeled **"Care Delivery Cost"**, leave "Allocated Ops" / "Allocated Platform" as a separate group.
-
-**Location 3 — 3-Layer Cost Breakdown card** inside the expanded row (same file).
-Currently 3 equal cards: Layer 1 / Layer 2 / Layer 3.
-Change: wrap Layer 1 + Layer 2 in a tinted container labeled **"Care Delivery Cost"**, with Layer 3 (Allocated Platform) outside it.
-
-### Components to update (2 files only)
-
-1. `src/components/admin/OperatingCostConfig.tsx` — wrap section A in a parent block, add a new "Direct Care" sub-section header above it (currently no Direct Care category exists in the framework — costs come from payroll — so this stays as a labeled placeholder note: *"Direct Care costs (caregiver compensation + NIS) flow from care payments — see Per-Client Economics."*)
-2. `src/components/admin/UnitEconomicsTable.tsx` — add grouped `<colgroup>`-style header row spanning Direct Care + Care Ops; tint-wrap Layer 1 + Layer 2 cards.
-
-### Before vs After structure
-
-**Before — OperatingCostConfig:**
-```text
-Operating Cost Framework
-├── A. Care Operations (Per Client)         [amber]
-│   └── Care Operations category
-└── B. Platform & Shared Overhead           [purple]
-    └── Software, Devices, Founder, etc.
+**New UX in `WorkLogActions.tsx`** — replace the single Receipt icon with a dropdown:
+```
+[ 📄 ▾ ]
+   ├─ Daily Care Receipt (this shift)
+   ├─ Weekly Care Receipt…        → opens week picker dialog
+   ├─ Monthly Care Receipt…       → opens month picker dialog
+   └─ Custom Date Range…          → opens from/to picker dialog
 ```
 
-**After — OperatingCostConfig:**
-```text
-Operating Cost Framework
-├── ▼ Care Delivery Cost  (parent, neutral border)
-│   ├── A1. Direct Care (per client, from care payments)   [blue note]
-│   │   └── ℹ Caregiver compensation + NIS — flows from care payments
-│   └── A2. Care Operations (per client)                    [amber]
-│       └── Care Operations category
-└── ▼ Platform & Shared Overhead (Distributed)              [purple]
-    └── Software, Devices, Founder, etc.
+**New component**: `src/components/care-plan/payroll/ReceiptRangePickerDialog.tsx`
+- Mode = `week` | `month` | `custom`
+- **Week mode**: shadcn `Calendar` in single-date mode; auto-snaps to the ISO week (Mon–Sun) of the picked date and shows a preview (e.g. "Apr 13 – Apr 19, 2026"). Defaults to the row's week.
+- **Month mode**: native month/year selector (Select for month + Select for year); shows preview (e.g. "April 2026"). Defaults to the row's month.
+- **Custom mode**: shadcn `Calendar` in `range` mode (from + to).
+- Footer shows: caregiver name, count of work logs that fall in range, total hours, total amount preview.
+- Buttons: **Cancel** | **Generate Care Receipt**.
+
+**Wiring** (`WorkLogsTable.tsx`):
+- Add `handleOpenRangeDialog(workLog, mode)` → opens dialog with caregiver context.
+- On confirm → filters `workLogs` by `care_team_member_id` + `start_time ∈ [from, to]` (excludes rejected) → calls new service.
+- 0 logs → toast warning. 1 log → falls back to single receipt. ≥2 → consolidated receipt.
+
+**New service function** in `receiptService.ts`:
+```ts
+generateConsolidatedWorkLogsReceipt(
+  workLogs: WorkLog[],
+  opts: { from: Date; to: Date; label: string }  // e.g. "Weekly", "Monthly", "Apr 1–10"
+): Promise<string>
 ```
+Mirrors existing `generateConsolidatedReceiptContent` but for `WorkLog[]`. Per-day breakdown table + totals.
 
-**Before — UnitEconomicsTable header:**
-```text
-| Client | Plan | Revenue | Direct Care | Care Ops | Allocated Ops | Total | Margin | Status |
-```
+### Part B — Rename "Pay" → "Care" everywhere user-facing
 
-**After — UnitEconomicsTable header (2-row grouped):**
-```text
-|        |      |         |   Care Delivery Cost    |  Platform   |       |        |        |
-| Client | Plan | Revenue | Direct Care | Care Ops  | Allocated   | Total | Margin | Status |
-```
+Confirmed audit (case-insensitive search of `src/`):
 
-**Before — expanded 3-Layer Cost Breakdown:**
-```text
-[ Layer 1 — Direct Care ] [ Layer 2 — Care Ops ] [ Layer 3 — Allocated Platform ]
-```
+| File | Line | Current | New |
+|---|---|---|---|
+| `receiptService.ts` | 78 | `'Pay Receipt'` (PDF title) | `'Care Receipt'` |
+| `receiptService.ts` | 144 | `'Gross Pay'` (footer row) | `'Gross Amount'` |
+| `receiptService.ts` | 151 | `'Net Pay After NIS'` | `'Net Amount After NIS'` |
+| `receiptService.ts` | 245 | `'Consolidated Pay Receipt'` | `'Consolidated Care Receipt'` |
+| `WorkLogActions.tsx` | (button title) | `"Generate Receipt"` | `"Generate Care Receipt"` |
+| Any tooltip mentioning "pay receipt" | — | rename to "care receipt" | |
 
-**After:**
-```text
-┌─ Care Delivery Cost ──────────────────────────────┐  ┌─ Allocated Platform ─┐
-│ [ Layer 1 — Direct Care ] [ Layer 2 — Care Ops ]  │  │ [ Layer 3 ]          │
-└───────────────────────────────────────────────────┘  └──────────────────────┘
-```
+**Out of scope (kept, by your prior rules)**:
+- ❌ `pay_period_start`, `pay_period_end`, `payment_status` — DB columns, internal only, NOT renamed
+- ❌ `PayrollEntry` type name — internal, NOT renamed
+- ❌ "Care Payments" tab label — already correctly named in prior loop
+- ❌ "Caregiver Compensation Pass-through" — line item in Unit Economics, untouched
+- ❌ Net pay/gross pay terminology in payroll DB or NIS gov forms (NI 184/187 are statutory) — untouched
 
-### What stays unchanged (per your instructions)
+### Files to change (5)
 
-- ✅ "Direct Care" line item label — kept
-- ✅ "Care Ops" / "Care Operations" label — kept
-- ✅ "Caregiver Compensation Pass-through" — kept
-- ✅ "NIS Contribution (Caregiver)" — kept
-- ✅ Platform & Operations remains its own separate section
-- ❌ No "staff" or "salary" language introduced anywhere
-- ❌ No DB columns, hooks, or framework keys renamed
-- ❌ No changes to summary cards at top of page (Layer 1 / Layer 2 / Layer 3 mini-stats keep their current labels — only the table & framework get the parent grouping)
+1. `src/components/care-plan/payroll/table/WorkLogActions.tsx` — replace icon button with `DropdownMenu` (4 items); add `onGenerateRangeReceipt(workLog, 'week'|'month'|'custom')` prop; update button title.
+2. `src/components/care-plan/payroll/table/WorkLogTableRow.tsx` — forward new prop.
+3. `src/components/care-plan/payroll/WorkLogsTable.tsx` — add range-dialog state + filter handler; mount new dialog; wire to existing `ShareReceiptDialog`.
+4. `src/components/care-plan/payroll/ReceiptRangePickerDialog.tsx` — **NEW**. Week/Month/Custom date selection with live preview of matching logs.
+5. `src/services/care-plans/receiptService.ts` — add `generateConsolidatedWorkLogsReceipt` + rename "Pay" → "Care"/"Amount" in user-facing PDF strings only.
 
-### Tooltip copy for the new "Care Delivery Cost" header
+### Out of scope
 
-> "Care Delivery Cost = the total cost of delivering care for this client (Direct Care + Care Ops). Excludes shared platform overhead, which is allocated separately."
+- "Care Payments" tab name and other already-renamed labels stay.
+- DB columns and statutory NIS form labels stay.
+- No bulk "all caregivers" receipt at this time.
 
