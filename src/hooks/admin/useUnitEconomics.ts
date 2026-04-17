@@ -485,7 +485,10 @@ export function useUnitEconomics(selectedMonth: string, scenarioClientCount?: nu
 
         monthlyServiceRevenue = Math.round(monthlyServiceRevenue * 100) / 100;
         const monthlyCaregiverFees = Math.round(totalCaregiverCost * 100) / 100;
-        const monthlySubRevenue = Math.round(weeklySubRevenue * payrollWeeks * 100) / 100;
+        // Flat-monthly subs: bill once/month if active. Weekly subs: prorate by ISO weeks active.
+        const monthlySubRevenue = subInfo.cadence === 'monthly_flat'
+          ? (payrollWeeks > 0 ? Math.round((subInfo.monthlyFlat ?? 0) * 100) / 100 : 0)
+          : Math.round(weeklySubRevenue * payrollWeeks * 100) / 100;
         const monthlyRevenue = monthlySubRevenue + monthlyCaregiverFees + monthlyServiceRevenue;
 
         // Layer 1 — Direct Care Costs (caregiver wages + employer NIS + reimbursable expenses)
