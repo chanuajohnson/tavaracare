@@ -15,10 +15,14 @@ import {
   normalizeToWeekly,
   categoryWeeklyTotal,
   frameworkWeeklyTotal,
+  weeklyByLayer,
+  getCategoryLayer,
   addCustomItem,
   removeItem,
   CATEGORY_HINTS,
 } from '@/hooks/admin/operatingCostFramework';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Wrench, Building2, HelpCircle } from 'lucide-react';
 
 interface Props {
   framework: CostCategory[];
