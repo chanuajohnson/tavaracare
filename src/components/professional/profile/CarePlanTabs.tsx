@@ -3,13 +3,14 @@ import { HorizontalTabs, HorizontalTabsList, HorizontalTabsTrigger, HorizontalTa
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Pill, ChefHat, Shield, FileText, Upload, Settings, ClipboardList } from "lucide-react";
+import { Calendar, Pill, ChefHat, Shield, FileText, Upload, Settings, ClipboardList, Receipt } from "lucide-react";
 import { ProfessionalScheduleView } from "@/components/professional/ProfessionalScheduleView";
 import { MedicationDashboard } from "@/components/professional/MedicationDashboard";
 import { CarePlanMealPlanner } from "@/components/meal-planning/CarePlanMealPlanner";
 import { CertificateUpload } from "@/components/professional/CertificateUpload";
 import { DocumentManager } from "@/components/professional/DocumentManager";
 import { ProfessionalReferencesForm } from "@/components/professional/ProfessionalReferencesForm";
+import { ProfessionalPayrollView } from "@/components/professional/profile/ProfessionalPayrollView";
 
 interface CarePlanTabsProps {
   activeTab: string;
@@ -35,6 +36,11 @@ export const CarePlanTabs = ({
       value: "schedule",
       icon: Calendar,
       label: "Schedule"
+    },
+    {
+      value: "care-payments",
+      icon: Receipt,
+      label: "Care Payments"
     },
     {
       value: "medications", 
@@ -67,7 +73,7 @@ export const CarePlanTabs = ({
   ];
 
   const tabsToShow = showCarePlanTabs ? [...carePlanTabs, ...adminTabs] : adminTabs;
-  const gridCols = showCarePlanTabs ? "grid-cols-6" : "grid-cols-3";
+  const gridCols = showCarePlanTabs ? "grid-cols-7" : "grid-cols-3";
 
   return (
     <HorizontalTabs value={activeTab} onValueChange={onTabChange} className="w-full">
@@ -105,6 +111,13 @@ export const CarePlanTabs = ({
                 />
               </CardContent>
             </Card>
+          </HorizontalTabsContent>
+
+          <HorizontalTabsContent value="care-payments" className="space-y-6">
+            <ProfessionalPayrollView
+              carePlanId={selectedCarePlanId}
+              carePlanTitle={selectedCarePlan?.carePlan?.title}
+            />
           </HorizontalTabsContent>
 
           <HorizontalTabsContent value="medications" className="space-y-6">
