@@ -1,34 +1,87 @@
 
 
-## Finding: No "Staff Cost" copy exists
+## Plan: Group "Direct Care" + "Care Ops" under a "Care Delivery Cost" parent label
 
-I searched the entire `src/` codebase (case-insensitive) for:
-- "staff cost" / "Staff Cost" / "staff_cost" / "staffCost" / "StaffCost"
-- the broader word "staff"
+### Where the grouping will appear (3 locations)
 
-**Result: zero matches** for any cost-related "staff" terminology.
+**Location 1 — Operating Cost Framework configurator** (`OperatingCostConfig.tsx`)
+Currently has 2 sibling section headers:
+- A. Care Operations (Per Client) — amber
+- B. Platform & Shared Overhead (Distributed) — purple
 
-The only hit for the word "staff" at all is in `src/constants/flyerCategories.ts` line 17 — a marketing flyer category description ("Retirement Homes — *Staff & visiting families*"). This is unrelated to cost labels and should not be renamed.
+Change: introduce a parent wrapper section **"Care Delivery Cost"** that visually contains Direct Care + Care Ops as sub-sections, while Platform & Shared Overhead stays a sibling, fully separate.
 
-### Likely terms you may have meant
+**Location 2 — Per-Client Economics table** (`UnitEconomicsTable.tsx`)
+Currently has 3 separate cost columns: `Direct Care | Care Ops | Allocated Ops`.
+Change: add a top-tier grouped header row spanning the first two columns labeled **"Care Delivery Cost"**, leave "Allocated Ops" / "Allocated Platform" as a separate group.
 
-The Unit Economics dashboard and related copy use these labels for caregiver/operating costs (already renamed in prior loops):
+**Location 3 — 3-Layer Cost Breakdown card** inside the expanded row (same file).
+Currently 3 equal cards: Layer 1 / Layer 2 / Layer 3.
+Change: wrap Layer 1 + Layer 2 in a tinted container labeled **"Care Delivery Cost"**, with Layer 3 (Allocated Platform) outside it.
 
-| Current label | Where | Already covered by prior rename? |
-|---|---|---|
-| "Direct Care" / "Direct Care Cost" (Layer 1) | UnitEconomicsTable, UnitEconomicsPage | — |
-| "Care Ops" / "Care Operations" (Layer 2) | OperatingCostConfig, framework | — |
-| "Caregiver Compensation Pass-through" | UnitEconomicsTable | ✅ renamed from "Wages" |
-| "NIS Contribution (Caregiver)" | UnitEconomicsTable, payroll | ✅ renamed from "Employer NIS" |
-| "Care Payments" | Payroll tab/table | ✅ renamed from "Payroll" |
+### Components to update (2 files only)
 
-### Recommended next step
+1. `src/components/admin/OperatingCostConfig.tsx` — wrap section A in a parent block, add a new "Direct Care" sub-section header above it (currently no Direct Care category exists in the framework — costs come from payroll — so this stays as a labeled placeholder note: *"Direct Care costs (caregiver compensation + NIS) flow from care payments — see Per-Client Economics."*)
+2. `src/components/admin/UnitEconomicsTable.tsx` — add grouped `<colgroup>`-style header row spanning Direct Care + Care Ops; tint-wrap Layer 1 + Layer 2 cards.
 
-Please confirm which label you want renamed to **"Care Delivery Cost"**. Best candidates:
+### Before vs After structure
 
-1. **"Direct Care"** (Layer 1 column header + summary card "Direct Care/mo (Layer 1)") → *"Care Delivery Cost"*
-2. **"Care Ops"** (Layer 2) → less likely, this is operations not direct delivery
-3. Some other phrase you saw on a specific screen — if so, please share the screen/screenshot
+**Before — OperatingCostConfig:**
+```text
+Operating Cost Framework
+├── A. Care Operations (Per Client)         [amber]
+│   └── Care Operations category
+└── B. Platform & Shared Overhead           [purple]
+    └── Software, Devices, Founder, etc.
+```
 
-Once you confirm which term, I'll produce a precise file-by-file rename plan (same format as the previous Wages / Employer NIS / Payroll renames).
+**After — OperatingCostConfig:**
+```text
+Operating Cost Framework
+├── ▼ Care Delivery Cost  (parent, neutral border)
+│   ├── A1. Direct Care (per client, from care payments)   [blue note]
+│   │   └── ℹ Caregiver compensation + NIS — flows from care payments
+│   └── A2. Care Operations (per client)                    [amber]
+│       └── Care Operations category
+└── ▼ Platform & Shared Overhead (Distributed)              [purple]
+    └── Software, Devices, Founder, etc.
+```
+
+**Before — UnitEconomicsTable header:**
+```text
+| Client | Plan | Revenue | Direct Care | Care Ops | Allocated Ops | Total | Margin | Status |
+```
+
+**After — UnitEconomicsTable header (2-row grouped):**
+```text
+|        |      |         |   Care Delivery Cost    |  Platform   |       |        |        |
+| Client | Plan | Revenue | Direct Care | Care Ops  | Allocated   | Total | Margin | Status |
+```
+
+**Before — expanded 3-Layer Cost Breakdown:**
+```text
+[ Layer 1 — Direct Care ] [ Layer 2 — Care Ops ] [ Layer 3 — Allocated Platform ]
+```
+
+**After:**
+```text
+┌─ Care Delivery Cost ──────────────────────────────┐  ┌─ Allocated Platform ─┐
+│ [ Layer 1 — Direct Care ] [ Layer 2 — Care Ops ]  │  │ [ Layer 3 ]          │
+└───────────────────────────────────────────────────┘  └──────────────────────┘
+```
+
+### What stays unchanged (per your instructions)
+
+- ✅ "Direct Care" line item label — kept
+- ✅ "Care Ops" / "Care Operations" label — kept
+- ✅ "Caregiver Compensation Pass-through" — kept
+- ✅ "NIS Contribution (Caregiver)" — kept
+- ✅ Platform & Operations remains its own separate section
+- ❌ No "staff" or "salary" language introduced anywhere
+- ❌ No DB columns, hooks, or framework keys renamed
+- ❌ No changes to summary cards at top of page (Layer 1 / Layer 2 / Layer 3 mini-stats keep their current labels — only the table & framework get the parent grouping)
+
+### Tooltip copy for the new "Care Delivery Cost" header
+
+> "Care Delivery Cost = the total cost of delivering care for this client (Direct Care + Care Ops). Excludes shared platform overhead, which is allocated separately."
 
