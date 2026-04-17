@@ -10,19 +10,26 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import useReceiptFormat from "@/hooks/payroll/useReceiptFormat";
 import type { WorkLog, PayrollEntry } from '@/services/care-plans/types/workLogTypes';
 import { Skeleton } from "@/components/ui/skeleton";
+import { buildReceiptFilename } from '@/utils/receiptFilename';
 
 interface ShareReceiptDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   receiptUrl: string | null;
   workLog: WorkLog | PayrollEntry | null;
+  caregiverName?: string;
+  rangeStart?: Date | null;
+  rangeEnd?: Date | null;
 }
 
 export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
   open,
   onOpenChange,
   receiptUrl,
-  workLog
+  workLog,
+  caregiverName,
+  rangeStart,
+  rangeEnd,
 }) => {
   const [email, setEmail] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
@@ -52,9 +59,36 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       // Use the Blob object and createObjectURL for more reliable downloading
       const blobUrl = URL.createObjectURL(blob);
       
+      // Determine start/end dates for filename
+      let startDate: Date;
+      let endDate: Date | null = null;
+      if (rangeStart) {
+        startDate = rangeStart;
+        endDate = rangeEnd ?? null;
+      } else if ('start_time' in workLog && workLog.start_time) {
+        startDate = new Date(workLog.start_time);
+      } else if ('pay_period_start' in workLog && workLog.pay_period_start) {
+        startDate = new Date(workLog.pay_period_start);
+        if ('pay_period_end' in workLog && workLog.pay_period_end) {
+          endDate = new Date(workLog.pay_period_end);
+        }
+      } else {
+        startDate = new Date();
+      }
+
+      const resolvedCaregiverName =
+        caregiverName ?? ('caregiver_name' in workLog ? workLog.caregiver_name : undefined);
+
+      const filename = buildReceiptFilename({
+        caregiverName: resolvedCaregiverName,
+        startDate,
+        endDate,
+        extension: 'pdf',
+      });
+
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = `receipt-${workLog.id.slice(0, 8)}.pdf`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       

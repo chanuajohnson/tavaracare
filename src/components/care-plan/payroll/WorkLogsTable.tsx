@@ -53,6 +53,9 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [currentWorkLog, setCurrentWorkLog] = useState<WorkLog | null>(null);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [receiptRangeStart, setReceiptRangeStart] = useState<Date | null>(null);
+  const [receiptRangeEnd, setReceiptRangeEnd] = useState<Date | null>(null);
+  const [receiptCaregiverName, setReceiptCaregiverName] = useState<string | undefined>(undefined);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkRejectOpen, setBulkRejectOpen] = useState(false);
   const [bulkRejectReason, setBulkRejectReason] = useState('');
@@ -122,6 +125,9 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
       const url = await generatePayReceipt(workLog);
       setReceiptUrl(url);
       setCurrentWorkLog(workLog);
+      setReceiptRangeStart(workLog.start_time ? new Date(workLog.start_time) : null);
+      setReceiptRangeEnd(null);
+      setReceiptCaregiverName(workLog.caregiver_name);
       setShareDialogOpen(true);
     } catch (error) {
       console.error("Error generating receipt:", error);
@@ -152,6 +158,9 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
       }
       setReceiptUrl(url);
       setCurrentWorkLog(rangeAnchor);
+      setReceiptRangeStart(range.from);
+      setReceiptRangeEnd(range.to);
+      setReceiptCaregiverName(rangeAnchor?.caregiver_name ?? filteredLogs[0]?.caregiver_name);
       setRangeDialogOpen(false);
       setShareDialogOpen(true);
     } catch (error) {
@@ -223,6 +232,9 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
         onOpenChange={setShareDialogOpen}
         receiptUrl={receiptUrl}
         workLog={currentWorkLog}
+        caregiverName={receiptCaregiverName}
+        rangeStart={receiptRangeStart}
+        rangeEnd={receiptRangeEnd}
       />
 
       <ReceiptRangePickerDialog
