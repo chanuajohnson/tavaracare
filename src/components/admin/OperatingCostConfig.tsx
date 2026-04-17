@@ -363,29 +363,64 @@ export function OperatingCostConfig({ framework, onChange }: Props) {
           </span>
         </div>
 
-        {/* Section A — Care Operations (Per Client) */}
-        {careOpsCats.length > 0 && (
-          <div className="space-y-2 pt-1">
-            <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded px-3 py-2">
+        {/* Parent group — Care Delivery Cost (wraps Direct Care + Care Ops) */}
+        <div className="space-y-2 pt-1 border-2 border-foreground/15 rounded-lg p-3 bg-muted/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold tracking-tight">Care Delivery Cost</h3>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" className="text-muted-foreground"><HelpCircle className="h-3.5 w-3.5" /></button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs">
+                  Care Delivery Cost = the total cost of delivering care for this client (Direct Care + Care Ops). Excludes shared platform overhead, which is allocated separately.
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <span className="text-[11px] text-muted-foreground">Total cost of delivering care per client</span>
+          </div>
+
+          {/* A1 — Direct Care (per client, from care payments) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded px-3 py-2">
               <div className="flex items-center gap-2">
-                <Wrench className="h-4 w-4 text-amber-700" />
-                <h3 className="text-sm font-bold text-amber-900">A. Care Operations (Per Client)</h3>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button type="button" className="text-amber-700"><HelpCircle className="h-3.5 w-3.5" /></button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs text-xs">
-                    Scales per client — coordination, training, oversight. Each client absorbs their full share each week they're active.
-                  </TooltipContent>
-                </Tooltip>
+                <Info className="h-4 w-4 text-blue-700" />
+                <h4 className="text-sm font-bold text-blue-900">A1. Direct Care (Per Client)</h4>
               </div>
-              <Badge variant="outline" className="border-amber-300 text-amber-800 text-xs">
-                {fmt(layered.careOps)}/wk subtotal
+              <Badge variant="outline" className="border-blue-300 text-blue-800 text-[10px]">
+                from care payments
               </Badge>
             </div>
-            {careOpsCats.map(cat => <React.Fragment key={cat.key}>{renderCategory(cat)}</React.Fragment>)}
+            <div className="text-[11px] text-blue-900 bg-blue-50/50 border border-dashed border-blue-200 rounded px-3 py-2">
+              ℹ Direct Care costs (caregiver compensation + NIS contribution) flow from logged care payments, not configured here.
+              See <strong>Per-Client Economics</strong> below for actual per-client values.
+            </div>
           </div>
-        )}
+
+          {/* A2 — Care Operations (Per Client) */}
+          {careOpsCats.length > 0 && (
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <Wrench className="h-4 w-4 text-amber-700" />
+                  <h4 className="text-sm font-bold text-amber-900">A2. Care Operations (Per Client)</h4>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="text-amber-700"><HelpCircle className="h-3.5 w-3.5" /></button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs text-xs">
+                      Scales per client — coordination, training, oversight. Each client absorbs their full share each week they're active.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Badge variant="outline" className="border-amber-300 text-amber-800 text-xs">
+                  {fmt(layered.careOps)}/wk subtotal
+                </Badge>
+              </div>
+              {careOpsCats.map(cat => <React.Fragment key={cat.key}>{renderCategory(cat)}</React.Fragment>)}
+            </div>
+          )}
+        </div>
 
         {/* Section B — Platform & Shared Overhead (Distributed) */}
         {platformCats.length > 0 && (

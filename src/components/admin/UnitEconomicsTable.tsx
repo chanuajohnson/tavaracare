@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChevronDown, ChevronRight, TrendingUp, TrendingDown, AlertTriangle, CalendarDays } from 'lucide-react';
+import { ChevronDown, ChevronRight, TrendingUp, TrendingDown, AlertTriangle, CalendarDays, HelpCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ClientEconomics } from '@/hooks/admin/useUnitEconomics';
+
+const CARE_DELIVERY_TOOLTIP =
+  'Care Delivery Cost = the total cost of delivering care for this client (Direct Care + Care Ops). Excludes shared platform overhead, which is allocated separately.';
 
 interface Props {
   clients: ClientEconomics[];
@@ -43,17 +47,42 @@ export function UnitEconomicsTable({ clients }: Props) {
   }
 
   return (
+    <TooltipProvider>
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
+          {/* Top-tier grouped header row */}
+          <TableRow className="hover:bg-transparent border-b-0">
+            <TableHead className="w-8 h-8 p-0"></TableHead>
+            <TableHead className="h-8 p-0"></TableHead>
+            <TableHead className="h-8 p-0"></TableHead>
+            <TableHead className="h-8 p-0"></TableHead>
+            <TableHead colSpan={2} className="h-8 px-2 text-center bg-muted/40 border-x border-foreground/10 rounded-t">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-foreground/80">
+                Care Delivery Cost
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="text-muted-foreground"><HelpCircle className="h-3 w-3" /></button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs">{CARE_DELIVERY_TOOLTIP}</TooltipContent>
+                </Tooltip>
+              </span>
+            </TableHead>
+            <TableHead className="h-8 px-2 text-center bg-purple-50/60 border-x border-purple-200 rounded-t">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-purple-800">Platform</span>
+            </TableHead>
+            <TableHead className="h-8 p-0"></TableHead>
+            <TableHead className="h-8 p-0"></TableHead>
+            <TableHead className="h-8 p-0"></TableHead>
+          </TableRow>
           <TableRow>
             <TableHead className="w-8"></TableHead>
             <TableHead>Client</TableHead>
             <TableHead>Plan</TableHead>
             <TableHead className="text-right">Revenue/mo</TableHead>
-            <TableHead className="text-right" title="Direct Care Costs: caregiver compensation + NIS contribution (caregiver) + reimbursable expenses (scales 1:1 with this client)">Direct Care</TableHead>
-            <TableHead className="text-right" title="Care Operations: per-client coordination, training, oversight (prorated by weeks active)">Care Ops</TableHead>
-            <TableHead className="text-right" title="Allocated Ops: this client's share of platform overhead (total platform cost ÷ active clients). Decreases as you scale.">Allocated Ops</TableHead>
+            <TableHead className="text-right bg-muted/20" title="Direct Care Costs: caregiver compensation + NIS contribution (caregiver) + reimbursable expenses (scales 1:1 with this client)">Direct Care</TableHead>
+            <TableHead className="text-right bg-muted/20" title="Care Operations: per-client coordination, training, oversight (prorated by weeks active)">Care Ops</TableHead>
+            <TableHead className="text-right bg-purple-50/40" title="Allocated Ops: this client's share of platform overhead (total platform cost ÷ active clients). Decreases as you scale.">Allocated Ops</TableHead>
             <TableHead className="text-right">Total Cost/mo</TableHead>
             <TableHead className="text-right">Margin</TableHead>
             <TableHead>Status</TableHead>
@@ -83,9 +112,9 @@ export function UnitEconomicsTable({ clients }: Props) {
                     )}
                   </TableCell>
                   <TableCell className="text-right font-medium">{fmt(client.monthlyRevenue)}</TableCell>
-                  <TableCell className="text-right text-blue-700">{fmt(client.monthlyDirectCost)}</TableCell>
-                  <TableCell className="text-right text-amber-700">{fmt(client.monthlyCareOpsCost)}</TableCell>
-                  <TableCell className="text-right text-purple-700">{fmt(client.monthlyAllocatedPlatformCost)}</TableCell>
+                  <TableCell className="text-right text-blue-700 bg-muted/20">{fmt(client.monthlyDirectCost)}</TableCell>
+                  <TableCell className="text-right text-amber-700 bg-muted/20">{fmt(client.monthlyCareOpsCost)}</TableCell>
+                  <TableCell className="text-right text-purple-700 bg-purple-50/40">{fmt(client.monthlyAllocatedPlatformCost)}</TableCell>
                   <TableCell className="text-right font-medium">{fmt(client.monthlyTotalCost)}</TableCell>
                   <TableCell className="text-right">
                     <MarginCell value={client.monthlyMargin} percent={client.marginPercent} />
@@ -197,39 +226,66 @@ export function UnitEconomicsTable({ clients }: Props) {
                         {/* 3-Layer Cost Breakdown */}
                         <div className="space-y-2">
                           <h4 className="text-sm font-semibold">3-Layer Cost Breakdown</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div className="text-xs bg-background rounded p-3 border border-blue-200">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="font-semibold text-blue-700">Layer 1 — Direct Care</span>
-                                <span className="font-bold text-blue-700">{fmt(client.monthlyDirectCost)}</span>
+                          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-3">
+                            {/* Care Delivery Cost wrapper — Layer 1 + Layer 2 */}
+                            <div className="rounded-lg border-2 border-foreground/15 bg-muted/20 p-3 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-bold uppercase tracking-wide">Care Delivery Cost</span>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button type="button" className="text-muted-foreground"><HelpCircle className="h-3 w-3" /></button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs text-xs">{CARE_DELIVERY_TOOLTIP}</TooltipContent>
+                                  </Tooltip>
+                                </div>
+                                <span className="text-xs font-bold text-foreground">
+                                  {fmt(client.monthlyDirectCost + client.monthlyCareOpsCost)}
+                                </span>
                               </div>
-                              <div className="text-[10px] text-muted-foreground space-y-0.5">
-                                <div>Compensation: {fmt(client.monthlyCaregiverCost)}</div>
-                                <div>NIS Contribution (Caregiver): {fmt(client.monthlyNisCost)}</div>
-                                <div>Expenses: {fmt(client.monthlyExpenses)}</div>
-                                <div className="italic pt-0.5">Scales 1:1 with this client</div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div className="text-xs bg-background rounded p-3 border border-blue-200">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="font-semibold text-blue-700">Layer 1 — Direct Care</span>
+                                    <span className="font-bold text-blue-700">{fmt(client.monthlyDirectCost)}</span>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground space-y-0.5">
+                                    <div>Compensation: {fmt(client.monthlyCaregiverCost)}</div>
+                                    <div>NIS Contribution (Caregiver): {fmt(client.monthlyNisCost)}</div>
+                                    <div>Expenses: {fmt(client.monthlyExpenses)}</div>
+                                    <div className="italic pt-0.5">Scales 1:1 with this client</div>
+                                  </div>
+                                </div>
+                                <div className="text-xs bg-background rounded p-3 border border-amber-200">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="font-semibold text-amber-700">Layer 2 — Care Ops</span>
+                                    <span className="font-bold text-amber-700">{fmt(client.monthlyCareOpsCost)}</span>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground space-y-0.5">
+                                    <div>Coordination, training, oversight</div>
+                                    <div>Prorated by {client.payrollWeeks} active week{client.payrollWeeks !== 1 ? 's' : ''}</div>
+                                    <div className="italic pt-0.5">Per-client, controlled spend</div>
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                            <div className="text-xs bg-background rounded p-3 border border-amber-200">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="font-semibold text-amber-700">Layer 2 — Care Ops</span>
-                                <span className="font-bold text-amber-700">{fmt(client.monthlyCareOpsCost)}</span>
+
+                            {/* Layer 3 — Allocated Platform (separate) */}
+                            <div className="rounded-lg border-2 border-purple-200 bg-purple-50/30 p-3 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold uppercase tracking-wide text-purple-900">Allocated Platform</span>
+                                <span className="text-xs font-bold text-purple-700">{fmt(client.monthlyAllocatedPlatformCost)}</span>
                               </div>
-                              <div className="text-[10px] text-muted-foreground space-y-0.5">
-                                <div>Coordination, training, oversight</div>
-                                <div>Prorated by {client.payrollWeeks} active week{client.payrollWeeks !== 1 ? 's' : ''}</div>
-                                <div className="italic pt-0.5">Per-client, controlled spend</div>
-                              </div>
-                            </div>
-                            <div className="text-xs bg-background rounded p-3 border border-purple-200">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="font-semibold text-purple-700">Layer 3 — Allocated Platform</span>
-                                <span className="font-bold text-purple-700">{fmt(client.monthlyAllocatedPlatformCost)}</span>
-                              </div>
-                              <div className="text-[10px] text-muted-foreground space-y-0.5">
-                                <div>Founder, software, marketing, admin</div>
-                                <div>This client's share of shared overhead</div>
-                                <div className="italic pt-0.5">Decreases as you add more clients</div>
+                              <div className="text-xs bg-background rounded p-3 border border-purple-200">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="font-semibold text-purple-700">Layer 3</span>
+                                  <span className="font-bold text-purple-700">{fmt(client.monthlyAllocatedPlatformCost)}</span>
+                                </div>
+                                <div className="text-[10px] text-muted-foreground space-y-0.5">
+                                  <div>Founder, software, marketing, admin</div>
+                                  <div>This client's share of shared overhead</div>
+                                  <div className="italic pt-0.5">Decreases as you add more clients</div>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -270,5 +326,6 @@ export function UnitEconomicsTable({ clients }: Props) {
         </TableBody>
       </Table>
     </div>
+    </TooltipProvider>
   );
 }
