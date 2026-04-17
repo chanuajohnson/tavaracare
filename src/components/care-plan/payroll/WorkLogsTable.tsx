@@ -11,9 +11,11 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Trash2 } from "lucide-react";
+import { toast } from 'sonner';
 import { ShareReceiptDialog } from './ShareReceiptDialog';
 import { RejectWorkLogDialog } from './RejectWorkLogDialog';
-import { generatePayReceipt } from '@/services/care-plans/receiptService';
+import { ReceiptRangePickerDialog, type RangeMode } from './ReceiptRangePickerDialog';
+import { generatePayReceipt, generateConsolidatedWorkLogsReceipt } from '@/services/care-plans/receiptService';
 import { WorkLogTableRow } from './table/WorkLogTableRow';
 import type { WorkLog } from '@/services/care-plans/types/workLogTypes';
 import {
@@ -56,6 +58,11 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
   const [bulkRejectReason, setBulkRejectReason] = useState('');
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
+
+  // Range receipt picker state
+  const [rangeDialogOpen, setRangeDialogOpen] = useState(false);
+  const [rangeMode, setRangeMode] = useState<RangeMode>('week');
+  const [rangeAnchor, setRangeAnchor] = useState<WorkLog | null>(null);
 
   const pendingWorkLogs = workLogs.filter(wl => wl.status === 'pending');
   const allPendingSelected = pendingWorkLogs.length > 0 && pendingWorkLogs.every(wl => selectedIds.has(wl.id));
@@ -118,6 +125,38 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
       setShareDialogOpen(true);
     } catch (error) {
       console.error("Error generating receipt:", error);
+      toast.error("Failed to generate care receipt");
+    }
+  };
+
+  const handleOpenRangeDialog = (workLog: WorkLog, mode: RangeMode) => {
+    setRangeAnchor(workLog);
+    setRangeMode(mode);
+    setRangeDialogOpen(true);
+  };
+
+  const handleConfirmRange = async (
+    range: { from: Date; to: Date; label: string },
+    filteredLogs: WorkLog[]
+  ) => {
+    if (filteredLogs.length === 0) {
+      toast.warning("No work logs found for this period");
+      return;
+    }
+    try {
+      let url: string;
+      if (filteredLogs.length === 1) {
+        url = await generatePayReceipt(filteredLogs[0]);
+      } else {
+        url = await generateConsolidatedWorkLogsReceipt(filteredLogs, range);
+      }
+      setReceiptUrl(url);
+      setCurrentWorkLog(rangeAnchor);
+      setRangeDialogOpen(false);
+      setShareDialogOpen(true);
+    } catch (error) {
+      console.error("Error generating consolidated care receipt:", error);
+      toast.error("Failed to generate care receipt");
     }
   };
 
@@ -169,6 +208,7 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
               onApprove={onApprove}
               onReject={onReject}
               onGenerateReceipt={handleGenerateReceipt}
+              onGenerateRangeReceipt={handleOpenRangeDialog}
               onDelete={onDelete}
               isProfessionalView={isProfessionalView}
               isSelected={selectedIds.has(workLog.id)}
@@ -183,6 +223,15 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
         onOpenChange={setShareDialogOpen}
         receiptUrl={receiptUrl}
         workLog={currentWorkLog}
+      />
+
+      <ReceiptRangePickerDialog
+        open={rangeDialogOpen}
+        onOpenChange={setRangeDialogOpen}
+        mode={rangeMode}
+        anchorWorkLog={rangeAnchor}
+        workLogs={workLogs}
+        onConfirm={handleConfirmRange}
       />
 
       <RejectWorkLogDialog

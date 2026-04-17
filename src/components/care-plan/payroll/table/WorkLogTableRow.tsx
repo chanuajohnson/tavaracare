@@ -14,6 +14,7 @@ interface WorkLogTableRowProps {
   onApprove: (id: string) => void;
   onReject: (id: string, reason: string) => Promise<boolean>;
   onGenerateReceipt: (workLog: WorkLog) => void;
+  onGenerateRangeReceipt?: (workLog: WorkLog, mode: 'week' | 'month' | 'custom') => void;
   onDelete?: (id: string) => Promise<boolean>;
   isProfessionalView?: boolean;
   isSelected?: boolean;
@@ -25,6 +26,7 @@ export const WorkLogTableRow = ({
   onApprove,
   onReject,
   onGenerateReceipt,
+  onGenerateRangeReceipt,
   onDelete,
   isProfessionalView = false,
   isSelected = false,
@@ -95,6 +97,7 @@ export const WorkLogTableRow = ({
           onApprove={onApprove}
           onReject={onReject}
           onGenerateReceipt={onGenerateReceipt}
+          onGenerateRangeReceipt={onGenerateRangeReceipt}
           onDelete={onDelete}
           isProfessionalView={isProfessionalView}
         />
