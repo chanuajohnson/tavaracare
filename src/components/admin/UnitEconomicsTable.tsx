@@ -77,7 +77,7 @@ export function UnitEconomicsTable({ clients }: Props) {
                   </TableCell>
                   <TableCell>
                     {client.payrollWeeks === 0 ? (
-                      <Badge variant="outline" className="text-xs text-muted-foreground">No payroll this month</Badge>
+                      <Badge variant="outline" className="text-xs text-muted-foreground">No care payments this month</Badge>
                     ) : (
                       <Badge variant="outline" className="text-xs">{client.subscriptionPlan}</Badge>
                     )}
@@ -166,7 +166,7 @@ export function UnitEconomicsTable({ clients }: Props) {
                         )}
 
                         {/* Caregiver Breakdown */}
-                        <h4 className="text-sm font-semibold">Caregiver Breakdown (payroll month totals)</h4>
+                        <h4 className="text-sm font-semibold">Caregiver Breakdown (care payment month totals)</h4>
                         {client.caregiverBreakdowns.length > 0 ? (
                           <Table>
                             <TableHeader>
@@ -191,7 +191,7 @@ export function UnitEconomicsTable({ clients }: Props) {
                             </TableBody>
                           </Table>
                         ) : (
-                          <p className="text-sm text-muted-foreground">No payroll data for this month.</p>
+                          <p className="text-sm text-muted-foreground">No care payment data for this month.</p>
                         )}
 
                         {/* 3-Layer Cost Breakdown */}

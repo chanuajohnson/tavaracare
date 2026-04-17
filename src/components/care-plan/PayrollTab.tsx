@@ -114,7 +114,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId, familyId, is
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <TabsList>
             <TabsTrigger value="worklogs">Work Logs</TabsTrigger>
-            <TabsTrigger value="payroll">Payroll Entries</TabsTrigger>
+            <TabsTrigger value="payroll">Care Payments</TabsTrigger>
             {familyId && <TabsTrigger value="nis-reports">NIS Reports</TabsTrigger>}
           </TabsList>
           
@@ -175,7 +175,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId, familyId, is
         <TabsContent value="payroll">
           <Card>
             <CardHeader>
-              <CardTitle>Payroll Entries</CardTitle>
+              <CardTitle>Care Payments</CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (

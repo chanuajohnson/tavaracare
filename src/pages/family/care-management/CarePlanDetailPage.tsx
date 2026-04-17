@@ -153,7 +153,7 @@ const CarePlanDetailPage = () => {
             </TabsTrigger>
             <TabsTrigger value="team">Care Team</TabsTrigger>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
-            <TabsTrigger value="payroll">Payroll & Hours</TabsTrigger>
+            <TabsTrigger value="payroll">Care Payments & Hours</TabsTrigger>
             <TabsTrigger value="medications">Medications</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
             <TabsTrigger value="meals">
