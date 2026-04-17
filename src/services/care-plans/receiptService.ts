@@ -415,3 +415,123 @@ export const generateConsolidatedReceipt = async (entries: PayrollEntry[]): Prom
     throw new Error('Failed to generate consolidated receipt');
   }
 };
+
+export const generateConsolidatedWorkLogsReceipt = async (
+  workLogs: WorkLog[],
+  opts: { from: Date; to: Date; label: string }
+): Promise<string> => {
+  try {
+    if (!workLogs.length) {
+      throw new Error('No work logs provided for consolidated receipt');
+    }
+
+    const doc = new jsPDF();
+    const sorted = [...workLogs].sort(
+      (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+    );
+
+    // Resolve caregiver name from first log via join
+    let caregiverName = sorted[0].caregiver_name || 'Unknown Caregiver';
+    try {
+      const { data } = await supabase
+        .from('work_logs')
+        .select(`
+          care_team_members!care_team_member_id (
+            caregiver_id,
+            profiles!caregiver_id ( full_name )
+          )
+        `)
+        .eq('id', sorted[0].id)
+        .single();
+      const joined = (data as any)?.care_team_members?.profiles?.full_name;
+      if (joined) caregiverName = joined;
+    } catch (e) {
+      // fall back to existing name
+    }
+
+    let totalHours = 0;
+    let totalAmount = 0;
+    let totalExpenses = 0;
+    const rows: string[][] = [];
+
+    sorted.forEach((wl) => {
+      const start = new Date(wl.start_time);
+      const end = new Date(wl.end_time);
+      const hours = (end.getTime() - start.getTime()) / 3_600_000;
+      const baseRate = wl.base_rate || 0;
+      const mult = wl.rate_multiplier || 1;
+      const rate = baseRate * mult;
+      const amount = hours * rate;
+      const expenses = (wl.expenses || []).reduce((s, e) => s + Number(e.amount || 0), 0);
+
+      totalHours += hours;
+      totalAmount += amount;
+      totalExpenses += expenses;
+
+      rows.push([
+        format(start, 'EEE MMM d'),
+        `${format(start, 'h:mm a')}–${format(end, 'h:mm a')}`,
+        hours.toFixed(2),
+        `$${rate.toFixed(2)}/hr`,
+        `$${amount.toFixed(2)}`,
+        expenses > 0 ? `$${expenses.toFixed(2)}` : '—',
+      ]);
+    });
+
+    // Header
+    doc.setFontSize(16);
+    doc.text(`${opts.label} Care Receipt`, 105, 20, { align: 'center' });
+
+    doc.setFontSize(10);
+    const headerText = [
+      `Receipt #: WLR-${Date.now().toString().slice(-8)}`,
+      `Period: ${format(opts.from, 'MMM d, yyyy')} – ${format(opts.to, 'MMM d, yyyy')}`,
+      `Receipt Generated: ${format(new Date(), 'MMM d, yyyy h:mm a')}`,
+      `Logs: ${sorted.length}`,
+      `Caregiver: ${caregiverName}`,
+    ];
+    doc.text(headerText, 20, 35);
+
+    autoTable(doc, {
+      startY: 70,
+      head: [['Date', 'Shift', 'Hours', 'Rate', 'Amount', 'Expenses']],
+      body: rows,
+      foot: [[
+        'Total',
+        '',
+        totalHours.toFixed(2),
+        '',
+        `$${totalAmount.toFixed(2)}`,
+        totalExpenses > 0 ? `$${totalExpenses.toFixed(2)}` : '—',
+      ], [
+        'Grand Total',
+        '', '', '', '',
+        `$${(totalAmount + totalExpenses).toFixed(2)}`,
+      ]],
+      styles: { cellPadding: 4, fontSize: 9 },
+      headStyles: {
+        fillColor: [200, 200, 200],
+        textColor: [0, 0, 0],
+        fontStyle: 'bold',
+      },
+      footStyles: {
+        fillColor: [240, 240, 240],
+        textColor: [0, 0, 0],
+        fontStyle: 'bold',
+      },
+    });
+
+    const footerY = doc.internal.pageSize.height - 20;
+    doc.setFontSize(8);
+    doc.text(
+      `Generated: ${format(new Date(), 'MMM d, yyyy h:mm a')}`,
+      20,
+      footerY
+    );
+
+    return doc.output('datauristring');
+  } catch (error) {
+    console.error('Error generating consolidated work logs receipt:', error);
+    throw new Error('Failed to generate consolidated care receipt');
+  }
+};
