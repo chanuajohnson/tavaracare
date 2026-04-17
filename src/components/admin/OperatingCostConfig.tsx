@@ -15,10 +15,14 @@ import {
   normalizeToWeekly,
   categoryWeeklyTotal,
   frameworkWeeklyTotal,
+  weeklyByLayer,
+  getCategoryLayer,
   addCustomItem,
   removeItem,
   CATEGORY_HINTS,
 } from '@/hooks/admin/operatingCostFramework';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Wrench, Building2, HelpCircle } from 'lucide-react';
 
 interface Props {
   framework: CostCategory[];
@@ -102,35 +106,16 @@ export function OperatingCostConfig({ framework, onChange }: Props) {
   const totalWeekly = frameworkWeeklyTotal(framework);
   const totalMonthly = totalWeekly * 4.333;
   const totalYearly = totalWeekly * 52;
+  const layered = weeklyByLayer(framework);
 
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <span>Operating Cost Framework — Chart of Accounts</span>
-          <div className="flex flex-wrap gap-2 text-xs font-normal">
-            <Badge variant="outline">{fmt(totalWeekly)}/wk</Badge>
-            <Badge variant="outline">{fmt(totalMonthly)}/mo</Badge>
-            <Badge variant="outline">{fmt(totalYearly)}/yr run-rate</Badge>
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/40 rounded px-3 py-2 mb-2">
-          <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-          <span>
-            All amounts auto-normalize to weekly for unit economics. T&T statutory items
-            (Business Levy 0.6%, Green Fund 0.3%) auto-calculate from gross revenue.
-            Use <strong>+ Add line item</strong> in any category to log tools, vendors, or expenses
-            specific to your business.
-          </span>
-        </div>
+  const careOpsCats = framework.filter(c => getCategoryLayer(c) === 'care_ops');
+  const platformCats = framework.filter(c => getCategoryLayer(c) === 'platform');
 
-        {framework.map(cat => {
-          const isOpen = openCats.has(cat.key);
-          const catWeekly = categoryWeeklyTotal(cat);
-          const isAdding = addingCat === cat.key;
-          return (
+  const renderCategory = (cat: CostCategory) => {
+    const isOpen = openCats.has(cat.key);
+    const catWeekly = categoryWeeklyTotal(cat);
+    const isAdding = addingCat === cat.key;
+    return (
             <Collapsible key={cat.key} open={isOpen} onOpenChange={() => toggleCat(cat.key)}>
               <CollapsibleTrigger className="w-full">
                 <div className="flex items-center justify-between w-full px-3 py-2 hover:bg-muted/50 rounded border">
@@ -351,9 +336,82 @@ export function OperatingCostConfig({ framework, onChange }: Props) {
                 </div>
               </CollapsibleContent>
             </Collapsible>
-          );
-        })}
+    );
+  };
+
+  return (
+    <TooltipProvider>
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <span>Operating Cost Framework — Chart of Accounts</span>
+          <div className="flex flex-wrap gap-2 text-xs font-normal">
+            <Badge variant="outline">{fmt(totalWeekly)}/wk</Badge>
+            <Badge variant="outline">{fmt(totalMonthly)}/mo</Badge>
+            <Badge variant="outline">{fmt(totalYearly)}/yr run-rate</Badge>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/40 rounded px-3 py-2 mb-2">
+          <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+          <span>
+            All amounts auto-normalize to weekly for unit economics. T&T statutory items
+            (Business Levy 0.6%, Green Fund 0.3%) auto-calculate from gross revenue.
+            Use <strong>+ Add line item</strong> in any category to log tools, vendors, or expenses
+            specific to your business.
+          </span>
+        </div>
+
+        {/* Section A — Care Operations (Per Client) */}
+        {careOpsCats.length > 0 && (
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded px-3 py-2">
+              <div className="flex items-center gap-2">
+                <Wrench className="h-4 w-4 text-amber-700" />
+                <h3 className="text-sm font-bold text-amber-900">A. Care Operations (Per Client)</h3>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="text-amber-700"><HelpCircle className="h-3.5 w-3.5" /></button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs">
+                    Scales per client — coordination, training, oversight. Each client absorbs their full share each week they're active.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <Badge variant="outline" className="border-amber-300 text-amber-800 text-xs">
+                {fmt(layered.careOps)}/wk subtotal
+              </Badge>
+            </div>
+            {careOpsCats.map(cat => <React.Fragment key={cat.key}>{renderCategory(cat)}</React.Fragment>)}
+          </div>
+        )}
+
+        {/* Section B — Platform & Shared Overhead (Distributed) */}
+        {platformCats.length > 0 && (
+          <div className="space-y-2 pt-3">
+            <div className="flex items-center justify-between bg-purple-50 border border-purple-200 rounded px-3 py-2">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-purple-700" />
+                <h3 className="text-sm font-bold text-purple-900">B. Platform &amp; Shared Overhead (Distributed)</h3>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="text-purple-700"><HelpCircle className="h-3.5 w-3.5" /></button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs">
+                    Shared across all clients — divided by active client count. Cost per client decreases as you scale.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <Badge variant="outline" className="border-purple-300 text-purple-800 text-xs">
+                {fmt(layered.platform)}/wk subtotal
+              </Badge>
+            </div>
+            {platformCats.map(cat => <React.Fragment key={cat.key}>{renderCategory(cat)}</React.Fragment>)}
+          </div>
+        )}
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 }
