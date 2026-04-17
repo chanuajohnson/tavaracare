@@ -51,7 +51,7 @@ export function UnitEconomicsTable({ clients }: Props) {
             <TableHead>Client</TableHead>
             <TableHead>Plan</TableHead>
             <TableHead className="text-right">Revenue/mo</TableHead>
-            <TableHead className="text-right" title="Direct Care Costs: caregiver compensation + employer NIS + reimbursable expenses (scales 1:1 with this client)">Direct Care</TableHead>
+            <TableHead className="text-right" title="Direct Care Costs: caregiver compensation + NIS contribution (caregiver) + reimbursable expenses (scales 1:1 with this client)">Direct Care</TableHead>
             <TableHead className="text-right" title="Care Operations: per-client coordination, training, oversight (prorated by weeks active)">Care Ops</TableHead>
             <TableHead className="text-right" title="Allocated Ops: this client's share of platform overhead (total platform cost ÷ active clients). Decreases as you scale.">Allocated Ops</TableHead>
             <TableHead className="text-right">Total Cost/mo</TableHead>
@@ -174,7 +174,7 @@ export function UnitEconomicsTable({ clients }: Props) {
                                 <TableHead>Caregiver</TableHead>
                                 <TableHead className="text-right">Hours</TableHead>
                                 <TableHead className="text-right">Gross Pay</TableHead>
-                                <TableHead className="text-right">Employer NIS</TableHead>
+                                <TableHead className="text-right">NIS Contribution (Caregiver)</TableHead>
                                 <TableHead className="text-right">Employee NIS</TableHead>
                               </TableRow>
                             </TableHeader>
@@ -205,7 +205,7 @@ export function UnitEconomicsTable({ clients }: Props) {
                               </div>
                               <div className="text-[10px] text-muted-foreground space-y-0.5">
                                 <div>Compensation: {fmt(client.monthlyCaregiverCost)}</div>
-                                <div>Employer NIS: {fmt(client.monthlyNisCost)}</div>
+                                <div>NIS Contribution (Caregiver): {fmt(client.monthlyNisCost)}</div>
                                 <div>Expenses: {fmt(client.monthlyExpenses)}</div>
                                 <div className="italic pt-0.5">Scales 1:1 with this client</div>
                               </div>
