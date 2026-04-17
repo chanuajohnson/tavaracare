@@ -451,7 +451,8 @@ export function useUnitEconomics(selectedMonth: string, scenarioClientCount?: nu
         });
 
         const sub = subMap[cp.family_id];
-        const weeklySubRevenue = sub ? getWeeklySubscriptionRevenue(sub.planName, sub.price) : 0;
+        const subInfo = sub ? resolveSubscriptionRevenue(sub.planName, sub.price) : { weeklyRevenue: 0, monthlyFlat: null, cadence: 'none' as SubscriptionCadence };
+        const weeklySubRevenue = subInfo.weeklyRevenue;
 
         const cpServices = serviceSelectionsArr.filter((s: any) => s.care_plan_id === cp.id);
         const serviceBreakdown: ServiceRevenueItem[] = [];
