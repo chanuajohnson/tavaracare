@@ -513,6 +513,7 @@ export function useUnitEconomics(selectedMonth: string, scenarioClientCount?: nu
           familyId: cp.family_id,
           familyName: profilesMap[cp.family_id] || 'Unknown',
           subscriptionPlan: friendlyPlanLabel(sub?.planName),
+          subscriptionCadence: subInfo.cadence,
           payrollWeeks,
           periodStart: earliestDate ? format(earliestDate, 'MMM d, yyyy') : '',
           periodEnd: latestWeekEnd ? format(latestWeekEnd, 'MMM d, yyyy') : '',
