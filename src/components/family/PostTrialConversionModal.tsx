@@ -186,7 +186,7 @@ export const PostTrialConversionModal: React.FC<PostTrialConversionModalProps> =
                     <h4 className="font-medium text-blue-800 mb-2">You Handle:</h4>
                     <ul className="space-y-1 text-blue-700">
                       <li>• Scheduling coordination</li>
-                      <li>• Payroll management</li>
+                      <li>• Care payment management</li>
                       <li>• Administrative tasks</li>
                       <li>• Backup coverage</li>
                     </ul>
@@ -239,7 +239,7 @@ export const PostTrialConversionModal: React.FC<PostTrialConversionModalProps> =
                   <div>
                     <h4 className="font-medium text-purple-800 mb-2">We Handle:</h4>
                     <ul className="space-y-1 text-purple-700">
-                      <li>• All payroll & admin</li>
+                      <li>• All care payments & admin</li>
                       <li>• Backup coverage</li>
                       <li>• 24/7 coordinator support</li>
                       <li>• Quality assurance</li>

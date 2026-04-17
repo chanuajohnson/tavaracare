@@ -214,7 +214,7 @@ export default function UnitEconomicsPage() {
 
           {!loading && carePlansWithoutPayroll > 0 && (
             <div className="rounded border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-              <strong>{carePlansWithoutPayroll}</strong> active care plan{carePlansWithoutPayroll !== 1 ? 's have' : ' has'} no payroll entries for {formatMonthLabel(selectedMonth)}. They are still listed below with zero values — log work hours to populate revenue and cost data.
+              <strong>{carePlansWithoutPayroll}</strong> active care plan{carePlansWithoutPayroll !== 1 ? 's have' : ' has'} no care payments for {formatMonthLabel(selectedMonth)}. They are still listed below with zero values — log work hours to populate revenue and cost data.
             </div>
           )}
 
@@ -231,7 +231,7 @@ export default function UnitEconomicsPage() {
           <section className="space-y-3">
             <div className="flex items-baseline justify-between border-b pb-1">
               <h2 className="text-lg font-semibold">Per-Client Economics</h2>
-              <span className="text-xs text-muted-foreground">{formatMonthLabel(selectedMonth)} (payroll month)</span>
+              <span className="text-xs text-muted-foreground">{formatMonthLabel(selectedMonth)} (care payment month)</span>
             </div>
             <Card>
               <CardContent className="pt-6">

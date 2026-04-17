@@ -209,11 +209,11 @@ const CareManagementPage = () => {
                     <FileText className="h-5 w-5 text-primary" />
                     Care Plans
                   </CardTitle>
-                  <CardDescription>View and edit care plan details, schedule, team, and payroll</CardDescription>
+                  <CardDescription>View and edit care plan details, schedule, team, and care payments</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Access comprehensive care plan management including scheduling, team coordination, and payroll tracking.
+                    Access comprehensive care plan management including scheduling, team coordination, and care payment tracking.
                   </p>
                   {carePlans.length > 0 ? (
                     <div className="space-y-2">

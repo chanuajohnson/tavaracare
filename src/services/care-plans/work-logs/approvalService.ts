@@ -57,7 +57,7 @@ export const approveWorkLog = async (workLogId: string): Promise<boolean> => {
       
     if (payrollError) throw payrollError;
 
-    toast.success("Work log approved and payroll entry created. NIS will be calculated when payment is processed.");
+    toast.success("Work log approved and care payment created. NIS will be calculated when payment is processed.");
     return true;
   } catch (error) {
     console.error("Error approving work log:", error);

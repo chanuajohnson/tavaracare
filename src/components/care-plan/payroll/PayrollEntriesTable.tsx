@@ -186,7 +186,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   };
 
   if (!entries.length) {
-    return <div className="text-center p-4">No payroll entries found.</div>;
+    return <div className="text-center p-4">No care payments found.</div>;
   }
 
   const colCount = isMobile ? 8 : 11;
@@ -224,7 +224,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
       {/* Month-first grouped payroll */}
       <div className="overflow-x-auto">
         <Table>
-          <TableCaption>Payroll entries grouped by month → week (Mon–Sun)</TableCaption>
+          <TableCaption>Care payments grouped by month → week (Mon–Sun)</TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead className="w-8"></TableHead>
@@ -590,13 +590,13 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Pending Payroll Entries?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Pending Care Payments?</AlertDialogTitle>
             <AlertDialogDescription>
               {(() => {
                 const pendingCount = entries.filter(
                   e => selectedEntries.includes(e.id) && e.payment_status === 'pending'
                 ).length;
-                return `This will delete ${pendingCount} pending payroll ${pendingCount === 1 ? 'entry' : 'entries'} and reset the linked work logs back to pending. This action cannot be undone.`;
+                return `This will delete ${pendingCount} pending care ${pendingCount === 1 ? 'payment' : 'payments'} and reset the linked work logs back to pending. This action cannot be undone.`;
               })()}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -630,7 +630,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Undo Payment?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will revert this payroll entry back to pending status and clear all NIS calculations. You can then re-process payment with updated rates if needed.
+              This will revert this care payment back to pending status and clear all NIS calculations. You can then re-process payment with updated rates if needed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
