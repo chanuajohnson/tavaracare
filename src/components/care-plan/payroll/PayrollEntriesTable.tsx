@@ -204,7 +204,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   return (
     <div>
       {/* Bulk action bar */}
-      {selectedEntries.length > 0 && (
+      {!readOnly && selectedEntries.length > 0 && (
         <div className="mb-4 flex flex-col sm:flex-row justify-end gap-2">
           {(() => {
             const pendingSelected = entries.filter(
@@ -336,7 +336,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                             {month.weeks.filter(w => w.nisApplicable).length} of {month.weeks.length} weeks have NIS applied
                           </div>
                           {/* Bulk recalculate button */}
-                          {weeksNeedingNIS.length > 0 && onRecalculateNIS && (
+                          {!readOnly && weeksNeedingNIS.length > 0 && onRecalculateNIS && (
                             <div>
                               <Button
                                 variant="outline"
@@ -362,7 +362,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                             </div>
                           )}
                           {/* Monthly Bank Transfer */}
-                          {onRecordBankTransfer && month.allPaid && (
+                          {!readOnly && onRecordBankTransfer && month.allPaid && (
                             <div className="pt-2 border-t border-primary/10">
                               {(() => {
                                 const allEntryIds = month.weeks.flatMap(w => w.entries.filter(e => e.payment_status === 'paid').map(e => e.id));
@@ -408,12 +408,14 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                             </Button>
                           </TableCell>
                           <TableCell>
-                            <Checkbox
-                              checked={allWeekSelected}
-                              // @ts-ignore
-                              indeterminate={someWeekSelected && !allWeekSelected}
-                              onCheckedChange={(checked) => handleSelectWeek(week, !!checked)}
-                            />
+                            {!readOnly && (
+                              <Checkbox
+                                checked={allWeekSelected}
+                                // @ts-ignore
+                                indeterminate={someWeekSelected && !allWeekSelected}
+                                onCheckedChange={(checked) => handleSelectWeek(week, !!checked)}
+                              />
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="text-sm pl-2">
@@ -495,7 +497,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                                   </div>
                                 </div>
                               )}
-                              {isDetailsOpen && week.weeklyGross > 200 && onRecalculateNIS && (
+                              {!readOnly && isDetailsOpen && week.weeklyGross > 200 && onRecalculateNIS && (
                                 <div className="pb-2">
                                   <Button
                                     variant="outline"
@@ -513,7 +515,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                                 </div>
                               )}
                               {/* Bank transfer moved to monthly level */}
-                              {isDetailsOpen && onUndoPayment && (
+                              {!readOnly && isDetailsOpen && onUndoPayment && (
                                 <div className="flex gap-2 pb-2">
                                   {week.entries.map(entry => (
                                     <Button
@@ -540,10 +542,12 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                           <TableRow key={entry.id} className="bg-background">
                             <TableCell></TableCell>
                             <TableCell>
-                              <Checkbox
-                                checked={selectedEntries.includes(entry.id)}
-                                onCheckedChange={() => handleSelectEntry(entry.id)}
-                              />
+                              {!readOnly && (
+                                <Checkbox
+                                  checked={selectedEntries.includes(entry.id)}
+                                  onCheckedChange={() => handleSelectEntry(entry.id)}
+                                />
+                              )}
                             </TableCell>
                             <TableCell className="text-muted-foreground text-sm pl-8">
                               {formatDate(entry.pay_period_start)}
@@ -567,7 +571,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleGenerateReceipt(entry)}>
                                   <Receipt className="h-3 w-3" />
                                 </Button>
-                                {entry.payment_status === 'pending' && (
+                                {!readOnly && entry.payment_status === 'pending' && (
                                   <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => onProcessPayment(entry.id)}>
                                     Process
                                   </Button>
