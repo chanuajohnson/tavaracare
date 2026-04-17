@@ -1,68 +1,109 @@
 
 
-## Plan: Wire up the 3-layer Unit Economics dashboard UI
+## Plan: Fix Ana Maria's revenue — treat "Family Care" as flat monthly, not prorated
 
-The data layer is done. This plan finishes the **page wiring** so PlatformOperationsCard and ScenarioControlsCard render, summary cards reflect the new model, and the operating cost config visually separates per-client vs shared overhead.
+### Database truth (verified)
 
-### Quick exploration first
+Ana Maria (`9874b53e…edf5`), care plan "Care plan for Mum." (`3d63…39e4`), April 2026:
 
-Need to confirm: current shape of `UnitEconomicsPage.tsx`, `OperatingCostConfig.tsx`, and the exact return signature of `useUnitEconomics()` (especially `platformSummary`, `weeklyByLayer`, allocation fields) before wiring.
+| Item | Source | Truth |
+|---|---|---|
+| Subscription | `user_subscriptions` → `subscription_plans` | **"Family Care" = $499 flat MONTHLY** (legacy plan) |
+| Service: Active Care Management (weekly $499) | `care_plan_service_selections` | Selected — but **already suppressed** by hook ✅ |
+| Service: Care Assessment & Setup ($499 one-time) | same | Selected, `override_price = 0` → **Waived** ✅ |
+| Service: Caregiver Matching ($299 one-time) | same | Selected, `override_price = 0` → **Waived** ✅ |
+| Service: Care Readiness ($199 one-time) | same | Selected, `override_price = 0` → **Waived** ✅ |
+| Payroll | `payroll_entries` / `work_logs` | 5 days × 8 hrs = **40 hrs @ $35 = $1,400** in 1 ISO payroll week |
 
-### Changes
+### What's wrong on /admin/unit-economics
+
+Screenshot shows:
+- **Sub Rev: $115/mo** (label: *"Active Care Management — $115/wk × 1 weeks"*)
+- Total Revenue: $1,515/mo
+
+### Root cause (1 bug, in `useUnitEconomics.ts`)
+
+The "Family Care" legacy plan is correctly flagged as monthly in `getWeeklySubscriptionRevenue()` (line 118 → returns `499/4.33 ≈ 115.24` per week). But line 468 then **multiplies by `payrollWeeks`**:
+
+```ts
+const monthlySubRevenue = weeklySubRevenue * payrollWeeks;  // 115.24 × 1 = $115
+```
+
+For a true monthly-flat subscription, the family owes **$499 every month** regardless of whether 1 or 5 payroll weeks fell in that month. The current math only produces $499 when payrollWeeks = 4.33 (which never happens in practice — months have 4 or 5 ISO weeks).
+
+This affects **every legacy Family Care subscriber**, and would also affect any future flat-monthly plan.
+
+### The fix (single file: `src/hooks/admin/useUnitEconomics.ts`)
+
+**1. Track billing cadence on the subscription, not just a weekly number**
+
+Replace `getWeeklySubscriptionRevenue(planName, price)` with `resolveSubscriptionRevenue(planName, price)` that returns:
+
+```ts
+{ weeklyRevenue: number; monthlyFlat: number | null; cadence: 'weekly' | 'monthly_flat' }
+```
+
+- **"Family Care"** → `{ weeklyRevenue: 0, monthlyFlat: 499, cadence: 'monthly_flat' }`
+- **"Premium"** → `{ weeklyRevenue: 899, monthlyFlat: null, cadence: 'weekly' }`
+- **"Care" / "Active Care"** → `{ weeklyRevenue: 699, monthlyFlat: null, cadence: 'weekly' }`
+- **Basic / Free** → all zero
+- **Generic > $200** (assume monthly) → `{ weeklyRevenue: 0, monthlyFlat: price, cadence: 'monthly_flat' }`
+
+**2. Use cadence when computing monthly revenue (line ~468)**
+
+```ts
+const monthlySubRevenue = subInfo.cadence === 'monthly_flat'
+  ? (payrollWeeks > 0 ? subInfo.monthlyFlat ?? 0 : 0)   // bill once per month if active
+  : Math.round(subInfo.weeklyRevenue * payrollWeeks * 100) / 100;
+```
+
+A flat-monthly sub is owed **whenever the family had any payroll activity that month**, not prorated by weeks.
+
+**3. Update the Sub Rev tooltip text (in `UnitEconomicsTable.tsx`)**
+
+Currently shows: *"Active Care Management — $115/wk × 1 weeks"*
+After: *"Active Care Management — $499 flat monthly"* when `cadence === 'monthly_flat'`, otherwise keep the `$X/wk × N weeks` format.
+
+This needs the cadence info exposed on `ClientEconomics`. Add 1 field:
+
+```ts
+subscriptionCadence: 'weekly' | 'monthly_flat' | 'none'
+```
+
+### Expected result for Ana (April 2026)
+
+| Metric | Before | After |
+|---|---|---|
+| Sub Rev/mo | $115 | **$499** |
+| Caregiver pass-through | $1,400 | $1,400 |
+| Svc Rev/mo | $0 | $0 |
+| **Total Revenue/mo** | $1,515 | **$1,899** |
+| Direct Care | $1,400 | $1,400 |
+| Care Ops | $403 | $403 |
+| Allocated Platform | $474 | $474 |
+| Total Cost | $2,277 | $2,277 |
+| **Final Margin** | -$762 (-50.3%) | **-$378 (-19.9%)** |
+| Status | Losing | Losing (improved) |
+
+(Ana still doesn't fully cover her share of platform overhead at 2 active clients — but that's the real story the dashboard is meant to tell. The scenario slider already shows when break-even hits.)
+
+### What's NOT touched
+- Chanua / Peltier (different plans — already correct)
+- Service suppression logic for Active Care Management (already working)
+- Care Ops, platform allocation, scenario logic (no changes)
+- DB writes — none needed
+- `App.tsx`, registration, providers — untouched
+
+### Files
 
 | File | Change |
 |---|---|
-| `src/pages/admin/UnitEconomicsPage.tsx` | (1) Add `scenarioClientCount` state. (2) Pass it as 2nd arg to `useUnitEconomics`. (3) Replace 4 summary cards with: **Active Clients**, **Total Revenue/mo**, **Platform Cost/mo**, **Avg Margin**. Add a 2nd row of mini-stats: **Care Ops/mo**, **Allocated Cost/Client**, **Direct Care/mo**. (4) Add Section 3 `<PlatformOperationsCard />` below per-client table. (5) Add Section 4 `<ScenarioControlsCard scenarioClientCount={...} onChange={...} />`. (6) Add section headers: "Per-Client Economics", "Platform & Operations", "Scenario Simulation". (7) Helper text under page title: *"Platform costs are distributed across active clients to reflect true profitability."* |
-| `src/components/admin/OperatingCostConfig.tsx` | Group categories by `layer` field into 2 collapsible sections: **A. Care Operations (Per Client)** with tooltip *"Scales per client — coordination, training, oversight"*, **B. Platform & Shared Overhead (Distributed)** with tooltip *"Shared across all clients — divided by active client count"*. Show per-section weekly subtotal. Keep "+ Add line item" inside each category. |
-| `src/components/admin/UnitEconomicsTable.tsx` | (Already has Direct/CareOps/Allocated columns from prior pass.) Verify expanded row shows: Layer 1 Direct, Layer 2 Care Ops, Layer 3 Allocated, then **"Marginal Profit (before allocation)"** = Revenue − Direct − CareOps, then **"Final Profit (after allocation)"** = above − Allocated. Add color-coded labels (blue/amber/purple). |
-| `src/hooks/admin/useUnitEconomics.ts` | Verify `platformSummary` exposes `{ weeklyTotal, monthlyTotal, yearlyTotal, perClientAllocation, activeClientCount, scenarioClientCount, breakEvenClients }`. Add `breakEvenClients` calc if missing: `ceil(totalPlatformWeekly / avgWeeklyContributionMargin)`. Add `directCostTotal` to summary so the new mini-stat works. |
-| `src/components/admin/PlatformOperationsCard.tsx` | Verify it accepts `platformSummary` + `framework` and renders weekly/monthly/yearly + grouped category breakdown + per-client allocation. Patch if any field missing. |
-| `src/components/admin/ScenarioControlsCard.tsx` | Verify slider 1–50, shows: cost/client at scenario, projected avg margin %, break-even client count. Patch if any field missing. |
+| `src/hooks/admin/useUnitEconomics.ts` | Replace `getWeeklySubscriptionRevenue` with `resolveSubscriptionRevenue` returning `{ weeklyRevenue, monthlyFlat, cadence }`. Update line ~468 to use cadence-aware math. Add `subscriptionCadence` to `ClientEconomics` interface and result object. |
+| `src/components/admin/UnitEconomicsTable.tsx` | In the Sub Rev tooltip / breakdown card, branch on `subscriptionCadence`: show *"$499 flat monthly"* for monthly_flat plans, keep weekly format otherwise. |
 
-### Summary card layout (top of page)
-
-```text
-Row 1 (primary):
-[ Active Clients ]  [ Revenue/mo ]  [ Platform Cost/mo ]  [ Avg Margin ]
-
-Row 2 (mini-stats, smaller):
-[ Direct Care/mo ]  [ Care Ops/mo ]  [ Allocated/Client ]
-```
-
-### Page structure after wiring
-
-```text
-┌─ Header + month picker + helper text ──────────────┐
-├─ Summary cards (4 + 3) ────────────────────────────┤
-├─ Tabs: Per-Client | Quarterly Plan ────────────────┤
-│  └─ Per-Client tab:                                │
-│     ├─ Status diagnostics                          │
-│     ├─ § "Operating Cost Framework"                │
-│     │   └─ OperatingCostConfig (grouped A/B)       │
-│     ├─ § "Per-Client Economics"                    │
-│     │   └─ UnitEconomicsTable (3-layer cols)       │
-│     │   └─ Draft plans card                        │
-│     ├─ § "Platform & Operations"                   │
-│     │   └─ PlatformOperationsCard                  │
-│     └─ § "Scenario Simulation"                     │
-│         └─ ScenarioControlsCard (slider 1-50)      │
-└────────────────────────────────────────────────────┘
-```
-
-### Logic guardrails (preserved)
-- Platform cost never fully assigned to one client — always `totalPlatform / divisor`.
-- Divisor = `scenarioClientCount ?? activeClientCount ?? 1` (already in hook).
-- Margin formula: `revenue − direct − careOps − allocatedPlatform` (already in hook).
-- Existing protections: care plans visibility, Ana legacy plan handling, custom line items, draft plans card — all untouched.
-
-### Files NOT touched
-- App.tsx, routing, AuthProvider, registration pages — per guardrails.
-- Quarterly Action Plan tab — unchanged.
-- Storage layer (localStorage) — unchanged.
-
-### Post-build verification
-1. Slider 2 → 10 clients: allocated/client drops, avg margin improves visibly.
-2. Bump a Software item: platform cost rises, allocated/client rises, **direct cost unchanged**.
-3. Ana row shows: Direct healthy, Care Ops modest, Allocated significant; expanded view shows both Marginal and Final profit lines.
-4. Mobile (375px): summary cards stack, slider remains usable, table horizontally scrolls.
+### Verification after build
+1. Open `/admin/unit-economics`, April 2026 — Ana row Sub Rev shows **$499/mo**, Total Revenue **$1,899/mo**, Final Profit **-$378 (-19.9%)**.
+2. Tooltip on Ana's Sub Rev reads *"Active Care Management — $499 flat monthly"*.
+3. Chanua / Peltier rows unchanged.
+4. Move scenario slider to 8 clients — Ana flips to profitable as platform allocation drops.
 
