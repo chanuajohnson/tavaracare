@@ -51,6 +51,7 @@ export interface ClientEconomics {
   familyId: string;
   familyName: string;
   subscriptionPlan: string;
+  subscriptionCadence: 'weekly' | 'monthly_flat' | 'none';
   // Payroll month info
   payrollWeeks: number;
   periodStart: string;
