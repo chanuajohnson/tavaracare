@@ -1,86 +1,68 @@
 
 
-## Plan: Restructure Unit Economics into 3-Layer Cost Model
+## Plan: Wire up the 3-layer Unit Economics dashboard UI
 
-### The core fix
-Move shared overhead OUT of per-client costing. Allocate it across active clients instead. Result: per-client margins reflect true marginal profitability, not "every client carries the entire founder salary."
+The data layer is done. This plan finishes the **page wiring** so PlatformOperationsCard and ScenarioControlsCard render, summary cards reflect the new model, and the operating cost config visually separates per-client vs shared overhead.
 
-### New 3-layer model
+### Quick exploration first
 
-```
-LAYER 1: DIRECT CARE COSTS (per client, scales 1:1)
-  - Caregiver wages
-  - Employer NIS
-  - Employee NIS pass-through display
+Need to confirm: current shape of `UnitEconomicsPage.tsx`, `OperatingCostConfig.tsx`, and the exact return signature of `useUnitEconomics()` (especially `platformSummary`, `weeklyByLayer`, allocation fields) before wiring.
 
-LAYER 2: CARE OPERATIONS (semi-direct, per-client controlled)
-  - Care coordination labor
-  - Training & shadow shift stipends
-  - Backup caregiver buffer
-  - Quality oversight
-
-LAYER 3: PLATFORM & OPERATIONS (shared overhead, allocated)
-  - Founder & Admin time
-  - Software & SaaS (incl. CapCut/Canva/etc.)
-  - Devices & Equipment
-  - Marketing
-  - Professional Services (legal/accounting)
-  - Banking & Financial fees
-  - T&T Statutory levies
-  
-  → Allocated per client = Total Platform Cost / Active Clients
-```
-
-### Per-client margin formula (new)
-
-```
-Revenue
-  − Direct Care Costs (Layer 1)
-  − Care Operations (Layer 2, prorated by hours)
-  − Allocated Ops (Layer 3, equal-split or revenue-weighted)
-= TRUE MARGIN
-```
-
-### File changes
+### Changes
 
 | File | Change |
 |---|---|
-| `src/hooks/admin/operatingCostFramework.ts` | Add `layer: 'direct' \| 'care_ops' \| 'platform'` field to each `CostCategory`. Tag existing 8 categories: Care Operations → `care_ops`; Software, Devices, Founder/Admin, Marketing, Professional Services, Banking, T&T Statutory → `platform`. Add helper `weeklyByLayer(framework)` returning `{ careOps, platform }` weekly totals. Migration handles old saved frameworks. |
-| `src/hooks/admin/useUnitEconomics.ts` | Split `monthlyOperatingCost` into `monthlyCareOpsCost` (per-client, weeks-based) + `monthlyAllocatedPlatformCost` (total platform / active client count). Add `platformSummary: { weeklyTotal, monthlyTotal, perClientAllocation, activeClientCount }`. Add `scenarioClientCount` parameter so admin can simulate scaling. Recalculate margin = revenue − direct − careOps − allocatedPlatform. |
-| `src/components/admin/OperatingCostConfig.tsx` | Group categories visually under 2 headers: **"Care Operations (per-client)"** and **"Platform & Shared Overhead (allocated)"**. Tooltip on each header explaining direct vs allocated. Per-layer subtotals. |
-| `src/components/admin/UnitEconomicsTable.tsx` | Replace single "Ops/mo" column with two: **"Care Ops"** and **"Allocated Ops"**. Update Total Cost + Margin to use new formula. Expanded row breakdown shows all 3 layers separately with explanation. |
-| `src/components/admin/PlatformOperationsCard.tsx` | NEW. Section 3 — grouped breakdown of platform overhead (6 sub-groups: Founder & Admin, Software & SaaS, Devices, Marketing, Professional, Financial). Shows weekly + monthly + per-client allocation. |
-| `src/components/admin/ScenarioControlsCard.tsx` | NEW. Section 4 — slider/input "Simulate active clients: [1—50]". Shows projected: per-client allocation, average margin, break-even client count. Pure read-only what-if (doesn't persist). |
-| `src/pages/admin/UnitEconomicsPage.tsx` | Restructure into 4 sections: Summary, Per-Client Economics, Platform & Operations, Scenario Controls. Update summary cards: replace "Total Cost" with "Platform Cost/mo". Add "Allocated/Client" mini-stat. |
-| `mem://admin/unit-economics-dashboard` | Update to reflect 3-layer model. |
+| `src/pages/admin/UnitEconomicsPage.tsx` | (1) Add `scenarioClientCount` state. (2) Pass it as 2nd arg to `useUnitEconomics`. (3) Replace 4 summary cards with: **Active Clients**, **Total Revenue/mo**, **Platform Cost/mo**, **Avg Margin**. Add a 2nd row of mini-stats: **Care Ops/mo**, **Allocated Cost/Client**, **Direct Care/mo**. (4) Add Section 3 `<PlatformOperationsCard />` below per-client table. (5) Add Section 4 `<ScenarioControlsCard scenarioClientCount={...} onChange={...} />`. (6) Add section headers: "Per-Client Economics", "Platform & Operations", "Scenario Simulation". (7) Helper text under page title: *"Platform costs are distributed across active clients to reflect true profitability."* |
+| `src/components/admin/OperatingCostConfig.tsx` | Group categories by `layer` field into 2 collapsible sections: **A. Care Operations (Per Client)** with tooltip *"Scales per client — coordination, training, oversight"*, **B. Platform & Shared Overhead (Distributed)** with tooltip *"Shared across all clients — divided by active client count"*. Show per-section weekly subtotal. Keep "+ Add line item" inside each category. |
+| `src/components/admin/UnitEconomicsTable.tsx` | (Already has Direct/CareOps/Allocated columns from prior pass.) Verify expanded row shows: Layer 1 Direct, Layer 2 Care Ops, Layer 3 Allocated, then **"Marginal Profit (before allocation)"** = Revenue − Direct − CareOps, then **"Final Profit (after allocation)"** = above − Allocated. Add color-coded labels (blue/amber/purple). |
+| `src/hooks/admin/useUnitEconomics.ts` | Verify `platformSummary` exposes `{ weeklyTotal, monthlyTotal, yearlyTotal, perClientAllocation, activeClientCount, scenarioClientCount, breakEvenClients }`. Add `breakEvenClients` calc if missing: `ceil(totalPlatformWeekly / avgWeeklyContributionMargin)`. Add `directCostTotal` to summary so the new mini-stat works. |
+| `src/components/admin/PlatformOperationsCard.tsx` | Verify it accepts `platformSummary` + `framework` and renders weekly/monthly/yearly + grouped category breakdown + per-client allocation. Patch if any field missing. |
+| `src/components/admin/ScenarioControlsCard.tsx` | Verify slider 1–50, shows: cost/client at scenario, projected avg margin %, break-even client count. Patch if any field missing. |
 
-### What stays the same
-- Storage: localStorage (with backward-compat migration)
-- All existing care plan data, payroll integration, NIS calc
-- Custom line items + pre-seeded software placeholders
-- Draft care plans card
-- Quarterly Action Plan tab
-- "Family Care" legacy plan handling for Ana
+### Summary card layout (top of page)
 
-### Backward compatibility
-The framework migration assigns layer tags to any existing saved categories by key match. If an admin's localStorage has an unknown custom category, it defaults to `platform`. No data loss.
+```text
+Row 1 (primary):
+[ Active Clients ]  [ Revenue/mo ]  [ Platform Cost/mo ]  [ Avg Margin ]
 
-### Expected result for current data (Apr 2026)
+Row 2 (mini-stats, smaller):
+[ Direct Care/mo ]  [ Care Ops/mo ]  [ Allocated/Client ]
+```
 
-Before: Both clients show "Losing" because each absorbs ~$2K of founder/SaaS/marketing weekly
-After: 
-- **Direct margins** visible (caregiver wages vs revenue) — likely positive for both
-- **After Care Ops**: still healthy
-- **After Allocated Platform** (total platform ÷ 2 clients): may be tight or negative — but that's the **real** picture, and the scenario tool shows breakeven at, e.g., 8 clients
-- Investor-ready story: "Marginal profitability is strong; we scale into platform overhead"
+### Page structure after wiring
 
-### UX details
-- Tooltip on "Allocated Ops" column: *"Your share of platform overhead. Total platform cost ÷ active clients. Decreases as you add more clients."*
-- Color coding: Direct (blue), Care Ops (amber), Platform (purple) — consistent across table, config, and breakdown
-- Summary card "Avg Margin" recalculates with full formula so it matches the table
+```text
+┌─ Header + month picker + helper text ──────────────┐
+├─ Summary cards (4 + 3) ────────────────────────────┤
+├─ Tabs: Per-Client | Quarterly Plan ────────────────┤
+│  └─ Per-Client tab:                                │
+│     ├─ Status diagnostics                          │
+│     ├─ § "Operating Cost Framework"                │
+│     │   └─ OperatingCostConfig (grouped A/B)       │
+│     ├─ § "Per-Client Economics"                    │
+│     │   └─ UnitEconomicsTable (3-layer cols)       │
+│     │   └─ Draft plans card                        │
+│     ├─ § "Platform & Operations"                   │
+│     │   └─ PlatformOperationsCard                  │
+│     └─ § "Scenario Simulation"                     │
+│         └─ ScenarioControlsCard (slider 1-50)      │
+└────────────────────────────────────────────────────┘
+```
 
-### Tests after build
-1. Toggle a Software item amount up — confirm allocated/client increases, but per-client direct cost unchanged
-2. Move scenario slider from 2 → 10 clients — allocated/client drops, margins improve
-3. Confirm Ana shows: Sub $499 + caregiver pass-through, direct margin healthy, full margin reflects allocated share
+### Logic guardrails (preserved)
+- Platform cost never fully assigned to one client — always `totalPlatform / divisor`.
+- Divisor = `scenarioClientCount ?? activeClientCount ?? 1` (already in hook).
+- Margin formula: `revenue − direct − careOps − allocatedPlatform` (already in hook).
+- Existing protections: care plans visibility, Ana legacy plan handling, custom line items, draft plans card — all untouched.
+
+### Files NOT touched
+- App.tsx, routing, AuthProvider, registration pages — per guardrails.
+- Quarterly Action Plan tab — unchanged.
+- Storage layer (localStorage) — unchanged.
+
+### Post-build verification
+1. Slider 2 → 10 clients: allocated/client drops, avg margin improves visibly.
+2. Bump a Software item: platform cost rises, allocated/client rises, **direct cost unchanged**.
+3. Ana row shows: Direct healthy, Care Ops modest, Allocated significant; expanded view shows both Marginal and Final profit lines.
+4. Mobile (375px): summary cards stack, slider remains usable, table horizontally scrolls.
 
