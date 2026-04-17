@@ -13,7 +13,7 @@ export type Recurrence = 'weekly' | 'monthly' | 'yearly' | 'one_time';
 
 /**
  * Cost layer for the 3-tier unit economics model:
- *   - 'direct'    → Direct Care Costs (per client, scales 1:1 — wages/NIS)
+ *   - 'direct'    → Direct Care Costs (per client, scales 1:1 — caregiver compensation/NIS)
  *   - 'care_ops'  → Care Operations (per-client, prorated by hours)
  *   - 'platform'  → Shared overhead, allocated per active client
  */
@@ -95,7 +95,7 @@ export function frameworkWeeklyTotal(framework: CostCategory[]): number {
 
 /**
  * Split the weekly framework total by cost layer.
- *   - direct   → wages/NIS (always 0 here, those come from payroll, not the framework)
+ *   - direct   → caregiver compensation/NIS (always 0 here, those come from payroll, not the framework)
  *   - careOps  → per-client care operations (prorated by hours)
  *   - platform → shared overhead (allocated equally across active clients)
  *

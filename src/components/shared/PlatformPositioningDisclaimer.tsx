@@ -60,7 +60,7 @@ export const PlatformPositioningDisclaimer: React.FC<PlatformPositioningDisclaim
         oversight — but is not an employment agency, placement agency, or employer of caregivers.
       </p>
       <p className="text-sm leading-relaxed text-muted-foreground">
-        Caregiver wages flow as a transparent pass-through; coordination fees fund platform operations, training
+        Caregiver compensation flows as a transparent pass-through; coordination fees fund platform operations, training
         oversight, and ongoing family support. The family is the employer of record for NIS purposes; Tavara provides
         tools, calculations, and government form generation as a coordination service.
       </p>

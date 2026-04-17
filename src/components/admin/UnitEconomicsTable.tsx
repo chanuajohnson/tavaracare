@@ -51,7 +51,7 @@ export function UnitEconomicsTable({ clients }: Props) {
             <TableHead>Client</TableHead>
             <TableHead>Plan</TableHead>
             <TableHead className="text-right">Revenue/mo</TableHead>
-            <TableHead className="text-right" title="Direct Care Costs: caregiver wages + employer NIS + reimbursable expenses (scales 1:1 with this client)">Direct Care</TableHead>
+            <TableHead className="text-right" title="Direct Care Costs: caregiver compensation + employer NIS + reimbursable expenses (scales 1:1 with this client)">Direct Care</TableHead>
             <TableHead className="text-right" title="Care Operations: per-client coordination, training, oversight (prorated by weeks active)">Care Ops</TableHead>
             <TableHead className="text-right" title="Allocated Ops: this client's share of platform overhead (total platform cost ÷ active clients). Decreases as you scale.">Allocated Ops</TableHead>
             <TableHead className="text-right">Total Cost/mo</TableHead>
@@ -124,10 +124,10 @@ export function UnitEconomicsTable({ clients }: Props) {
                               </span>
                             </div>
                             <div className="text-xs bg-background rounded p-2 border">
-                              <span className="text-muted-foreground block">Caregiver Wages Pass-through</span>
+                              <span className="text-muted-foreground block">Caregiver Compensation Pass-through</span>
                               <span className="font-medium text-sm">{fmt(client.monthlyCaregiverFees)}/mo</span>
                               <span className="text-muted-foreground block text-[10px]">
-                                Actual wages from payroll
+                                Actual compensation from payroll
                               </span>
                             </div>
                             {client.monthlyServiceRevenue > 0 && (
@@ -204,7 +204,7 @@ export function UnitEconomicsTable({ clients }: Props) {
                                 <span className="font-bold text-blue-700">{fmt(client.monthlyDirectCost)}</span>
                               </div>
                               <div className="text-[10px] text-muted-foreground space-y-0.5">
-                                <div>Wages: {fmt(client.monthlyCaregiverCost)}</div>
+                                <div>Compensation: {fmt(client.monthlyCaregiverCost)}</div>
                                 <div>Employer NIS: {fmt(client.monthlyNisCost)}</div>
                                 <div>Expenses: {fmt(client.monthlyExpenses)}</div>
                                 <div className="italic pt-0.5">Scales 1:1 with this client</div>

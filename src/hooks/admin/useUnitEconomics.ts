@@ -492,7 +492,7 @@ export function useUnitEconomics(selectedMonth: string, scenarioClientCount?: nu
           : Math.round(weeklySubRevenue * payrollWeeks * 100) / 100;
         const monthlyRevenue = monthlySubRevenue + monthlyCaregiverFees + monthlyServiceRevenue;
 
-        // Layer 1 — Direct Care Costs (caregiver wages + employer NIS + reimbursable expenses)
+        // Layer 1 — Direct Care Costs (caregiver compensation + employer NIS + reimbursable expenses)
         const monthlyDirectCost = Math.round((totalCaregiverCost + totalEmployerNis + totalExpenses) * 100) / 100;
 
         // Layer 2 — Care Operations (per-client, prorated by # of payroll weeks active this month)

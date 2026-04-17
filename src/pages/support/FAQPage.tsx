@@ -30,7 +30,7 @@ const faqs: FAQ[] = [
   {
     id: "faq-model-3",
     question: "What does Tavara's coordination fee cover?",
-    answer: "Caregiver matching, schedule coordination, payroll calculation, training oversight, dispute resolution, NIS form generation, daily care log oversight, and platform infrastructure. It does not cover caregiver wages — those flow directly as a transparent pass-through from the family to the caregiver.",
+    answer: "Caregiver matching, schedule coordination, payroll calculation, training oversight, dispute resolution, NIS form generation, daily care log oversight, and platform infrastructure. It does not cover caregiver compensation — that flows directly as a transparent pass-through from the family to the caregiver.",
     category: "About Tavara's Model"
   },
   {
