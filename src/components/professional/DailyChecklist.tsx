@@ -8,13 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Save, Send, ClipboardCheck, FileText, BookOpen, ExternalLink, Pencil } from 'lucide-react';
+import { Save, Send, ClipboardCheck, FileText, BookOpen, ExternalLink, Pencil, Info } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useCurrentAssignments } from '@/hooks/useCurrentAssignments';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CHECKLIST_SECTIONS } from './checklist/checklistSections';
 import { ChecklistSectionCard } from './checklist/ChecklistSectionCard';
+import { openCheckInWhatsApp } from '@/utils/whatsapp/checkInTemplate';
 
 const STORAGE_KEY = 'tavara_daily_checklist_draft';
 
@@ -348,6 +349,7 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
       });
 
       const shiftType = selectedShiftId === '__other__' ? 'other' : 'scheduled';
+      const nowIso = new Date().toISOString();
 
       const logPayload: Record<string, any> = {
         professional_id: user.id,
@@ -360,10 +362,11 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
         time_out: timeOut || null,
         care_plan_id: selectedCarePlanId || null,
         family_id: selectedFamilyId || null,
+        last_activity_at: nowIso,
       };
 
       if (existingLogId) {
-        // Update existing log
+        // Update existing log — only bump last_activity_at, never touch started_at
         const { error } = await supabase
           .from('daily_care_logs')
           .update(logPayload)
@@ -372,19 +375,40 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
         clearDraft();
         toast.success('Daily care log updated successfully!');
       } else {
-        // Insert new log
+        // First save → stamp started_at, fire central WhatsApp check-in
+        logPayload.started_at = nowIso;
+
         const { data, error } = await supabase
           .from('daily_care_logs')
           .insert(logPayload as any)
-          .select('id')
+          .select('id, started_at')
           .single();
         if (error) throw error;
         if (data) {
           setExistingLogId(data.id);
           setIsEditMode(true);
+
+          // Fire admin check-in WhatsApp (one-shot, only on first save)
+          try {
+            const shiftLabel =
+              timeIn && timeOut ? `${timeIn} – ${timeOut}` : undefined;
+            openCheckInWhatsApp({
+              caregiverName:
+                user?.user_metadata?.full_name || 'Caregiver',
+              clientName: resolvedClientName,
+              shiftLabel,
+              scheduledStart: timeIn || undefined,
+              startedAtIso: data.started_at || nowIso,
+              completedItems,
+              totalItems,
+            });
+            toast.info('Check-in notification sent to Tavara admin via WhatsApp.');
+          } catch (waErr) {
+            console.warn('[DailyChecklist] check-in WhatsApp failed:', waErr);
+          }
         }
         clearDraft();
-        toast.success('Daily care log saved successfully!');
+        toast.success('Daily care log saved — Tavara has recorded you on the job.');
       }
       return true;
     } catch (err: any) {
@@ -454,6 +478,20 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
 
   return (
     <div className="space-y-6">
+      {/* On-the-job tip banner — shown only before first save */}
+      {!isEditMode && (
+        <Card className="border-l-4 border-l-emerald-500 bg-emerald-50/50">
+          <CardContent className="pt-4 pb-4 flex items-start gap-3">
+            <Info className="h-5 w-5 text-emerald-700 mt-0.5 shrink-0" />
+            <p className="text-sm text-emerald-900">
+              <strong>Tip:</strong> tick your first item and save as soon as you arrive —
+              that's how Tavara records you on the job. A check-in note will be sent to admin
+              automatically the first time you save today's checklist.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Header */}
       <Card className="border-l-4 border-l-primary">
         <CardHeader className="pb-3">
