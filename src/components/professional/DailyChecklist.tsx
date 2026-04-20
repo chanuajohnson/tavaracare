@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Save, Send, ClipboardCheck, FileText, BookOpen, ExternalLink, Pencil, Info } from 'lucide-react';
+import { Save, Send, ClipboardCheck, FileText, BookOpen, ExternalLink, Pencil, Info, Heart, X } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useCurrentAssignments } from '@/hooks/useCurrentAssignments';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +16,14 @@ import { toast } from 'sonner';
 import { CHECKLIST_SECTIONS } from './checklist/checklistSections';
 import { ChecklistSectionCard } from './checklist/ChecklistSectionCard';
 import { openCheckInWhatsApp } from '@/utils/whatsapp/checkInTemplate';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 const STORAGE_KEY = 'tavara_daily_checklist_draft';
 
@@ -59,6 +67,37 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
   const [existingLogId, setExistingLogId] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(false);
+
+  // First-time onboarding info card visibility (per-user, persisted)
+  const [showIntroCard, setShowIntroCard] = useState(false);
+
+  // Check-in confirmation dialog state — opens after first save succeeds
+  const [checkInDialogOpen, setCheckInDialogOpen] = useState(false);
+  const [pendingCheckIn, setPendingCheckIn] = useState<{
+    caregiverName: string;
+    clientName: string;
+    shiftLabel?: string;
+    scheduledStart?: string;
+    startedAtIso: string;
+    completedItems: number;
+    totalItems: number;
+    displayTime: string;
+  } | null>(null);
+
+  // Show intro card on first visit (per user)
+  useEffect(() => {
+    if (!user?.id) return;
+    const seenKey = `tavara_checklist_intro_seen_${user.id}`;
+    const seen = localStorage.getItem(seenKey);
+    if (!seen) setShowIntroCard(true);
+  }, [user?.id]);
+
+  const dismissIntroCard = useCallback(() => {
+    if (user?.id) {
+      localStorage.setItem(`tavara_checklist_intro_seen_${user.id}`, '1');
+    }
+    setShowIntroCard(false);
+  }, [user?.id]);
 
   // Apply preload props
   useEffect(() => {
@@ -388,23 +427,31 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
           setExistingLogId(data.id);
           setIsEditMode(true);
 
-          // Fire admin check-in WhatsApp (one-shot, only on first save)
+          // Fire admin check-in WhatsApp via confirmation dialog (one-shot, only on first save).
+          // We stage the payload + open a "You're checked in!" modal so the caregiver
+          // understands the WhatsApp redirect that's about to happen and can opt-in.
           try {
             const shiftLabel =
               timeIn && timeOut ? `${timeIn} – ${timeOut}` : undefined;
-            openCheckInWhatsApp({
-              caregiverName:
-                user?.user_metadata?.full_name || 'Caregiver',
+            const startedAtIso = data.started_at || nowIso;
+            const displayTime = new Date(startedAtIso).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+            });
+            setPendingCheckIn({
+              caregiverName: user?.user_metadata?.full_name || 'Caregiver',
               clientName: resolvedClientName,
               shiftLabel,
               scheduledStart: timeIn || undefined,
-              startedAtIso: data.started_at || nowIso,
+              startedAtIso,
               completedItems,
               totalItems,
+              displayTime,
             });
-            toast.info('Check-in notification sent to Tavara admin via WhatsApp.');
+            setCheckInDialogOpen(true);
           } catch (waErr) {
-            console.warn('[DailyChecklist] check-in WhatsApp failed:', waErr);
+            console.warn('[DailyChecklist] check-in WhatsApp staging failed:', waErr);
           }
         }
         clearDraft();
@@ -478,6 +525,44 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
 
   return (
     <div className="space-y-6">
+      {/* First-time onboarding info card — explains the WhatsApp redirect that's coming */}
+      {showIntroCard && !isEditMode && (
+        <Card className="border-l-4 border-l-blue-500 bg-blue-50/60 relative">
+          <button
+            type="button"
+            onClick={dismissIntroCard}
+            className="absolute right-3 top-3 p-1 rounded-md text-blue-700/70 hover:text-blue-900 hover:bg-blue-100 transition-colors"
+            aria-label="Dismiss introduction"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <CardContent className="pt-4 pb-4 flex items-start gap-3 pr-10">
+            <Heart className="h-5 w-5 text-blue-700 mt-0.5 shrink-0" />
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-blue-900">
+                💙 First time using your Daily Checklist?
+              </p>
+              <p className="text-sm text-blue-900/90 leading-relaxed">
+                When you tick and save your first item, a WhatsApp message will pop up
+                automatically — pre-filled and ready to send to Tavara. This is how we let
+                your family and the Tavara team know you've arrived and started your shift
+                safely.
+              </p>
+              <p className="text-sm text-blue-900/90">
+                Just tap <strong>"Send"</strong> in WhatsApp — that's all you need to do.
+              </p>
+              <Button
+                size="sm"
+                onClick={dismissIntroCard}
+                className="mt-1 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Got it, thanks!
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* On-the-job tip banner — shown only before first save */}
       {!isEditMode && (
         <Card className="border-l-4 border-l-emerald-500 bg-emerald-50/50">
@@ -654,6 +739,80 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
           Send Summary via WhatsApp
         </Button>
       </div>
+
+      {/* Check-in confirmation dialog — appears right after first save, before WA opens */}
+      <Dialog
+        open={checkInDialogOpen}
+        onOpenChange={(open) => {
+          setCheckInDialogOpen(open);
+          if (!open) setPendingCheckIn(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-700">
+              <span className="text-2xl">🟢</span>
+              You're checked in!
+            </DialogTitle>
+            <DialogDescription className="pt-2 text-base text-foreground">
+              Your shift has been logged at{' '}
+              <strong>{pendingCheckIn?.displayTime ?? '—'}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground leading-relaxed">
+            We'll now open WhatsApp with a pre-filled message so Tavara and your family
+            know you're on the job. Just tap <strong>Send</strong> in WhatsApp — that's
+            all you need to do.
+          </div>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCheckInDialogOpen(false);
+                const t = pendingCheckIn?.displayTime;
+                setPendingCheckIn(null);
+                toast.success(
+                  t
+                    ? `Shift logged at ${t}. You can notify Tavara from WhatsApp anytime.`
+                    : 'Shift logged. You can notify Tavara from WhatsApp anytime.'
+                );
+              }}
+            >
+              Skip this time
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              onClick={() => {
+                if (pendingCheckIn) {
+                  try {
+                    openCheckInWhatsApp({
+                      caregiverName: pendingCheckIn.caregiverName,
+                      clientName: pendingCheckIn.clientName,
+                      shiftLabel: pendingCheckIn.shiftLabel,
+                      scheduledStart: pendingCheckIn.scheduledStart,
+                      startedAtIso: pendingCheckIn.startedAtIso,
+                      completedItems: pendingCheckIn.completedItems,
+                      totalItems: pendingCheckIn.totalItems,
+                    });
+                    toast.success(
+                      `Shift logged at ${pendingCheckIn.displayTime}. WhatsApp opened — please tap Send to notify Tavara.`,
+                      { duration: 5000 }
+                    );
+                  } catch (err) {
+                    console.warn('[DailyChecklist] WhatsApp open failed:', err);
+                    toast.error('Could not open WhatsApp. Your shift is still logged.');
+                  }
+                }
+                setCheckInDialogOpen(false);
+                setPendingCheckIn(null);
+              }}
+            >
+              <Send className="h-4 w-4" />
+              Open WhatsApp
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
