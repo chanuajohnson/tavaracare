@@ -1,51 +1,126 @@
 
 
-## Status of the last implementation
+## Plan: Make the WhatsApp Check-In Pop-Up Self-Explanatory
 
-**Everything was built and is working in the database.** The reason your Activity tab still shows "tracking coming soon…" is a **stale preview** — your browser is showing the old code, not the new one.
+You loved the WhatsApp pop-up — but it caught you off-guard ("why did this redirect happen?"). Nurses, especially first-timers, will feel the same. The fix is **clear, gentle prompting before and around the pop-up** so they understand exactly what's happening and why.
 
-### What I verified (live database, just now)
+---
 
-**Tricia Cumm's record (id `56922ef7…`):**
-- Role: `professional` ✅
-- Today's log (Apr 20, Chanua Johnson) was created at **1:58:56 PM** with:
-  - `started_at = 2026-04-20 13:58:56` ✅ (the new check-in stamp fired correctly)
-  - `last_activity_at = 2026-04-20 13:59:06` ✅ (bumped 10 sec later on her next save)
-- Legacy logs (Apr 9, 13, 14) have `started_at = NULL` — exactly as planned (pre-feature rows)
+### The problem
 
-So the migration is live, the checklist's first-save trigger is working, and the data is flowing.
+Today, the moment a caregiver hits Save on their first checklist tick:
+1. The log saves silently in the background
+2. A WhatsApp tab suddenly opens with a pre-filled message
+3. No explanation, no warning, no context
 
-### Why you see "Activity tracking coming soon…"
+Result: confusion ("did I do something wrong?"), risk of closing the tab without sending, and the message never reaches you.
 
-The current code in `UserDetailModal.tsx` (line 1016–1033) renders:
-- For **professionals** → `<ProfessionalActivityTab />` (the new tab with shifts, feed, compliance)
-- For **non-professionals** → a card saying "Activity tracking is available for professional accounts."
+---
 
-Your screenshot shows the older string **"Activity tracking coming soon…"** — that string no longer exists anywhere in the codebase (I searched). That confirms the preview iframe is serving a **cached / stale** build.
+### The fix — three layers of clarity
 
-### Fix (no code changes needed)
+#### Layer 1: First-time onboarding tooltip (one-time, dismissible)
+
+The very first time a caregiver opens the daily checklist, show a friendly **info card at the top** (above the existing "Tip" banner):
 
 ```text
-1. In the preview pane, click the refresh ⟳ button (next to /dashboard/admin URL bar)
-2. If still stale: hard-refresh your browser (Cmd-Shift-R on Mac, Ctrl-Shift-R on Win)
-3. Re-open Tricia Cumm → Activity tab
+💙 First time using your Daily Checklist?
+
+When you tick and save your first item, a WhatsApp message will 
+pop up automatically — pre-filled and ready to send to Tavara. 
+This is how we let your family and the Tavara team know you've 
+arrived and started your shift safely.
+
+Just tap "Send" in WhatsApp — that's all you need to do.
+
+[ Got it, thanks! ]
 ```
 
-You should then see:
-- Compliance summary at the top (logs this week, on-time %, avg completion)
-- Today's Apr 20 shift with `started_at = 1:58 PM` and a 🟢/🟡 timeliness badge
-- Apr 14, 13, 09 legacy logs showing "—" for First Log Saved (expected) and their `created_at` as Last Activity
-- Recent Activity feed with today's check-in event
+Stored in `localStorage` (`tavara_checklist_intro_seen_<userId>`) so it never shows again after dismissal.
 
-### Bonus discovery
+#### Layer 2: Confirmation dialog right BEFORE the pop-up
 
-The WhatsApp check-in to **18687865357** uses `window.open(...)` — meaning when Tricia (or Denise) saves their first checklist item, a WhatsApp tab opens for them to hit Send. If you want it to **auto-send silently in the background** instead (no human tap required), that's a small follow-up using the existing `send-nudge-whatsapp` edge function. Flagging only — not changing in this scope.
+Replace the silent `window.open(...)` with a small confirmation modal that fires the moment the first save succeeds:
 
-### If after hard-refresh you still see the old copy
+```text
+🟢 You're checked in!
 
-That would mean a deploy didn't propagate. The fix would be a no-op rebuild (touch any file → save) to force a fresh bundle. I can do that as a one-line change if needed.
+Your shift has been logged at 9:14 AM.
 
-### No new files, no new migrations
+We'll now open WhatsApp with a pre-filled message so Tavara 
+and your family know you're on the job. Just tap Send.
 
-This is a verification + cache-bust. Nothing to build, nothing to ship — the previous implementation is already complete and writing data correctly.
+[ Open WhatsApp ]    [ Skip this time ]
+```
+
+- **Open WhatsApp** → triggers `window.open(...)` (existing behaviour)
+- **Skip this time** → log is still saved (you still see the check-in time in admin), just no WA ping. Useful if she's somewhere with no signal.
+
+This makes the redirect **expected and consensual**, not surprising.
+
+#### Layer 3: Post-action toast confirming what just happened
+
+After WhatsApp opens (or is skipped), show a 5-second toast:
+
+> ✅ Shift logged at 9:14 AM. WhatsApp opened — please tap Send to notify Tavara.
+
+Or for skip:
+> ✅ Shift logged at 9:14 AM. (You can notify Tavara from WhatsApp anytime.)
+
+---
+
+### What this changes vs. today
+
+| Today | After |
+|---|---|
+| WhatsApp tab opens silently with no warning | Caregiver is told what's coming, why, and consents with a tap |
+| Confused new nurses might close the tab without sending | Clear "Open WhatsApp" CTA = much higher send rate |
+| No first-time orientation | Onboarding tooltip explains the system once |
+| No fallback for poor signal / no WhatsApp | "Skip this time" option keeps the log intact |
+
+---
+
+### Files touched
+
+**Modified (small, scoped to checklist UX)**
+- `src/components/professional/DailyChecklist.tsx`
+  - Add the one-time onboarding info card (above existing tip banner)
+  - Wrap the existing `openCheckInWhatsApp()` call in a confirmation dialog (using existing `Dialog` from `src/components/ui/dialog.tsx`)
+  - Add post-action toast via existing `sonner` toast system
+
+**Untouched**
+- `src/utils/whatsapp/checkInTemplate.ts` — message format stays the same
+- `daily_care_logs` schema, save logic, `started_at`/`last_activity_at` timestamps
+- Admin `ProfessionalActivityTab` — no change needed
+- AuthProvider, routing, registration flow — fully protected
+
+**No database changes. No new files needed unless we want to extract the confirmation dialog into its own component (optional — I'd inline it for simplicity).**
+
+---
+
+### Copy choices (Tavara voice — warm, founder-style)
+
+- "💙 First time using your Daily Checklist?" — warm opener
+- "We let your family and the Tavara team know you've arrived and started your shift **safely**" — emphasises care, not surveillance
+- "Just tap Send — that's all you need to do" — removes intimidation
+- "Skip this time" — never traps the user (Tavara principle: *Never let the user feel stuck*)
+
+---
+
+### Acceptance test (after build)
+
+1. Brand-new caregiver logs in, opens Carol Aimey's daily checklist for today → sees the blue **"First time using your Daily Checklist?"** info card with a Got it button
+2. Dismisses the card → it never returns on this device
+3. Ticks first checklist item → hits Save → green **"You're checked in!"** modal appears with Open WhatsApp / Skip this time
+4. Taps Open WhatsApp → existing pre-filled message opens to 18687865357, toast confirms "Shift logged at 9:14 AM"
+5. On a second shift later that day, ticks more items → no modal, no WA pop-up (only fires once per shift / per `daily_care_logs` row), `last_activity_at` still updates silently
+6. A different caregiver who taps **Skip this time** → log still saved, admin Activity tab still shows the check-in time, toast confirms
+
+---
+
+### Out of scope (future, if you want)
+
+- Send the WhatsApp **silently in the background** via the existing `send-nudge-whatsapp` edge function (zero taps required from caregiver — pure backend ping). Nice option once nurses are comfortable; the dialog approach is better for the trust-building phase you're in now.
+- Same pattern for end-of-shift / handoff WhatsApp messages
+- Family-side toast: "Your caregiver has arrived" mirroring the same event
 
