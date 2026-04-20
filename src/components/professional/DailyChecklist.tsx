@@ -525,6 +525,44 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
 
   return (
     <div className="space-y-6">
+      {/* First-time onboarding info card — explains the WhatsApp redirect that's coming */}
+      {showIntroCard && !isEditMode && (
+        <Card className="border-l-4 border-l-blue-500 bg-blue-50/60 relative">
+          <button
+            type="button"
+            onClick={dismissIntroCard}
+            className="absolute right-3 top-3 p-1 rounded-md text-blue-700/70 hover:text-blue-900 hover:bg-blue-100 transition-colors"
+            aria-label="Dismiss introduction"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <CardContent className="pt-4 pb-4 flex items-start gap-3 pr-10">
+            <Heart className="h-5 w-5 text-blue-700 mt-0.5 shrink-0" />
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-blue-900">
+                💙 First time using your Daily Checklist?
+              </p>
+              <p className="text-sm text-blue-900/90 leading-relaxed">
+                When you tick and save your first item, a WhatsApp message will pop up
+                automatically — pre-filled and ready to send to Tavara. This is how we let
+                your family and the Tavara team know you've arrived and started your shift
+                safely.
+              </p>
+              <p className="text-sm text-blue-900/90">
+                Just tap <strong>"Send"</strong> in WhatsApp — that's all you need to do.
+              </p>
+              <Button
+                size="sm"
+                onClick={dismissIntroCard}
+                className="mt-1 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Got it, thanks!
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* On-the-job tip banner — shown only before first save */}
       {!isEditMode && (
         <Card className="border-l-4 border-l-emerald-500 bg-emerald-50/50">
