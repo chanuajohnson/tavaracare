@@ -68,6 +68,37 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
   const [isEditMode, setIsEditMode] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(false);
 
+  // First-time onboarding info card visibility (per-user, persisted)
+  const [showIntroCard, setShowIntroCard] = useState(false);
+
+  // Check-in confirmation dialog state — opens after first save succeeds
+  const [checkInDialogOpen, setCheckInDialogOpen] = useState(false);
+  const [pendingCheckIn, setPendingCheckIn] = useState<{
+    caregiverName: string;
+    clientName: string;
+    shiftLabel?: string;
+    scheduledStart?: string;
+    startedAtIso: string;
+    completedItems: number;
+    totalItems: number;
+    displayTime: string;
+  } | null>(null);
+
+  // Show intro card on first visit (per user)
+  useEffect(() => {
+    if (!user?.id) return;
+    const seenKey = `tavara_checklist_intro_seen_${user.id}`;
+    const seen = localStorage.getItem(seenKey);
+    if (!seen) setShowIntroCard(true);
+  }, [user?.id]);
+
+  const dismissIntroCard = useCallback(() => {
+    if (user?.id) {
+      localStorage.setItem(`tavara_checklist_intro_seen_${user.id}`, '1');
+    }
+    setShowIntroCard(false);
+  }, [user?.id]);
+
   // Apply preload props
   useEffect(() => {
     if (preloadDate) setShiftDate(preloadDate);
