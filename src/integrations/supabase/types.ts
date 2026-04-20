@@ -1796,10 +1796,12 @@ export type Database = {
           created_at: string | null
           family_id: string | null
           id: string
+          last_activity_at: string | null
           notes: string | null
           professional_id: string
           shift_date: string
           shift_type: string | null
+          started_at: string | null
           time_in: string | null
           time_out: string | null
           updated_at: string | null
@@ -1811,10 +1813,12 @@ export type Database = {
           created_at?: string | null
           family_id?: string | null
           id?: string
+          last_activity_at?: string | null
           notes?: string | null
           professional_id: string
           shift_date?: string
           shift_type?: string | null
+          started_at?: string | null
           time_in?: string | null
           time_out?: string | null
           updated_at?: string | null
@@ -1826,10 +1830,12 @@ export type Database = {
           created_at?: string | null
           family_id?: string | null
           id?: string
+          last_activity_at?: string | null
           notes?: string | null
           professional_id?: string
           shift_date?: string
           shift_type?: string | null
+          started_at?: string | null
           time_in?: string | null
           time_out?: string | null
           updated_at?: string | null
