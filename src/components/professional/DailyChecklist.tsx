@@ -478,6 +478,20 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
 
   return (
     <div className="space-y-6">
+      {/* On-the-job tip banner — shown only before first save */}
+      {!isEditMode && (
+        <Card className="border-l-4 border-l-emerald-500 bg-emerald-50/50">
+          <CardContent className="pt-4 pb-4 flex items-start gap-3">
+            <Info className="h-5 w-5 text-emerald-700 mt-0.5 shrink-0" />
+            <p className="text-sm text-emerald-900">
+              <strong>Tip:</strong> tick your first item and save as soon as you arrive —
+              that's how Tavara records you on the job. A check-in note will be sent to admin
+              automatically the first time you save today's checklist.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Header */}
       <Card className="border-l-4 border-l-primary">
         <CardHeader className="pb-3">

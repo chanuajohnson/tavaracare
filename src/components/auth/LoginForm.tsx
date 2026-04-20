@@ -1,9 +1,9 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { EyeIcon, EyeOffIcon, Loader2 } from "lucide-react";
+import { EyeIcon, EyeOffIcon, Loader2, ShieldCheck, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface LoginFormProps {
@@ -12,11 +12,32 @@ interface LoginFormProps {
   onForgotPassword: (email: string) => void;
 }
 
+const PERSISTENCE_BANNER_KEY = 'tavara_persistence_banner_dismissed';
+
 export function LoginForm({ onSubmit, isLoading, onForgotPassword }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [localLoading, setLocalLoading] = useState(false);
+  const [showPersistenceBanner, setShowPersistenceBanner] = useState(false);
+
+  useEffect(() => {
+    try {
+      const dismissed = localStorage.getItem(PERSISTENCE_BANNER_KEY);
+      if (!dismissed) setShowPersistenceBanner(true);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const dismissPersistenceBanner = () => {
+    setShowPersistenceBanner(false);
+    try {
+      localStorage.setItem(PERSISTENCE_BANNER_KEY, '1');
+    } catch {
+      // ignore
+    }
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
