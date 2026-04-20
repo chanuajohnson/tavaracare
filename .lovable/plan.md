@@ -1,126 +1,179 @@
 
 
-## Plan: Make the WhatsApp Check-In Pop-Up Self-Explanatory
+## Plan: Add "How Tavara Matching Works" card to the About page
 
-You loved the WhatsApp pop-up — but it caught you off-guard ("why did this redirect happen?"). Nurses, especially first-timers, will feel the same. The fix is **clear, gentle prompting before and around the pop-up** so they understand exactly what's happening and why.
-
----
-
-### The problem
-
-Today, the moment a caregiver hits Save on their first checklist tick:
-1. The log saves silently in the background
-2. A WhatsApp tab suddenly opens with a pre-filled message
-3. No explanation, no warning, no context
-
-Result: confusion ("did I do something wrong?"), risk of closing the tab without sending, and the message never reaches you.
+A focused, additive change — drop a new card **above Our Story / Our Mission** on `/about` that explains the 5-step matching system with toggleable Family / Professional perspectives. No existing About content changes. No routes touched.
 
 ---
 
-### The fix — three layers of clarity
+### Where it goes
 
-#### Layer 1: First-time onboarding tooltip (one-time, dismissible)
-
-The very first time a caregiver opens the daily checklist, show a friendly **info card at the top** (above the existing "Tip" banner):
+`src/pages/about/AboutPage.tsx` — insert one new component **between the intro card and the `Our Story / Our Mission` grid** (between lines ~88 and ~91). Nothing existing is modified, removed, or restyled.
 
 ```text
-💙 First time using your Daily Checklist?
-
-When you tick and save your first item, a WhatsApp message will 
-pop up automatically — pre-filled and ready to send to Tavara. 
-This is how we let your family and the Tavara team know you've 
-arrived and started your shift safely.
-
-Just tap "Send" in WhatsApp — that's all you need to do.
-
-[ Got it, thanks! ]
+[ Tavara logo + tagline ]
+[ Intro card: "Tavara is a technology-driven platform…" ]
+[ ★ NEW: How Tavara Matching Works card ]   ← inserted here
+[ Our Story | Our Mission grid ]   ← unchanged
+[ Vision section ]   ← unchanged
+…rest of page unchanged…
 ```
-
-Stored in `localStorage` (`tavara_checklist_intro_seen_<userId>`) so it never shows again after dismissal.
-
-#### Layer 2: Confirmation dialog right BEFORE the pop-up
-
-Replace the silent `window.open(...)` with a small confirmation modal that fires the moment the first save succeeds:
-
-```text
-🟢 You're checked in!
-
-Your shift has been logged at 9:14 AM.
-
-We'll now open WhatsApp with a pre-filled message so Tavara 
-and your family know you're on the job. Just tap Send.
-
-[ Open WhatsApp ]    [ Skip this time ]
-```
-
-- **Open WhatsApp** → triggers `window.open(...)` (existing behaviour)
-- **Skip this time** → log is still saved (you still see the check-in time in admin), just no WA ping. Useful if she's somewhere with no signal.
-
-This makes the redirect **expected and consensual**, not surprising.
-
-#### Layer 3: Post-action toast confirming what just happened
-
-After WhatsApp opens (or is skipped), show a 5-second toast:
-
-> ✅ Shift logged at 9:14 AM. WhatsApp opened — please tap Send to notify Tavara.
-
-Or for skip:
-> ✅ Shift logged at 9:14 AM. (You can notify Tavara from WhatsApp anytime.)
 
 ---
 
-### What this changes vs. today
+### New file
 
-| Today | After |
+**`src/components/about/HowMatchingWorksCard.tsx`** — self-contained card using existing UI primitives (`Card`, `Tabs`, `Button` from `src/components/ui/*`), `framer-motion` for subtle reveal, and lucide icons (`Heart`, `Sparkles`, `Users`, `Home`, `Repeat`).
+
+**Structure:**
+- Card header: *"How Tavara Matching Works"* + subhead *"A real match isn't a search result — it's a system that looks at your life, your home, and the people who'll show up."*
+- Tabs toggle: **For Families** | **For Caregivers** (default Families)
+- 5 numbered step blocks (vertical stack on mobile, 1-column readable layout on desktop — matches the existing `MissionCard` / `StoryCard` visual rhythm)
+- Each step: number badge → icon → title → bullet list → italic pull-quote
+- Closing band: *"A good match isn't enough — the whole system has to work."*
+
+---
+
+### Copy — Family perspective (your wording, terminology-aligned)
+
+**1. Understand Your Reality** 💙
+- Care needs and medical conditions
+- Daily routine and schedule
+- Family dynamics and relationship to the care recipient
+- Stage of care — urgent now, planning ahead, or transitioning
+- Your loved one's *Legacy Story* — who they are, not just what they need
+
+> *We start with your real life — not just a request.*
+
+**2. Match for Fit** ✨
+Every caregiver is scored across four signals:
+- Care types
+- Schedule overlap
+- Experience & specialised training
+- Location
+
+Families see one overall match score plus a clear explanation of why that caregiver fits.
+
+> *Not just availability — actual fit, scored across what matters.*
+
+**3. Meet Your Care Team** 🤝
+- A care coordinator visits to confirm needs in person
+- Your care team is confirmed (one main caregiver + supporting care team members)
+- We facilitate an initial family meeting at your home
+- An optional trial day may be arranged before you commit
+
+> *A match on paper becomes a person at your door — with Tavara walking you through it.*
+
+**4. Prepare the Home for Care** 🏡
+Once care begins, your caregiver runs a Care Readiness Assessment covering:
+- Hygiene, safety, accessibility
+- Caregiver workflow and daily flow
+- Decluttering & space optimisation recommendations
+
+If additional support is needed: assessment included, guided reset available, full reset by quote.
+
+> *Care depends on the environment — the home has to support the care, not work against it.*
+
+**5. Coordinate and Sustain** 🔄
+- Schedule changes, shift swaps, coverage
+- Backup caregiver support
+- Daily care logs and family visibility
+- Escalations when care needs evolve
+- Ongoing coordinator support for both the family and caregiver
+
+> *So care continues — even when things change.*
+
+**Closing:** *A good match isn't enough — the whole system has to work.*
+
+---
+
+### Copy — Caregiver perspective (mirrored, same 5 steps)
+
+**1. We Get to Know You** 💙
+- Your training, certifications & specialisations
+- Shifts you can actually work
+- Areas you can reach reliably
+- Care types you're confident with
+
+> *We match you to families where your skills genuinely fit — not just any open shift.*
+
+**2. Matched for Fit** ✨
+You're scored against family needs across the same four signals: care types, schedule, experience, location. You see why a family is a fit before you accept.
+
+> *Real matches, not random assignments.*
+
+**3. Meet Your Family** 🤝
+- A Tavara coordinator introduces you
+- Initial family meeting at the home
+- Optional trial day to confirm mutual fit
+- Care team structure confirmed (main caregiver + fill-in caregivers)
+
+> *You're never sent in cold.*
+
+**4. Set Up the Care Environment** 🏡
+On your first week you complete a Care Readiness Assessment — your professional eyes on hygiene, safety, workflow, and what the home needs to support quality care.
+
+> *You're the expert in the room — Tavara backs your recommendations.*
+
+**5. Ongoing Support & Care Payments** 🔄
+- Shift coverage and swap support when life happens
+- Daily care logs (your record of work)
+- Backup caregivers in your team
+- Transparent **care payments** every cycle (no employer/employee framing — you're an independent care professional)
+- Coordinator support whenever you need it
+
+> *Tavara coordinates the system so you can focus on care.*
+
+**Closing:** *A good match isn't enough — the whole system has to work.*
+
+---
+
+### Terminology guardrails (applied throughout the copy)
+
+| ❌ Never use | ✅ Always use |
 |---|---|
-| WhatsApp tab opens silently with no warning | Caregiver is told what's coming, why, and consents with a tap |
-| Confused new nurses might close the tab without sending | Clear "Open WhatsApp" CTA = much higher send rate |
-| No first-time orientation | Onboarding tooltip explains the system once |
-| No fallback for poor signal / no WhatsApp | "Skip this time" option keeps the log intact |
+| Hire caregiver / Hire nurse | Match with caregiver / Assign caregiver |
+| We hire | We coordinate |
+| Hiring process | Care setup process |
+| Employment / Staff | Care arrangement / Care team |
+| Payroll / Wages / Salary | **Care payments** / Caregiver compensation |
+| Employer NIS | **NIS Contribution (Caregiver)** |
+| Staff cost | Care delivery cost |
+
+This card uses *match*, *care team*, *care payments*, *care arrangement*, *coordinate* exclusively — consistent with the platform-positioning standard (Tavara is a coordination platform, never an agency or employer).
 
 ---
 
 ### Files touched
 
-**Modified (small, scoped to checklist UX)**
-- `src/components/professional/DailyChecklist.tsx`
-  - Add the one-time onboarding info card (above existing tip banner)
-  - Wrap the existing `openCheckInWhatsApp()` call in a confirmation dialog (using existing `Dialog` from `src/components/ui/dialog.tsx`)
-  - Add post-action toast via existing `sonner` toast system
+| File | Change |
+|---|---|
+| `src/components/about/HowMatchingWorksCard.tsx` | **NEW** — self-contained card with Tabs |
+| `src/pages/about/AboutPage.tsx` | **+2 lines** — import + render once between the intro card (line ~88) and the Story/Mission grid (line ~91). No other edits. |
 
-**Untouched**
-- `src/utils/whatsapp/checkInTemplate.ts` — message format stays the same
-- `daily_care_logs` schema, save logic, `started_at`/`last_activity_at` timestamps
-- Admin `ProfessionalActivityTab` — no change needed
-- AuthProvider, routing, registration flow — fully protected
+**Untouched:** All existing About sections (logo, intro, Story, Mission, Vision, Values, Platform Features, Podcast, CTA), routing, navigation, AuthProvider, registration flows, chat flow.
 
-**No database changes. No new files needed unless we want to extract the confirmation dialog into its own component (optional — I'd inline it for simplicity).**
+No DB changes. No edge functions. No new dependencies.
 
 ---
 
-### Copy choices (Tavara voice — warm, founder-style)
+### Mobile / responsive
 
-- "💙 First time using your Daily Checklist?" — warm opener
-- "We let your family and the Tavara team know you've arrived and started your shift **safely**" — emphasises care, not surveillance
-- "Just tap Send — that's all you need to do" — removes intimidation
-- "Skip this time" — never traps the user (Tavara principle: *Never let the user feel stuck*)
+- Mobile (<640px): single-column step stack, tabs full-width
+- Tablet (640–1024px): step number badge inline, tabs side-by-side
+- Desktop (>1024px): max-width 4xl card matching the existing intro card width (`max-w-4xl mx-auto`)
 
----
-
-### Acceptance test (after build)
-
-1. Brand-new caregiver logs in, opens Carol Aimey's daily checklist for today → sees the blue **"First time using your Daily Checklist?"** info card with a Got it button
-2. Dismisses the card → it never returns on this device
-3. Ticks first checklist item → hits Save → green **"You're checked in!"** modal appears with Open WhatsApp / Skip this time
-4. Taps Open WhatsApp → existing pre-filled message opens to 18687865357, toast confirms "Shift logged at 9:14 AM"
-5. On a second shift later that day, ticks more items → no modal, no WA pop-up (only fires once per shift / per `daily_care_logs` row), `last_activity_at` still updates silently
-6. A different caregiver who taps **Skip this time** → log still saved, admin Activity tab still shows the check-in time, toast confirms
+Matches the viewport you're testing at (1189×853) and remains readable on phones.
 
 ---
 
-### Out of scope (future, if you want)
+### Acceptance test
 
-- Send the WhatsApp **silently in the background** via the existing `send-nudge-whatsapp` edge function (zero taps required from caregiver — pure backend ping). Nice option once nurses are comfortable; the dialog approach is better for the trust-building phase you're in now.
-- Same pattern for end-of-shift / handoff WhatsApp messages
-- Family-side toast: "Your caregiver has arrived" mirroring the same event
+1. Navigate to `/about` → between the blue intro card and the Story/Mission grid you see a new card titled **"How Tavara Matching Works"**
+2. Card defaults to **For Families** tab — 5 numbered steps render with icons, bullets, italic pull-quotes, closing line
+3. Click **For Caregivers** tab → content swaps to mirrored caregiver copy, no layout shift
+4. All terminology audit: no occurrences of *hire, payroll, salary, employer, staff* — only *match, care team, care payments, coordinate*
+5. Existing Story / Mission / Vision / Values / Platform Features / Podcast / CTA sections appear unchanged below
+6. Mobile (375px wide): card stacks cleanly, tabs full-width, no horizontal scroll
+7. Lighthouse: no new console errors, no layout shift on tab switch
 
