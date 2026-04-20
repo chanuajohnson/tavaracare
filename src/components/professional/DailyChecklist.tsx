@@ -427,23 +427,31 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
           setExistingLogId(data.id);
           setIsEditMode(true);
 
-          // Fire admin check-in WhatsApp (one-shot, only on first save)
+          // Fire admin check-in WhatsApp via confirmation dialog (one-shot, only on first save).
+          // We stage the payload + open a "You're checked in!" modal so the caregiver
+          // understands the WhatsApp redirect that's about to happen and can opt-in.
           try {
             const shiftLabel =
               timeIn && timeOut ? `${timeIn} – ${timeOut}` : undefined;
-            openCheckInWhatsApp({
-              caregiverName:
-                user?.user_metadata?.full_name || 'Caregiver',
+            const startedAtIso = data.started_at || nowIso;
+            const displayTime = new Date(startedAtIso).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+            });
+            setPendingCheckIn({
+              caregiverName: user?.user_metadata?.full_name || 'Caregiver',
               clientName: resolvedClientName,
               shiftLabel,
               scheduledStart: timeIn || undefined,
-              startedAtIso: data.started_at || nowIso,
+              startedAtIso,
               completedItems,
               totalItems,
+              displayTime,
             });
-            toast.info('Check-in notification sent to Tavara admin via WhatsApp.');
+            setCheckInDialogOpen(true);
           } catch (waErr) {
-            console.warn('[DailyChecklist] check-in WhatsApp failed:', waErr);
+            console.warn('[DailyChecklist] check-in WhatsApp staging failed:', waErr);
           }
         }
         clearDraft();
