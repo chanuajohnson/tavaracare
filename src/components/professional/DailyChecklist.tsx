@@ -739,6 +739,80 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
           Send Summary via WhatsApp
         </Button>
       </div>
+
+      {/* Check-in confirmation dialog — appears right after first save, before WA opens */}
+      <Dialog
+        open={checkInDialogOpen}
+        onOpenChange={(open) => {
+          setCheckInDialogOpen(open);
+          if (!open) setPendingCheckIn(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-700">
+              <span className="text-2xl">🟢</span>
+              You're checked in!
+            </DialogTitle>
+            <DialogDescription className="pt-2 text-base text-foreground">
+              Your shift has been logged at{' '}
+              <strong>{pendingCheckIn?.displayTime ?? '—'}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground leading-relaxed">
+            We'll now open WhatsApp with a pre-filled message so Tavara and your family
+            know you're on the job. Just tap <strong>Send</strong> in WhatsApp — that's
+            all you need to do.
+          </div>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCheckInDialogOpen(false);
+                const t = pendingCheckIn?.displayTime;
+                setPendingCheckIn(null);
+                toast.success(
+                  t
+                    ? `Shift logged at ${t}. You can notify Tavara from WhatsApp anytime.`
+                    : 'Shift logged. You can notify Tavara from WhatsApp anytime.'
+                );
+              }}
+            >
+              Skip this time
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              onClick={() => {
+                if (pendingCheckIn) {
+                  try {
+                    openCheckInWhatsApp({
+                      caregiverName: pendingCheckIn.caregiverName,
+                      clientName: pendingCheckIn.clientName,
+                      shiftLabel: pendingCheckIn.shiftLabel,
+                      scheduledStart: pendingCheckIn.scheduledStart,
+                      startedAtIso: pendingCheckIn.startedAtIso,
+                      completedItems: pendingCheckIn.completedItems,
+                      totalItems: pendingCheckIn.totalItems,
+                    });
+                    toast.success(
+                      `Shift logged at ${pendingCheckIn.displayTime}. WhatsApp opened — please tap Send to notify Tavara.`,
+                      { duration: 5000 }
+                    );
+                  } catch (err) {
+                    console.warn('[DailyChecklist] WhatsApp open failed:', err);
+                    toast.error('Could not open WhatsApp. Your shift is still logged.');
+                  }
+                }
+                setCheckInDialogOpen(false);
+                setPendingCheckIn(null);
+              }}
+            >
+              <Send className="h-4 w-4" />
+              Open WhatsApp
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
