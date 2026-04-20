@@ -27,7 +27,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useProfessionalActivity } from '@/hooks/useProfessionalActivity';
-import { AdminCareLogsTab } from './AdminCareLogsTab';
+import { ProfessionalCareLogsList } from './ProfessionalCareLogsList';
 
 interface Props {
   professionalId: string;
@@ -356,7 +356,10 @@ export const ProfessionalActivityTab: React.FC<Props> = ({
               All Daily Care Logs{professionalName ? ` — ${professionalName}` : ''}
             </DialogTitle>
           </DialogHeader>
-          <AdminCareLogsTab userId={professionalId} />
+          <ProfessionalCareLogsList
+            professionalId={professionalId}
+            professionalName={professionalName}
+          />
         </DialogContent>
       </Dialog>
     </div>
