@@ -82,6 +82,8 @@ const AboutPage = () => {
             </div>
           </motion.div>
 
+          <HowMatchingWorksCard />
+
           <div className="grid md:grid-cols-2 gap-8 mt-12">
             <StoryCard isActive={activeCard === 'story'} onClick={() => handleCardClick('story')} />
             <MissionCard isActive={activeCard === 'mission'} onClick={() => handleCardClick('mission')} />
