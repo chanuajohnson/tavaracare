@@ -1,142 +1,126 @@
 
 
-## Plan: Shift Check-In + Admin Activity Feed for Professionals
+## Revised Plan: Use the Daily Checklist as the Check-In Signal
 
-Three connected pieces — built on existing tables, zero auth changes, zero touch to the chat flow or registration.
-
----
-
-### 1. "I'm on the job" check-in for Denise (and all caregivers)
-
-A new section on the **Professional Dashboard** showing today's shifts. Each shift card gets:
-
-- Big amber **"Start Shift"** button → on tap:
-  1. Writes a row to a new `shift_attendance` table (`caregiver_id`, `care_shift_id`, `family_id`, `started_at`, `started_via='dashboard'`, optional GPS not collected).
-  2. Updates `care_shifts.status` from `open` → `in_progress`.
-  3. Opens **WhatsApp pre-filled to your central number (18687865357)** with: *"✅ Denise Narcis checked in for Carol Aimey (Peltier Care Plan) at 8:02 AM — 8 AM–4 PM shift."* She just hits send.
-- After start, button flips to green **"End Shift"** → records `ended_at`, sets shift to `completed`, prompts her to *Open Daily Checklist*.
-
-Why both DB record + WhatsApp: belt and braces — you get a permanent log even if WhatsApp doesn't get sent, AND a real-time ping on your phone.
-
-```text
-Today's Shift  ·  Carol Aimey (Peltier)
-☀️ 8 AM – 4 PM Standard Daytime
-[ 🟢 Start Shift ]   ← writes attendance + opens WhatsApp
-```
-
-After tap:
-```text
-Today's Shift  ·  Carol Aimey (Peltier)
-🟢 ON SHIFT since 8:02 AM
-[ Open Daily Checklist ]   [ ⏹ End Shift ]
-```
+You're right — adding a separate "Start Shift" button duplicates work. The checklist itself becomes the check-in. **First save of a shift's checklist = "Denise is on the job."**
 
 ---
 
-### 2. Admin Activity tab — replaces "coming soon"
+### What changes vs. the previous plan
 
-The empty Activity tab on Denise's profile modal becomes a real timeline. Three sections:
+| Previous plan | Revised |
+|---|---|
+| New `shift_attendance` table | ❌ Dropped — not needed |
+| New `TodayShiftCheckInCard` button | ❌ Dropped |
+| Two taps (Start Shift + Open Checklist) | ✅ One action — open checklist, tick first item |
+| Manual WhatsApp on Start Shift | ✅ Auto WhatsApp the moment first checklist save happens |
 
-**A. This Week's Shifts (table view)**
-| Date | Family | Scheduled | Checked In | Checked Out | Checklist | Notes |
+---
+
+### 1. Check-in via first checklist save
+
+When Denise opens the daily checklist for today's shift and hits **Save** for the first time (i.e., creates the `daily_care_logs` row), the system:
+
+1. **Stamps a `started_at` timestamp** on that row (new column, `now()` on insert).
+2. **Fires a one-time WhatsApp to your central number (18687865357)** pre-filled and auto-sent via the existing WhatsApp routing pattern, OR opened in a tab for her to confirm send (matches existing handoff behaviour):
+   > *"🟢 Denise Narcis started shift for Carol Aimey • 8 AM–4 PM • Logged in at 9:14 AM • Checklist 1/28 ticked"*
+3. Adds gentle copy at the top of the checklist screen: **"Tip: tick your first item as soon as you arrive — that's how Tavara records you on the job."**
+
+A **second column `last_activity_at`** is auto-updated on every subsequent checklist save so the admin view shows live progress, not just the start moment.
+
+---
+
+### 2. "On the job" timeliness signal
+
+Because the start time is now real (whenever she first ticked anything) — not fake — the admin view can show a **timeliness indicator** by comparing `started_at` to `time_in`:
+
+- 🟢 **On time** — first tick within 15 min of scheduled start
+- 🟡 **Late** — first tick 15–60 min after start
+- 🔴 **Very late / no log yet** — > 60 min late or no row at all by mid-shift
+
+This directly answers your concern: *"if they start the checklist 4 PM and start checking off things at 8 PM, well, that's not gonna help me."* The `started_at` (first save) is the truth — `last_activity_at` shows ongoing engagement.
+
+---
+
+### 3. Admin Activity tab — same as before, simpler source
+
+The admin Activity tab on Denise's profile (replacing the "coming soon" stub) shows:
+
+**A. This Week's Shifts**
+| Date | Family | Scheduled | First Log Saved | Last Activity | Checklist | Status |
 |---|---|---|---|---|---|---|
-| Apr 20 | Carol Aimey | 8 AM–4 PM | 🟢 8:02 AM | — | 🟡 In progress | – |
-| Apr 17 | Carol Aimey | 8 AM–4 PM | ⚪ Not recorded | — | ✅ 100% (28/28) | View |
-| Apr 16 | Carol Aimey | 8 AM–4 PM | ⚪ Not recorded | — | ✅ 100% | View |
-| Apr 15 | Carol Aimey | 8 AM–4 PM | ⚪ Not recorded | — | ✅ 96% (27/28) | View |
+| Apr 20 | Carol Aimey | 8 AM–4 PM | — | — | Not started | 🔴 No log |
+| Apr 17 | Carol Aimey | 8 AM–4 PM | (legacy — unknown) | 3:29 PM | ✅ 28/28 | ✅ Logged |
+| Apr 16 | Carol Aimey | 8 AM–4 PM | (legacy — unknown) | 3:40 PM | ✅ 28/28 | ✅ Logged |
+| Apr 15 | Carol Aimey | 8 AM–4 PM | (legacy — unknown) | 3:12 PM | ✅ 28/28 | ✅ Logged |
 
-> Past shifts before this feature ships will show "Not recorded" for check-in (the daily-log entries are still there — admin can click "View" to open the full checklist inline using the existing `AdminCareLogsTab` component).
+> Note on the screenshot you saw earlier ("8:02 AM in progress") — that was illustrative copy in the previous plan, not real data. The real `daily_care_logs` rows only carry the typed `time_in` string ("08:00") and a `created_at` timestamp. Going forward the new `started_at` column will hold the truthful first-save moment.
 
-**B. Recent Activity (last 30 days, scrollable)**
-- 🟢 Apr 20, 8:02 AM — Started shift for Carol Aimey
-- 📋 Apr 17, 3:29 PM — Submitted Daily Checklist (Carol Aimey, 100%)
-- 📋 Apr 16, 3:40 PM — Submitted Daily Checklist (Carol Aimey, 100%)
-- 📋 Apr 15, 3:12 PM — Submitted Daily Checklist (Carol Aimey, 96%)
+**B. Recent Activity feed (last 30 days)**
+- 🟢 Apr 20, 9:14 AM — Started checklist for Carol Aimey *(15 min late)*
+- 📋 Apr 17, 3:29 PM — Submitted Daily Checklist (Carol Aimey, 28/28)
+- 📋 Apr 16, 3:40 PM — Submitted Daily Checklist
+- 📋 Apr 15, 3:12 PM — Submitted Daily Checklist
 
-Pulled from: `shift_attendance`, `daily_care_logs`, `medication_administrations` (filtered by `administered_by = caregiver_id`), and `cta_engagement_tracking` (login pings only — not page noise).
-
-**C. Compliance summary (top of tab, color-coded)**
-- Shifts this week: **3 of 5** (60%)
+**C. Compliance summary**
+- Logs this week: **3 of 5** (60%)
+- On-time starts: **2 of 3** ✅
 - Avg checklist completion: **98.7%** ✅
-- Shifts started via dashboard: **1 of 3** ⚠️ (start using the check-in button so timing is recorded)
-- Last activity: **Today, 8:02 AM**
+- Last activity: **Today, 9:14 AM**
 
 ---
 
-### 3. Login persistence — diagnosis only, no auth changes
+### 4. Login persistence — unchanged from previous plan
 
-`supabase/client.ts` already has `persistSession: true, autoRefreshToken: true`. Sessions should last ~30 days. The "logging in every minute" is most likely:
-- Using browser private/incognito mode
-- A different device or browser each time
-- Aggressive cookie clearing
-- Multiple tabs/devices auto-signing-out the older session
-
-**Action**: I'll add a tiny **"Stay signed in on this device"** confirmation banner on first login that explains how persistence works (one sentence + "Got it" button, stored in localStorage so it never shows again). No changes to AuthProvider, signOut logic, or session refresh — just user guidance.
-
-If after this the issue persists, we'll diagnose with logs (separate task).
+Same one-time **"Stay signed in on this device"** banner. No auth code touched.
 
 ---
 
-### Database changes
+### Database changes (much smaller now)
 
-**One new table** (migration):
+Migration adds **two columns** to `daily_care_logs`:
 ```sql
-shift_attendance (
-  id uuid PK,
-  care_shift_id uuid FK → care_shifts,
-  caregiver_id uuid FK → profiles,
-  family_id uuid FK → profiles,
-  care_plan_id uuid,
-  started_at timestamptz,
-  ended_at timestamptz,
-  started_via text default 'dashboard',  -- 'dashboard' | 'admin_manual'
-  notes text,
-  created_at, updated_at
-)
+ALTER TABLE daily_care_logs
+  ADD COLUMN started_at  timestamptz,  -- set once on first insert
+  ADD COLUMN last_activity_at timestamptz; -- bumped on every save
 ```
-RLS:
-- Caregivers: insert/update own rows
-- Families: select rows where `family_id = auth.uid()`
-- Admins: full access via `is_current_user_admin()`
 
-No changes to `daily_care_logs`, `care_shifts`, `profiles`, or anything in `auth.*`.
+**No new table, no new RLS** — `daily_care_logs` already has the right policies.
 
 ---
 
 ### Files touched
 
 **New**
-- `supabase/migrations/<ts>_shift_attendance.sql` — table + RLS
-- `src/components/professional/TodayShiftCheckInCard.tsx` — start/end shift card
-- `src/components/admin/ProfessionalActivityTab.tsx` — replaces stub
-- `src/hooks/useShiftAttendance.ts` — read/write attendance
-- `src/utils/whatsapp/shiftCheckInTemplate.ts` — pre-filled message builder
+- `supabase/migrations/<ts>_daily_care_logs_activity_timestamps.sql`
+- `src/components/admin/ProfessionalActivityTab.tsx` (replaces Activity stub)
+- `src/utils/whatsapp/checkInTemplate.ts` (pre-filled WA message builder)
+- `src/hooks/useProfessionalActivity.ts` (admin-side data fetcher)
 
-**Modified (small)**
-- `src/components/admin/UserDetailModal.tsx` — swap "Activity tracking coming soon..." with `<ProfessionalActivityTab />`
-- `src/pages/professional/ProfessionalProfileHub.tsx` (or the dashboard page that's the professional's main view) — add `<TodayShiftCheckInCard />` at top
-- `src/components/auth/...` — add the one-time persistence banner (read-only addition, no auth-logic change)
+**Modified (small, surgical)**
+- `src/components/professional/DailyChecklist.tsx` — on first insert, set `started_at = now()`; on every save, set `last_activity_at = now()`; trigger WA notify only on first insert
+- `src/components/admin/UserDetailModal.tsx` — swap "Activity tracking coming soon..." for `<ProfessionalActivityTab />`
+- Plus the one-time login persistence banner (small, isolated)
 
 **Untouched (protected)**
-- `App.tsx`, all routing, AuthProvider, registration pages, chat flow, `supabase/client.ts` auth config, `daily_care_logs` schema, `professionalOnboardingSections.ts`
+- `App.tsx`, AuthProvider, registration flow, chat flow, all routing
+- The checklist UI/behaviour itself — only the save-side mutation gains two timestamps and one WA call
 
 ---
 
-### Out of scope (separate tasks if you want them later)
+### Out of scope (future)
 
-- GPS-verified check-in
-- Auto-reminder WhatsApp to Denise if she hasn't checked in by 8:15 AM
-- Family-side "your caregiver has arrived" banner (would also use `shift_attendance`)
-- Deep auth/session debugging
-- Telegram bot for check-in (we have the connector, but WhatsApp matches Tavara's central routing standard)
+- Auto-WA reminder *to Denise* if no log saved by 15 min after shift start
+- Family-side "your caregiver has started today's checklist" banner (uses same `started_at`)
+- GPS, Telegram, deep auth debugging
 
 ---
 
-### Acceptance test (after build)
+### Acceptance test
 
-1. Log in as Denise → professional dashboard shows today's Carol Aimey 8 AM shift with a Start button
-2. Tap Start → shift card flips to "ON SHIFT since 8:02 AM", WhatsApp opens to 18687865357 pre-filled, you receive the message after she sends
-3. Open admin → Users → Denise Narcis → Activity tab → see this week's shifts with the new check-in time, plus the 3 historical daily logs from Apr 15/16/17 with completion %
-4. Click "View" on a past log → existing daily checklist opens inline showing all 28 ticked items
-5. Tap End Shift → status flips to completed, prompted to open the daily checklist
+1. Denise logs in → opens Carol Aimey's daily checklist for today → ticks first item → hits Save
+2. `daily_care_logs` row created with `started_at = now()`, `last_activity_at = now()`
+3. WhatsApp opens (or auto-sends) to 18687865357: *"🟢 Denise Narcis started shift for Carol Aimey…"*
+4. She continues ticking through the day — each save bumps `last_activity_at` (no extra WA)
+5. Admin → Users → Denise → Activity tab shows today's shift with start time, on-time badge, current checklist progress, and historical logs from Apr 15/16/17 (legacy rows show "—" for start time, normal for last activity)
 
