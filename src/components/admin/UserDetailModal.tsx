@@ -21,6 +21,7 @@ import { downloadUserReport, type ReportOptions } from '@/services/admin/userRep
 import type { UserRole } from '@/types/userRoles';
 import { UserNudgeTab } from './UserNudgeTab';
 import { AdminCareLogsTab } from './AdminCareLogsTab';
+import { ProfessionalActivityTab } from './ProfessionalActivityTab';
 
 // Import formatting functions from the PDF generator to ensure UI consistency
 const formatCareSchedule = (careSchedule: string | null): string => {
@@ -1013,14 +1014,23 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">Activity tracking coming soon...</p>
-              </CardContent>
-            </Card>
+            {user.role === 'professional' ? (
+              <ProfessionalActivityTab
+                professionalId={user.id}
+                professionalName={user.full_name}
+              />
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Activity</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">
+                    Activity tracking is available for professional accounts.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>

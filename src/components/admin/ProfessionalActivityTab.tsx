@@ -356,7 +356,7 @@ export const ProfessionalActivityTab: React.FC<Props> = ({
               All Daily Care Logs{professionalName ? ` — ${professionalName}` : ''}
             </DialogTitle>
           </DialogHeader>
-          <AdminCareLogsTab professionalId={professionalId} />
+          <AdminCareLogsTab userId={professionalId} />
         </DialogContent>
       </Dialog>
     </div>
