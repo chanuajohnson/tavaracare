@@ -1,84 +1,69 @@
 
 
-## Plan: Compact the "How Tavara Matching Works" card with accordions
+## Plan: Fix "View all logs" modal showing empty for caregivers
 
-You're right — current card is a wall of text. Tighten it visually so users skim, click what interests them, and move on.
+### What's actually broken
 
----
+The Recent Activity card (where you see Tricia's "Saved Daily Checklist" entries) loads correctly via `useProfessionalActivity(professionalId)` — that's why the feed on the right shows her logs.
 
-### What changes
-
-**File:** `src/components/about/HowMatchingWorksCard.tsx` (existing — refactor only)
-
-No new files. No other pages touched. Same copy, same Family/Caregiver tabs, same closing line — just a denser, click-to-expand layout.
-
----
-
-### Visual changes
-
-**Before:** All 5 steps fully expanded, ~600px tall per tab, vertical timeline with connecting lines.
-
-**After:** All 5 steps collapsed by default, ~50px each = ~250px tab body. One click expands the step you want.
-
-```text
-┌─ How Tavara Matching Works ────────────────────┐
-│ A real match isn't a search result…            │
-│                                                 │
-│ [ For Families ] [ For Caregivers ]            │
-│                                                 │
-│ ▸ 1  💙 Understand Your Reality                │
-│ ▸ 2  ✨ Match for Fit                          │
-│ ▾ 3  🤝 Meet Your Care Team                    │  ← clicked open
-│      • Care coordinator visits…                │
-│      • Care team confirmed…                    │
-│      • Initial family meeting…                 │
-│      • Optional trial day…                     │
-│      "A match on paper becomes a person…"      │
-│ ▸ 4  🏡 Prepare the Home for Care              │
-│ ▸ 5  🔄 Coordinate and Sustain                 │
-│                                                 │
-│  A good match isn't enough — the whole         │
-│  system has to work.                            │
-└─────────────────────────────────────────────────┘
+But when you click **"View all logs"**, the modal renders:
+```tsx
+<AdminCareLogsTab userId={professionalId} />
 ```
 
----
+Inside `AdminCareLogsTab` the very first query is:
+```ts
+supabase.from('care_plans').select('id').eq('family_id', userId)
+```
 
-### Implementation details
+It treats `userId` as a **family_id**. Tricia is a **professional**, not a family — so `care_plans` returns 0 rows → 0 medications → 0 logs → "No care logs or medication administrations found for this family."
 
-- Swap the current `StepBlock` mapped layout for **shadcn `Accordion`** (`type="single"`, `collapsible`, no default open value) — already in your codebase at `src/components/ui/accordion.tsx`
-- Each step = one `AccordionItem`
-- **AccordionTrigger** (the always-visible row): number badge + icon + title only
-- **AccordionContent**: bullets + intro/outro paragraphs + italic pull-quote
-- Drop the vertical connector line between steps (was visually heavy and not needed once collapsed)
-- Reduce card header padding slightly (`py-4` instead of default `p-6`) so the whole card feels tighter
-- Tighten step typography: title `text-base` instead of `text-lg/xl`
-- Closing line band: keep but smaller padding (`py-3 px-4`)
-- Both tabs (Family + Caregiver) use the same accordion structure with their own copy
-- All 5 collapsed = ~250–300px card body height vs. current ~600–700px
+That's the empty state in your second screenshot. The data exists (Recent Activity proves it), the modal is just querying the wrong column.
 
----
+### The fix — one focused component
 
-### What stays exactly the same
+Create a new admin component dedicated to **per-professional** logs, and render that in the modal instead of `AdminCareLogsTab`.
 
-- All copy (5 family steps, 5 caregiver steps, all bullets, intros, outros, pull-quotes, closing line)
-- Tabs toggle (Family default, Caregiver alternate)
-- Card placement on `/about` between intro and Story/Mission grid
-- Framer-motion fade-in on the card
-- Color palette (primary-50/100/600/700/800)
-- Lucide icons per step (`Heart`, `Sparkles`, `Users`, `Home`, `Repeat`)
-- Terminology (care payments, care team, coordinate, match — never hire/payroll/employer)
+**New file:** `src/components/admin/ProfessionalCareLogsList.tsx`
 
----
+- Accepts `professionalId: string`
+- Queries `daily_care_logs` filtered on `professional_id = professionalId` (last 90 days, ordered desc, limit 50)
+- Resolves family/client names from `profiles` for display
+- Reuses the same expandable layout pattern from `AdminCareLogsTab`:
+  - Collapsed row: date · client name · shift type · checklist completion badge · time in–out
+  - Expanded: full checklist breakdown using `CHECKLIST_SECTIONS` + nurse notes + `started_at` / `last_activity_at` timestamps
+- Empty state copy: *"Tricia hasn't saved any daily care logs in the last 90 days."* (uses the actual professional name passed in)
+- Loading skeleton + error state matching existing admin components
+
+**Modified file:** `src/components/admin/ProfessionalActivityTab.tsx`
+
+- Line 30: swap import → `ProfessionalCareLogsList`
+- Line 359: render `<ProfessionalCareLogsList professionalId={professionalId} professionalName={professionalName} />` instead of `<AdminCareLogsTab userId={professionalId} />`
+
+That's the entire change. No DB changes, no edge functions, no migrations.
+
+### Why a new component (not "fix" `AdminCareLogsTab`)
+
+`AdminCareLogsTab` is correctly designed for the **family detail view** — it pulls everything tied to one family (their care plans, their medications, all caregivers' logs on their plans). It's working correctly where it's used elsewhere. We just shouldn't reuse it in a professional context where the semantics flip from family-scoped to professional-scoped.
+
+Keeping the two views separate avoids breaking the family-side admin views and keeps each query focused.
+
+### What stays untouched
+
+- `AdminCareLogsTab.tsx` — protected, used elsewhere on family admin views
+- `useProfessionalActivity.ts` — already works correctly
+- The Recent Activity feed itself — still shows Tricia's saves
+- Compliance Summary, This Week's Shifts, refresh, all dialog plumbing
+- No changes to routing, AuthProvider, registration, chat flow, or any guarded files
 
 ### Acceptance test
 
-1. `/about` → "How Tavara Matching Works" card is now visibly shorter (≈40% of previous height)
-2. All 5 steps appear collapsed by default — only number + icon + title visible
-3. Click step 2 → smoothly expands showing 4 bullets + pull-quote, chevron rotates
-4. Click step 4 → step 2 collapses, step 4 opens (single-open mode)
-5. Click step 4 again → it collapses, no step open (collapsible mode)
-6. Switch to **For Caregivers** tab → all 5 caregiver steps render collapsed, same behaviour
-7. Closing line *"A good match isn't enough — the whole system has to work."* stays visible at the bottom
-8. Mobile (375px): accordion triggers stay tappable, content reflows cleanly, no horizontal scroll
+1. Admin → open Tricia Cumm's user detail → Activity tab
+2. Recent Activity card shows her checklist saves (already works today)
+3. Click **View all logs** → modal opens titled *"All Daily Care Logs — Tricia Cumm"*
+4. Modal now lists every `daily_care_logs` row where `professional_id = Tricia.id` from the last 90 days, newest first
+5. Each row shows date · client name · shift time · completion `X/Y` badge
+6. Click a row → expands into full checklist breakdown + notes + `started_at` timestamp
+7. Open a different professional with no logs → modal shows *"[Name] hasn't saved any daily care logs in the last 90 days."*
+8. Family admin views (where `AdminCareLogsTab` is still used) — unchanged, still show family-scoped logs as before
 
