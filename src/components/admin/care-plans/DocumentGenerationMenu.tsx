@@ -124,6 +124,40 @@ const DocumentGenerationMenu = ({
     fetchSelections();
   }, [carePlanId]);
 
+  // Synthetic caregiver-labor line derived from careRate + weeklyHours
+  const caregiverLaborItem = useMemo<ApprovedLineItemWithMeta | null>(() => {
+    if (!careRate) return null;
+    const rateMatch = careRate.match(/\$?([\d.]+)/);
+    const hourlyRate = rateMatch ? parseFloat(rateMatch[1]) : 0;
+    if (hourlyRate <= 0) return null;
+    const hrs = weeklyHours || 40;
+    return {
+      id: '__caregiver_labor__',
+      description: `Standard Weekly Care — Caregiver (${hrs} hrs/wk)`,
+      amount: hourlyRate * hrs,
+      note: `(${hrs} hrs × $${hourlyRate.toFixed(2)}/hr weekly)`,
+      shortLabel: `Caregiver Labor (${hrs} hrs × $${hourlyRate.toFixed(2)}/hr)`,
+      priceLabel: `$${(hourlyRate * hrs).toFixed(0)}/wk`,
+    };
+  }, [careRate, weeklyHours]);
+
+  // Combined list shown in the picker: caregiver labor first, then approved services
+  const combinedLineItems = useMemo<ApprovedLineItemWithMeta[]>(() => {
+    return caregiverLaborItem ? [caregiverLaborItem, ...approvedLineItems] : approvedLineItems;
+  }, [caregiverLaborItem, approvedLineItems]);
+
+  // Default caregiver labor to checked (preserves prior behavior for admins who don't touch picker)
+  useEffect(() => {
+    if (caregiverLaborItem) {
+      setSelectedItemIds(prev => {
+        if (prev.has(caregiverLaborItem.id)) return prev;
+        const next = new Set(prev);
+        next.add(caregiverLaborItem.id);
+        return next;
+      });
+    }
+  }, [caregiverLaborItem]);
+
   const toggleItem = (id: string) => {
     setSelectedItemIds(prev => {
       const next = new Set(prev);
@@ -133,34 +167,20 @@ const DocumentGenerationMenu = ({
     });
   };
 
-  const selectAll = () => setSelectedItemIds(new Set(approvedLineItems.map(li => li.id)));
+  const selectAll = () => setSelectedItemIds(new Set(combinedLineItems.map(li => li.id)));
   const clearAll = () => setSelectedItemIds(new Set());
 
-  const filteredApprovedItems = useMemo(() => {
-    const chosen = approvedLineItems.filter(li => selectedItemIds.has(li.id));
+  const filteredSelectedItems = useMemo(() => {
+    const chosen = combinedLineItems.filter(li => selectedItemIds.has(li.id));
     return hideWaivedItems
       ? chosen.filter(item => !(item.amount === 0 && item.description.includes('[WAIVED')))
       : chosen;
-  }, [approvedLineItems, selectedItemIds, hideWaivedItems]);
+  }, [combinedLineItems, selectedItemIds, hideWaivedItems]);
 
   const getData = (): CareBillingData => {
-    // Build caregiver labor line item from careRate prop
-    const caregiverLineItems: BillingLineItem[] = [];
-    if (careRate) {
-      const rateMatch = careRate.match(/\$?([\d.]+)/);
-      const hourlyRate = rateMatch ? parseFloat(rateMatch[1]) : 0;
-      const hrs = weeklyHours || 40;
-      if (hourlyRate > 0) {
-        caregiverLineItems.push({
-          description: `Standard Weekly Care — Caregiver (${hrs} hrs/wk)`,
-          amount: hourlyRate * hrs,
-          note: `(${hrs} hrs × $${hourlyRate.toFixed(2)}/hr weekly)`,
-        });
-      }
-    }
-
-    // Strip meta fields before sending to PDF generator
-    const cleanLineItems: BillingLineItem[] = filteredApprovedItems.map(({ description, amount, note }) => ({
+    // Strip meta fields before sending to PDF generator. Only selected items are included —
+    // the caregiver-labor line now lives in the picker and obeys selection state.
+    const cleanLineItems: BillingLineItem[] = filteredSelectedItems.map(({ description, amount, note }) => ({
       description,
       amount,
       note,
@@ -177,7 +197,7 @@ const DocumentGenerationMenu = ({
       carePlanId,
       carePlanTitle,
       ...billingData,
-      additionalLineItems: [...cleanLineItems, ...caregiverLineItems],
+      additionalLineItems: cleanLineItems,
     });
   };
 
