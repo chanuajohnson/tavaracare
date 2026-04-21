@@ -176,6 +176,11 @@ export default function ServiceSelectionBlock({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {filterCategory === 'weekly_addon' && (
+          <p className="text-xs italic text-muted-foreground border-l-2 border-primary/40 pl-2">
+            Two SOP options: <span className="font-medium not-italic">$149/week recurring</span> or <span className="font-medium not-italic">$199 one-time</span> (30-day full log access).
+          </p>
+        )}
         {catalog.map(item => {
           const sel = selections[item.id];
           const isSelected = sel?.selected ?? false;
