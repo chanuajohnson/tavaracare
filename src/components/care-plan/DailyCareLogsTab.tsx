@@ -248,6 +248,7 @@ export const DailyCareLogsTab = ({ carePlanId }: DailyCareLogsTabProps) => {
           log_id: logId,
           family_id: user.id,
           comment,
+          author_role: 'family' as const,
         });
       if (error) throw error;
 
