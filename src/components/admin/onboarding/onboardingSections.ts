@@ -220,7 +220,7 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
     title: "Rates, Care Changes & Escalation",
     iconName: "DollarSign",
     description: "Pricing transparency, holiday/overtime rates, and how costs evolve as care needs change",
-    helperText: "Changes in scope, complexity, schedule, or service level may require a care adjustment and will always be discussed before taking effect.",
+    helperText: "Changes in scope, complexity, schedule, or service level may require a care adjustment and will always be discussed before taking effect. Optional one-time administrative support is available to coordinate NIS employer registration.",
     serviceCategory: "care_change",
     items: [
       "Review rate tiers: Standard ($40/hr) — GAPP-certified personal care, medication admin & logging, vitals monitoring, basic daily dietary meal prep, daily care documentation, specialized care (dementia, palliative, post-surgical)",
@@ -235,6 +235,8 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
       "Errands and personal runs (grocery, market) — arranged privately with nurse at agreed stipend, outside Tavara scope",
       "Baseline care level is established at onboarding; all changes from baseline are documented",
       "Family will be notified and consulted before any rate or care level adjustment takes effect",
+      "NIS Employer Registration Support — $349 one-time optional administrative coordination to register the family as the employer for NIS purposes (forms, documents, authorizations, submission). NIS contributions themselves remain separate and are the family's responsibility.",
+      "Tavara does not employ the caregiver — the family is the employer of record for NIS purposes. Tavara coordinates and supports the registration process. Of course, this is something you can absolutely handle on your own, but we're here to coordinate and support you through it — because it truly takes a village to care. We offer this as an option to make the process a bit lighter for you.",
     ],
   },
   {
