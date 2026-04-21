@@ -499,7 +499,14 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
               completedItems,
               totalItems,
               displayTime,
+              logId: data.id,
             });
+            // Default the arrival-time override to the login time (HH:mm, local)
+            const d = new Date(startedAtIso);
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mm = String(d.getMinutes()).padStart(2, '0');
+            setArrivalTimeOverride(`${hh}:${mm}`);
+            setArrivalError('');
             setCheckInDialogOpen(true);
           } catch (waErr) {
             console.warn('[DailyChecklist] check-in WhatsApp staging failed:', waErr);
@@ -867,6 +874,50 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
             know you're on the job. Just tap <strong>Send</strong> in WhatsApp — that's
             all you need to do.
           </div>
+
+          {/* Arrival-time override */}
+          <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+            <Label htmlFor="arrival-time-override" className="text-sm font-medium">
+              Did you arrive earlier than your login time?
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Set your <strong>actual arrival time</strong> so Tavara has the right record — caregivers often log in only when they get a break.
+            </p>
+            <Input
+              id="arrival-time-override"
+              type="time"
+              value={arrivalTimeOverride}
+              onChange={(e) => {
+                const val = e.target.value;
+                setArrivalTimeOverride(val);
+                if (!pendingCheckIn || !val) {
+                  setArrivalError('');
+                  return;
+                }
+                // Validate: not after login time, not more than 12 hrs before
+                const [h, m] = val.split(':').map(Number);
+                const login = new Date(pendingCheckIn.startedAtIso);
+                const arrival = new Date(login);
+                arrival.setHours(h, m, 0, 0);
+                const diffMin = (login.getTime() - arrival.getTime()) / 60000;
+                if (diffMin < 0) {
+                  setArrivalError('Arrival cannot be after your login time.');
+                } else if (diffMin > 12 * 60) {
+                  setArrivalError('Arrival cannot be more than 12 hours before login.');
+                } else {
+                  setArrivalError('');
+                }
+              }}
+              className="max-w-[160px]"
+            />
+            {arrivalError && (
+              <p className="text-xs text-destructive">{arrivalError}</p>
+            )}
+            <p className="text-xs text-muted-foreground italic">
+              This becomes the timestamp Tavara records and shares with the family.
+            </p>
+          </div>
+
           <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-2">
             <Button
               variant="outline"
@@ -885,20 +936,52 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
             </Button>
             <Button
               className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
-              onClick={() => {
+              disabled={!!arrivalError}
+              onClick={async () => {
                 if (pendingCheckIn) {
+                  // Resolve effective ISO using the override (defaults to login time)
+                  let effectiveIso = pendingCheckIn.startedAtIso;
+                  if (arrivalTimeOverride) {
+                    const [h, m] = arrivalTimeOverride.split(':').map(Number);
+                    const login = new Date(pendingCheckIn.startedAtIso);
+                    const arrival = new Date(login);
+                    arrival.setHours(h, m, 0, 0);
+                    if (arrival.getTime() <= login.getTime()) {
+                      effectiveIso = arrival.toISOString();
+                    }
+                  }
+
+                  // Persist the corrected arrival to time_in on the daily_care_logs row
+                  if (pendingCheckIn.logId && effectiveIso !== pendingCheckIn.startedAtIso) {
+                    try {
+                      const hhmm = arrivalTimeOverride;
+                      await supabase
+                        .from('daily_care_logs')
+                        .update({ time_in: hhmm })
+                        .eq('id', pendingCheckIn.logId);
+                      setTimeIn(hhmm);
+                    } catch (persistErr) {
+                      console.warn('[DailyChecklist] persist arrival override failed:', persistErr);
+                    }
+                  }
+
                   try {
                     openCheckInWhatsApp({
                       caregiverName: pendingCheckIn.caregiverName,
                       clientName: pendingCheckIn.clientName,
                       shiftLabel: pendingCheckIn.shiftLabel,
                       scheduledStart: pendingCheckIn.scheduledStart,
-                      startedAtIso: pendingCheckIn.startedAtIso,
+                      startedAtIso: effectiveIso,
                       completedItems: pendingCheckIn.completedItems,
                       totalItems: pendingCheckIn.totalItems,
                     });
+                    const newDisplay = new Date(effectiveIso).toLocaleTimeString('en-US', {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true,
+                    });
                     toast.success(
-                      `Shift logged at ${pendingCheckIn.displayTime}. WhatsApp opened — please tap Send to notify Tavara.`,
+                      `Shift logged at ${newDisplay}. WhatsApp opened — please tap Send to notify Tavara.`,
                       { duration: 5000 }
                     );
                   } catch (err) {
