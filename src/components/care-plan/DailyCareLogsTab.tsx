@@ -262,7 +262,40 @@ export const DailyCareLogsTab = ({ carePlanId }: DailyCareLogsTabProps) => {
     }
   };
 
-  if (loading) {
+  const handleAckCaregiverNote = async (logId: string, familyId: string | null) => {
+    if (!user) return;
+    setSubmittingFeedback(`ack-${logId}`);
+    try {
+      // Look for an existing note-ack row
+      const existing = (feedback[logId] || []).find(
+        fb => fb.author_role !== 'family' && fb.comment === '__note_ack__'
+      );
+      const nowIso = new Date().toISOString();
+      if (existing) {
+        const { error } = await supabase
+          .from('daily_care_log_feedback')
+          .update({ acknowledged_at: nowIso, acknowledged_by: user.id })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('daily_care_log_feedback').insert({
+          log_id: logId,
+          family_id: familyId || user.id,
+          comment: '__note_ack__',
+          author_role: 'family' as const,
+          acknowledged_at: nowIso,
+          acknowledged_by: user.id,
+        });
+        if (error) throw error;
+      }
+      toast.success('Marked as read');
+      fetchLogs();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to acknowledge');
+    } finally {
+      setSubmittingFeedback(null);
+    }
+  };
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
