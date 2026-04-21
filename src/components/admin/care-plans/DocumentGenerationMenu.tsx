@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { FileText, Receipt, FileSpreadsheet, Loader2 } from 'lucide-react';
@@ -38,6 +39,12 @@ interface DocumentGenerationMenuProps {
   hideWaivedItems?: boolean;
 }
 
+interface ApprovedLineItemWithMeta extends BillingLineItem {
+  id: string;
+  shortLabel: string;
+  priceLabel: string;
+}
+
 const DocumentGenerationMenu = ({
   familyName,
   familyEmail,
@@ -56,7 +63,8 @@ const DocumentGenerationMenu = ({
   hideWaivedItems = false,
 }: DocumentGenerationMenuProps) => {
   const [generating, setGenerating] = useState<string | null>(null);
-  const [approvedLineItems, setApprovedLineItems] = useState<BillingLineItem[]>([]);
+  const [approvedLineItems, setApprovedLineItems] = useState<ApprovedLineItemWithMeta[]>([]);
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
 
   // Fetch approved service selections dynamically
   useEffect(() => {
@@ -70,7 +78,7 @@ const DocumentGenerationMenu = ({
           .eq('selected', true);
 
         if (selections && selections.length > 0) {
-          const lineItems: BillingLineItem[] = (selections as any[]).map(s => {
+          const lineItems: ApprovedLineItemWithMeta[] = (selections as any[]).map(s => {
             const item = s.billable_service_items;
             const unitPrice = item?.unit_price ?? 0;
             const price = s.override_price ?? unitPrice;
@@ -82,18 +90,32 @@ const DocumentGenerationMenu = ({
               hourly: '(per hour)',
               one_time: '(one-time)',
             };
+            const suffixMap: Record<string, string> = {
+              weekly: '/wk',
+              monthly: '/mo',
+              hourly: '/hr',
+              one_time: ' one-time',
+            };
             const hasDiscount = s.override_price !== null && s.override_price !== undefined && s.override_price !== unitPrice;
             const isWaived = hasDiscount && s.override_price === 0;
             let discountNote = '';
             if (isWaived) discountNote = ' [WAIVED — value: $' + unitPrice.toFixed(2) + ']';
             else if (hasDiscount) discountNote = ' [Discounted from $' + unitPrice.toFixed(2) + ']';
+            const label = item?.label || 'Service';
             return {
-              description: (item?.label || 'Service') + discountNote,
+              id: s.id,
+              description: label + discountNote,
               amount: price * qty,
               note: noteMap[billingType] || '',
+              shortLabel: label,
+              priceLabel: `$${(price * qty).toFixed(0)}${suffixMap[billingType] ?? ''}`,
             };
           });
           setApprovedLineItems(lineItems);
+          setSelectedItemIds(new Set(lineItems.map(li => li.id)));
+        } else {
+          setApprovedLineItems([]);
+          setSelectedItemIds(new Set());
         }
       } catch (err) {
         console.error('Error fetching approved services for documents:', err);
@@ -101,6 +123,25 @@ const DocumentGenerationMenu = ({
     };
     fetchSelections();
   }, [carePlanId]);
+
+  const toggleItem = (id: string) => {
+    setSelectedItemIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => setSelectedItemIds(new Set(approvedLineItems.map(li => li.id)));
+  const clearAll = () => setSelectedItemIds(new Set());
+
+  const filteredApprovedItems = useMemo(() => {
+    const chosen = approvedLineItems.filter(li => selectedItemIds.has(li.id));
+    return hideWaivedItems
+      ? chosen.filter(item => !(item.amount === 0 && item.description.includes('[WAIVED')))
+      : chosen;
+  }, [approvedLineItems, selectedItemIds, hideWaivedItems]);
 
   const getData = (): CareBillingData => {
     // Build caregiver labor line item from careRate prop
@@ -118,10 +159,12 @@ const DocumentGenerationMenu = ({
       }
     }
 
-    // Filter out waived $0 items if hideWaivedItems is true
-    const filteredApprovedItems = hideWaivedItems
-      ? approvedLineItems.filter(item => !(item.amount === 0 && item.description.includes('[WAIVED')))
-      : approvedLineItems;
+    // Strip meta fields before sending to PDF generator
+    const cleanLineItems: BillingLineItem[] = filteredApprovedItems.map(({ description, amount, note }) => ({
+      description,
+      amount,
+      note,
+    }));
 
     return buildDefaultCareBillingData({
       familyName,
@@ -134,7 +177,7 @@ const DocumentGenerationMenu = ({
       carePlanId,
       carePlanTitle,
       ...billingData,
-      additionalLineItems: [...filteredApprovedItems, ...caregiverLineItems],
+      additionalLineItems: [...cleanLineItems, ...caregiverLineItems],
     });
   };
 
@@ -165,6 +208,9 @@ const DocumentGenerationMenu = ({
     }
   };
 
+  const totalCount = approvedLineItems.length;
+  const selectedCount = filteredApprovedItems.length;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -177,14 +223,58 @@ const DocumentGenerationMenu = ({
           {generating ? 'Generating...' : 'Documents'}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
+      <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuLabel>Generate Document</DropdownMenuLabel>
-        {approvedLineItems.length > 0 && (
-          <div className="px-2 py-1 text-[10px] text-muted-foreground">
-            {approvedLineItems.length} approved service(s) included
-          </div>
+
+        {totalCount > 0 && (
+          <>
+            <div className="flex items-center justify-between px-2 py-1">
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                Include on document
+              </span>
+              <div className="flex items-center gap-1 text-[10px]">
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); selectAll(); }}
+                  className="text-primary hover:underline px-1"
+                >
+                  All
+                </button>
+                <span className="text-muted-foreground">|</span>
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); clearAll(); }}
+                  className="text-primary hover:underline px-1"
+                >
+                  None
+                </button>
+              </div>
+            </div>
+            <div className="max-h-56 overflow-y-auto">
+              {approvedLineItems.map(item => (
+                <DropdownMenuCheckboxItem
+                  key={item.id}
+                  checked={selectedItemIds.has(item.id)}
+                  onCheckedChange={() => toggleItem(item.id)}
+                  onSelect={(e) => e.preventDefault()}
+                  className="text-xs"
+                >
+                  <div className="flex items-center justify-between gap-2 w-full pr-1">
+                    <span className="truncate">{item.shortLabel}</span>
+                    <span className="text-muted-foreground whitespace-nowrap text-[10px]">
+                      {item.priceLabel}
+                    </span>
+                  </div>
+                </DropdownMenuCheckboxItem>
+              ))}
+            </div>
+            <div className="px-2 py-1 text-[10px] text-muted-foreground italic">
+              {selectedCount} of {totalCount} services included
+            </div>
+            <DropdownMenuSeparator />
+          </>
         )}
-        <DropdownMenuSeparator />
+
         <DropdownMenuItem onClick={() => handleGenerate('quote')} disabled={!!generating}>
           <FileSpreadsheet className="mr-2 h-4 w-4 text-blue-600" />
           Generate Quote
