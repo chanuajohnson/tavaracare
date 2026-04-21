@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Save, Send, ClipboardCheck, FileText, BookOpen, ExternalLink, Pencil, Info, Heart, X } from 'lucide-react';
+import { Save, Send, ClipboardCheck, FileText, BookOpen, ExternalLink, Pencil, Info, Heart, X, MessageSquare, Check, CheckCircle2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useCurrentAssignments } from '@/hooks/useCurrentAssignments';
 import { supabase } from '@/integrations/supabase/client';
