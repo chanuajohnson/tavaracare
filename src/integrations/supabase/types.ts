@@ -1751,6 +1751,9 @@ export type Database = {
       }
       daily_care_log_feedback: {
         Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          author_role: string
           comment: string
           created_at: string | null
           family_id: string
@@ -1758,6 +1761,9 @@ export type Database = {
           log_id: string
         }
         Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          author_role?: string
           comment: string
           created_at?: string | null
           family_id: string
@@ -1765,6 +1771,9 @@ export type Database = {
           log_id: string
         }
         Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          author_role?: string
           comment?: string
           created_at?: string | null
           family_id?: string

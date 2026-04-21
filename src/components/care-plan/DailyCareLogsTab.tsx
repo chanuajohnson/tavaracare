@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, ClipboardCheck, MessageSquare, Send, Loader2, Pill } from 'lucide-react';
+import { ChevronDown, ChevronRight, ClipboardCheck, MessageSquare, Send, Loader2, Pill, Check, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -34,6 +34,9 @@ interface LogFeedback {
   family_id: string;
   comment: string;
   created_at: string;
+  author_role?: 'family' | 'professional' | 'admin';
+  acknowledged_at?: string | null;
+  acknowledged_by?: string | null;
 }
 
 interface MedAdmin {
@@ -192,9 +195,9 @@ export const DailyCareLogsTab = ({ carePlanId }: DailyCareLogsTabProps) => {
           .order('created_at', { ascending: true });
         if (fbData) {
           const grouped: Record<string, LogFeedback[]> = {};
-          fbData.forEach(fb => {
+          (fbData as any[]).forEach((fb: any) => {
             if (!grouped[fb.log_id]) grouped[fb.log_id] = [];
-            grouped[fb.log_id].push(fb);
+            grouped[fb.log_id].push(fb as LogFeedback);
           });
           setFeedback(grouped);
         }
@@ -245,6 +248,7 @@ export const DailyCareLogsTab = ({ carePlanId }: DailyCareLogsTabProps) => {
           log_id: logId,
           family_id: user.id,
           comment,
+          author_role: 'family' as const,
         });
       if (error) throw error;
 
@@ -253,6 +257,41 @@ export const DailyCareLogsTab = ({ carePlanId }: DailyCareLogsTabProps) => {
       fetchLogs();
     } catch (err: any) {
       toast.error(err.message || 'Failed to submit feedback');
+    } finally {
+      setSubmittingFeedback(null);
+    }
+  };
+
+  const handleAckCaregiverNote = async (logId: string, familyId: string | null) => {
+    if (!user) return;
+    setSubmittingFeedback(`ack-${logId}`);
+    try {
+      // Look for an existing note-ack row
+      const existing = (feedback[logId] || []).find(
+        fb => fb.author_role !== 'family' && fb.comment === '__note_ack__'
+      );
+      const nowIso = new Date().toISOString();
+      if (existing) {
+        const { error } = await supabase
+          .from('daily_care_log_feedback')
+          .update({ acknowledged_at: nowIso, acknowledged_by: user.id })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('daily_care_log_feedback').insert({
+          log_id: logId,
+          family_id: familyId || user.id,
+          comment: '__note_ack__',
+          author_role: 'family' as const,
+          acknowledged_at: nowIso,
+          acknowledged_by: user.id,
+        });
+        if (error) throw error;
+      }
+      toast.success('Marked as read');
+      fetchLogs();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to acknowledge');
     } finally {
       setSubmittingFeedback(null);
     }
@@ -389,27 +428,61 @@ export const DailyCareLogsTab = ({ carePlanId }: DailyCareLogsTabProps) => {
                     );
                   })}
 
-                  {/* Notes */}
-                  {log.notes && (
-                    <div className="bg-muted/50 rounded-md p-3">
-                      <h4 className="text-sm font-medium mb-1">📝 Nurse Notes</h4>
-                      <p className="text-sm text-muted-foreground">{log.notes}</p>
-                    </div>
-                  )}
+                  {/* Notes + acknowledgment */}
+                  {log.notes && (() => {
+                    const noteAck = logFeedback.find(fb => fb.comment === '__note_ack__' && fb.acknowledged_at);
+                    return (
+                      <div className="bg-muted/50 rounded-md p-3 space-y-2">
+                        <h4 className="text-sm font-medium mb-1">📝 Nurse Notes</h4>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{log.notes}</p>
+                        <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+                          {noteAck ? (
+                            <Badge variant="outline" className="text-xs gap-1 border-green-500/50 text-green-700 bg-green-50">
+                              <CheckCircle2 className="h-3 w-3" />
+                              You marked this as read · {new Date(noteAck.acknowledged_at!).toLocaleString()}
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs gap-1"
+                              disabled={submittingFeedback === `ack-${log.id}`}
+                              onClick={() => handleAckCaregiverNote(log.id, log.professional_id ? null : null)}
+                            >
+                              {submittingFeedback === `ack-${log.id}` ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Check className="h-3 w-3" />
+                              )}
+                              Got it — I've read this
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
-                  {/* Existing Feedback */}
-                  {logFeedback.length > 0 && (
+                  {/* Existing Feedback (excluding internal ack rows) */}
+                  {logFeedback.filter(fb => !fb.comment.startsWith('__')).length > 0 && (
                     <div className="space-y-2">
                       <h4 className="text-sm font-medium flex items-center gap-1">
                         <MessageSquare className="h-4 w-4" />
                         Family Feedback
                       </h4>
-                      {logFeedback.map(fb => (
+                      {logFeedback.filter(fb => !fb.comment.startsWith('__')).map(fb => (
                         <div key={fb.id} className="bg-primary/5 border border-primary/10 rounded-md p-3">
-                          <p className="text-sm">{fb.comment}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {new Date(fb.created_at).toLocaleString()}
-                          </p>
+                          <p className="text-sm whitespace-pre-wrap">{fb.comment}</p>
+                          <div className="flex items-center justify-between mt-1">
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(fb.created_at).toLocaleString()}
+                            </p>
+                            {fb.acknowledged_at && (
+                              <Badge variant="outline" className="text-xs gap-1 border-green-500/50 text-green-700 bg-green-50">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Caregiver acknowledged
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
