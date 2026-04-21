@@ -133,8 +133,7 @@ export default function CareEnvironmentIntroCard() {
       </div>
 
       <p className="text-xs text-muted-foreground mt-3 italic">
-        Select applicable services below. These are coordinated and managed by
-        Tavara — we guide, support, arrange, and manage vendors where needed.
+        Select applicable services below. L1 waived · L2 one-time coordination · L3 monthly ongoing coordination. These are coordinated and managed by Tavara — we guide, support, arrange, and manage vendors where needed.
       </p>
     </div>
   );
