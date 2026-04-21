@@ -1,54 +1,62 @@
 
 
-## Plan: Surface the new $199 one-time SOP SKU in the right place
+## Plan: Per-document line-item picker (only include what you want on this quote/invoice)
 
 ### What's actually wrong
 
-Both pieces of the previous change **did ship** — they're just buried:
+`DocumentGenerationMenu.tsx` (lines 64–103) fetches **every** `selected=true` row from `care_plan_service_selections` and pipes them all into the PDF. There's no way to say *"just the new $199 SOP one-time activation, please."* So your quote shows all 4 approved services every time.
 
-1. The new SKU `Daily Care SOP — One-Time Activation · $199 · one-time` is in the catalog (`id 2093fdef…`), but its `sort_order = 185` puts it dead last in the Approved Service Components panel — below "Podiatric Care", which is what your screenshot ends on. Scroll down one more row and it's there.
-2. The bullet text at line 181 of `onboardingSections.ts` is in the **checklist items** part of the card (the bulleted SOP list), not the Approved Service Components panel — and the checklist list isn't expanded in your screenshot.
+### The fix — a small inline picker before "Generate"
 
-### The fix — two tiny changes
+Turn the current 3-item dropdown into a **two-step dropdown**:
 
-**1. Re-sort the SKU so it sits next to its weekly twin**
+1. **Top section: "Include on document" checklist** — one row per fetched service (label + price + billing type). All checked by default (current behavior preserved). Admin unticks the ones they don't want on this specific document.
+2. **Below: the existing 3 generate actions** (`Quote`, `Invoice`, `Receipt`) — each now uses only the **checked** subset.
+3. **Footer hint**: *"3 of 4 services included · click to toggle"* updates live.
 
-Migration:
-```sql
-UPDATE public.billable_service_items
-SET sort_order = 6
-WHERE id = '2093fdef-9195-46cd-83e5-f5c1062edf7b';
-```
-
-This puts the **One-Time Activation ($199)** immediately after **Daily Care SOP + Monitoring ($149/wk)** in the Approved Service Components list — same row family, easy A/B for the admin.
-
-**2. Add a tiny visual hint above the Approved Service Components panel inside the SOP card**
-
-In `src/components/admin/onboarding/ServiceSelectionBlock.tsx`, when `filterCategory === 'weekly_addon'` AND the panel is rendered inside the SOP section, show a one-line subhead:
-
-> *"Two SOP options: $149/week recurring **or** $199 one-time (30-day full log access)."*
-
-Implemented as a conditional helper line at the top of the card body — non-intrusive, makes the choice obvious without scrolling.
+Plus two tiny convenience buttons inside the dropdown header:
+- **Select all** (default state)
+- **Clear all** (handy when admin only wants to send a quote for the new $199 SKU alone)
 
 ### Files touched
 
 | File | Change |
 |---|---|
-| `supabase/migrations/<ts>_resort_sop_onetime_sku.sql` | **NEW** — `UPDATE billable_service_items SET sort_order = 6 WHERE id = '2093fdef…'` |
-| `src/components/admin/onboarding/ServiceSelectionBlock.tsx` | Add one-line helper subhead when `filterCategory='weekly_addon'` mentioning the two SOP options |
+| `src/components/admin/care-plans/DocumentGenerationMenu.tsx` | Add `selectedItemIds: Set<string>` state initialized to all fetched IDs; render a `<DropdownMenuCheckboxItem>` list above the generate actions; `getData()` filters `approvedLineItems` by that set |
 
-**Untouched:** routing, AuthProvider, registration, chat flow, `onboardingSections.ts` (the bullet at line 181 stays as-is — it's correctly placed in the checklist items list).
+**Untouched:** the PDF generator itself (`invoiceService.ts`), `BillingSummaryCard`, the catalog rows, the family-side gate, the SOP entitlement work, routing, AuthProvider — everything else stays exactly as today.
+
+### How it looks (ASCII)
+
+```text
+┌─ Generate Document ────────────────────────┐
+│ Include on document         Select | Clear │
+│ ─────────────────────────────────────────  │
+│ ☑ Active Care Management   $499/wk         │
+│ ☐ Daily Care SOP+Monitor   $149/wk         │
+│ ☑ Daily Care SOP One-Time  $199 one-time   │
+│ ☐ Meal Support Upgrade     $75/wk          │
+│ ─────────────────────────────────────────  │
+│ 2 of 4 services included                   │
+│ ─────────────────────────────────────────  │
+│ 📄 Generate Quote                          │
+│ 📑 Generate Invoice                        │
+│ 🧾 Generate Receipt                        │
+└────────────────────────────────────────────┘
+```
 
 ### Acceptance test
 
-1. Admin opens `/admin/onboarding-checklist` for a family → expand **Daily Care Checklist (Caregiver SOP)** card
-2. Approved Service Components panel now shows a small italic line at top: *"Two SOP options: $149/week recurring or $199 one-time (30-day full log access)."*
-3. Scroll list: **Active Care Management → Daily Care SOP + Monitoring ($149/wk) → Daily Care SOP — One-Time Activation ($199 one-time) → Medication Management → Meal Support → …** — the two SOP options now sit side-by-side
-4. Tick **One-Time Activation** → Family approved → check "Override $" defaults to 199 → save
-5. Family side: refresh dashboard → "View Full Care Plan 🔒" → unlocks (gate already wired in last round)
+1. Admin opens **Documents** dropdown on Ana Maria Aimey's onboarding checklist
+2. All 4 approved services appear pre-checked at the top of the dropdown
+3. Admin clicks **Clear all**, then ticks only **Daily Care SOP — One-Time Activation $199**
+4. Footer reads *"1 of 4 services included"*
+5. Click **Generate Quote** → PDF downloads showing **only** the $199 SOP line item + caregiver labor (which is built separately from `careRate` and is unaffected)
+6. Re-open dropdown next time → state resets to "all checked" (per-document picking, not persisted — cleaner for one-off quote generation)
+7. Existing flow with no admin interaction → identical to today (all approved items included)
 
 ### Out of scope
-- Changing the bullet copy in `onboardingSections.ts` (already in place)
-- Auto-expiry of the 30-day window (still admin-managed)
-- Memory updates — will save after implementation
+- Persisting the picker state across sessions (intentionally per-open so it doesn't surprise the next admin)
+- Caregiver labor toggle (it's a derived line item, not part of `care_plan_service_selections` — separate concern, can add later if needed)
+- The 30-day SOP expiry plan you have open in `.lovable/plan.md` — that's still queued, not affected by this change
 
