@@ -86,7 +86,11 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
     completedItems: number;
     totalItems: number;
     displayTime: string;
+    logId?: string;
   } | null>(null);
+  // Caregiver-overridable arrival time (HH:mm). Defaults to login time.
+  const [arrivalTimeOverride, setArrivalTimeOverride] = useState<string>('');
+  const [arrivalError, setArrivalError] = useState<string>('');
 
   // Show intro card on first visit (per user)
   useEffect(() => {
