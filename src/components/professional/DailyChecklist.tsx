@@ -737,6 +737,58 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
         </CardContent>
       </Card>
 
+      {/* Family notes banner — surfaces unacknowledged messages from the family on this log */}
+      {familyNotes.filter(n => !n.acknowledged_at).length > 0 && (
+        <Card className="border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base text-amber-900">
+              <MessageSquare className="h-5 w-5 text-amber-600" />
+              New note{familyNotes.filter(n => !n.acknowledged_at).length > 1 ? 's' : ''} from family
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {familyNotes.filter(n => !n.acknowledged_at).map((note) => (
+              <div key={note.id} className="flex items-start gap-3 p-3 bg-white/70 rounded-md border border-amber-100">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-amber-900 whitespace-pre-wrap break-words">{note.comment}</p>
+                  <p className="text-xs text-amber-700/70 mt-1">
+                    {new Date(note.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-shrink-0 border-amber-300 text-amber-800 hover:bg-amber-100"
+                  onClick={() => handleAckFamilyNote(note.id)}
+                  disabled={ackingNote === note.id}
+                >
+                  {ackingNote === note.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4 mr-1" />
+                      Acknowledge
+                    </>
+                  )}
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Acknowledged family notes — small confirmation chip list */}
+      {familyNotes.filter(n => n.acknowledged_at).length > 0 && (
+        <div className="flex flex-wrap gap-2 px-1">
+          {familyNotes.filter(n => n.acknowledged_at).map((note) => (
+            <Badge key={note.id} variant="outline" className="border-green-200 bg-green-50 text-green-700 text-xs font-normal">
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Family note acknowledged
+            </Badge>
+          ))}
+        </div>
+      )}
+
       {/* Checklist Sections */}
       {CHECKLIST_SECTIONS.map((section, sIdx) => {
         const sectionCompleted = section.items.filter((_, iIdx) => isChecked(sIdx, iIdx)).length;
