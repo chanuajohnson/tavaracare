@@ -68,6 +68,10 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
   const [isEditMode, setIsEditMode] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(false);
 
+  // Family notes (from daily_care_log_feedback) for the active log
+  const [familyNotes, setFamilyNotes] = useState<Array<{ id: string; comment: string; created_at: string; acknowledged_at: string | null }>>([]);
+  const [ackingNote, setAckingNote] = useState<string | null>(null);
+
   // First-time onboarding info card visibility (per-user, persisted)
   const [showIntroCard, setShowIntroCard] = useState(false);
 
