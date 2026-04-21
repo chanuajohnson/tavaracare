@@ -1,62 +1,135 @@
+## Plan: Add "NIS Employer Registration Support" SKU + answer the pricing question
+
+Two small asks bundled together.
+
+---
+
+### Part A — New one-time SKU: `NIS Employer Registration Support — $349`
+
+#### Where it goes
+
+In the **"Rates, Care Changes & Escalation"** section on `/admin/onboarding-checklist` (section id `rates_and_changes`, `serviceCategory: "care_change"`). It will appear in the existing **Approved Service Components** panel right alongside:
+
+- Care Plan Adjustment Fee · $149 one-time
+- Basic Escalation Support · $100 one-time
+- Urgent Escalation Support · $200 one-time
+- Emergency Stabilization / Rapid Response · $300 one-time
+- **→ NIS Employer Registration Support · $349 one-time**  *(new)*
+
+No new UI components needed — the existing `ServiceSelectionBlock` already renders every row in this category with: checkbox · "Family approved" toggle · override price · internal notes · approved badge. Because it's in the billable catalog, it automatically flows into:
 
 
-## Plan: Per-document line-item picker (only include what you want on this quote/invoice)
+| Surface                                     | How it gets there                                                                                                                                     |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Approved Service Components (admin)         | `ServiceSelectionBlock` reads all `is_active=true` rows where `category='care_change'`                                                                |
+| Family billable details (read-only view)    | Same block with `readOnly compact` on family checklist page                                                                                           |
+| Quote / Invoice / Receipt PDFs              | `DocumentsTab` → `buildBillingData` → `invoiceService` already pipes `care_plan_service_selections` into line items (`visible_in_quote/invoice=true`) |
+| Service revenue breakdown in Unit Economics | `useUnitEconomics` already aggregates every selection where `billable_service_items.visible_in_unit_economics=true`                                   |
+| New per-document picker dropdown            | Already generic — new SKU shows up as a checkable row                                                                                                 |
 
-### What's actually wrong
 
-`DocumentGenerationMenu.tsx` (lines 64–103) fetches **every** `selected=true` row from `care_plan_service_selections` and pipes them all into the PDF. There's no way to say *"just the new $199 SOP one-time activation, please."* So your quote shows all 4 approved services every time.
+#### Database change — one migration
 
-### The fix — a small inline picker before "Generate"
+```sql
+INSERT INTO public.billable_service_items (
+  label,
+  description,
+  category,
+  billing_type,
+  unit_price,
+  default_quantity,
+  sort_order,
+  is_active,
+  visible_in_quote,
+  visible_in_invoice,
+  visible_in_unit_economics
+) VALUES (
+  'NIS Employer Registration Support',
+  'Administrative support to register the family as an employer for caregiver NIS compliance, including forms, document collection guidance, authorization handling, and submission coordination. Of course, this is something you can absolutely handle on your own.
+But we’re here to coordinate and support you through it — because it truly takes a village to care.
 
-Turn the current 3-item dropdown into a **two-step dropdown**:
-
-1. **Top section: "Include on document" checklist** — one row per fetched service (label + price + billing type). All checked by default (current behavior preserved). Admin unticks the ones they don't want on this specific document.
-2. **Below: the existing 3 generate actions** (`Quote`, `Invoice`, `Receipt`) — each now uses only the **checked** subset.
-3. **Footer hint**: *"3 of 4 services included · click to toggle"* updates live.
-
-Plus two tiny convenience buttons inside the dropdown header:
-- **Select all** (default state)
-- **Clear all** (handy when admin only wants to send a quote for the new $199 SKU alone)
-
-### Files touched
-
-| File | Change |
-|---|---|
-| `src/components/admin/care-plans/DocumentGenerationMenu.tsx` | Add `selectedItemIds: Set<string>` state initialized to all fetched IDs; render a `<DropdownMenuCheckboxItem>` list above the generate actions; `getData()` filters `approvedLineItems` by that set |
-
-**Untouched:** the PDF generator itself (`invoiceService.ts`), `BillingSummaryCard`, the catalog rows, the family-side gate, the SOP entitlement work, routing, AuthProvider — everything else stays exactly as today.
-
-### How it looks (ASCII)
-
-```text
-┌─ Generate Document ────────────────────────┐
-│ Include on document         Select | Clear │
-│ ─────────────────────────────────────────  │
-│ ☑ Active Care Management   $499/wk         │
-│ ☐ Daily Care SOP+Monitor   $149/wk         │
-│ ☑ Daily Care SOP One-Time  $199 one-time   │
-│ ☐ Meal Support Upgrade     $75/wk          │
-│ ─────────────────────────────────────────  │
-│ 2 of 4 services included                   │
-│ ─────────────────────────────────────────  │
-│ 📄 Generate Quote                          │
-│ 📑 Generate Invoice                        │
-│ 🧾 Generate Receipt                        │
-└────────────────────────────────────────────┘
+And knowing that, we offer this as an option to make the process a bit lighter for you. NIS contributions themselves are not included and remain payable by the family as the registered employer.',
+  'care_change',
+  'one_time',
+  349.00,
+  1,
+  8.4,   -- right after Emergency Stabilization (8.3)
+  true,
+  true,
+  true,
+  true
+);
 ```
 
-### Acceptance test
+#### Checklist-item copy (text bullets under section description)
 
-1. Admin opens **Documents** dropdown on Ana Maria Aimey's onboarding checklist
-2. All 4 approved services appear pre-checked at the top of the dropdown
-3. Admin clicks **Clear all**, then ticks only **Daily Care SOP — One-Time Activation $199**
-4. Footer reads *"1 of 4 services included"*
-5. Click **Generate Quote** → PDF downloads showing **only** the $199 SOP line item + caregiver labor (which is built separately from `careRate` and is unaffected)
-6. Re-open dropdown next time → state resets to "all checked" (per-document picking, not persisted — cleaner for one-off quote generation)
-7. Existing flow with no admin interaction → identical to today (all approved items included)
+Append two bullets to the existing `rates_and_changes` items array in `src/components/admin/onboarding/onboardingSections.ts` (line ~238):
 
-### Out of scope
-- Persisting the picker state across sessions (intentionally per-open so it doesn't surprise the next admin)
-- Caregiver labor toggle (it's a derived line item, not part of `care_plan_service_selections` — separate concern, can add later if needed)
-- The 30-day SOP expiry plan you have open in `.lovable/plan.md` — that's still queued, not affected by this change
+```
+"NIS Employer Registration Support — $349 one-time optional administrative coordination to register the family as the employer for NIS purposes (forms, documents, authorizations, submission). NIS contributions themselves remain separate and are the family's responsibility."
+"Tavara does not employ the caregiver — the family is the employer of record for NIS purposes. Tavara coordinates and supports the registration process. Of course, this is something you can absolutely handle on your own.
+But we’re here to coordinate and support you through it — because it truly takes a village to care.
 
+And knowing that, we offer this as an option to make the process a bit lighter for you."
+```
+
+Plus update the **helper text** at line 223 to stay calm and non-alarmist:
+
+> *"Changes in scope, complexity, schedule, or service level may require a care adjustment and will always be discussed before taking effect. Optional one-time administrative support is available to coordinate NIS employer registration."*
+
+#### WhatsApp nudge template (admin side)
+
+Add a new template to `src/services/admin/nudgeTemplates.ts` (or equivalent) under the family-stage bucket, keyed `nis_employer_registration_support`, using your "softer version" copy exactly as written, with the $349 fee and the NIS-contribution disclaimer inline. Admin picks it from the nudge dropdown, sends via central WA number.
+
+#### Files touched
+
+
+| File                                                                      | Change                                                            |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `supabase/migrations/<ts>_add_nis_employer_registration_sku.sql`          | **NEW** — single INSERT as above                                  |
+| `src/components/admin/onboarding/onboardingSections.ts`                   | Append 2 bullets to `rates_and_changes.items`; soften helper text |
+| `src/services/admin/nudgeTemplates.ts` (or wherever nudge templates live) | Add `nis_employer_registration_support` template                  |
+
+
+**Untouched:** `ServiceSelectionBlock`, `DocumentsTab`, `invoiceService`, `useUnitEconomics`, `DocumentGenerationMenu`, `App.tsx`, AuthProvider, registration, chat flow — everything else inherits the new SKU automatically.
+
+#### Acceptance test
+
+1. Admin opens a family's `/admin/onboarding-checklist` → scroll to **Rates, Care Changes & Escalation**
+2. Approved Service Components list now shows 5 rows, with **NIS Employer Registration Support · $349 one-time** at the bottom
+3. Tick it → tick **Family approved** → Save → row persists with green "Approved" badge
+4. Open **Documents** dropdown → "NIS Employer Registration Support" appears as a checkable line item
+5. Clear all → tick only this row → Generate Quote → PDF shows the $349 line item + description text, with the NIS-contributions disclaimer visible
+6. Navigate to `/admin/unit-economics` for the current month → expand this client's row → $349 appears in the service revenue breakdown once invoiced
+7. Family logs in → `/family/onboarding-checklist` → Rates section → sees the SKU as a read-only row with helper text *"This service supports the registration process only. NIS contributions themselves are not included and remain payable by the family as the registered employer."*
+8. Admin opens nudge panel → new **NIS Employer Registration Support** template available → sends via central WA number
+
+---
+
+### Part B — Answer: why is Guided Home Reset ($499) cheaper than Full Care Environment Reset?
+
+Short answer: the current copy in `CareEnvironmentIntroCard.tsx` describes them as **different scopes**, not different tiers of the same thing.
+
+
+| Level                              | Price                                                                 | What it actually covers today                                                                                                                                                                                                                                                                                      |
+| ---------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| L1 Care Readiness Assessment       | $0 (waived, was $199)                                                 | One-time walkthrough + plan                                                                                                                                                                                                                                                                                        |
+| L2 **Guided Home Reset**           | **$499 flat**                                                         | One-time coordination fee for the initial reset — covers Tavara's hands-on coordination until completion. **External contractor costs are quoted separately and billed directly to the family.** So $499 is *not* the total cost of resetting the home; it's Tavara's coordination fee on top of contractor bills. |
+| L3 **Full Care Environment Reset** | **Custom (shown as $399 one-time in the DB, but Card says "Custom")** | Described in the card as *"ongoing environment support — recurring pest control, seasonal deep cleaning, contractor management."* That's an ongoing coordination relationship, not a one-time job.                                                                                                                 |
+
+
+**So two things are off and worth fixing in a follow-up:**
+
+1. **Price mismatch:** DB has `Full Care Environment Reset = $399 one-time` (from migration `20260418224128`), but the family-facing card says **"Custom"**. Pick one: either make it `custom` pricing (null + flag) or commit to $399 in both places.
+2. **Positioning inversion:** if L3 is truly *ongoing*, a one-time fee < L2's coordination fee is confusing. Either:
+  - **Option A** — Reprice L3 higher than $499 (e.g., $699 one-time setup + monthly retainer), OR
+  - **Option B** — Change L3 `billing_type` from `one_time` to `monthly` with a clear retainer price (e.g., $199/mo ongoing coordination, separate from contractor costs), OR
+  - **Option C** — Leave L3 as "Custom — quoted per household" and remove the $399 from DB so admins always override per case.
+
+I'd recommend **Option B + C combined**: monthly ongoing retainer for L3, with the specific number quoted per household. This makes the ladder make sense: L1 waived · L2 $499 one-time coordination · L3 monthly ongoing coordination. Happy to ship this as a separate focused task — just tell me which option and I'll migrate + update the card copy.
+
+### Out of scope for Part A
+
+- Auto-expiring the NIS support (one-time admin task, no recurring window needed)
+- Building a dedicated "NIS registration walkthrough" UI for families (the admin handles it manually per the nudge template)
+- Changes to L1/L2/L3 Care Environment pricing — covered in Part B recommendation, separate approval
