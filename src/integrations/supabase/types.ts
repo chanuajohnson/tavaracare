@@ -409,7 +409,7 @@ export type Database = {
           is_active: boolean | null
           label: string
           sort_order: number | null
-          unit_price: number
+          unit_price: number | null
           visible_in_invoice: boolean | null
           visible_in_quote: boolean | null
           visible_in_unit_economics: boolean | null
@@ -424,7 +424,7 @@ export type Database = {
           is_active?: boolean | null
           label: string
           sort_order?: number | null
-          unit_price: number
+          unit_price?: number | null
           visible_in_invoice?: boolean | null
           visible_in_quote?: boolean | null
           visible_in_unit_economics?: boolean | null
@@ -439,7 +439,7 @@ export type Database = {
           is_active?: boolean | null
           label?: string
           sort_order?: number | null
-          unit_price?: number
+          unit_price?: number | null
           visible_in_invoice?: boolean | null
           visible_in_quote?: boolean | null
           visible_in_unit_economics?: boolean | null
