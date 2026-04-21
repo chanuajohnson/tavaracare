@@ -195,9 +195,9 @@ export const DailyCareLogsTab = ({ carePlanId }: DailyCareLogsTabProps) => {
           .order('created_at', { ascending: true });
         if (fbData) {
           const grouped: Record<string, LogFeedback[]> = {};
-          fbData.forEach(fb => {
+          (fbData as any[]).forEach((fb: any) => {
             if (!grouped[fb.log_id]) grouped[fb.log_id] = [];
-            grouped[fb.log_id].push(fb);
+            grouped[fb.log_id].push(fb as LogFeedback);
           });
           setFeedback(grouped);
         }
