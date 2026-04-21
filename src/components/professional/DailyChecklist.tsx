@@ -285,6 +285,49 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
     loadById();
   }, [preloadLogId, user?.id, restoreChecklistFromData]);
 
+  // Fetch family notes when an existing log is loaded
+  useEffect(() => {
+    if (!existingLogId) {
+      setFamilyNotes([]);
+      return;
+    }
+    const fetchNotes = async () => {
+      const { data } = await supabase
+        .from('daily_care_log_feedback')
+        .select('id, comment, created_at, acknowledged_at, author_role')
+        .eq('log_id', existingLogId)
+        .order('created_at', { ascending: true });
+      const filtered = (data || [])
+        .filter((fb: any) => fb.author_role === 'family' && !fb.comment.startsWith('__'))
+        .map((fb: any) => ({
+          id: fb.id,
+          comment: fb.comment,
+          created_at: fb.created_at,
+          acknowledged_at: fb.acknowledged_at,
+        }));
+      setFamilyNotes(filtered);
+    };
+    fetchNotes();
+  }, [existingLogId]);
+
+  const handleAckFamilyNote = async (noteId: string) => {
+    if (!user) return;
+    setAckingNote(noteId);
+    try {
+      const { error } = await supabase
+        .from('daily_care_log_feedback')
+        .update({ acknowledged_at: new Date().toISOString(), acknowledged_by: user.id })
+        .eq('id', noteId);
+      if (error) throw error;
+      toast.success('Acknowledged');
+      setFamilyNotes(prev => prev.map(n => n.id === noteId ? { ...n, acknowledged_at: new Date().toISOString() } : n));
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to acknowledge');
+    } finally {
+      setAckingNote(null);
+    }
+  };
+
   // Fetch shifts when client or date changes
   useEffect(() => {
     if (!user?.id || !selectedFamilyId) {
