@@ -428,27 +428,61 @@ export const DailyCareLogsTab = ({ carePlanId }: DailyCareLogsTabProps) => {
                     );
                   })}
 
-                  {/* Notes */}
-                  {log.notes && (
-                    <div className="bg-muted/50 rounded-md p-3">
-                      <h4 className="text-sm font-medium mb-1">📝 Nurse Notes</h4>
-                      <p className="text-sm text-muted-foreground">{log.notes}</p>
-                    </div>
-                  )}
+                  {/* Notes + acknowledgment */}
+                  {log.notes && (() => {
+                    const noteAck = logFeedback.find(fb => fb.comment === '__note_ack__' && fb.acknowledged_at);
+                    return (
+                      <div className="bg-muted/50 rounded-md p-3 space-y-2">
+                        <h4 className="text-sm font-medium mb-1">📝 Nurse Notes</h4>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{log.notes}</p>
+                        <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+                          {noteAck ? (
+                            <Badge variant="outline" className="text-xs gap-1 border-green-500/50 text-green-700 bg-green-50">
+                              <CheckCircle2 className="h-3 w-3" />
+                              You marked this as read · {new Date(noteAck.acknowledged_at!).toLocaleString()}
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs gap-1"
+                              disabled={submittingFeedback === `ack-${log.id}`}
+                              onClick={() => handleAckCaregiverNote(log.id, log.professional_id ? null : null)}
+                            >
+                              {submittingFeedback === `ack-${log.id}` ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Check className="h-3 w-3" />
+                              )}
+                              Got it — I've read this
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
-                  {/* Existing Feedback */}
-                  {logFeedback.length > 0 && (
+                  {/* Existing Feedback (excluding internal ack rows) */}
+                  {logFeedback.filter(fb => !fb.comment.startsWith('__')).length > 0 && (
                     <div className="space-y-2">
                       <h4 className="text-sm font-medium flex items-center gap-1">
                         <MessageSquare className="h-4 w-4" />
                         Family Feedback
                       </h4>
-                      {logFeedback.map(fb => (
+                      {logFeedback.filter(fb => !fb.comment.startsWith('__')).map(fb => (
                         <div key={fb.id} className="bg-primary/5 border border-primary/10 rounded-md p-3">
-                          <p className="text-sm">{fb.comment}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {new Date(fb.created_at).toLocaleString()}
-                          </p>
+                          <p className="text-sm whitespace-pre-wrap">{fb.comment}</p>
+                          <div className="flex items-center justify-between mt-1">
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(fb.created_at).toLocaleString()}
+                            </p>
+                            {fb.acknowledged_at && (
+                              <Badge variant="outline" className="text-xs gap-1 border-green-500/50 text-green-700 bg-green-50">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Caregiver acknowledged
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
