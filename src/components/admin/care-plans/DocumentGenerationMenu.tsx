@@ -228,8 +228,8 @@ const DocumentGenerationMenu = ({
     }
   };
 
-  const totalCount = approvedLineItems.length;
-  const selectedCount = filteredApprovedItems.length;
+  const totalCount = combinedLineItems.length;
+  const selectedCount = filteredSelectedItems.length;
 
   return (
     <DropdownMenu>
