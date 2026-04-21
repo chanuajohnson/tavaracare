@@ -178,6 +178,7 @@ export const ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
       "Shift notes and incident reporting",
       "Caregivers are assigned to the primary client — support to other household members is limited to approved, scoped services only",
       "Daily Care SOP + Monitoring — structured tracking, accountability, and care quality oversight (billable add-on)",
+      "Daily Care SOP — One-Time Activation — $199 for 30-day full caregiver log access (alternative to weekly add-on)",
       "Secondary Household Support — additional structured support for secondary household members (billable add-on, requires scope agreement)",
       "Escalation support — coordination triggered by falls, urgent changes, or emergency response (billed per incident when triggered)",
     ],
