@@ -34,6 +34,9 @@ interface LogFeedback {
   family_id: string;
   comment: string;
   created_at: string;
+  author_role?: 'family' | 'professional' | 'admin';
+  acknowledged_at?: string | null;
+  acknowledged_by?: string | null;
 }
 
 interface MedAdmin {
