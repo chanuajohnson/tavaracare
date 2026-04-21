@@ -271,7 +271,7 @@ const DocumentGenerationMenu = ({
               </div>
             </div>
             <div className="max-h-56 overflow-y-auto">
-              {approvedLineItems.map(item => (
+              {combinedLineItems.map(item => (
                 <DropdownMenuCheckboxItem
                   key={item.id}
                   checked={selectedItemIds.has(item.id)}
