@@ -23,10 +23,10 @@ const SERVICE_TIERS = [
   {
     level: "Level 3",
     name: "Full Care Environment Reset",
-    price: "Custom",
+    price: "Custom / month",
     originalPrice: null,
     description:
-      "Ongoing care environment support — including recurring pest control coordination, contractor management, and sustained home readiness. After the initial guided reset, this provides continued oversight for things like monthly pest control, seasonal deep cleaning, and any evolving environmental needs. Coordinated and managed by Tavara.",
+      "Ongoing monthly coordination retainer for households needing sustained care environment support — recurring pest control, seasonal deep cleaning, contractor management, and evolving needs. Retainer amount is quoted per household based on home size and scope. Contractor costs are separate and billed directly to the family.",
   },
 ];
 
@@ -133,8 +133,7 @@ export default function CareEnvironmentIntroCard() {
       </div>
 
       <p className="text-xs text-muted-foreground mt-3 italic">
-        Select applicable services below. These are coordinated and managed by
-        Tavara — we guide, support, arrange, and manage vendors where needed.
+        Select applicable services below. L1 waived · L2 one-time coordination · L3 monthly ongoing coordination. These are coordinated and managed by Tavara — we guide, support, arrange, and manage vendors where needed.
       </p>
     </div>
   );
