@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, ClipboardCheck, MessageSquare, Send, Loader2, Pill } from 'lucide-react';
+import { ChevronDown, ChevronRight, ClipboardCheck, MessageSquare, Send, Loader2, Pill, Check, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
