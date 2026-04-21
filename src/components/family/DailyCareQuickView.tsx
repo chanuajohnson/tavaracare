@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Pill, ClipboardList, ChevronDown, ChevronUp, CheckCircle, Clock, User, ArrowRight } from "lucide-react";
+import { Pill, ClipboardList, ChevronDown, ChevronUp, CheckCircle, Clock, User, ArrowRight, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -34,6 +34,9 @@ interface DailyLog {
   sections: ChecklistSection[];
 }
 
+const SOP_WEEKLY_ID = "81d017e5-dd7e-48fc-a3fd-61d831c383c4";
+const SOP_ONETIME_ID = "2093fdef-9195-46cd-83e5-f5c1062edf7b";
+
 export function DailyCareQuickView() {
   const { user } = useAuth();
   const [medAdmins, setMedAdmins] = useState<MedAdministration[]>([]);
@@ -41,6 +44,7 @@ export function DailyCareQuickView() {
   const [medsOpen, setMedsOpen] = useState(true);
   const [logsOpen, setLogsOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasSOPAccess, setHasSOPAccess] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -62,6 +66,21 @@ export function DailyCareQuickView() {
         .eq("family_id", user.id);
 
       const carePlanIds = carePlans?.map((cp) => cp.id) || [];
+
+      // Check SOP entitlement: weekly add-on or one-time activation, family-approved
+      if (carePlanIds.length > 0) {
+        const { data: sopSelections } = await supabase
+          .from("care_plan_service_selections")
+          .select("id")
+          .in("care_plan_id", carePlanIds)
+          .in("service_item_id", [SOP_WEEKLY_ID, SOP_ONETIME_ID])
+          .eq("selected", true)
+          .eq("approved_by_family", true)
+          .limit(1);
+        setHasSOPAccess((sopSelections?.length ?? 0) > 0);
+      } else {
+        setHasSOPAccess(false);
+      }
 
       // Fetch today's medication administrations
       if (carePlanIds.length > 0) {
@@ -302,13 +321,23 @@ export function DailyCareQuickView() {
           </Collapsible>
         )}
 
-        {/* Link to full care plan */}
+        {/* Link to full care plan — gated by SOP entitlement */}
         <div className="pt-1">
-          <Link to="/family/care-management">
-            <Button variant="ghost" size="sm" className="text-xs text-primary hover:text-primary/80 p-0 h-auto">
-              View Full Care Plan <ArrowRight className="h-3 w-3 ml-1" />
-            </Button>
-          </Link>
+          {hasSOPAccess ? (
+            <Link to="/family/care-management">
+              <Button variant="ghost" size="sm" className="text-xs text-primary hover:text-primary/80 p-0 h-auto">
+                View Full Care Plan <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/family/upgrade/care-log-access">
+              <Button variant="ghost" size="sm" className="text-xs text-primary hover:text-primary/80 p-0 h-auto gap-1">
+                <Lock className="h-3 w-3" />
+                View Full Care Plan
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          )}
         </div>
       </CardContent>
     </Card>
