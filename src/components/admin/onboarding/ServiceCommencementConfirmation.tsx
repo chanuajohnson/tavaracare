@@ -10,7 +10,7 @@ interface ApprovedService {
   label: string;
   billing_type: string;
   effective_price: number;
-  unit_price: number;
+  unit_price: number | null;
   quantity: number;
   approved_by_family: boolean;
 }
