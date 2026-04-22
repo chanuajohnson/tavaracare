@@ -11,6 +11,8 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTracking } from "@/hooks/useTracking";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscriptionPlans, formatPlanPrice, SubscriptionPlan } from "@/hooks/useSubscriptionPlans";
+import { PlanManagerDrawer } from "@/components/admin/subscription/PlanManagerDrawer";
 
 
 const SubscriptionPage = () => {
@@ -23,7 +25,13 @@ const SubscriptionPage = () => {
   const [userSubscription, setUserSubscription] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [billingCycle, setBillingCycle] = useState<"weekly" | "monthly">("weekly");
-  
+  const isAdmin = userRole === "admin";
+  const {
+    familyPlans: dbFamilyPlans,
+    professionalPlans: dbProfessionalPlans,
+    isLoading: plansLoading,
+    refetch: refetchPlans,
+  } = useSubscriptionPlans();
   const returnPath = location.state?.returnPath || (userRole === 'professional' ? "/dashboard/professional" : "/dashboard/family");
   const featureType = location.state?.featureType || "premium feature";
   const referringPagePath = location.state?.referringPagePath || returnPath;
@@ -86,6 +94,31 @@ const SubscriptionPage = () => {
     fetchUserSubscription();
   }, [user, userRole, navigate, referringPagePath, referringPageLabel]);
   
+  // Map a DB-backed SubscriptionPlan to the shape the existing render loop expects
+  const mapPlan = (p: SubscriptionPlan) => ({
+    id: p.slug || p.id,
+    dbId: p.id,
+    name: p.name,
+    priceWeekly: formatPlanPrice(p.price_weekly),
+    priceMonthly: formatPlanPrice(p.price_monthly),
+    periodWeekly: p.period_weekly,
+    periodMonthly: p.period_monthly,
+    description: p.description ?? "",
+    features: p.features.map((f) => ({
+      name: f.is_addon && !f.name.startsWith("Add-on:") ? `Add-on: ${f.name}` : f.name,
+      included: f.included,
+    })),
+    popular: p.is_popular,
+    buttonColor:
+      p.price_weekly === null && p.price_monthly === null
+        ? "bg-muted text-muted-foreground hover:bg-muted/90"
+        : "bg-primary hover:bg-primary/90",
+    buttonText: p.button_text,
+  });
+
+  const familyPlans = dbFamilyPlans.map(mapPlan);
+  const professionalPlans = dbProfessionalPlans.map(mapPlan);
+
   const getUserSpecificPlans = () => {
     if (userRole === 'professional' || referringPagePath.includes('professional') || location.state?.fromProfessionalFeatures) {
       return professionalPlans;
@@ -95,270 +128,16 @@ const SubscriptionPage = () => {
     }
     return referringPagePath.includes('professional') ? professionalPlans : familyPlans;
   };
-  
-  const familyPlans = [{
-    id: "basic",
-    name: "Family Basic",
-    priceWeekly: "Free",
-    priceMonthly: "Free",
-    periodWeekly: "",
-    periodMonthly: "",
-    description: "Get organized and start building your care team",
-    features: [{
-      name: "Family profile and care preferences setup",
-      included: true
-    }, {
-      name: "Care needs assessment and planning tools",
-      included: true
-    }, {
-      name: "Legacy Story — preserve your loved one's journey",
-      included: true
-    }, {
-      name: "Care team discovery and matching",
-      included: false
-    }, {
-      name: "Medication tracking and scheduling",
-      included: false
-    }, {
-      name: "Meal planning and grocery lists",
-      included: false
-    }, {
-      name: "Unlimited messaging with your care team",
-      included: false
-    }, {
-      name: "Community support and resources",
-      included: false
-    }, {
-      name: "Dedicated care coordinator",
-      included: false
-    }, {
-      name: "Care team scheduling and oversight",
-      included: false
-    }, {
-      name: "Video consultations for care planning",
-      included: false
-    }, {
-      name: "Care coordination and care payments support (incl. NIS payment submission for family)",
-      included: false
-    }],
-    popular: false,
-    buttonColor: "bg-muted text-muted-foreground hover:bg-muted/90",
-    buttonText: "Get Started Free"
-  }, {
-    id: "care",
-    name: "Active Care Management",
-    priceWeekly: "$699",
-    priceMonthly: "$2,499",
-    periodWeekly: "week",
-    periodMonthly: "month",
-    description: "Structured weekly care coordination, oversight, billing support, and managed care",
-    features: [{
-      name: "Everything in Family Basic",
-      included: true
-    }, {
-      name: "Dedicated care coordinator assigned to your family",
-      included: true
-    }, {
-      name: "Care team scheduling and oversight",
-      included: true
-    }, {
-      name: "Video consultations for care planning",
-      included: true
-    }, {
-      name: "Care coordination and care payments support (incl. NIS payment submission for family)",
-      included: true
-    }, {
-      name: "Care team discovery and matching",
-      included: true
-    }, {
-      name: "Medication tracking and scheduling",
-      included: true
-    }, {
-      name: "Meal planning and grocery lists",
-      included: true
-    }, {
-      name: "Unlimited messaging with your care team",
-      included: true
-    }, {
-      name: "Community support and resources",
-      included: true
-    }, {
-      name: "Priority matching and complex care management",
-      included: false
-    }, {
-      name: "24/7 on-call coordinator support",
-      included: false
-    }],
-    popular: false,
-    buttonColor: "bg-primary hover:bg-primary/90",
-    buttonText: "Start Care Coordination"
-  }, {
-    id: "premium",
-    name: "Premium Care Management",
-    priceWeekly: "$899",
-    priceMonthly: "$3,299",
-    periodWeekly: "week",
-    periodMonthly: "month",
-    description: "High-touch concierge-level coordination for complex or high-touch care needs",
-    features: [{
-      name: "Everything in Active Care Management",
-      included: true
-    }, {
-      name: "Priority care team matching and placement",
-      included: true
-    }, {
-      name: "Extended video consultations",
-      included: true
-    }, {
-      name: "Comprehensive care plan management",
-      included: true
-    }, {
-      name: "24/7 on-call coordinator support",
-      included: true
-    }, {
-      name: "Multi-caregiver scheduling and rotation management",
-      included: true
-    }, {
-      name: "Detailed care analytics and progress reports",
-      included: true
-    }, {
-      name: "Emergency escalation and rapid response coordination",
-      included: true
-    }, {
-      name: "Weekly care check-ins and status updates",
-      included: true
-    }, {
-      name: "Add-on: Payroll log generation for care team",
-      included: true
-    }, {
-      name: "Add-on: Caregiver daily reports",
-      included: true
-    }, {
-      name: "Add-on: Full Care Environment Reset",
-      included: true
-    }],
-    popular: true,
-    buttonColor: "bg-primary hover:bg-primary/90",
-    buttonText: "Choose Premium"
-  }];
-  
-  const getPlanPrice = (plan: typeof familyPlans[0]) => {
+
+  const getPlanPrice = (plan: { priceWeekly: string; priceMonthly: string }) => {
     return billingCycle === "weekly" ? plan.priceWeekly : plan.priceMonthly;
   };
-  
-  const getPlanPeriod = (plan: typeof familyPlans[0]) => {
+
+  const getPlanPeriod = (plan: { periodWeekly: string; periodMonthly: string }) => {
     return billingCycle === "weekly" ? plan.periodWeekly : plan.periodMonthly;
   };
-  
-  const professionalPlans = [{
-    id: "basic",
-    name: "Professional Basic",
-    priceWeekly: "Free",
-    priceMonthly: "Free",
-    periodWeekly: "",
-    periodMonthly: "",
-    description: "Limited access for casual professionals",
-    features: [{
-      name: "Apply for 3 jobs per week",
-      included: true
-    }, {
-      name: "Basic profile listing",
-      included: true
-    }, {
-      name: "Limited training resources",
-      included: true
-    }, {
-      name: "Email support",
-      included: true
-    }, {
-      name: "Featured profile placement",
-      included: false
-    }, {
-      name: "Unlimited job applications",
-      included: false
-    }, {
-      name: "Advanced training resources",
-      included: false
-    }, {
-      name: "Priority job matching",
-      included: false
-    }],
-    popular: false,
-    buttonColor: "bg-muted text-muted-foreground hover:bg-muted/90",
-    buttonText: "Current Plan"
-  }, {
-    id: "pro",
-    name: "Professional Pro",
-    priceWeekly: "$19.99",
-    priceMonthly: "$19.99",
-    periodWeekly: "monthly",
-    periodMonthly: "monthly",
-    description: "Enhanced features for active professionals",
-    features: [{
-      name: "Apply for 3 jobs per week",
-      included: true
-    }, {
-      name: "Basic profile listing",
-      included: true
-    }, {
-      name: "Limited training resources",
-      included: true
-    }, {
-      name: "Email support",
-      included: true
-    }, {
-      name: "Featured profile placement",
-      included: true
-    }, {
-      name: "Unlimited job applications",
-      included: true
-    }, {
-      name: "Advanced training resources",
-      included: false
-    }, {
-      name: "Priority job matching",
-      included: false
-    }],
-    popular: true,
-    buttonColor: "bg-primary hover:bg-primary/90",
-    buttonText: "Upgrade to Pro"
-  }, {
-    id: "expert",
-    name: "Professional Expert",
-    priceWeekly: "$34.99",
-    priceMonthly: "$34.99",
-    periodWeekly: "monthly",
-    periodMonthly: "monthly",
-    description: "Complete access for dedicated care professionals",
-    features: [{
-      name: "Apply for 3 jobs per week",
-      included: true
-    }, {
-      name: "Basic profile listing",
-      included: true
-    }, {
-      name: "Limited training resources",
-      included: true
-    }, {
-      name: "Email support",
-      included: true
-    }, {
-      name: "Featured profile placement",
-      included: true
-    }, {
-      name: "Unlimited job applications",
-      included: true
-    }, {
-      name: "Advanced training resources",
-      included: true
-    }, {
-      name: "Priority job matching",
-      included: true
-    }],
-    popular: false,
-    buttonColor: "bg-primary hover:bg-primary/90",
-    buttonText: "Upgrade to Expert"
-  }];
+
+  // (legacy hardcoded professionalPlans array removed — now sourced from DB)
   
   const plans = getUserSpecificPlans();
   
@@ -571,10 +350,13 @@ const SubscriptionPage = () => {
                   Structure, coordination, and peace of mind — so you can focus on what matters most.
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={handleGoBack} className="flex items-center gap-1">
-                <ArrowLeft className="h-4 w-4" />
-                Go Back
-              </Button>
+              <div className="flex items-center gap-2">
+                {isAdmin && <PlanManagerDrawer onPlansChanged={refetchPlans} />}
+                <Button variant="outline" size="sm" onClick={handleGoBack} className="flex items-center gap-1">
+                  <ArrowLeft className="h-4 w-4" />
+                  Go Back
+                </Button>
+              </div>
             </div>
             
             
@@ -597,7 +379,7 @@ const SubscriptionPage = () => {
             </div>
             
             {/* Billing Cycle Toggle */}
-            {getUserSpecificPlans() === familyPlans && (
+            {plans === familyPlans && familyPlans.length > 0 && (
               <div className="flex items-center justify-center gap-3 pt-4">
                 <span className={`text-sm font-medium ${billingCycle === 'weekly' ? 'text-foreground' : 'text-muted-foreground'}`}>
                   Weekly
