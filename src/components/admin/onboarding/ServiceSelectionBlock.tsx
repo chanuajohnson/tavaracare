@@ -16,7 +16,7 @@ interface ServiceItem {
   label: string;
   description: string;
   billing_type: string;
-  unit_price: number;
+  unit_price: number | null;
   default_quantity: number;
 }
 
@@ -185,7 +185,8 @@ export default function ServiceSelectionBlock({
           const sel = selections[item.id];
           const isSelected = sel?.selected ?? false;
           const isApproved = sel?.approved_by_family ?? false;
-          const effectivePrice = sel?.override_price ?? item.unit_price;
+          const effectivePrice = sel?.override_price ?? item.unit_price ?? null;
+          const isCustomQuoted = item.unit_price === null;
 
           return (
             <div
@@ -206,7 +207,7 @@ export default function ServiceSelectionBlock({
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium">{item.label}</span>
                     <Badge variant="outline" className={`text-[10px] ${billingBadgeColor(item.billing_type)}`}>
-                      ${effectivePrice.toFixed(2)} {billingLabel(item.billing_type)}
+                      {effectivePrice !== null ? `$${effectivePrice.toFixed(2)}` : 'Custom'} {billingLabel(item.billing_type)}
                     </Badge>
                     {isApproved && (
                       <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">
@@ -250,7 +251,7 @@ export default function ServiceSelectionBlock({
                         <Input
                           type="number"
                           step="0.01"
-                          placeholder={item.unit_price.toFixed(2)}
+                          placeholder={item.unit_price !== null ? item.unit_price.toFixed(2) : 'Custom'}
                           value={sel?.override_price ?? ''}
                           onChange={(e) => {
                             const val = e.target.value ? parseFloat(e.target.value) : null;
@@ -260,6 +261,12 @@ export default function ServiceSelectionBlock({
                         />
                       </div>
                     </div>
+                  )}
+
+                  {isSelected && !compact && !readOnly && isCustomQuoted && (
+                    <p className="text-[11px] text-muted-foreground italic mt-1">
+                      This service is quoted per household — enter the agreed monthly amount.
+                    </p>
                   )}
 
                   {isSelected && !compact && !readOnly && (

@@ -10,7 +10,7 @@ interface ServiceItemWithSelection {
   label: string;
   description: string;
   billing_type: string;
-  unit_price: number;
+  unit_price: number | null;
   override_price: number | null;
   quantity: number;
   approved_by_family: boolean;
@@ -85,7 +85,10 @@ export default function BillingSummaryCard({ carePlanId, careRate, weeklyHours }
   const oneTime = items.filter(i => i.billing_type === 'one_time');
   const monthly = items.filter(i => i.billing_type === 'monthly');
 
-  const getPrice = (i: ServiceItemWithSelection) => (i.override_price ?? i.unit_price) * i.quantity;
+  const getPrice = (i: ServiceItemWithSelection) => {
+    const base = i.override_price ?? i.unit_price;
+    return (base ?? 0) * i.quantity;
+  };
 
   const corePlanTotal = corePlan.reduce((sum, i) => sum + getPrice(i), 0);
   const weeklyAddonsTotal = weeklyAddons.reduce((sum, i) => sum + getPrice(i), 0);
@@ -240,8 +243,12 @@ export default function BillingSummaryCard({ carePlanId, careRate, weeklyHours }
 
 function ServiceRow({ item }: { item: ServiceItemWithSelection }) {
   const effectivePrice = item.override_price ?? item.unit_price;
-  const hasDiscount = item.override_price !== null && item.override_price !== undefined && item.override_price !== item.unit_price;
+  const hasDiscount =
+    typeof item.override_price === 'number' &&
+    typeof item.unit_price === 'number' &&
+    item.override_price !== item.unit_price;
   const isWaived = hasDiscount && item.override_price === 0;
+  const isCustomPending = effectivePrice === null;
 
   return (
     <div className="flex items-center justify-between py-1.5">
@@ -258,12 +265,12 @@ function ServiceRow({ item }: { item: ServiceItemWithSelection }) {
         )}
       </div>
       <div className="text-sm font-medium">
-        {hasDiscount && (
+        {hasDiscount && typeof item.unit_price === 'number' && (
           <span className="line-through text-muted-foreground mr-1.5">
             ${item.unit_price.toFixed(2)}
           </span>
         )}
-        ${effectivePrice.toFixed(2)}
+        {isCustomPending ? 'Custom — pending' : `$${(effectivePrice as number).toFixed(2)}`}
         {item.quantity > 1 && ` × ${item.quantity}`}
         <span className="text-xs text-muted-foreground ml-1">
           {billingLabel(item.billing_type)}
