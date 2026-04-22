@@ -10,7 +10,7 @@ interface ServiceItemWithSelection {
   label: string;
   description: string;
   billing_type: string;
-  unit_price: number;
+  unit_price: number | null;
   override_price: number | null;
   quantity: number;
   approved_by_family: boolean;
