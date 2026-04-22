@@ -85,7 +85,10 @@ export default function BillingSummaryCard({ carePlanId, careRate, weeklyHours }
   const oneTime = items.filter(i => i.billing_type === 'one_time');
   const monthly = items.filter(i => i.billing_type === 'monthly');
 
-  const getPrice = (i: ServiceItemWithSelection) => (i.override_price ?? i.unit_price) * i.quantity;
+  const getPrice = (i: ServiceItemWithSelection) => {
+    const base = i.override_price ?? i.unit_price;
+    return (base ?? 0) * i.quantity;
+  };
 
   const corePlanTotal = corePlan.reduce((sum, i) => sum + getPrice(i), 0);
   const weeklyAddonsTotal = weeklyAddons.reduce((sum, i) => sum + getPrice(i), 0);
