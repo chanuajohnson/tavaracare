@@ -173,7 +173,9 @@ export const AppRoutes = () => {
       
       {/* Subscription Routes */}
       <Route path="/subscription" element={<SubscriptionPage />} />
+      <Route path="/subscriptions" element={<SubscriptionPage />} />
       <Route path="/subscription/features" element={<SubscriptionFeaturesPage />} />
+      <Route path="/subscriptions/features" element={<SubscriptionFeaturesPage />} />
       
       {/* Admin Routes */}
       <Route path="/admin/visit-schedule" element={<AdminVisitSchedulePage />} />

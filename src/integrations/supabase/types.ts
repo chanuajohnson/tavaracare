@@ -938,6 +938,248 @@ export type Database = {
           },
         ]
       }
+      care_supply_bundle_items: {
+        Row: {
+          bundle_id: string
+          created_at: string
+          default_quantity: number
+          id: string
+          item_id: string
+        }
+        Insert: {
+          bundle_id: string
+          created_at?: string
+          default_quantity?: number
+          id?: string
+          item_id: string
+        }
+        Update: {
+          bundle_id?: string
+          created_at?: string
+          default_quantity?: number
+          id?: string
+          item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_supply_bundle_items_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "care_supply_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_supply_bundle_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "care_supply_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_supply_bundles: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          emoji: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      care_supply_deliveries: {
+        Row: {
+          created_at: string
+          delivered_at: string
+          id: string
+          marked_by: string | null
+          notes: string | null
+          subscription_id: string
+          total_ttd: number
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string
+          id?: string
+          marked_by?: string | null
+          notes?: string | null
+          subscription_id: string
+          total_ttd?: number
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string
+          id?: string
+          marked_by?: string | null
+          notes?: string | null
+          subscription_id?: string
+          total_ttd?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_supply_deliveries_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "care_supply_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_supply_items: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          needs_pricing_review: boolean
+          sort_order: number
+          supplier_note: string | null
+          unit_label: string
+          unit_price_ttd: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          needs_pricing_review?: boolean
+          sort_order?: number
+          supplier_note?: string | null
+          unit_label?: string
+          unit_price_ttd?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          needs_pricing_review?: boolean
+          sort_order?: number
+          supplier_note?: string | null
+          unit_label?: string
+          unit_price_ttd?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      care_supply_subscription_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          price_snapshot_ttd: number
+          quantity: number
+          subscription_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          price_snapshot_ttd?: number
+          quantity?: number
+          subscription_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          price_snapshot_ttd?: number
+          quantity?: number
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_supply_subscription_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "care_supply_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_supply_subscription_items_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "care_supply_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_supply_subscriptions: {
+        Row: {
+          cadence: Database["public"]["Enums"]["care_supply_cadence"]
+          created_at: string
+          created_by_admin: string | null
+          delivery_day: string
+          family_user_id: string
+          id: string
+          next_delivery_at: string | null
+          notes: string | null
+          status: Database["public"]["Enums"]["care_supply_subscription_status"]
+          updated_at: string
+        }
+        Insert: {
+          cadence?: Database["public"]["Enums"]["care_supply_cadence"]
+          created_at?: string
+          created_by_admin?: string | null
+          delivery_day?: string
+          family_user_id: string
+          id?: string
+          next_delivery_at?: string | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["care_supply_subscription_status"]
+          updated_at?: string
+        }
+        Update: {
+          cadence?: Database["public"]["Enums"]["care_supply_cadence"]
+          created_at?: string
+          created_by_admin?: string | null
+          delivery_day?: string
+          family_user_id?: string
+          id?: string
+          next_delivery_at?: string | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["care_supply_subscription_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       care_tasks: {
         Row: {
           assigned_to: string | null
@@ -6243,6 +6485,8 @@ export type Database = {
         | "completed"
         | "locked"
       app_role: "admin" | "moderator" | "user"
+      care_supply_cadence: "weekly" | "biweekly" | "monthly" | "one_time"
+      care_supply_subscription_status: "active" | "paused" | "cancelled"
       care_urgency:
         | "immediate"
         | "within_week"
@@ -6421,6 +6665,8 @@ export const Constants = {
         "locked",
       ],
       app_role: ["admin", "moderator", "user"],
+      care_supply_cadence: ["weekly", "biweekly", "monthly", "one_time"],
+      care_supply_subscription_status: ["active", "paused", "cancelled"],
       care_urgency: [
         "immediate",
         "within_week",
