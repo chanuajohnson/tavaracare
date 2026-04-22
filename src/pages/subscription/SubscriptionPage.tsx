@@ -115,19 +115,19 @@ const SubscriptionPage = () => {
       included: true
     }, {
       name: "Care team discovery and matching",
-      included: true
+      included: false
     }, {
       name: "Medication tracking and scheduling",
-      included: true
+      included: false
     }, {
       name: "Meal planning and grocery lists",
-      included: true
+      included: false
     }, {
       name: "Unlimited messaging with your care team",
-      included: true
+      included: false
     }, {
       name: "Community support and resources",
-      included: true
+      included: false
     }, {
       name: "Dedicated care coordinator",
       included: false
@@ -138,7 +138,7 @@ const SubscriptionPage = () => {
       name: "Video consultations for care planning",
       included: false
     }, {
-      name: "Care coordination and billing support",
+      name: "Care coordination and care payments support (incl. NIS payment submission for family)",
       included: false
     }],
     popular: false,
@@ -165,10 +165,22 @@ const SubscriptionPage = () => {
       name: "Video consultations for care planning",
       included: true
     }, {
-      name: "Care coordination and billing support",
+      name: "Care coordination and care payments support (incl. NIS payment submission for family)",
       included: true
     }, {
-      name: "Weekly care check-ins and status updates",
+      name: "Care team discovery and matching",
+      included: true
+    }, {
+      name: "Medication tracking and scheduling",
+      included: true
+    }, {
+      name: "Meal planning and grocery lists",
+      included: true
+    }, {
+      name: "Unlimited messaging with your care team",
+      included: true
+    }, {
+      name: "Community support and resources",
       included: true
     }, {
       name: "Priority matching and complex care management",
@@ -211,6 +223,18 @@ const SubscriptionPage = () => {
       included: true
     }, {
       name: "Emergency escalation and rapid response coordination",
+      included: true
+    }, {
+      name: "Weekly care check-ins and status updates",
+      included: true
+    }, {
+      name: "Add-on: Payroll log generation for care team",
+      included: true
+    }, {
+      name: "Add-on: Caregiver daily reports",
+      included: true
+    }, {
+      name: "Add-on: Full Care Environment Reset",
       included: true
     }],
     popular: true,
@@ -616,12 +640,23 @@ const SubscriptionPage = () => {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-2">
-                        {plan.features.map((feature, index) => <div key={index} className="flex items-start gap-2">
-                            {feature.included ? <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" /> : <XCircle className="h-5 w-5 text-gray-300 flex-shrink-0" />}
-                            <span className={feature.included ? "text-gray-700" : "text-gray-400"}>
-                              {feature.name}
-                            </span>
-                          </div>)}
+                        {plan.features.map((feature, index) => {
+                          const isAddOn = feature.name.startsWith("Add-on:");
+                          const displayName = isAddOn ? feature.name.replace(/^Add-on:\s*/, "") : feature.name;
+                          return (
+                            <div key={index} className="flex items-start gap-2">
+                              {feature.included ? <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" /> : <XCircle className="h-5 w-5 text-gray-300 flex-shrink-0" />}
+                              <span className={`flex flex-wrap items-center gap-1.5 ${feature.included ? "text-gray-700" : "text-gray-400"}`}>
+                                <span>{displayName}</span>
+                                {isAddOn && (
+                                  <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-xs font-medium">
+                                    Add-on
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </CardContent>
                     <CardFooter className="flex flex-col gap-2">
