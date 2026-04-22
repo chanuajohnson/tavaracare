@@ -350,10 +350,13 @@ const SubscriptionPage = () => {
                   Structure, coordination, and peace of mind — so you can focus on what matters most.
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={handleGoBack} className="flex items-center gap-1">
-                <ArrowLeft className="h-4 w-4" />
-                Go Back
-              </Button>
+              <div className="flex items-center gap-2">
+                {isAdmin && <PlanManagerDrawer onPlansChanged={refetchPlans} />}
+                <Button variant="outline" size="sm" onClick={handleGoBack} className="flex items-center gap-1">
+                  <ArrowLeft className="h-4 w-4" />
+                  Go Back
+                </Button>
+              </div>
             </div>
             
             
