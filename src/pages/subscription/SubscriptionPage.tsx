@@ -379,7 +379,7 @@ const SubscriptionPage = () => {
             </div>
             
             {/* Billing Cycle Toggle */}
-            {getUserSpecificPlans() === familyPlans && (
+            {plans === familyPlans && familyPlans.length > 0 && (
               <div className="flex items-center justify-center gap-3 pt-4">
                 <span className={`text-sm font-medium ${billingCycle === 'weekly' ? 'text-foreground' : 'text-muted-foreground'}`}>
                   Weekly
