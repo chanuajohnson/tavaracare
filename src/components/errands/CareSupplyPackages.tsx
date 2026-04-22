@@ -244,7 +244,7 @@ export const CareSupplyPackages: React.FC = () => {
 
                 <Button
                   type="button"
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  className="w-full"
                   size="lg"
                   disabled={lineCount === 0}
                   onClick={handleScheduleClick}
