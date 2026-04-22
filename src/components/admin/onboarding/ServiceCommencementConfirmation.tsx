@@ -178,7 +178,7 @@ export default function ServiceCommencementConfirmation({
               </h5>
               <div className="space-y-1.5">
                 {allServices.map((svc, i) => {
-                  const hasDiscount = svc.effective_price !== svc.unit_price;
+                  const hasDiscount = typeof svc.unit_price === 'number' && svc.effective_price !== svc.unit_price;
                   const isWaived = hasDiscount && svc.effective_price === 0;
                   return (
                     <div key={i} className="flex items-center justify-between text-sm">
@@ -197,12 +197,14 @@ export default function ServiceCommencementConfirmation({
                         )}
                       </div>
                       <span className="font-medium">
-                        {hasDiscount && (
+                        {hasDiscount && typeof svc.unit_price === 'number' && (
                           <span className="line-through text-muted-foreground mr-1.5">
                             ${svc.unit_price.toFixed(2)}
                           </span>
                         )}
-                        ${svc.effective_price.toFixed(2)} {billingLabel(svc.billing_type)}
+                        {svc.effective_price > 0
+                          ? `$${svc.effective_price.toFixed(2)} ${billingLabel(svc.billing_type)}`
+                          : `Custom — pending ${billingLabel(svc.billing_type)}`}
                       </span>
                     </div>
                   );
