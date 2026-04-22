@@ -4512,31 +4512,61 @@ export type Database = {
       }
       subscription_plans: {
         Row: {
+          audience: string
+          button_text: string
           created_at: string | null
           description: string | null
           duration_days: number
           features: Json | null
           id: string
+          is_active: boolean
+          is_popular: boolean
           name: string
+          period_monthly: string
+          period_weekly: string
           price: number
+          price_monthly: number | null
+          price_weekly: number | null
+          slug: string | null
+          sort_order: number
         }
         Insert: {
+          audience?: string
+          button_text?: string
           created_at?: string | null
           description?: string | null
           duration_days: number
           features?: Json | null
           id?: string
+          is_active?: boolean
+          is_popular?: boolean
           name: string
+          period_monthly?: string
+          period_weekly?: string
           price: number
+          price_monthly?: number | null
+          price_weekly?: number | null
+          slug?: string | null
+          sort_order?: number
         }
         Update: {
+          audience?: string
+          button_text?: string
           created_at?: string | null
           description?: string | null
           duration_days?: number
           features?: Json | null
           id?: string
+          is_active?: boolean
+          is_popular?: boolean
           name?: string
+          period_monthly?: string
+          period_weekly?: string
           price?: number
+          price_monthly?: number | null
+          price_weekly?: number | null
+          slug?: string | null
+          sort_order?: number
         }
         Relationships: []
       }
