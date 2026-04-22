@@ -251,7 +251,7 @@ export default function ServiceSelectionBlock({
                         <Input
                           type="number"
                           step="0.01"
-                          placeholder={item.unit_price.toFixed(2)}
+                          placeholder={item.unit_price !== null ? item.unit_price.toFixed(2) : 'Custom'}
                           value={sel?.override_price ?? ''}
                           onChange={(e) => {
                             const val = e.target.value ? parseFloat(e.target.value) : null;
@@ -261,6 +261,12 @@ export default function ServiceSelectionBlock({
                         />
                       </div>
                     </div>
+                  )}
+
+                  {isSelected && !compact && !readOnly && isCustomQuoted && (
+                    <p className="text-[11px] text-muted-foreground italic mt-1">
+                      This service is quoted per household — enter the agreed monthly amount.
+                    </p>
                   )}
 
                   {isSelected && !compact && !readOnly && (
