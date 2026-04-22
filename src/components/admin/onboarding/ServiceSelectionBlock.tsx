@@ -16,7 +16,7 @@ interface ServiceItem {
   label: string;
   description: string;
   billing_type: string;
-  unit_price: number;
+  unit_price: number | null;
   default_quantity: number;
 }
 
