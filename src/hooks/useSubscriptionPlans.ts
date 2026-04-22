@@ -43,7 +43,7 @@ const normalizeFeatures = (raw: unknown): PlanFeature[] => {
       }
       return null;
     })
-    .filter((f): f is PlanFeature => f !== null);
+    .filter((f) => f !== null) as PlanFeature[];
 };
 
 export function formatPlanPrice(value: number | null): string {
