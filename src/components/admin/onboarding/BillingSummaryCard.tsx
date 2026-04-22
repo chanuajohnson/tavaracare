@@ -243,8 +243,12 @@ export default function BillingSummaryCard({ carePlanId, careRate, weeklyHours }
 
 function ServiceRow({ item }: { item: ServiceItemWithSelection }) {
   const effectivePrice = item.override_price ?? item.unit_price;
-  const hasDiscount = item.override_price !== null && item.override_price !== undefined && item.override_price !== item.unit_price;
+  const hasDiscount =
+    typeof item.override_price === 'number' &&
+    typeof item.unit_price === 'number' &&
+    item.override_price !== item.unit_price;
   const isWaived = hasDiscount && item.override_price === 0;
+  const isCustomPending = effectivePrice === null;
 
   return (
     <div className="flex items-center justify-between py-1.5">
@@ -261,12 +265,12 @@ function ServiceRow({ item }: { item: ServiceItemWithSelection }) {
         )}
       </div>
       <div className="text-sm font-medium">
-        {hasDiscount && (
+        {hasDiscount && typeof item.unit_price === 'number' && (
           <span className="line-through text-muted-foreground mr-1.5">
             ${item.unit_price.toFixed(2)}
           </span>
         )}
-        ${effectivePrice.toFixed(2)}
+        {isCustomPending ? 'Custom — pending' : `$${(effectivePrice as number).toFixed(2)}`}
         {item.quantity > 1 && ` × ${item.quantity}`}
         <span className="text-xs text-muted-foreground ml-1">
           {billingLabel(item.billing_type)}
