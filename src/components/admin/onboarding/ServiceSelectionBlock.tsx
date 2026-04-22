@@ -185,7 +185,8 @@ export default function ServiceSelectionBlock({
           const sel = selections[item.id];
           const isSelected = sel?.selected ?? false;
           const isApproved = sel?.approved_by_family ?? false;
-          const effectivePrice = sel?.override_price ?? item.unit_price;
+          const effectivePrice = sel?.override_price ?? item.unit_price ?? null;
+          const isCustomQuoted = item.unit_price === null;
 
           return (
             <div
@@ -206,7 +207,7 @@ export default function ServiceSelectionBlock({
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium">{item.label}</span>
                     <Badge variant="outline" className={`text-[10px] ${billingBadgeColor(item.billing_type)}`}>
-                      ${effectivePrice.toFixed(2)} {billingLabel(item.billing_type)}
+                      {effectivePrice !== null ? `$${effectivePrice.toFixed(2)}` : 'Custom'} {billingLabel(item.billing_type)}
                     </Badge>
                     {isApproved && (
                       <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">
