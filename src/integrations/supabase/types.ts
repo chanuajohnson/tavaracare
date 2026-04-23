@@ -4314,6 +4314,59 @@ export type Database = {
         }
         Relationships: []
       }
+      quiz_leads: {
+        Row: {
+          client_stage: number
+          contact_method: string
+          converted_user_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          quiz_responses: Json
+          reflection: string | null
+          source_path: string | null
+          updated_at: string
+          whatsapp_number: string | null
+        }
+        Insert: {
+          client_stage: number
+          contact_method: string
+          converted_user_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          quiz_responses?: Json
+          reflection?: string | null
+          source_path?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Update: {
+          client_stage?: number
+          contact_method?: string
+          converted_user_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          quiz_responses?: Json
+          reflection?: string | null
+          source_path?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_leads_converted_user_id_fkey"
+            columns: ["converted_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipes: {
         Row: {
           category: string | null
