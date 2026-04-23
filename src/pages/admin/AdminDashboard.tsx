@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings, UserCheck, MapPin, Link2, Shield, HeartHandshake, ClipboardCheck, DollarSign } from "lucide-react";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
+import { QuizLeadsPanel } from "@/components/admin/QuizLeadsPanel";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 import { UnifiedMatchingInterface } from "@/components/admin/UnifiedMatchingInterface";
@@ -302,6 +303,9 @@ export default function AdminDashboard() {
       <div className="grid gap-8">
         {/* User Management */}
         <AdminUserManagement />
+
+        {/* Quiz Leads (anonymous Care Readiness Check completers) */}
+        <QuizLeadsPanel />
 
         {/* Feature Interest Tracking */}
         <Card>
