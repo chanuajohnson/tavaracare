@@ -49,6 +49,63 @@ const ReadinessQuizBanner = () => {
   );
 };
 
+/**
+ * Stage-4-only nudge: families past the basics often just need someone to
+ * keep the house stocked. Dismissible, persisted in localStorage.
+ */
+const STAGE4_SUPPLY_NUDGE_KEY = "tavara_stage4_supply_nudge_dismissed";
+const Stage4SupplyNudge = () => {
+  const { stage, hasStage, isLoading } = useFamilyStage();
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return localStorage.getItem(STAGE4_SUPPLY_NUDGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  if (isLoading || !hasStage || stage !== 4 || dismissed) return null;
+
+  const handleDismiss = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      localStorage.setItem(STAGE4_SUPPLY_NUDGE_KEY, "true");
+    } catch {
+      // ignore
+    }
+    setDismissed(true);
+  };
+
+  return (
+    <Link
+      to="/errands#supplies"
+      className="block mt-4 rounded-lg border-l-4 border-l-rose-500 bg-rose-50/70 hover:bg-rose-100/70 transition-colors px-4 py-3"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">
+            📦 Tired of holding the list?
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Set up recurring delivery for groceries, meds, and household consumables. We deliver on your schedule.
+          </p>
+          <p className="text-xs font-medium text-rose-700 mt-1.5 inline-flex items-center gap-1">
+            Set it up <ArrowRight className="h-3 w-3" />
+          </p>
+        </div>
+        <button
+          onClick={handleDismiss}
+          aria-label="Dismiss"
+          className="text-muted-foreground hover:text-foreground shrink-0 -mt-1 -mr-1 p-1"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </Link>
+  );
+};
+
 const FamilyDashboard = () => {
   const { user } = useAuth();
   const [isWelcomeCardExpanded, setIsWelcomeCardExpanded] = useState(false);
@@ -287,6 +344,7 @@ const FamilyDashboard = () => {
         ) : null}
 
         {user && <ReadinessQuizBanner />}
+        {user && <Stage4SupplyNudge />}
 
         <div className="mt-8">
           <EnhancedFamilyNextStepsPanel />

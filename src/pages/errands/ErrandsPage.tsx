@@ -18,7 +18,9 @@ const ErrandsPage: React.FC = () => {
       <div className="w-full mobile-container mobile-viewport-fix">
         <ErrandsHero />
         <PricingBanner />
-        <CareSupplyPackages />
+        <section id="supplies" className="scroll-mt-24">
+          <CareSupplyPackages />
+        </section>
         <ErrandsForm />
       </div>
     </div>

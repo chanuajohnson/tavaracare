@@ -80,7 +80,7 @@ export const readinessQuizQuestions: QuizQuestion[] = [
       { score: 1, label: "Just the basics to get started" },
       { score: 2, label: "Help staying organized and on track" },
       { score: 3, label: "Step-by-step guidance to improve things" },
-      { score: 4, label: "Someone to coordinate everything for me" },
+      { score: 4, label: "A real person to handle errands, supplies, and restocking" },
     ],
   },
   {
@@ -91,7 +91,7 @@ export const readinessQuizQuestions: QuizQuestion[] = [
       { score: 1, label: "My loved one's comfort" },
       { score: 2, label: "Keeping things manageable for me" },
       { score: 3, label: "Getting things properly set up" },
-      { score: 4, label: "Peace of mind and consistency" },
+      { score: 4, label: "Less running around — knowing groceries, meds & supplies just show up" },
     ],
   },
 ];
@@ -190,19 +190,19 @@ export const readinessStages: Record<ReadinessStage, StageDefinition> = {
   4: {
     stage: 4,
     name: "Optimization",
-    title: "You're ready to hand over more of the load.",
-    body: "You're looking for consistency, structure, and less day-to-day management. Tavara can now take a more active role in coordinating and maintaining everything for you.",
+    title: "You're past the basics — let's lift the daily load.",
+    body: "Care is in place. What's draining you now isn't the caregiving — it's the running around. The bananas, the bread, the medication refills, the emergent pharmacy runs when no one feels well. Tavara can take this off your plate on a schedule you set, so the house stays stocked without you holding the whole list in your head.",
     accent: "rose",
     borderClass: "border-l-rose-500",
     bgClass: "bg-rose-50/70",
     iconBgClass: "bg-rose-100",
     iconTextClass: "text-rose-700",
-    badgeText: "Optimizing care",
+    badgeText: "Lifting the daily load",
     nextSteps: [
-      { label: "Full Care Environment Reset", href: "/family/care-management" },
+      { label: "Set up recurring supply delivery", href: "/errands#supplies" },
       {
-        label: "Premium ongoing coordination",
-        href: "/subscription/features",
+        label: "Book a one-off errand run",
+        href: "/errands",
         variant: "outline",
       },
       {
