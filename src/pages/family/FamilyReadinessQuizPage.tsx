@@ -31,8 +31,9 @@ const FamilyReadinessQuizPage: React.FC = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const viewParam = searchParams.get("view");
+  const retakeParam = searchParams.get("retake");
 
-  const { stage: savedStage, hasStage } = useFamilyStage();
+  const { stage: savedStage, hasStage, isLoading: stageLoading } = useFamilyStage();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<(ReadinessStage | undefined)[]>(
@@ -46,6 +47,8 @@ const FamilyReadinessQuizPage: React.FC = () => {
     currentIndex: number;
   } | null>(null);
   const [initialReflection, setInitialReflection] = useState<ReadinessReflection | null>(null);
+  const [savedResponses, setSavedResponses] = useState<Record<string, number>>({});
+  const [assessedAt, setAssessedAt] = useState<string | null>(null);
 
   const totalQuestions = readinessQuizQuestions.length;
   const currentQuestion = readinessQuizQuestions[currentIndex];
@@ -53,12 +56,15 @@ const FamilyReadinessQuizPage: React.FC = () => {
 
   // Direct view=result mode — show their saved stage as the full result
   const viewResultMode = viewParam === "result" && hasStage;
+  // Result-first mode for authenticated returners (skipped if ?retake=1)
+  const isRetakeRequested = retakeParam === "1";
+  const resultFirstMode = !!user && hasStage && !isRetakeRequested;
 
   const finalStage: ReadinessStage = useMemo(() => {
-    if (viewResultMode) return savedStage;
+    if (viewResultMode || resultFirstMode) return savedStage;
     const numeric = answers.filter((a): a is ReadinessStage => !!a);
     return scoreQuiz(numeric);
-  }, [answers, viewResultMode, savedStage]);
+  }, [answers, viewResultMode, resultFirstMode, savedStage]);
 
   const stageDef = readinessStages[finalStage];
 
