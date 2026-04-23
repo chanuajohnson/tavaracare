@@ -37,11 +37,44 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
   stage,
   responses,
   initialReflection = null,
+  assessedAt = null,
 }) => {
   const navigate = useNavigate();
   const [reflectionText, setReflectionText] = useState<string>(
     initialReflection?.text || ""
   );
+  const [retakeConfirmOpen, setRetakeConfirmOpen] = useState(false);
+
+  // Freshness messaging — only for signed-in users with a DB timestamp
+  const freshness = (() => {
+    if (isAnonymous || !assessedAt) return null;
+    const ms = Date.now() - new Date(assessedAt).getTime();
+    if (Number.isNaN(ms) || ms < 0) return null;
+    const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+    let label: string;
+    if (days <= 0) label = "Last checked: today";
+    else if (days === 1) label = "Last checked: 1 day ago";
+    else if (days < 14) label = `Last checked: ${days} days ago`;
+    else if (days < 60)
+      label = `Last checked: ${days} days ago — does this still feel right?`;
+    else
+      label =
+        "It's been a while since you took this — life may have shifted. Want to refresh?";
+    return { days, label };
+  })();
+
+  const handleRetakeRequest = () => {
+    if (isAnonymous) {
+      onRetake();
+      return;
+    }
+    setRetakeConfirmOpen(true);
+  };
+
+  const handleRetakeConfirm = () => {
+    setRetakeConfirmOpen(false);
+    onRetake();
+  };
 
   return (
     <motion.div
