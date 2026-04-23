@@ -687,6 +687,74 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
 
   return (
     <div className="space-y-6">
+      {/* Sticky "Unsaved changes" banner — visible whenever local edits diverge from last save */}
+      {isDirty && (
+        <UnsavedChangesBanner
+          onSaveNow={handleSave}
+          saving={saving}
+          changeCount={completedItems}
+        />
+      )}
+
+      {/* Persistent save-failure bar with retry */}
+      {saveError && (
+        <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2.5 flex items-start gap-3">
+          <AlertCircle className="h-4 w-4 text-red-700 mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-red-900">
+              Save failed at {saveError.at} — your work is preserved locally
+            </p>
+            <p className="text-xs text-red-800 mt-0.5">
+              Tap Retry once you're back online. Tavara has kept this draft safe.
+            </p>
+            {showErrorDetail && (
+              <p className="text-xs text-red-900/80 mt-1 font-mono break-all">
+                {saveError.message}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2 mt-2">
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-red-600 hover:bg-red-700 text-white gap-1"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${saving ? 'animate-spin' : ''}`} />
+                {saving ? 'Retrying…' : 'Retry'}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowErrorDetail(v => !v)}
+                className="border-red-300 text-red-900 hover:bg-red-100"
+              >
+                {showErrorDetail ? 'Hide error' : 'Show error'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inline post-save confirmation panel — visible until user starts editing again */}
+      {lastSavedAt && !isDirty && !saveError && (
+        <div className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2.5 flex items-center gap-3">
+          <CheckCircle2 className="h-4 w-4 text-emerald-700 shrink-0" />
+          <p className="text-sm text-emerald-900 leading-tight">
+            <strong>Saved at {lastSavedAt}.</strong> Tavara has recorded you on the job.
+          </p>
+        </div>
+      )}
+
+      {/* Stale draft recovery — surfaces unsaved work from a previous date */}
+      {staleDraft && (
+        <StaleDraftRecoveryCard
+          draftDate={staleDraft.date}
+          tickedCount={staleDraft.tickedCount}
+          onOpen={restoreStaleDraft}
+          onDiscard={discardStaleDraft}
+        />
+      )}
+
       {/* First-time onboarding info card — explains the WhatsApp redirect that's coming */}
       {showIntroCard && !isEditMode && (
         <Card className="border-l-4 border-l-blue-500 bg-blue-50/60 relative">
