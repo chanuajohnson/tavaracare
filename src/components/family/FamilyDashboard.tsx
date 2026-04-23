@@ -9,6 +9,8 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { EnhancedFamilyNextStepsPanel } from "@/components/family/EnhancedFamilyNextStepsPanel";
 import { useFamilyStage } from "@/hooks/useFamilyStage";
+import { FamilyReadinessQuickAccess } from "@/components/family/FamilyReadinessQuickAccess";
+import { readQuizProgress, countAnswered } from "@/data/familyReadinessQuiz";
 import { CaregiverReadinessCard } from "@/components/family/CaregiverReadinessCard";
 import { FamilyReadinessChecker } from "@/components/family/FamilyReadinessChecker";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
@@ -25,10 +27,25 @@ import { toast } from "sonner";
 /**
  * Soft banner inviting families who haven't taken the readiness quiz to do so.
  * Hidden once `client_stage` is set in their profile or localStorage.
+ * Becomes progress-aware when in-progress quiz data exists.
  */
 const ReadinessQuizBanner = () => {
   const { hasStage, isLoading } = useFamilyStage();
+  const [progressInfo, setProgressInfo] = useState<{ answered: number; total: number } | null>(null);
+
+  useEffect(() => {
+    const p = readQuizProgress();
+    if (p) {
+      const answered = countAnswered(p.answers);
+      if (answered > 0 && answered < p.answers.length) {
+        setProgressInfo({ answered, total: p.answers.length });
+      }
+    }
+  }, []);
+
   if (isLoading || hasStage) return null;
+
+  const hasProgress = !!progressInfo;
   return (
     <Link
       to="/family/readiness-quiz"
@@ -37,10 +54,14 @@ const ReadinessQuizBanner = () => {
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-medium text-foreground">
-            Help us tailor your experience
+            {hasProgress
+              ? `Finish your readiness check (${progressInfo!.answered} of ${progressInfo!.total} answered)`
+              : "Help us tailor your experience"}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Take our 60-second readiness check so your dashboard fits where you are right now.
+            {hasProgress
+              ? "Pick up where you left off — about 30 seconds to finish."
+              : "Take our 60-second readiness check so your dashboard fits where you are right now."}
           </p>
         </div>
         <ArrowRight className="h-4 w-4 text-primary shrink-0" />
@@ -344,6 +365,7 @@ const FamilyDashboard = () => {
         ) : null}
 
         {user && <ReadinessQuizBanner />}
+        {user && <FamilyReadinessQuickAccess />}
         {user && <Stage4SupplyNudge />}
 
         <div className="mt-8">
