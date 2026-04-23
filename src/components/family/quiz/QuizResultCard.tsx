@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, RotateCcw, ArrowRight, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { StageDefinition } from "@/data/familyReadinessQuiz";
+import type { StageDefinition, ReadinessStage, ReadinessReflection } from "@/data/familyReadinessQuiz";
+import { QuizReflectionField } from "./QuizReflectionField";
+import { AnonymousLeadCapture } from "./AnonymousLeadCapture";
 
 interface QuizResultCardProps {
   stageDef: StageDefinition;
@@ -14,6 +16,12 @@ interface QuizResultCardProps {
   isSaving: boolean;
   onRetake: () => void;
   onSaveStage: () => void;
+  /** Final stage number (1-4) */
+  stage: ReadinessStage;
+  /** Quiz responses by question id */
+  responses: Record<string, number>;
+  /** Existing reflection from profile (signed-in users) */
+  initialReflection?: ReadinessReflection | null;
 }
 
 export const QuizResultCard: React.FC<QuizResultCardProps> = ({
@@ -22,8 +30,14 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
   isSaving,
   onRetake,
   onSaveStage,
+  stage,
+  responses,
+  initialReflection = null,
 }) => {
   const navigate = useNavigate();
+  const [reflectionText, setReflectionText] = useState<string>(
+    initialReflection?.text || ""
+  );
 
   return (
     <motion.div
@@ -83,6 +97,23 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
         </div>
       </div>
 
+      {/* Open-text reflection field — for ALL users, signed in or anonymous */}
+      <QuizReflectionField
+        stageDef={stageDef}
+        initialReflection={initialReflection}
+        onReflectionChange={setReflectionText}
+      />
+
+      {/* Anonymous lead capture — only for logged-out users */}
+      {isAnonymous && (
+        <AnonymousLeadCapture
+          stage={stage}
+          stageDef={stageDef}
+          responses={responses}
+          reflection={reflectionText}
+        />
+      )}
+
       <Card className="bg-muted/40 border-dashed">
         <CardContent className="p-5 space-y-4">
           {isAnonymous ? (
@@ -91,21 +122,23 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
                 <Lock className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    Save your stage so we can tailor everything to you.
+                    Or just take me to the dashboard.
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Create a free family account and we'll personalize your
-                    dashboard, recommendations, and check-ins around where you
-                    are right now.
+                    Your result is saved on this device. You can come back anytime.
                   </p>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
-                <Button onClick={onSaveStage} disabled={isSaving} className="flex-1">
-                  {isSaving ? "Saving…" : "Save my stage & continue"}
-                </Button>
                 <Button
                   variant="outline"
+                  onClick={() => navigate("/")}
+                  className="flex-1"
+                >
+                  Just take me home
+                </Button>
+                <Button
+                  variant="ghost"
                   onClick={onRetake}
                   className="gap-2"
                 >
