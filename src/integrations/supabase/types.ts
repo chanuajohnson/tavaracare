@@ -3974,6 +3974,9 @@ export type Database = {
           caregiving_experience: string | null
           certification_proof_url: string | null
           certifications: string[] | null
+          client_stage: number | null
+          client_stage_assessed_at: string | null
+          client_stage_quiz_responses: Json | null
           communication_channels: string[] | null
           community_motivation: string | null
           community_roles: string[] | null
@@ -4074,6 +4077,9 @@ export type Database = {
           caregiving_experience?: string | null
           certification_proof_url?: string | null
           certifications?: string[] | null
+          client_stage?: number | null
+          client_stage_assessed_at?: string | null
+          client_stage_quiz_responses?: Json | null
           communication_channels?: string[] | null
           community_motivation?: string | null
           community_roles?: string[] | null
@@ -4174,6 +4180,9 @@ export type Database = {
           caregiving_experience?: string | null
           certification_proof_url?: string | null
           certifications?: string[] | null
+          client_stage?: number | null
+          client_stage_assessed_at?: string | null
+          client_stage_quiz_responses?: Json | null
           communication_channels?: string[] | null
           community_motivation?: string | null
           community_roles?: string[] | null
