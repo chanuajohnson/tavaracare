@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import {
   READINESS_LOCAL_STORAGE_KEY,
+  READINESS_RESPONSES_LOCAL_KEY,
+  READINESS_PROGRESS_LOCAL_KEY,
   type ReadinessStage,
 } from "@/data/familyReadinessQuiz";
 
@@ -13,6 +15,12 @@ interface UseFamilyStageResult {
   hasStage: boolean;
   isLoading: boolean;
   refresh: () => Promise<void>;
+  /**
+   * Wipes the saved readiness state so the dashboard reverts to the
+   * `ReadinessQuizBanner`. For signed-in users, also nullifies the related
+   * `profiles` columns. Returns true on success.
+   */
+  clearStage: () => Promise<boolean>;
 }
 
 const readLocalStage = (): ReadinessStage | null => {
@@ -24,6 +32,16 @@ const readLocalStage = (): ReadinessStage | null => {
     return null;
   } catch {
     return null;
+  }
+};
+
+const wipeLocalReadinessKeys = () => {
+  try {
+    localStorage.removeItem(READINESS_LOCAL_STORAGE_KEY);
+    localStorage.removeItem(READINESS_RESPONSES_LOCAL_KEY);
+    localStorage.removeItem(READINESS_PROGRESS_LOCAL_KEY);
+  } catch {
+    // ignore
   }
 };
 
@@ -83,5 +101,34 @@ export const useFamilyStage = (): UseFamilyStageResult => {
     load();
   }, [load]);
 
-  return { stage, hasStage, isLoading, refresh: load };
+  const clearStage = useCallback(async (): Promise<boolean> => {
+    // Always wipe local state first so abandonment of the DB call still
+    // gives an immediate fresh-start experience.
+    wipeLocalReadinessKeys();
+
+    if (user?.id) {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          client_stage: null,
+          client_stage_assessed_at: null,
+          client_stage_quiz_responses: null,
+        })
+        .eq("id", user.id);
+
+      if (error) {
+        console.error("[useFamilyStage] failed to clear stage:", error);
+        // Refresh from source of truth so UI reflects actual DB state
+        await load();
+        return false;
+      }
+    }
+
+    setStage(1);
+    setHasStage(false);
+    setIsLoading(false);
+    return true;
+  }, [user?.id, load]);
+
+  return { stage, hasStage, isLoading, refresh: load, clearStage };
 };
