@@ -33,7 +33,7 @@ const FamilyReadinessQuizPage: React.FC = () => {
   const viewParam = searchParams.get("view");
   const retakeParam = searchParams.get("retake");
 
-  const { stage: savedStage, hasStage, isLoading: stageLoading } = useFamilyStage();
+  const { stage: savedStage, hasStage, isLoading: stageLoading, clearStage } = useFamilyStage();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<(ReadinessStage | undefined)[]>(
