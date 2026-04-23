@@ -1,142 +1,73 @@
 
 
-## Plan — Tavara Care Readiness Quiz (front-facing, stage-gated onboarding)
+## Plan — Make the quiz recognize "errand & supply restocking" as the real Stage 4 need
 
-### What you'll get
+### What you taught us with this feedback
 
-A warm, single-question-per-screen visual quiz at **`/family/readiness-quiz`** that takes a family ~90 seconds to complete, scores them into one of 4 readiness stages, saves the result to their profile, and **changes what they see across the dashboard** — onboarding, messaging, services, and pricing exposure all gated by stage.
+The current quiz treats Stage 4 as abstract ("optimize," "hand over the load," "premium coordination") — but your lived reality is concrete: **caregivers are sorted, what's eating you alive is bananas, bread, meds, household consumables, and emergent runs**. That's a service offer we already have built (`/errands` page with `CareSupplyPackages` for recurring delivery + bundles + cadence + WhatsApp scheduling) — the quiz just doesn't know to point you there.
 
-Works for both anonymous visitors (results saved to `localStorage`, prompted to sign up to "lock in your stage") and signed-in families (saved to `profiles.client_stage` + auto-redirect to a tailored dashboard view).
+This is two changes: **(1) sharpen the quiz's language** so people in your situation feel seen, and **(2) wire the Stage 4 result to the errands service** that already exists.
 
-### User flow
+### Changes
 
-```text
-Landing (Index) ──► [Take the 60-second readiness check]
-                          │
-                          ▼
-              /family/readiness-quiz
-                          │
-        ┌─────────────────┴─────────────────┐
-        │  Q1 → Q2 → Q3 → Q4 → Q5 → Q6      │
-        │  (1 question/screen, 4 cards each, │
-        │   soft progress dots at top)       │
-        └─────────────────┬─────────────────┘
-                          ▼
-                   Results screen
-              (stage card + 3 next-step CTAs)
-                          │
-        ┌─────────────────┴─────────────────┐
-        ▼                                   ▼
-  Anonymous → "Save my stage"        Signed-in → save to
-  → /auth?tab=signup&stage=2         profiles.client_stage
-                                     → /dashboard/family
-                                     (now stage-aware)
-```
+**1. Rewrite Q5 + Q6 with concrete, lived-experience options (`src/data/familyReadinessQuiz.ts`)**
 
-### Quiz content (final copy you can ship)
+Replace abstract Stage 3/4 options with the specific load you described. Stage 1/2 stay gentle.
 
-**6 questions, 4 visual cards each.** Each card maps to stage 1–4. Final stage = `Math.round(avg(scores))` clamped to 1–4. Border-color tokens: green (1), amber (2), orange (3), rose (4). Icons from `lucide-react`.
-
-| # | Question | Card 1 (Stage 1) | Card 2 (Stage 2) | Card 3 (Stage 3) | Card 4 (Stage 4) |
-|---|---|---|---|---|---|
-| 1 | How are you feeling about your situation right now? | I feel overwhelmed and just need help to start | I'm managing, but it's a lot to keep up with | I'm starting to see where I need more support | I'm ready for someone to take more off my plate |
-| 2 | What feels hardest right now? | Getting consistent care in place | Keeping up with daily routines | Managing the home around care | Feeling mentally and emotionally stretched |
-| 3 | How comfortable are you having support in your home? | Still getting used to the idea | Open, but need to go slowly | Comfortable and open to guidance | Ready for structured, ongoing support |
-| 4 | How would you describe your home in relation to care? | It's fine for now, we'll figure it out | It works, but some things could be easier | Noticing areas that need attention | Needs proper setup to support care |
-| 5 | What kind of support feels most helpful right now? | Just the basics to get started | Help staying organized and on track | Step-by-step guidance to improve things | Someone to coordinate everything for me |
-| 6 | What matters most to you right now? | My loved one's comfort | Keeping things manageable for me | Getting things properly set up | Peace of mind and consistency |
-
-### Results screens (verbatim copy)
-
-**Stage 1 — Entry / Overwhelm** (green)
-- Title: *"You're at the beginning — let's keep this simple."*
-- Body: *"Right now, the focus is just getting support in place and helping things feel more stable. There's no need to think about changing anything else yet. We'll take this step by step, together."*
-- Next steps shown: **(1) Find a caregiver** · **(2) Tell us about your loved one** · *(no add-ons, no environment reset, no premium pricing)*
-
-**Stage 2 — Settling / Trust Forming** (amber)
-- Title: *"You're settling in — this stage is about building trust."*
-- Body: *"You're getting a feel for how things work and what your family needs. Right now, the focus is consistency and comfort — not big changes. Tavara will check in gently as you go."*
-- Next steps: **(1) Build your care team** · **(2) Share their daily routine** · *(soft observations only, no environment reset, basic subscription only)*
-
-**Stage 3 — Readiness / Openness** (orange)
-- Title: *"You're ready for support beyond the basics."*
-- Body: *"You're starting to see where things could be easier or more structured. This is a good time to introduce support that takes pressure off you."*
-- Next steps: **(1) Guided Home Reset** ($499) · **(2) Care coordination** · **(3) NIS payroll support**
-
-**Stage 4 — Dependence / Optimization** (rose)
-- Title: *"You're ready to hand over more of the load."*
-- Body: *"You're looking for consistency, structure, and less day-to-day management. Tavara can now take a more active role in coordinating and maintaining everything for you."*
-- Next steps: **(1) Full Care Environment Reset** · **(2) Premium ongoing coordination** ($2499/mo) · **(3) Dedicated care manager**
-
-### Stage-aware dashboard behavior
-
-A new `useFamilyStage()` hook reads `profiles.client_stage` (default = 1 if null) and exposes it everywhere. Existing components conditionally show/hide content based on stage:
-
-| Surface | Stage 1 | Stage 2 | Stage 3 | Stage 4 |
+| Q | Card 1 (Stage 1) | Card 2 (Stage 2) | Card 3 (Stage 3) | Card 4 (Stage 4) |
 |---|---|---|---|---|
-| `EnhancedFamilyNextStepsPanel` headline tone | Gentle, "one thing at a time" | "Building your rhythm" | "Ready to expand" | "Optimizing your care" |
-| `CareEnvironmentJourneyStepContent` (home reset upsell) | **Hidden** | **Hidden** | **Visible — Guided Reset** | **Visible — Full Reset** |
-| `SchedulingStatusBanner` urgency | Soft amber | Soft amber | Standard | Prominent |
-| Subscription pricing exposure | Free Basic only mentioned | Basic + Care tier | All 3 tiers | Premium highlighted |
-| WhatsApp nudge cadence (admin metadata flag) | Weekly check-in only | Bi-weekly | Standard cadence | Active coordination |
-| TAV assistant tone | "Let's start small" | "Here when you need" | "Let me help you organize" | "I'll handle this for you" |
+| **Q5** *"What kind of support feels most helpful right now?"* | Just the basics to get started | Help staying organized and on track | Step-by-step guidance to improve things | **A real person to handle errands, supplies, and restocking** |
+| **Q6** *"What matters most to you right now?"* | My loved one's comfort | Keeping things manageable for me | Getting things properly set up | **Less running around — knowing groceries, meds & supplies just show up** |
 
-Stage is **never visible to the family as a label** ("Stage 3" never shown in UI) — it's an invisible control that personalizes everything else, exactly like your spec says.
+This is the exact language families in your stage will recognize. No clinical talk, no "optimize." Just: *the bananas show up, the meds get refilled, I don't have to drag myself out when I'm not feeling well.*
 
-### Files to create / change
+**2. Rewrite Stage 4 result copy + retarget CTAs to the errands service**
 
-| File | Type | Change |
-|---|---|---|
-| `supabase/migrations/<ts>_add_client_stage_to_profiles.sql` | NEW | `ALTER TABLE profiles ADD COLUMN client_stage smallint NULL CHECK (client_stage BETWEEN 1 AND 4)`, `ADD COLUMN client_stage_assessed_at timestamptz NULL`, `ADD COLUMN client_stage_quiz_responses jsonb NULL`. No RLS change needed — existing profile policies cover it. |
-| `src/data/familyReadinessQuiz.ts` | NEW | Pure data: questions array, stage definitions (title/body/color/icon/CTAs), scoring function `scoreQuiz(answers: number[]): 1\|2\|3\|4` |
-| `src/pages/family/FamilyReadinessQuizPage.tsx` | NEW | Top-level page; manages step state, renders one `QuizQuestionCard` at a time with framer-motion slide transitions; final step renders `QuizResultCard`; saves to DB if signed in, to `localStorage.tavara_readiness_stage` if not |
-| `src/components/family/quiz/QuizQuestionCard.tsx` | NEW | One question, 4 tappable cards (reuses `OptionCard` pattern from chatbot), back button, progress dots (1/6 → 6/6) |
-| `src/components/family/quiz/QuizResultCard.tsx` | NEW | Stage hero card with title/body/icon + 2-3 next-step CTAs; "Save my stage" CTA for anonymous users |
-| `src/components/family/quiz/QuizProgressDots.tsx` | NEW | 6 soft dots, current = filled primary, complete = filled muted |
-| `src/hooks/useFamilyStage.ts` | NEW | Returns `{ stage: 1\|2\|3\|4, isLoading, refresh }`. Reads `profiles.client_stage`, falls back to localStorage for anonymous, default 1 |
-| `src/components/routing/AppRoutes.tsx` | EDIT | Add `<Route path="/family/readiness-quiz" element={<FamilyReadinessQuizPage />} />`. **No other route changes** (per guardrail). |
-| `src/pages/Index.tsx` | EDIT | Add a single soft CTA card above existing content: *"New here? Take our 60-second readiness check"* → links to `/family/readiness-quiz`. Non-destructive, additive only. |
-| `src/components/family/FamilyDashboard.tsx` | EDIT | Add small banner at top *if* `client_stage IS NULL`: *"Help us tailor your experience — take the 60-second readiness check"* → quiz link. Existing dashboard untouched otherwise. |
-| `src/components/family/EnhancedFamilyNextStepsPanel.tsx` | EDIT | Read `useFamilyStage()`; swap headline/subtext per stage map above. Step list unchanged — only tone changes. |
-| `src/components/family/CareEnvironmentJourneyStepContent.tsx` | EDIT | Wrap render in `if (stage < 3) return null;` (Stage 1/2 won't see environment reset upsell, fixing the Ana scenario) |
+In `readinessStages[4]`:
 
-**Total: 1 migration, 7 new files, 5 light edits.** No touching `App.tsx`, AuthProvider, FamilyRegistration.tsx, chat flow, or any registration/dashboard route definitions.
+- **Title:** *"You're past the basics — let's lift the daily load."*
+- **Body:** *"Care is in place. What's draining you now isn't the caregiving — it's the running around. The bananas, the bread, the medication refills, the emergent pharmacy runs when no one feels well. Tavara can take this off your plate on a schedule you set, so the house stays stocked without you holding the whole list in your head."*
+- **Next steps (replacing the abstract "Full Care Environment Reset" / "Premium coordination" / "Talk to a care manager"):**
+  1. **"Set up recurring supply delivery"** → `/errands#supplies` (deep-link to `CareSupplyPackages` section)
+  2. **"Book a one-off errand run"** → `/errands` (top of page — `ErrandsForm`)
+  3. **"Talk to a care manager"** → existing care-management link, kept as outline tertiary
 
-### Persistence + analytics
+**3. Add an anchor to the errands page so the deep link lands on supply packages (`src/pages/errands/ErrandsPage.tsx`)**
 
-- Signed-in: `UPDATE profiles SET client_stage = N, client_stage_assessed_at = now(), client_stage_quiz_responses = jsonb({q1:1,q2:2,...})`
-- Anonymous: `localStorage.setItem('tavara_readiness_stage', N)` + `tavara_readiness_responses` — auto-migrated to profile on next login by a small effect in `AuthProvider`'s **existing** profile-load step *(read-only check — if migration touch is too sensitive, instead add the migration into `FamilyDashboard` mount effect)*
-- Quiz completion fires existing `PageViewTracker` with `actionType: 'readiness_quiz_completed'`, `journeyStage: 'pre-onboarding'`, plus `metadata: { stage: N }` — admin analytics already aggregates these
+Wrap `<CareSupplyPackages />` in `<section id="supplies" className="scroll-mt-24">` so `/errands#supplies` scrolls Stage 4 families straight to the recurring-delivery flow (bundles, cadence, WhatsApp schedule) without making them hunt past the hero and one-off form.
 
-### Visual & tone guardrails honored
+**4. Stage-4-aware family dashboard nudge (`src/components/family/FamilyDashboard.tsx`)**
 
-- **Mobile-first**: full-bleed cards, `min-h-[44px]` tap targets, sticky progress dots at top, no fixed widths
-- **One question per screen** with framer-motion `x: 100 → 0` slide-in (matches existing `FamilyJourneyPreview` motion pattern)
-- **Soft palette**: green-50, amber-50, orange-50, rose-50 backgrounds with matching `border-l-4` accents (matches your existing `StaleDraftRecoveryCard` pattern)
-- **No "Submit" button** — tapping a card auto-advances after 250ms (warm, conversational)
-- **Back button** on every screen (never let user feel stuck, per Tavara product principles)
-- **No clinical language** — no "assessment," no "score," no "diagnosis"; only "readiness check" and "where you are right now"
-- **Founder voice copy** throughout — "We'll take this step by step, together"
+When `client_stage === 4` AND the user has no recent errand activity, show a small soft card under the existing readiness banner area:
+
+> 📦 **Tired of holding the list?** Set up recurring delivery for groceries, meds, and household consumables. We deliver on your schedule. → *Set it up*
+
+Single card, dismissible, links to `/errands#supplies`. Suppressed for stages 1–3 (they don't need this yet — same anti-Ana principle).
+
+### Files touched
+
+| File | Change |
+|---|---|
+| `src/data/familyReadinessQuiz.ts` | Rewrite Q5 card-4 + Q6 card-4 copy; rewrite `readinessStages[4]` title/body/nextSteps to point at `/errands#supplies` and `/errands` |
+| `src/pages/errands/ErrandsPage.tsx` | Wrap `<CareSupplyPackages />` in `<section id="supplies" className="scroll-mt-24">` |
+| `src/components/family/FamilyDashboard.tsx` | Add soft Stage-4-only "recurring supply delivery" nudge card with dismiss state in `localStorage` |
+
+**No** changes to: scoring logic, quiz UI components, AppRoutes, FamilyRegistration, AuthProvider, App.tsx, chat flow, errands form, payment buttons, or `CareSupplyPackages` itself.
 
 ### Acceptance test
 
-1. Visit `/` → see soft "Take the 60-second readiness check" card → click → land on quiz Q1
-2. Answer Q1 with card 1 → auto-advance to Q2 (slide animation) → progress dots show 2/6
-3. Tap back button on Q2 → returns to Q1 with previous answer highlighted
-4. Complete all 6 with mostly card-1 answers → result screen shows green Stage 1 with title *"You're at the beginning"* and 2 CTAs (no environment reset, no premium pricing)
-5. Complete with mostly card-4 answers → rose Stage 4 with Full Reset + Premium CTAs
-6. Anonymous user clicks "Save my stage" → routed to `/auth?tab=signup&role=family` → after signup, profile has `client_stage = 4` populated from localStorage
-7. Signed-in family with `client_stage = 1` opens `/dashboard/family` → `CareEnvironmentJourneyStepContent` is **not rendered** → `EnhancedFamilyNextStepsPanel` headline reads "Let's keep this simple"
-8. Same family retakes quiz, lands on Stage 3 → dashboard now shows Guided Home Reset upsell, panel headline updates to "Ready to expand"
-9. Admin queries `SELECT client_stage, COUNT(*) FROM profiles WHERE role = 'family' GROUP BY client_stage` → distribution visible for cohort analysis
+1. Take the quiz answering mostly card-4 (especially the new Q5/Q6 options about errands and supplies) → land on **rewritten** Stage 4 result with the new title *"You're past the basics — let's lift the daily load"* and body referencing bananas/bread/meds
+2. Click **"Set up recurring supply delivery"** → land on `/errands` scrolled directly to the `CareSupplyPackages` section (bundles visible immediately, no need to scroll past hero)
+3. Click **"Book a one-off errand run"** → land at top of `/errands` (existing form)
+4. Sign in as a family with `client_stage = 4` → dashboard shows the new soft "Tired of holding the list?" nudge card
+5. Sign in as a family with `client_stage = 1, 2, or 3` → nudge card is **not** shown (Ana protection holds)
+6. Dismiss the dashboard card → it stays dismissed across reloads (localStorage flag)
 
-### Out of scope (explicitly)
+### Out of scope
 
-- Changing FamilyRegistration.tsx (protected by guardrail)
-- Touching AppRoutes route tree beyond the one new route
-- Touching chat flow, AuthProvider, App.tsx
-- Building admin UI to manually override `client_stage` (separate workstream — DB column is admin-editable via SQL for now)
-- Re-quiz scheduling / nudges to retake (separate workstream — manual retake link is enough for v1)
-- Stage-based pricing changes inside `SubscriptionPage` (just exposure/visibility for v1; actual checkout unchanged)
-- TAV assistant tone variants (data hook is wired but TAV copy edits are a follow-up)
+- Adding a new question (keeping it 6) — the rewritten Q5/Q6 cards carry the new signal cleanly
+- Changing scoring math — the average-rounded-to-stage logic still works
+- New routes, schema changes, or RLS — none needed
+- TAV tone variants per stage (already noted as separate workstream)
+- Touching the chat flow, FamilyRegistration, AppRoutes structure, or AuthProvider
 
