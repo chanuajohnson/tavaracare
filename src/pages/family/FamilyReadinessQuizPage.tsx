@@ -21,6 +21,7 @@ import {
   clearQuizProgress,
   countAnswered,
   type ReadinessStage,
+  type ReadinessReflection,
 } from "@/data/familyReadinessQuiz";
 
 const AUTO_ADVANCE_MS = 250;
@@ -44,6 +45,7 @@ const FamilyReadinessQuizPage: React.FC = () => {
     answers: (ReadinessStage | undefined)[];
     currentIndex: number;
   } | null>(null);
+  const [initialReflection, setInitialReflection] = useState<ReadinessReflection | null>(null);
 
   const totalQuestions = readinessQuizQuestions.length;
   const currentQuestion = readinessQuizQuestions[currentIndex];
@@ -86,6 +88,29 @@ const FamilyReadinessQuizPage: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Load existing reflection from profile (signed-in) when viewing result
+  useEffect(() => {
+    if (!user?.id || !showResult) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("client_stage_quiz_responses")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (error || cancelled) return;
+      const responses = data?.client_stage_quiz_responses as
+        | Record<string, unknown>
+        | null
+        | undefined;
+      const r = responses?.reflection as ReadinessReflection | undefined;
+      if (r?.text) setInitialReflection(r);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, showResult]);
 
   const buildResponsesObject = (currentAnswers: (ReadinessStage | undefined)[]) => {
     return readinessQuizQuestions.reduce<Record<string, number>>((acc, q, i) => {
