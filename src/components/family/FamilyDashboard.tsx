@@ -8,6 +8,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { EnhancedFamilyNextStepsPanel } from "@/components/family/EnhancedFamilyNextStepsPanel";
+import { useFamilyStage } from "@/hooks/useFamilyStage";
 import { CaregiverReadinessCard } from "@/components/family/CaregiverReadinessCard";
 import { FamilyReadinessChecker } from "@/components/family/FamilyReadinessChecker";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
@@ -257,6 +258,8 @@ const FamilyDashboard = () => {
             </Card>
           </motion.div>
         ) : null}
+
+        {user && <ReadinessQuizBanner />}
 
         <div className="mt-8">
           <EnhancedFamilyNextStepsPanel />
