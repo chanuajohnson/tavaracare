@@ -236,7 +236,7 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={onRetake}
+                  onClick={handleRetakeRequest}
                   className="gap-2"
                 >
                   <RotateCcw className="h-4 w-4" />
@@ -247,6 +247,12 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
           )}
         </CardContent>
       </Card>
+
+      <RetakeConfirmDialog
+        open={retakeConfirmOpen}
+        onOpenChange={setRetakeConfirmOpen}
+        onConfirm={handleRetakeConfirm}
+      />
     </motion.div>
   );
 };
