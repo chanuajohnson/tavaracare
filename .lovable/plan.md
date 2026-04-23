@@ -1,68 +1,142 @@
 
 
-## Plan — Stop silent log loss + give Denise (and you) certainty about save status
+## Plan — Tavara Care Readiness Quiz (front-facing, stage-gated onboarding)
 
-### What's actually happening
+### What you'll get
 
-I queried the DB directly. Denise has **only 3 logs total** in `daily_care_logs` — Apr 15, 16, 17. There is **nothing past Apr 17** anywhere (not in `daily_care_logs`, not in `work_logs`, no orphan rows). The admin UI is showing the truth.
+A warm, single-question-per-screen visual quiz at **`/family/readiness-quiz`** that takes a family ~90 seconds to complete, scores them into one of 4 readiness stages, saves the result to their profile, and **changes what they see across the dashboard** — onboarding, messaging, services, and pricing exposure all gated by stage.
 
-So the question isn't "why doesn't the admin show her logs" — it's **"why does Denise believe she saved when she didn't?"**
+Works for both anonymous visitors (results saved to `localStorage`, prompted to sign up to "lock in your stage") and signed-in families (saved to `profiles.client_stage` + auto-redirect to a tailored dashboard view).
 
-Reading `DailyChecklist.tsx`, the most likely cause is in the draft auto-restore logic (lines 117-140):
+### User flow
 
-> Local drafts are only restored when `draft.shiftDate === today`. If she ticked items yesterday and didn't hit Save, today's open shows a **blank checklist** — but yesterday's draft is still sitting in `localStorage` (never cleared). She has no signal that yesterday's work was lost.
+```text
+Landing (Index) ──► [Take the 60-second readiness check]
+                          │
+                          ▼
+              /family/readiness-quiz
+                          │
+        ┌─────────────────┴─────────────────┐
+        │  Q1 → Q2 → Q3 → Q4 → Q5 → Q6      │
+        │  (1 question/screen, 4 cards each, │
+        │   soft progress dots at top)       │
+        └─────────────────┬─────────────────┘
+                          ▼
+                   Results screen
+              (stage card + 3 next-step CTAs)
+                          │
+        ┌─────────────────┴─────────────────┐
+        ▼                                   ▼
+  Anonymous → "Save my stage"        Signed-in → save to
+  → /auth?tab=signup&stage=2         profiles.client_stage
+                                     → /dashboard/family
+                                     (now stage-aware)
+```
 
-Combined with the Save button likely being below the fold on mobile (and no persistent "Unsaved changes" indicator), it's plausible she's been ticking items thinking auto-save covers her, then closing the tab.
+### Quiz content (final copy you can ship)
 
-### Fix — three changes that prevent this from ever happening again
+**6 questions, 4 visual cards each.** Each card maps to stage 1–4. Final stage = `Math.round(avg(scores))` clamped to 1–4. Border-color tokens: green (1), amber (2), orange (3), rose (4). Icons from `lucide-react`.
 
-**1. "Unsaved changes" sticky banner inside `DailyChecklist.tsx`**
+| # | Question | Card 1 (Stage 1) | Card 2 (Stage 2) | Card 3 (Stage 3) | Card 4 (Stage 4) |
+|---|---|---|---|---|---|
+| 1 | How are you feeling about your situation right now? | I feel overwhelmed and just need help to start | I'm managing, but it's a lot to keep up with | I'm starting to see where I need more support | I'm ready for someone to take more off my plate |
+| 2 | What feels hardest right now? | Getting consistent care in place | Keeping up with daily routines | Managing the home around care | Feeling mentally and emotionally stretched |
+| 3 | How comfortable are you having support in your home? | Still getting used to the idea | Open, but need to go slowly | Comfortable and open to guidance | Ready for structured, ongoing support |
+| 4 | How would you describe your home in relation to care? | It's fine for now, we'll figure it out | It works, but some things could be easier | Noticing areas that need attention | Needs proper setup to support care |
+| 5 | What kind of support feels most helpful right now? | Just the basics to get started | Help staying organized and on track | Step-by-step guidance to improve things | Someone to coordinate everything for me |
+| 6 | What matters most to you right now? | My loved one's comfort | Keeping things manageable for me | Getting things properly set up | Peace of mind and consistency |
 
-Add a small amber sticky bar at the **top** of the checklist whenever `checkedItems` (or notes/time) has changed since the last successful save. Says: *"You have unsaved changes — tap Save Daily Log at the bottom to record this shift."* with a `Save Now` button right in the bar that calls the same `handleSave()`. This means she literally cannot tick items without seeing a clear path to persist them. The banner disappears the instant a save succeeds.
+### Results screens (verbatim copy)
 
-**2. Auto-stale draft warning + recovery**
+**Stage 1 — Entry / Overwhelm** (green)
+- Title: *"You're at the beginning — let's keep this simple."*
+- Body: *"Right now, the focus is just getting support in place and helping things feel more stable. There's no need to think about changing anything else yet. We'll take this step by step, together."*
+- Next steps shown: **(1) Find a caregiver** · **(2) Tell us about your loved one** · *(no add-ons, no environment reset, no premium pricing)*
 
-When she opens the checklist and there's a **stale local draft** for a different date (e.g. yesterday's draft when today is a new day), show a **one-time toast + small recovery card**: *"You have an unsaved draft from Apr 22 (14 items ticked). [Open it] · [Discard]"*. If she taps Open, we set `shiftDate` to that date and restore the draft so she can save it now. This rescues any in-flight work she may already have lost over the past week.
+**Stage 2 — Settling / Trust Forming** (amber)
+- Title: *"You're settling in — this stage is about building trust."*
+- Body: *"You're getting a feel for how things work and what your family needs. Right now, the focus is consistency and comfort — not big changes. Tavara will check in gently as you go."*
+- Next steps: **(1) Build your care team** · **(2) Share their daily routine** · *(soft observations only, no environment reset, basic subscription only)*
 
-**3. Save success/failure visibility upgrade**
+**Stage 3 — Readiness / Openness** (orange)
+- Title: *"You're ready for support beyond the basics."*
+- Body: *"You're starting to see where things could be easier or more structured. This is a good time to introduce support that takes pressure off you."*
+- Next steps: **(1) Guided Home Reset** ($499) · **(2) Care coordination** · **(3) NIS payroll support**
 
-- Replace the small `toast.success(...)` after save with a brief inline confirmation panel: ✅ *"Saved at 11:42 AM. Tavara recorded you on the job."* — visible until she navigates away or starts editing again. This is the trust signal she needs.
-- On save failure (network error, RLS rejection, etc.), instead of just `toast.error`, also write the failed payload + error message to `localStorage` under a `tavara_checklist_save_errors_${userId}` key and show a persistent red bar: *"Save failed — your work is preserved locally. [Retry] · [Show error]"*. This way if it ever IS a backend issue, we have evidence.
+**Stage 4 — Dependence / Optimization** (rose)
+- Title: *"You're ready to hand over more of the load."*
+- Body: *"You're looking for consistency, structure, and less day-to-day management. Tavara can now take a more active role in coordinating and maintaining everything for you."*
+- Next steps: **(1) Full Care Environment Reset** · **(2) Premium ongoing coordination** ($2499/mo) · **(3) Dedicated care manager**
 
-### Bonus — admin-side visibility into "drafted but never saved"
+### Stage-aware dashboard behavior
 
-Add a small line in the admin Activity tab compliance summary:
+A new `useFamilyStage()` hook reads `profiles.client_stage` (default = 1 if null) and exposes it everywhere. Existing components conditionally show/hide content based on stage:
 
-> "📝 0 logs saved past Apr 17 — last activity Apr 17, 3:29 PM"
+| Surface | Stage 1 | Stage 2 | Stage 3 | Stage 4 |
+|---|---|---|---|---|
+| `EnhancedFamilyNextStepsPanel` headline tone | Gentle, "one thing at a time" | "Building your rhythm" | "Ready to expand" | "Optimizing your care" |
+| `CareEnvironmentJourneyStepContent` (home reset upsell) | **Hidden** | **Hidden** | **Visible — Guided Reset** | **Visible — Full Reset** |
+| `SchedulingStatusBanner` urgency | Soft amber | Soft amber | Standard | Prominent |
+| Subscription pricing exposure | Free Basic only mentioned | Basic + Care tier | All 3 tiers | Premium highlighted |
+| WhatsApp nudge cadence (admin metadata flag) | Weekly check-in only | Bi-weekly | Standard cadence | Active coordination |
+| TAV assistant tone | "Let's start small" | "Here when you need" | "Let me help you organize" | "I'll handle this for you" |
 
-Pulls `MAX(last_activity_at)` for the professional and surfaces the gap in plain English so you don't have to manually count rows.
+Stage is **never visible to the family as a label** ("Stage 3" never shown in UI) — it's an invisible control that personalizes everything else, exactly like your spec says.
 
-### Files touched
+### Files to create / change
 
-| File | Change |
-|---|---|
-| `src/components/professional/DailyChecklist.tsx` | Add `lastSavedSnapshot` state + `isDirty` derived flag; render sticky `<UnsavedChangesBanner />` when dirty; add inline post-save confirmation panel; add stale-draft detection that surveys localStorage on mount and offers recovery; on save failure, persist failure record to `localStorage` and show red retry bar |
-| `src/components/professional/UnsavedChangesBanner.tsx` (NEW) | Small amber sticky bar with "Save Now" CTA — pure presentational |
-| `src/components/professional/StaleDraftRecoveryCard.tsx` (NEW) | One-time card shown above the form when a different-date draft exists; "Open it" / "Discard" actions |
-| `src/components/admin/ProfessionalActivityTab.tsx` | Add a one-line "Last logged activity: {date, time}" + "Days since last log: N" to the Compliance Summary card so the gap is impossible to miss |
+| File | Type | Change |
+|---|---|---|
+| `supabase/migrations/<ts>_add_client_stage_to_profiles.sql` | NEW | `ALTER TABLE profiles ADD COLUMN client_stage smallint NULL CHECK (client_stage BETWEEN 1 AND 4)`, `ADD COLUMN client_stage_assessed_at timestamptz NULL`, `ADD COLUMN client_stage_quiz_responses jsonb NULL`. No RLS change needed — existing profile policies cover it. |
+| `src/data/familyReadinessQuiz.ts` | NEW | Pure data: questions array, stage definitions (title/body/color/icon/CTAs), scoring function `scoreQuiz(answers: number[]): 1\|2\|3\|4` |
+| `src/pages/family/FamilyReadinessQuizPage.tsx` | NEW | Top-level page; manages step state, renders one `QuizQuestionCard` at a time with framer-motion slide transitions; final step renders `QuizResultCard`; saves to DB if signed in, to `localStorage.tavara_readiness_stage` if not |
+| `src/components/family/quiz/QuizQuestionCard.tsx` | NEW | One question, 4 tappable cards (reuses `OptionCard` pattern from chatbot), back button, progress dots (1/6 → 6/6) |
+| `src/components/family/quiz/QuizResultCard.tsx` | NEW | Stage hero card with title/body/icon + 2-3 next-step CTAs; "Save my stage" CTA for anonymous users |
+| `src/components/family/quiz/QuizProgressDots.tsx` | NEW | 6 soft dots, current = filled primary, complete = filled muted |
+| `src/hooks/useFamilyStage.ts` | NEW | Returns `{ stage: 1\|2\|3\|4, isLoading, refresh }`. Reads `profiles.client_stage`, falls back to localStorage for anonymous, default 1 |
+| `src/components/routing/AppRoutes.tsx` | EDIT | Add `<Route path="/family/readiness-quiz" element={<FamilyReadinessQuizPage />} />`. **No other route changes** (per guardrail). |
+| `src/pages/Index.tsx` | EDIT | Add a single soft CTA card above existing content: *"New here? Take our 60-second readiness check"* → links to `/family/readiness-quiz`. Non-destructive, additive only. |
+| `src/components/family/FamilyDashboard.tsx` | EDIT | Add small banner at top *if* `client_stage IS NULL`: *"Help us tailor your experience — take the 60-second readiness check"* → quiz link. Existing dashboard untouched otherwise. |
+| `src/components/family/EnhancedFamilyNextStepsPanel.tsx` | EDIT | Read `useFamilyStage()`; swap headline/subtext per stage map above. Step list unchanged — only tone changes. |
+| `src/components/family/CareEnvironmentJourneyStepContent.tsx` | EDIT | Wrap render in `if (stage < 3) return null;` (Stage 1/2 won't see environment reset upsell, fixing the Ana scenario) |
 
-No DB schema changes. No RLS changes. No touch to `App.tsx`, AuthProvider, registration, or chat flow. The save logic itself (lines 417-526) is correct and stays untouched — we're only adding visibility/safety scaffolding around it.
+**Total: 1 migration, 7 new files, 5 light edits.** No touching `App.tsx`, AuthProvider, FamilyRegistration.tsx, chat flow, or any registration/dashboard route definitions.
+
+### Persistence + analytics
+
+- Signed-in: `UPDATE profiles SET client_stage = N, client_stage_assessed_at = now(), client_stage_quiz_responses = jsonb({q1:1,q2:2,...})`
+- Anonymous: `localStorage.setItem('tavara_readiness_stage', N)` + `tavara_readiness_responses` — auto-migrated to profile on next login by a small effect in `AuthProvider`'s **existing** profile-load step *(read-only check — if migration touch is too sensitive, instead add the migration into `FamilyDashboard` mount effect)*
+- Quiz completion fires existing `PageViewTracker` with `actionType: 'readiness_quiz_completed'`, `journeyStage: 'pre-onboarding'`, plus `metadata: { stage: N }` — admin analytics already aggregates these
+
+### Visual & tone guardrails honored
+
+- **Mobile-first**: full-bleed cards, `min-h-[44px]` tap targets, sticky progress dots at top, no fixed widths
+- **One question per screen** with framer-motion `x: 100 → 0` slide-in (matches existing `FamilyJourneyPreview` motion pattern)
+- **Soft palette**: green-50, amber-50, orange-50, rose-50 backgrounds with matching `border-l-4` accents (matches your existing `StaleDraftRecoveryCard` pattern)
+- **No "Submit" button** — tapping a card auto-advances after 250ms (warm, conversational)
+- **Back button** on every screen (never let user feel stuck, per Tavara product principles)
+- **No clinical language** — no "assessment," no "score," no "diagnosis"; only "readiness check" and "where you are right now"
+- **Founder voice copy** throughout — "We'll take this step by step, together"
 
 ### Acceptance test
 
-1. Tick 5 items in the checklist → amber sticky banner appears at top: *"You have unsaved changes — Save Now"* — both `Save Now` button and the existing bottom button work
-2. Hit Save → banner disappears, green inline panel shows ✅ *"Saved at HH:MM"* — verify a new row in `daily_care_logs` for today
-3. Tick more items after save → banner reappears (dirty state restored)
-4. Close browser without saving (with ticked items) → reopen tomorrow → toast appears: *"Unsaved draft from {yesterday} — Open it / Discard"* — Open restores and lets her save retroactively
-5. Force a save failure (e.g. disconnect network, hit Save) → red persistent bar appears: *"Save failed — work preserved locally. Retry."* → reconnect, click Retry → succeeds, red bar clears
-6. Open admin → Denise's Activity tab → Compliance Summary now shows *"Last logged activity: Apr 17, 3:29 PM · 6 days since last log"* — instant signal even before opening shift table
-7. Have Denise herself open the checklist on her phone → she sees the amber banner the moment she ticks the first item, can't miss the Save action
+1. Visit `/` → see soft "Take the 60-second readiness check" card → click → land on quiz Q1
+2. Answer Q1 with card 1 → auto-advance to Q2 (slide animation) → progress dots show 2/6
+3. Tap back button on Q2 → returns to Q1 with previous answer highlighted
+4. Complete all 6 with mostly card-1 answers → result screen shows green Stage 1 with title *"You're at the beginning"* and 2 CTAs (no environment reset, no premium pricing)
+5. Complete with mostly card-4 answers → rose Stage 4 with Full Reset + Premium CTAs
+6. Anonymous user clicks "Save my stage" → routed to `/auth?tab=signup&role=family` → after signup, profile has `client_stage = 4` populated from localStorage
+7. Signed-in family with `client_stage = 1` opens `/dashboard/family` → `CareEnvironmentJourneyStepContent` is **not rendered** → `EnhancedFamilyNextStepsPanel` headline reads "Let's keep this simple"
+8. Same family retakes quiz, lands on Stage 3 → dashboard now shows Guided Home Reset upsell, panel headline updates to "Ready to expand"
+9. Admin queries `SELECT client_stage, COUNT(*) FROM profiles WHERE role = 'family' GROUP BY client_stage` → distribution visible for cohort analysis
 
-### Out of scope
+### Out of scope (explicitly)
 
-- Auto-save to DB on every tick (rejected — would create incomplete log rows that pollute compliance metrics)
-- Push notifications for unsaved drafts (separate workstream)
-- Touching the chat flow, registration, AuthProvider, App.tsx
-- Touching the actual save SQL — it's correct
-- Backfill for Apr 18-23 (no data exists to backfill — those shifts genuinely have no logs)
+- Changing FamilyRegistration.tsx (protected by guardrail)
+- Touching AppRoutes route tree beyond the one new route
+- Touching chat flow, AuthProvider, App.tsx
+- Building admin UI to manually override `client_stage` (separate workstream — DB column is admin-editable via SQL for now)
+- Re-quiz scheduling / nudges to retake (separate workstream — manual retake link is enough for v1)
+- Stage-based pricing changes inside `SubscriptionPage` (just exposure/visibility for v1; actual checkout unchanged)
+- TAV assistant tone variants (data hook is wired but TAV copy edits are a follow-up)
 
