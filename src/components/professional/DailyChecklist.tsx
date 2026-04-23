@@ -128,6 +128,8 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
   }, [preloadDate, preloadClientName]);
 
   // Load draft from localStorage on mount (only if no preload)
+  // - Same-day draft → restore silently
+  // - Different-day draft with ticked items → surface as recoverable stale draft
   useEffect(() => {
     if (preloadLogId || preloadClientName) {
       setDraftLoaded(true);
@@ -147,11 +149,40 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
           setTimeOut(draft.timeOut || '');
           setNotes(draft.notes || '');
           setCheckedItems(draft.checkedItems || {});
+        } else if (draft.shiftDate && draft.shiftDate !== today) {
+          // Stale draft from a different date — offer recovery if it has actual work
+          const tickedCount = Object.values(draft.checkedItems || {}).filter(Boolean).length;
+          if (tickedCount > 0) {
+            setStaleDraft({ date: draft.shiftDate, tickedCount, raw: draft });
+          }
         }
       }
     } catch {}
     setDraftLoaded(true);
   }, [preloadLogId, preloadClientName]);
+
+  // Restore stale draft into the form (user-confirmed)
+  const restoreStaleDraft = useCallback(() => {
+    if (!staleDraft) return;
+    const d = staleDraft.raw;
+    setClientName(d.clientName || '');
+    setCustomClientName(d.customClientName || '');
+    setSelectedShiftId(d.selectedShiftId || '');
+    setShiftDate(d.shiftDate);
+    setTimeIn(d.timeIn || '');
+    setTimeOut(d.timeOut || '');
+    setNotes(d.notes || '');
+    setCheckedItems(d.checkedItems || {});
+    setStaleDraft(null);
+    toast.success(`Draft from ${d.shiftDate} restored — tap Save Now to record it.`);
+  }, [staleDraft]);
+
+  // Discard stale draft permanently
+  const discardStaleDraft = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    setStaleDraft(null);
+  }, []);
+
 
   // Save draft to localStorage on state changes (debounced)
   useEffect(() => {
