@@ -227,6 +227,25 @@ export const ProfessionalActivityTab: React.FC<Props> = ({
               </p>
             </div>
           </div>
+
+          {/* Days-since-last-log gap indicator — instant signal that compliance is slipping */}
+          {lastActivityAt && (() => {
+            const last = new Date(lastActivityAt);
+            const now = new Date();
+            const diffDays = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+            if (diffDays >= 2) {
+              return (
+                <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-amber-700 mt-0.5 shrink-0" />
+                  <p className="text-sm text-amber-900">
+                    📝 <strong>{diffDays} days</strong> since last log saved — last activity on{' '}
+                    {formatDateTime(lastActivityAt)}.
+                  </p>
+                </div>
+              );
+            }
+            return null;
+          })()}
         </CardContent>
       </Card>
 

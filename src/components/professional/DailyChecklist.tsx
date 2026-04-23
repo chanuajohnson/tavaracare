@@ -16,6 +16,9 @@ import { toast } from 'sonner';
 import { CHECKLIST_SECTIONS } from './checklist/checklistSections';
 import { ChecklistSectionCard } from './checklist/ChecklistSectionCard';
 import { openCheckInWhatsApp } from '@/utils/whatsapp/checkInTemplate';
+import { UnsavedChangesBanner } from './UnsavedChangesBanner';
+import { StaleDraftRecoveryCard } from './StaleDraftRecoveryCard';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -92,6 +95,17 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
   const [arrivalTimeOverride, setArrivalTimeOverride] = useState<string>('');
   const [arrivalError, setArrivalError] = useState<string>('');
 
+  // ── Save-state visibility scaffolding ─────────────────────────────
+  // Snapshot of the last successfully-saved state. Used to derive `isDirty`.
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null);
+  // Inline confirmation panel (shown until user starts editing again)
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  // Stale draft recovery (a draft from a *different* shiftDate found in localStorage)
+  const [staleDraft, setStaleDraft] = useState<{ date: string; tickedCount: number; raw: DraftState } | null>(null);
+  // Persistent save-failure bar
+  const [saveError, setSaveError] = useState<{ message: string; at: string } | null>(null);
+  const [showErrorDetail, setShowErrorDetail] = useState(false);
+
   // Show intro card on first visit (per user)
   useEffect(() => {
     if (!user?.id) return;
@@ -114,6 +128,8 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
   }, [preloadDate, preloadClientName]);
 
   // Load draft from localStorage on mount (only if no preload)
+  // - Same-day draft → restore silently
+  // - Different-day draft with ticked items → surface as recoverable stale draft
   useEffect(() => {
     if (preloadLogId || preloadClientName) {
       setDraftLoaded(true);
@@ -133,11 +149,40 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
           setTimeOut(draft.timeOut || '');
           setNotes(draft.notes || '');
           setCheckedItems(draft.checkedItems || {});
+        } else if (draft.shiftDate && draft.shiftDate !== today) {
+          // Stale draft from a different date — offer recovery if it has actual work
+          const tickedCount = Object.values(draft.checkedItems || {}).filter(Boolean).length;
+          if (tickedCount > 0) {
+            setStaleDraft({ date: draft.shiftDate, tickedCount, raw: draft });
+          }
         }
       }
     } catch {}
     setDraftLoaded(true);
   }, [preloadLogId, preloadClientName]);
+
+  // Restore stale draft into the form (user-confirmed)
+  const restoreStaleDraft = useCallback(() => {
+    if (!staleDraft) return;
+    const d = staleDraft.raw;
+    setClientName(d.clientName || '');
+    setCustomClientName(d.customClientName || '');
+    setSelectedShiftId(d.selectedShiftId || '');
+    setShiftDate(d.shiftDate);
+    setTimeIn(d.timeIn || '');
+    setTimeOut(d.timeOut || '');
+    setNotes(d.notes || '');
+    setCheckedItems(d.checkedItems || {});
+    setStaleDraft(null);
+    toast.success(`Draft from ${d.shiftDate} restored — tap Save Now to record it.`);
+  }, [staleDraft]);
+
+  // Discard stale draft permanently
+  const discardStaleDraft = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    setStaleDraft(null);
+  }, []);
+
 
   // Save draft to localStorage on state changes (debounced)
   useEffect(() => {
@@ -414,6 +459,44 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
     return shift?.title || 'N/A';
   };
 
+  // Build a stable signature of the user-editable state. Used to derive `isDirty`.
+  const currentSnapshot = useMemo(() => JSON.stringify({
+    clientName,
+    customClientName,
+    selectedShiftId,
+    shiftDate,
+    timeIn,
+    timeOut,
+    notes,
+    checkedItems,
+  }), [clientName, customClientName, selectedShiftId, shiftDate, timeIn, timeOut, notes, checkedItems]);
+
+  // Dirty when there's actual ticked/typed content AND it doesn't match the last save.
+  // We require some ticked content to avoid flashing the banner on a totally empty form.
+  const hasAnyContent = completedItems > 0 || !!notes.trim() || !!timeIn || !!timeOut;
+  const isDirty = hasAnyContent && currentSnapshot !== lastSavedSnapshot;
+
+  // Hide the green "Saved at HH:MM" panel as soon as the user starts editing again
+  useEffect(() => {
+    if (isDirty && lastSavedAt) {
+      setLastSavedAt(null);
+    }
+  }, [isDirty, lastSavedAt]);
+
+  // localStorage key for save-failure receipts (per-user)
+  const errorsKey = user?.id ? `tavara_checklist_save_errors_${user.id}` : null;
+
+  const persistSaveError = useCallback((message: string, payload: any) => {
+    if (!errorsKey) return;
+    try {
+      const existing = JSON.parse(localStorage.getItem(errorsKey) || '[]');
+      existing.push({ at: new Date().toISOString(), message, payload });
+      // Keep only the most recent 10
+      localStorage.setItem(errorsKey, JSON.stringify(existing.slice(-10)));
+    } catch {}
+  }, [errorsKey]);
+
+
   const handleSave = async (): Promise<boolean> => {
     if (!user) {
       toast.error('Please sign in to save your daily log');
@@ -429,6 +512,7 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
     }
 
     setSaving(true);
+    let logPayload: Record<string, any> | null = null;
     try {
       const checklistData: Record<string, any> = {};
       CHECKLIST_SECTIONS.forEach((section, sIdx) => {
@@ -441,7 +525,7 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
       const shiftType = selectedShiftId === '__other__' ? 'other' : 'scheduled';
       const nowIso = new Date().toISOString();
 
-      const logPayload: Record<string, any> = {
+      logPayload = {
         professional_id: user.id,
         client_name: resolvedClientName || null,
         shift_date: shiftDate,
@@ -479,8 +563,6 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
           setIsEditMode(true);
 
           // Fire admin check-in WhatsApp via confirmation dialog (one-shot, only on first save).
-          // We stage the payload + open a "You're checked in!" modal so the caregiver
-          // understands the WhatsApp redirect that's about to happen and can opt-in.
           try {
             const shiftLabel =
               timeIn && timeOut ? `${timeIn} – ${timeOut}` : undefined;
@@ -515,10 +597,32 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
         clearDraft();
         toast.success('Daily care log saved — Tavara has recorded you on the job.');
       }
+
+      // ── Mark clean + show inline confirmation panel ──
+      setLastSavedSnapshot(currentSnapshot);
+      const savedAtDisplay = new Date().toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+      setLastSavedAt(savedAtDisplay);
+      // Clear any prior failure bar — we just succeeded
+      setSaveError(null);
       return true;
     } catch (err: any) {
       console.error('Error saving daily log:', err);
-      toast.error(err.message || 'Failed to save daily log');
+      const message = err?.message || 'Failed to save daily log';
+      toast.error(message);
+      // Persist the failure receipt locally so we have evidence + retry context
+      persistSaveError(message, logPayload);
+      setSaveError({
+        message,
+        at: new Date().toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        }),
+      });
       return false;
     } finally {
       setSaving(false);
@@ -583,6 +687,74 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
 
   return (
     <div className="space-y-6">
+      {/* Sticky "Unsaved changes" banner — visible whenever local edits diverge from last save */}
+      {isDirty && (
+        <UnsavedChangesBanner
+          onSaveNow={handleSave}
+          saving={saving}
+          changeCount={completedItems}
+        />
+      )}
+
+      {/* Persistent save-failure bar with retry */}
+      {saveError && (
+        <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2.5 flex items-start gap-3">
+          <AlertCircle className="h-4 w-4 text-red-700 mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-red-900">
+              Save failed at {saveError.at} — your work is preserved locally
+            </p>
+            <p className="text-xs text-red-800 mt-0.5">
+              Tap Retry once you're back online. Tavara has kept this draft safe.
+            </p>
+            {showErrorDetail && (
+              <p className="text-xs text-red-900/80 mt-1 font-mono break-all">
+                {saveError.message}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2 mt-2">
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-red-600 hover:bg-red-700 text-white gap-1"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${saving ? 'animate-spin' : ''}`} />
+                {saving ? 'Retrying…' : 'Retry'}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowErrorDetail(v => !v)}
+                className="border-red-300 text-red-900 hover:bg-red-100"
+              >
+                {showErrorDetail ? 'Hide error' : 'Show error'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inline post-save confirmation panel — visible until user starts editing again */}
+      {lastSavedAt && !isDirty && !saveError && (
+        <div className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2.5 flex items-center gap-3">
+          <CheckCircle2 className="h-4 w-4 text-emerald-700 shrink-0" />
+          <p className="text-sm text-emerald-900 leading-tight">
+            <strong>Saved at {lastSavedAt}.</strong> Tavara has recorded you on the job.
+          </p>
+        </div>
+      )}
+
+      {/* Stale draft recovery — surfaces unsaved work from a previous date */}
+      {staleDraft && (
+        <StaleDraftRecoveryCard
+          draftDate={staleDraft.date}
+          tickedCount={staleDraft.tickedCount}
+          onOpen={restoreStaleDraft}
+          onDiscard={discardStaleDraft}
+        />
+      )}
+
       {/* First-time onboarding info card — explains the WhatsApp redirect that's coming */}
       {showIntroCard && !isEditMode && (
         <Card className="border-l-4 border-l-blue-500 bg-blue-50/60 relative">
