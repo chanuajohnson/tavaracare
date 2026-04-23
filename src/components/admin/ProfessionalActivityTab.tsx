@@ -148,12 +148,11 @@ export const ProfessionalActivityTab: React.FC<Props> = ({
 
   const [logsDialogOpen, setLogsDialogOpen] = useState(false);
 
-  const thisWeekShifts = shifts.filter((s) => {
-    const d = new Date();
-    const day = d.getDay() || 7;
-    if (day !== 1) d.setHours(-24 * (day - 1));
-    d.setHours(0, 0, 0, 0);
-    return s.date >= d.toISOString().slice(0, 10);
+  const recentShifts = shifts.filter((s) => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 14);
+    cutoff.setHours(0, 0, 0, 0);
+    return s.date >= cutoff.toISOString().slice(0, 10);
   });
 
   if (loading) {
@@ -231,15 +230,15 @@ export const ProfessionalActivityTab: React.FC<Props> = ({
         </CardContent>
       </Card>
 
-      {/* This Week's Shifts */}
+      {/* Recent Shifts */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">This Week's Shifts</CardTitle>
+          <CardTitle className="text-lg">Recent Shifts (last 14 days)</CardTitle>
         </CardHeader>
         <CardContent>
-          {thisWeekShifts.length === 0 ? (
+          {recentShifts.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">
-              No shifts scheduled this week.
+              No shifts in the last 14 days.
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -256,7 +255,7 @@ export const ProfessionalActivityTab: React.FC<Props> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {thisWeekShifts.map((s) => (
+                  {recentShifts.map((s) => (
                     <TableRow key={s.id}>
                       <TableCell className="font-medium">
                         {formatDate(s.date)}

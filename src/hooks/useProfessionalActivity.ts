@@ -42,10 +42,9 @@ export interface ProfessionalActivitySummary {
 
 /* helpers ----------------------------------------------------------- */
 
-const startOfWeekIso = () => {
+const last7DaysIso = () => {
   const d = new Date();
-  const day = d.getDay() || 7; // make Sunday=7
-  if (day !== 1) d.setHours(-24 * (day - 1));
+  d.setDate(d.getDate() - 7);
   d.setHours(0, 0, 0, 0);
   return d.toISOString();
 };
@@ -120,7 +119,7 @@ export const useProfessionalActivity = (
     setData((d) => ({ ...d, loading: true, error: null }));
 
     try {
-      const weekStart = startOfWeekIso();
+      const weekStart = last7DaysIso();
       const since30 = thirtyDaysAgoIso();
 
       // Pull shifts assigned to this caregiver in the past 30 days
