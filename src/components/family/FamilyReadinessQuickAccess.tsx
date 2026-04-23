@@ -61,7 +61,7 @@ export const FamilyReadinessQuickAccess: React.FC = () => {
           </div>
 
           <Link
-            to="/family/readiness-quiz"
+            to="/family/readiness-quiz?retake=1"
             aria-label="Retake readiness quiz"
             className="text-muted-foreground hover:text-foreground shrink-0 p-1 rounded-md hover:bg-background/60 transition-colors"
             title="Retake"
@@ -102,7 +102,7 @@ export const FamilyReadinessQuickAccess: React.FC = () => {
             View full result
           </Link>
           <Link
-            to="/family/readiness-quiz"
+            to="/family/readiness-quiz?retake=1"
             className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
           >
             <RefreshCw className="h-3 w-3" />

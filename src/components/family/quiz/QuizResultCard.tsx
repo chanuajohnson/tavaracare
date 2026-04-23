@@ -4,11 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, RotateCcw, ArrowRight, Lock } from "lucide-react";
+import { Sparkles, RotateCcw, ArrowRight, Lock, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { StageDefinition, ReadinessStage, ReadinessReflection } from "@/data/familyReadinessQuiz";
 import { QuizReflectionField } from "./QuizReflectionField";
 import { AnonymousLeadCapture } from "./AnonymousLeadCapture";
+import { RetakeConfirmDialog } from "./RetakeConfirmDialog";
+import { PreviousAnswersPanel } from "./PreviousAnswersPanel";
 
 interface QuizResultCardProps {
   stageDef: StageDefinition;
@@ -22,6 +24,8 @@ interface QuizResultCardProps {
   responses: Record<string, number>;
   /** Existing reflection from profile (signed-in users) */
   initialReflection?: ReadinessReflection | null;
+  /** ISO timestamp of last completion (signed-in users only) */
+  assessedAt?: string | null;
 }
 
 export const QuizResultCard: React.FC<QuizResultCardProps> = ({
@@ -33,11 +37,44 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
   stage,
   responses,
   initialReflection = null,
+  assessedAt = null,
 }) => {
   const navigate = useNavigate();
   const [reflectionText, setReflectionText] = useState<string>(
     initialReflection?.text || ""
   );
+  const [retakeConfirmOpen, setRetakeConfirmOpen] = useState(false);
+
+  // Freshness messaging — only for signed-in users with a DB timestamp
+  const freshness = (() => {
+    if (isAnonymous || !assessedAt) return null;
+    const ms = Date.now() - new Date(assessedAt).getTime();
+    if (Number.isNaN(ms) || ms < 0) return null;
+    const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+    let label: string;
+    if (days <= 0) label = "Last checked: today";
+    else if (days === 1) label = "Last checked: 1 day ago";
+    else if (days < 14) label = `Last checked: ${days} days ago`;
+    else if (days < 60)
+      label = `Last checked: ${days} days ago — does this still feel right?`;
+    else
+      label =
+        "It's been a while since you took this — life may have shifted. Want to refresh?";
+    return { days, label };
+  })();
+
+  const handleRetakeRequest = () => {
+    if (isAnonymous) {
+      onRetake();
+      return;
+    }
+    setRetakeConfirmOpen(true);
+  };
+
+  const handleRetakeConfirm = () => {
+    setRetakeConfirmOpen(false);
+    onRetake();
+  };
 
   return (
     <motion.div
@@ -77,6 +114,32 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
           </div>
         </CardContent>
       </Card>
+
+      {/* Freshness + retake controls (signed-in users only) */}
+      {!isAnonymous && freshness && (
+        <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3 space-y-3">
+          <div className="flex items-start gap-2 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>{freshness.label}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRetakeRequest}
+              className="gap-2"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Things changed — retake
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* See my answers — signed-in users with stored responses */}
+      {!isAnonymous && Object.keys(responses).length > 0 && (
+        <PreviousAnswersPanel responses={responses} />
+      )}
 
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
@@ -173,7 +236,7 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={onRetake}
+                  onClick={handleRetakeRequest}
                   className="gap-2"
                 >
                   <RotateCcw className="h-4 w-4" />
@@ -184,6 +247,12 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
           )}
         </CardContent>
       </Card>
+
+      <RetakeConfirmDialog
+        open={retakeConfirmOpen}
+        onOpenChange={setRetakeConfirmOpen}
+        onConfirm={handleRetakeConfirm}
+      />
     </motion.div>
   );
 };
