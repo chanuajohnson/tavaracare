@@ -235,10 +235,9 @@ const FamilyReadinessQuizPage: React.FC = () => {
     setAnswers(Array(totalQuestions).fill(undefined));
     setCurrentIndex(0);
     setShowResult(false);
-    // If we were in view=result mode, drop the query param
-    if (viewParam) {
-      navigate("/family/readiness-quiz", { replace: true });
-    }
+    // Navigate to ?retake=1 so result-first mode is bypassed and any existing
+    // ?view=result query param is cleared.
+    navigate("/family/readiness-quiz?retake=1", { replace: true });
   };
 
   const handleSaveStageAnonymous = () => {
