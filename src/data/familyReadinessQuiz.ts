@@ -115,6 +115,8 @@ export interface StageDefinition {
   iconTextClass: string;
   badgeText: string;
   nextSteps: StageNextStep[];
+  /** Stage-specific placeholder for the open-text reflection field */
+  reflectionPlaceholder: string;
 }
 
 /**
@@ -146,6 +148,8 @@ export const readinessStages: Record<ReadinessStage, StageDefinition> = {
         variant: "outline",
       },
     ],
+    reflectionPlaceholder:
+      "e.g. \"I just need someone to help me get started — I don't even know what I need yet…\"",
   },
   2: {
     stage: 2,
@@ -171,6 +175,8 @@ export const readinessStages: Record<ReadinessStage, StageDefinition> = {
         variant: "outline",
       },
     ],
+    reflectionPlaceholder:
+      "e.g. \"The caregiver is great but mornings still feel rushed — we haven't found a rhythm yet…\"",
   },
   3: {
     stage: 3,
@@ -196,6 +202,8 @@ export const readinessStages: Record<ReadinessStage, StageDefinition> = {
         variant: "outline",
       },
     ],
+    reflectionPlaceholder:
+      "e.g. \"The room layout makes transfers hard, and payroll is taking too much of my evenings…\"",
   },
   4: {
     stage: 4,
@@ -221,8 +229,18 @@ export const readinessStages: Record<ReadinessStage, StageDefinition> = {
         variant: "outline",
       },
     ],
+    reflectionPlaceholder:
+      "e.g. \"Bananas and bread every other day, plus pharmacy runs when I'm not feeling well…\"",
   },
 };
+
+export const READINESS_REFLECTION_LOCAL_KEY = "tavara_readiness_reflection";
+export const READINESS_LEAD_LOCAL_KEY = "tavara_readiness_lead";
+
+export interface ReadinessReflection {
+  text: string;
+  submitted_at: string;
+}
 
 /**
  * Maps the average of the user's quiz answers to a final stage.
