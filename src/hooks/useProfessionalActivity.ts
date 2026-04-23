@@ -119,7 +119,7 @@ export const useProfessionalActivity = (
     setData((d) => ({ ...d, loading: true, error: null }));
 
     try {
-      const weekStart = startOfWeekIso();
+      const weekStart = last7DaysIso();
       const since30 = thirtyDaysAgoIso();
 
       // Pull shifts assigned to this caregiver in the past 30 days
