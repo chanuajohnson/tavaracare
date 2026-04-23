@@ -140,6 +140,11 @@ export const readinessStages: Record<ReadinessStage, StageDefinition> = {
         href: "/family/story",
         variant: "outline",
       },
+      {
+        label: "Chat with TAV first",
+        href: "/",
+        variant: "outline",
+      },
     ],
   },
   2: {
@@ -160,6 +165,11 @@ export const readinessStages: Record<ReadinessStage, StageDefinition> = {
         href: "/family/care-assessment",
         variant: "outline",
       },
+      {
+        label: "See how scheduling works",
+        href: "/family/care-management",
+        variant: "outline",
+      },
     ],
   },
   3: {
@@ -174,7 +184,7 @@ export const readinessStages: Record<ReadinessStage, StageDefinition> = {
     iconTextClass: "text-orange-700",
     badgeText: "Ready to expand",
     nextSteps: [
-      { label: "Guided Home Reset", href: "/family/care-management" },
+      { label: "Guided Home Reset", href: "/family/care-management?tab=environment" },
       {
         label: "Care coordination",
         href: "/subscription/features",
@@ -182,7 +192,7 @@ export const readinessStages: Record<ReadinessStage, StageDefinition> = {
       },
       {
         label: "NIS payroll support",
-        href: "/family/care-management",
+        href: "/family/care-management?tab=payroll",
         variant: "outline",
       },
     ],
@@ -228,3 +238,54 @@ export const scoreQuiz = (answers: number[]): ReadinessStage => {
 
 export const READINESS_LOCAL_STORAGE_KEY = "tavara_readiness_stage";
 export const READINESS_RESPONSES_LOCAL_KEY = "tavara_readiness_responses";
+export const READINESS_PROGRESS_LOCAL_KEY = "tavara_readiness_quiz_progress";
+
+export interface ReadinessQuizProgress {
+  answers: (ReadinessStage | undefined)[];
+  currentIndex: number;
+  updatedAt: string;
+}
+
+const PROGRESS_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+export const readQuizProgress = (): ReadinessQuizProgress | null => {
+  try {
+    const raw = localStorage.getItem(READINESS_PROGRESS_LOCAL_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ReadinessQuizProgress;
+    if (!parsed.updatedAt) return null;
+    const age = Date.now() - new Date(parsed.updatedAt).getTime();
+    if (age > PROGRESS_MAX_AGE_MS) return null;
+    if (!Array.isArray(parsed.answers)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+export const writeQuizProgress = (
+  answers: (ReadinessStage | undefined)[],
+  currentIndex: number
+) => {
+  try {
+    const payload: ReadinessQuizProgress = {
+      answers,
+      currentIndex,
+      updatedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(READINESS_PROGRESS_LOCAL_KEY, JSON.stringify(payload));
+  } catch {
+    // ignore
+  }
+};
+
+export const clearQuizProgress = () => {
+  try {
+    localStorage.removeItem(READINESS_PROGRESS_LOCAL_KEY);
+  } catch {
+    // ignore
+  }
+};
+
+export const countAnswered = (answers: (ReadinessStage | undefined)[]) =>
+  answers.filter((a) => !!a).length;
