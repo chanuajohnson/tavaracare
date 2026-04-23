@@ -16,6 +16,9 @@ import { toast } from 'sonner';
 import { CHECKLIST_SECTIONS } from './checklist/checklistSections';
 import { ChecklistSectionCard } from './checklist/ChecklistSectionCard';
 import { openCheckInWhatsApp } from '@/utils/whatsapp/checkInTemplate';
+import { UnsavedChangesBanner } from './UnsavedChangesBanner';
+import { StaleDraftRecoveryCard } from './StaleDraftRecoveryCard';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -91,6 +94,17 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
   // Caregiver-overridable arrival time (HH:mm). Defaults to login time.
   const [arrivalTimeOverride, setArrivalTimeOverride] = useState<string>('');
   const [arrivalError, setArrivalError] = useState<string>('');
+
+  // ── Save-state visibility scaffolding ─────────────────────────────
+  // Snapshot of the last successfully-saved state. Used to derive `isDirty`.
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null);
+  // Inline confirmation panel (shown until user starts editing again)
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  // Stale draft recovery (a draft from a *different* shiftDate found in localStorage)
+  const [staleDraft, setStaleDraft] = useState<{ date: string; tickedCount: number; raw: DraftState } | null>(null);
+  // Persistent save-failure bar
+  const [saveError, setSaveError] = useState<{ message: string; at: string } | null>(null);
+  const [showErrorDetail, setShowErrorDetail] = useState(false);
 
   // Show intro card on first visit (per user)
   useEffect(() => {
