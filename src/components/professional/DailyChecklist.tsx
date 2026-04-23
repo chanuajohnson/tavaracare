@@ -562,8 +562,6 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
           setIsEditMode(true);
 
           // Fire admin check-in WhatsApp via confirmation dialog (one-shot, only on first save).
-          // We stage the payload + open a "You're checked in!" modal so the caregiver
-          // understands the WhatsApp redirect that's about to happen and can opt-in.
           try {
             const shiftLabel =
               timeIn && timeOut ? `${timeIn} – ${timeOut}` : undefined;
@@ -598,10 +596,32 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
         clearDraft();
         toast.success('Daily care log saved — Tavara has recorded you on the job.');
       }
+
+      // ── Mark clean + show inline confirmation panel ──
+      setLastSavedSnapshot(currentSnapshot);
+      const savedAtDisplay = new Date().toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+      setLastSavedAt(savedAtDisplay);
+      // Clear any prior failure bar — we just succeeded
+      setSaveError(null);
       return true;
     } catch (err: any) {
       console.error('Error saving daily log:', err);
-      toast.error(err.message || 'Failed to save daily log');
+      const message = err?.message || 'Failed to save daily log';
+      toast.error(message);
+      // Persist the failure receipt locally so we have evidence + retry context
+      persistSaveError(message, logPayload);
+      setSaveError({
+        message,
+        at: new Date().toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        }),
+      });
       return false;
     } finally {
       setSaving(false);
