@@ -459,6 +459,44 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
     return shift?.title || 'N/A';
   };
 
+  // Build a stable signature of the user-editable state. Used to derive `isDirty`.
+  const currentSnapshot = useMemo(() => JSON.stringify({
+    clientName,
+    customClientName,
+    selectedShiftId,
+    shiftDate,
+    timeIn,
+    timeOut,
+    notes,
+    checkedItems,
+  }), [clientName, customClientName, selectedShiftId, shiftDate, timeIn, timeOut, notes, checkedItems]);
+
+  // Dirty when there's actual ticked/typed content AND it doesn't match the last save.
+  // We require some ticked content to avoid flashing the banner on a totally empty form.
+  const hasAnyContent = completedItems > 0 || !!notes.trim() || !!timeIn || !!timeOut;
+  const isDirty = hasAnyContent && currentSnapshot !== lastSavedSnapshot;
+
+  // Hide the green "Saved at HH:MM" panel as soon as the user starts editing again
+  useEffect(() => {
+    if (isDirty && lastSavedAt) {
+      setLastSavedAt(null);
+    }
+  }, [isDirty, lastSavedAt]);
+
+  // localStorage key for save-failure receipts (per-user)
+  const errorsKey = user?.id ? `tavara_checklist_save_errors_${user.id}` : null;
+
+  const persistSaveError = useCallback((message: string, payload: any) => {
+    if (!errorsKey) return;
+    try {
+      const existing = JSON.parse(localStorage.getItem(errorsKey) || '[]');
+      existing.push({ at: new Date().toISOString(), message, payload });
+      // Keep only the most recent 10
+      localStorage.setItem(errorsKey, JSON.stringify(existing.slice(-10)));
+    } catch {}
+  }, [errorsKey]);
+
+
   const handleSave = async (): Promise<boolean> => {
     if (!user) {
       toast.error('Please sign in to save your daily log');
