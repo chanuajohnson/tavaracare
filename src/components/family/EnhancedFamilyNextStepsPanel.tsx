@@ -46,6 +46,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isSmallMobile = useIsSmallMobile();
+  const { stage: familyStage, hasStage: familyHasStage } = useFamilyStage();
   const { 
     steps, 
     paths,
@@ -74,6 +75,10 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
 
   // Enhanced lead capture state management
   const [leadCaptureSource, setLeadCaptureSource] = useState('');
+
+  // Stage-aware tone — only applies to signed-in families who've completed
+  // the readiness quiz, so we never override copy for anonymous demo viewers.
+  const stageTone = !isAnonymous && familyHasStage ? STAGE_TONE[familyStage] : null;
 
   // Family-specific step to source mapping for lead capture
   const getLeadCaptureSource = (stepTitle: string, stepCategory: string): string => {
@@ -321,7 +326,14 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                 </CardTitle>
                 
                 <p className="text-xs sm:text-sm text-muted-foreground mb-4 leading-relaxed">
-                  {showAllSteps 
+                  {stageTone ? (
+                    <>
+                      <span className="block font-medium text-foreground mb-1">
+                        {stageTone.headline}
+                      </span>
+                      {stageTone.subhead}
+                    </>
+                  ) : showAllSteps 
                     ? isAnonymous
                       ? "✨ Experience how families complete their personalized care journey with Tavara's comprehensive support system"
                       : "Complete these thoughtfully designed stages to connect with qualified caregivers and begin your personalized care experience"
