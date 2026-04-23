@@ -512,6 +512,7 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
     }
 
     setSaving(true);
+    let logPayload: Record<string, any> | null = null;
     try {
       const checklistData: Record<string, any> = {};
       CHECKLIST_SECTIONS.forEach((section, sIdx) => {
@@ -524,7 +525,7 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
       const shiftType = selectedShiftId === '__other__' ? 'other' : 'scheduled';
       const nowIso = new Date().toISOString();
 
-      const logPayload: Record<string, any> = {
+      logPayload = {
         professional_id: user.id,
         client_name: resolvedClientName || null,
         shift_date: shiftDate,
