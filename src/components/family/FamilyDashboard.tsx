@@ -344,6 +344,7 @@ const FamilyDashboard = () => {
         ) : null}
 
         {user && <ReadinessQuizBanner />}
+        {user && <Stage4SupplyNudge />}
 
         <div className="mt-8">
           <EnhancedFamilyNextStepsPanel />
