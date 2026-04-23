@@ -252,6 +252,7 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
         open={retakeConfirmOpen}
         onOpenChange={setRetakeConfirmOpen}
         onConfirm={handleRetakeConfirm}
+        mode="retake-now"
       />
     </motion.div>
   );
