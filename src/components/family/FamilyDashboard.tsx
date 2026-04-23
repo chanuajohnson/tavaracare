@@ -56,12 +56,12 @@ const ReadinessQuizBanner = () => {
           <p className="text-sm font-medium text-foreground">
             {hasProgress
               ? `Finish your readiness check (${progressInfo!.answered} of ${progressInfo!.total} answered)`
-              : "Help us tailor your experience"}
+              : "How are you doing today?"}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
             {hasProgress
               ? "Pick up where you left off — about 30 seconds to finish."
-              : "Take our 60-second readiness check so your dashboard fits where you are right now."}
+              : "Take a 60-second emotional check-in so we can meet you where you actually are — not where the platform assumes."}
           </p>
         </div>
         <ArrowRight className="h-4 w-4 text-primary shrink-0" />
