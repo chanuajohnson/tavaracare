@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { QuizProgressDots } from "@/components/family/quiz/QuizProgressDots";
 import { QuizQuestionCard } from "@/components/family/quiz/QuizQuestionCard";
 import { QuizResultCard } from "@/components/family/quiz/QuizResultCard";
-import { useFamilyStage } from "@/hooks/useFamilyStage";
+import { useFamilyStage, FAMILY_STAGE_CHANGED_EVENT } from "@/hooks/useFamilyStage";
 import {
   readinessQuizQuestions,
   readinessStages,
@@ -196,6 +196,14 @@ const FamilyReadinessQuizPage: React.FC = () => {
       } finally {
         setIsSaving(false);
       }
+    }
+
+    // Notify all mounted useFamilyStage() instances (dashboard banners, etc.)
+    // so the banner→quick-access transition happens without a refresh.
+    try {
+      window.dispatchEvent(new CustomEvent(FAMILY_STAGE_CHANGED_EVENT));
+    } catch {
+      // ignore — non-browser env
     }
   };
 
