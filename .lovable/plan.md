@@ -1,144 +1,128 @@
 
 
-## Plan — Capture the user's voice + convert anonymous quiz-takers into leads
+## Plan — Authenticated-user quiz persistence: "see your result first, retake only if things changed"
 
-You're asking for two related things:
+### The gap today
 
-1. **An open-text "tell us what's really going on" field** on every result screen — so when our 4 stages don't perfectly capture someone's reality (bananas-and-bread vs. someone else's specific load), they can tell us in their own words. This becomes invaluable product/CX data.
-2. **A lead-capture flow for anonymous quiz-takers** — when a logged-out visitor completes the quiz, prompt them to save their result (sign up / sign in / send to WhatsApp), so we get name + email + phone into our database instead of losing them.
+Right now if a signed-in family taps the readiness quiz link — from anywhere except the dashboard's *"View full result"* link — they land on **Q1 of a fresh quiz**, even though they already have a saved stage. That's wrong: it suggests their previous answers were lost and quietly invites them to overwrite a result they never said was stale.
 
-Here's how we deliver both, cleanly, without touching protected files.
+The dashboard quick-access card (`FamilyReadinessQuickAccess`) is great — but it's the only path that respects their saved state. Every other entrypoint (direct URL, deep links, "Take the quiz" CTAs elsewhere) ignores it.
 
----
+### What we'll change
 
-### Part 1 — "Did we get it right?" reflection field on the result screen
-
-A soft, optional text area appears on every result screen (all 4 stages, both signed-in and anonymous) right under the next-step CTAs:
+For **authenticated users with a saved `client_stage`**, the quiz route becomes a **result-first experience** with two clear paths back into the quiz, rather than an unconditional Q1.
 
 ```text
-┌──────────────────────────────────────────────────────────┐
-│ 💬  Did we get it right?                                  │
-│                                                            │
-│ Tell us in your own words what's actually weighing on you │
-│ right now. Specifics help us help you better.              │
-│                                                            │
-│ ┌────────────────────────────────────────────────────────┐│
-│ │ e.g. "Bananas and bread every other day, plus pharmacy  ││
-│ │ runs when I'm not feeling well…"                        ││
-│ └────────────────────────────────────────────────────────┘│
-│                                              [ Share ]    │
-└──────────────────────────────────────────────────────────┘
+Signed-in family visits /family/readiness-quiz
+  │
+  ├─ Has saved stage? ──▶ Show RESULT screen by default
+  │                        ┌────────────────────────────────┐
+  │                        │ Your readiness · Stage name    │
+  │                        │ (full result card + CTAs)      │
+  │                        │                                │
+  │                        │ ─ Last checked: 12 days ago    │
+  │                        │ ─ [Things changed — retake]    │
+  │                        │ ─ [See my answers]             │
+  │                        └────────────────────────────────┘
+  │
+  └─ No saved stage? ───▶ Show Q1 (current behavior, unchanged)
 ```
 
-**Behavior:**
-- Stage-specific placeholder text — Stage 4 shows the bananas/bread example; Stage 1 shows *"e.g. 'I just need someone to help me get started — I don't even know what I need yet'"*; Stage 2 / Stage 3 get their own examples
-- Optional — never blocks "Go to my dashboard"
-- Submitting shows a quiet *"Thank you — we hear you"* inline confirmation, then collapses the field
-- Char counter (max 500), no formal labels, no "submit" button feel — feels like a WhatsApp note
-- Already-submitted users see their reflection echoed back as *"You shared: '…'"* with a pencil icon to edit
+**Two explicit retake paths:**
 
-**Where it stores (signed-in):** uses the existing `client_stage_quiz_responses` jsonb column — adds a `reflection: { text, submitted_at }` key. No schema change needed.
+1. **"Things changed — retake"** → confirmation modal *("Your last answers will be replaced. Continue?")* → starts fresh Q1, clears stage from local cache only after they answer Q1 (so abandoning keeps the old result intact)
+2. **"See my answers"** → expandable inline panel showing each of the 6 questions and which option they previously chose, so they can verify whether their reality has actually shifted before committing to a retake
 
-**Where it stores (anonymous):** writes to `localStorage.tavara_readiness_reflection` and gets migrated to the profile on signup (same migration path the quiz answers already use).
+### Part 1 — Result-first quiz route for authenticated returners
 
----
+**File: `src/pages/family/FamilyReadinessQuizPage.tsx`**
 
-### Part 2 — Lead capture for anonymous completers (the conversion moment)
+On mount, when `user?.id` exists AND `hasStage` resolves true AND there is no `?retake=1` query param:
+- Default `showResult = true` (currently only happens with `?view=result`)
+- Suppress the resume-progress prompt (irrelevant — they already have a final result)
+- Render the existing `QuizResultCard` exactly as on the dashboard's "View full result" link
 
-Today, anonymous users see *"Save my stage → Sign up"* as the only CTA. We're losing people who don't want a full account but would happily share name + email or get the result on WhatsApp. Three-option capture:
+This unifies behavior: any authenticated entry to the quiz with a saved stage = see your result, not Q1.
+
+### Part 2 — "Last checked" timestamp + freshness hint
+
+**File: `src/components/family/quiz/QuizResultCard.tsx`** *(small additive change — does not touch reflection or lead capture)*
+
+Read `client_stage_assessed_at` (already saved on completion) and render a soft line above the CTAs:
+
+> *Last checked: 12 days ago* · `[Things changed — retake]` · `[See my answers]`
+
+Freshness language is gentle, never nagging:
+- < 14 days → *"Last checked: X days ago"*
+- 14–60 days → *"Last checked: X days ago — does this still feel right?"*
+- 60+ days → *"It's been a while since you took this — life may have shifted. Want to refresh?"*
+
+For anonymous users (no DB timestamp), this section is hidden — they get the existing lead-capture flow instead.
+
+### Part 3 — Confirmation before overwriting
+
+**File: `src/components/family/quiz/RetakeConfirmDialog.tsx`** *(NEW, small — uses existing `AlertDialog` from `@/components/ui/alert-dialog`)*
+
+Triggered by **"Things changed — retake"**. Copy:
+
+> **Retake your readiness check?**
+> Your previous answers will be replaced when you finish the new quiz. Your old result stays in place until you complete all 6 questions, so you can back out anytime.
+>
+> `[Cancel]`  `[Yes, retake]`
+
+On confirm → navigate to `/family/readiness-quiz?retake=1` → quiz page sees the param, skips the result-first shortcut, starts at Q1 with empty answers, **but does not yet clear the saved stage from `profiles`**. The existing `persistStage` only fires on completion of all 6 questions, so abandonment naturally preserves the old stage. We just need to make sure no in-progress localStorage from a stale resume contaminates the new attempt — clear `READINESS_PROGRESS_LOCAL_KEY` when `?retake=1` is present.
+
+### Part 4 — "See my answers" expandable panel
+
+**File: `src/components/family/quiz/PreviousAnswersPanel.tsx`** *(NEW)*
+
+Triggered by **"See my answers"** toggle. Reads `client_stage_quiz_responses` from the profile (already loaded by the existing reflection effect — extend that query to also return the answer map), then renders a compact list:
 
 ```text
-┌──────────────────────────────────────────────────────────┐
-│ ✦  Want to keep this?                                     │
-│                                                            │
-│ Your results are saved on this device — but if you'd like │
-│ them tied to you (and to get gentle check-ins as things   │
-│ change), pick one:                                         │
-│                                                            │
-│ ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐ │
-│ │ 📱 WhatsApp  │  │ ✉  Email me  │  │ 🔐 Create account│ │
-│ │ my result    │  │ my result    │  │ (full dashboard) │ │
-│ └──────────────┘  └──────────────┘  └──────────────────┘ │
-│                                                            │
-│ Already have an account? Sign in                          │
-└──────────────────────────────────────────────────────────┘
+1. How are you feeling about your situation right now?
+   ✓ "I'm ready for someone to take more off my plate"
+
+2. What feels hardest right now?
+   ✓ "Feeling mentally and emotionally stretched"
+
+…
 ```
 
-**Three paths, three different commitment levels (in order of friction):**
+Read-only. No edit-in-place — that's what retake is for. Stays compact (collapsed by default).
 
-1. **WhatsApp my result** → opens a small modal asking for *Name* + *WhatsApp number*, then opens the central Tavara WhatsApp (`18687865357`) pre-filled with the result summary + their reflection text + a `?lead=quiz_<stage>_<timestamp>` deep link. **We capture the phone number to a new `quiz_leads` table on submit** — even if they never send the WhatsApp message, we have them.
-2. **Email me my result** → small modal asking for *Name* + *Email*, sends via existing transactional email (Resend if available, otherwise stored for nudge). Same `quiz_leads` row created.
-3. **Create account** → existing flow, routes to `/auth?tab=signup&role=family&from=quiz&stage=<n>` — quiz responses + reflection migrate to profile on signup (already wired).
+### Part 5 — Anonymous users: no behavior change
 
-**Plus a fourth, lighter path:** *"Just take me to the dashboard"* (existing behavior preserved — no forced capture, anti-stuck principle).
-
-**New `quiz_leads` table** (separate from `profiles` — these are pre-registration leads, not users):
-
-| column | type | notes |
-|---|---|---|
-| `id` | uuid (pk) | |
-| `name` | text | required |
-| `contact_method` | text | `'whatsapp'` \| `'email'` |
-| `whatsapp_number` | text | nullable |
-| `email` | text | nullable |
-| `client_stage` | smallint | 1–4 |
-| `quiz_responses` | jsonb | full answer set |
-| `reflection` | text | nullable, the open-text field from Part 1 |
-| `source_path` | text | e.g. `/family/readiness-quiz` |
-| `converted_user_id` | uuid | nullable, set when they later sign up — links lead to profile |
-| `created_at` | timestamptz | default `now()` |
-
-RLS: anonymous INSERT allowed (`with check (true)`), SELECT restricted to admins only (using existing `has_role(auth.uid(), 'admin')`). No public read.
-
-**Conversion linkage:** when a lead later signs up with the same email or phone, an edge function (or simple post-signup hook) sets `converted_user_id` so admin can see the lead → user funnel.
-
----
-
-### Part 3 — Admin visibility (so the data we capture isn't a black hole)
-
-Add a small **"Quiz Leads"** section to the existing admin user-management area, NOT a new admin route. Lists `quiz_leads` rows with: name, contact, stage badge (using same color palette), reflection snippet, conversion status, and a *"Send WhatsApp follow-up"* button that opens the central Tavara WA pre-filled with a stage-aware nudge template.
-
-Reuses the existing admin nudge-system pattern (`admin/nudge-system-v2`) — no new infra.
-
----
+The result-first shortcut and "Last checked" line are **gated on `user?.id` AND `hasStage` from DB**, not localStorage. Anonymous quiz-takers continue exactly as today: Q1 first, lead-capture at the end. (Their localStorage stage doesn't qualify as "authoritatively saved" for this UX — saved-on-device ≠ saved-to-account.)
 
 ### Files touched
 
 | File | Change |
 |---|---|
-| `supabase/migrations/<ts>_create_quiz_leads.sql` | NEW — create `quiz_leads` table + RLS (anon insert, admin select) |
-| `src/components/family/quiz/QuizReflectionField.tsx` | NEW — soft textarea with stage-specific placeholder, char count, save-to-profile-or-localStorage logic |
-| `src/components/family/quiz/AnonymousLeadCapture.tsx` | NEW — 3-card capture (WhatsApp / Email / Account) with two small modals (`LeadWhatsAppModal`, `LeadEmailModal`) |
-| `src/components/family/quiz/QuizResultCard.tsx` | EDIT — render `<QuizReflectionField />` under CTAs (always); render `<AnonymousLeadCapture />` only if `isAnonymous` |
-| `src/data/familyReadinessQuiz.ts` | EDIT — add `reflectionPlaceholder` string to each `StageDefinition` (4 strings, stage-specific) |
-| `src/pages/family/FamilyReadinessQuizPage.tsx` | EDIT — pass reflection state/handlers to `QuizResultCard`; on completion-while-anonymous, persist reflection + answers to localStorage; on signup migration, push to profile |
-| `src/integrations/supabase/types.ts` | AUTO-REGEN after migration |
-| `src/components/admin/QuizLeadsPanel.tsx` | NEW — admin table view with stage badge, reflection, "Nudge via WhatsApp" button reusing existing nudge templates |
-| `src/pages/admin/AdminUserManagement.tsx` *(or wherever admin tabs live — I'll locate exactly)* | EDIT — add tab/section for `<QuizLeadsPanel />`. **No route changes.** |
+| `src/pages/family/FamilyReadinessQuizPage.tsx` | Result-first mount logic for signed-in users with saved stage; honor new `?retake=1` to bypass; clear in-progress localStorage on `?retake=1`; load `client_stage_quiz_responses.answers` for the previous-answers panel |
+| `src/components/family/quiz/QuizResultCard.tsx` | Add "Last checked" freshness line + "Things changed — retake" + "See my answers" controls (signed-in only) — placed above existing CTAs, does not touch reflection field or lead capture block |
+| `src/components/family/quiz/RetakeConfirmDialog.tsx` | NEW — small AlertDialog wrapper |
+| `src/components/family/quiz/PreviousAnswersPanel.tsx` | NEW — collapsible read-only list of past answers |
+| `src/components/family/FamilyReadinessQuickAccess.tsx` | Tiny copy nudge: change *"Retake"* link to also pass `?retake=1` so it triggers the same confirmation flow on the quiz page (consistency) |
 
-**No** changes to: `App.tsx`, AppRoutes, AuthProvider, FamilyRegistration, chat flow, `useFamilyStage`, scoring logic, or quiz scoring/persistence infrastructure already shipped.
-
----
+**No changes to:** `useFamilyStage`, scoring logic, reflection field, anonymous lead capture, dashboard layout, schema, RLS, AppRoutes, AuthProvider, FamilyRegistration, App.tsx, chat flow.
 
 ### Acceptance test
 
-1. Signed-in family completes the quiz → result screen shows next-step CTAs **plus** a soft *"Did we get it right?"* textarea with stage-4 placeholder *"Bananas and bread every other day…"* → types reflection → taps Share → sees *"Thank you — we hear you"* → reflection now stored in `profiles.client_stage_quiz_responses.reflection`
-2. Same family revisits result via `/family/readiness-quiz?view=result` → reflection echoes back as *"You shared: '…'"* with edit pencil
-3. Anonymous user completes quiz → sees reflection field + new 3-card lead capture (WhatsApp / Email / Account) below the CTAs
-4. Anonymous taps **WhatsApp my result** → modal asks Name + WA number → submitting writes a `quiz_leads` row AND opens `wa.me/18687865357` pre-filled with result summary + reflection text
-5. Anonymous taps **Email me my result** → modal asks Name + Email → writes `quiz_leads` row → triggers transactional email (or queues if Resend unavailable)
-6. Anonymous taps **Create account** → routed to `/auth?tab=signup&role=family&from=quiz&stage=4` → after signup, profile populated with stage + responses + reflection AND any matching `quiz_leads` row gets `converted_user_id` set
-7. Admin opens user management → sees new Quiz Leads section with stage-colored badges, reflection snippets, and "Nudge via WhatsApp" button
-8. Anonymous user who skips lead capture and clicks *"Just take me to the dashboard"* → no forced capture, lands at `/` (existing behavior, anti-stuck principle preserved)
-9. RLS: an unauthenticated `INSERT` into `quiz_leads` succeeds; a `SELECT` from anon fails; admin `SELECT` succeeds
-
----
+1. Signed-in family with `client_stage = 3` visits `/family/readiness-quiz` directly → lands on **result screen for Stage 3** (not Q1), sees "Last checked: X days ago" with retake + see-answers controls
+2. Same family taps **"See my answers"** → inline panel expands showing the 6 questions and the option they previously chose for each → tap again to collapse
+3. Same family taps **"Things changed — retake"** → confirmation modal → Cancel → returns to result, nothing changed in DB
+4. Same family taps retake → Confirm → lands on Q1 with empty state, in-progress localStorage cleared, **DB stage still shows 3** until they complete all 6
+5. Family abandons mid-retake (closes tab on Q3) → returns later → still sees Stage 3 result (old stage preserved), with the existing in-progress resume prompt offering to continue the partial retake
+6. Family completes the retake with different answers → new stage saved, `client_stage_assessed_at` updated, "Last checked" resets to "today"
+7. Family with stage assessed > 60 days ago → sees gentler nudge copy *"It's been a while since you took this — life may have shifted. Want to refresh?"*
+8. Anonymous visitor to `/family/readiness-quiz` → Q1 first (unchanged), lead capture at end (unchanged) — no result-first shortcut, no "Last checked" line
+9. Dashboard quick-access card's "Retake" link → also opens with `?retake=1` and triggers the confirmation modal (consistency with direct-route retake)
 
 ### Out of scope
 
-- Building a full email-template system (uses existing transactional email infra; if Resend is not yet configured, the row is stored and admin can manually follow up — non-blocking)
-- Automated lead nurture sequences (admin can send manually for v1)
-- Editing the quiz questions themselves
-- Deduping leads across email + phone (v2 — for now, each capture creates a row; admin can merge mentally via the converted_user_id linkage)
-- TAV tone variants per stage (still separate workstream)
+- Editing individual past answers in place (retake is the path)
+- Scheduled re-quiz reminders / push notifications
+- Admin override UI for `client_stage`
+- Showing reflection text in the previous-answers panel (already echoed back inside the result card by existing logic)
+- Anonymous users seeing freshness — they have no DB timestamp and lead capture is the better hook for them
 
