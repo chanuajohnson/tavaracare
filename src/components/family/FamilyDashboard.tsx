@@ -229,8 +229,17 @@ const FamilyDashboard = () => {
           />
         )}
 
+        {/* Readiness check — emotional check-in. Positioned high so families
+            see it before scrolling. Only one of ReadinessQuizBanner /
+            FamilyReadinessQuickAccess renders at a time (gated on hasStage),
+            and Stage4SupplyNudge only appears at stage 4. */}
+        {user && <ReadinessQuizBanner />}
+
         {/* Daily Care Quick View — today's meds & nurse logs */}
         <DailyCareQuickView />
+
+        {user && <FamilyReadinessQuickAccess />}
+        {user && <Stage4SupplyNudge />}
 
         {/* Rate Information Blurb */}
         {showRateInfo && (
@@ -364,9 +373,7 @@ const FamilyDashboard = () => {
           </motion.div>
         ) : null}
 
-        {user && <ReadinessQuizBanner />}
-        {user && <FamilyReadinessQuickAccess />}
-        {user && <Stage4SupplyNudge />}
+        {/* Readiness elements moved up — see directly after DailyCareQuickView */}
 
         <div className="mt-8">
           <EnhancedFamilyNextStepsPanel />
