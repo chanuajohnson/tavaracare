@@ -310,6 +310,9 @@ const FamilyReadinessQuizPage: React.FC = () => {
                   isSaving={isSaving}
                   onRetake={handleRetake}
                   onSaveStage={handleSaveStageAnonymous}
+                  stage={finalStage}
+                  responses={buildResponsesObject(answers)}
+                  initialReflection={initialReflection}
                 />
               )}
             </AnimatePresence>
