@@ -68,9 +68,24 @@ const FamilyReadinessQuizPage: React.FC = () => {
 
   const stageDef = readinessStages[finalStage];
 
-  // On mount: if ?view=result and we have a saved stage, jump straight to result
+  // On mount: handle ?retake=1 (clear in-progress, start fresh, no resume prompt)
   useEffect(() => {
-    if (viewResultMode) {
+    if (isRetakeRequested) {
+      clearQuizProgress();
+      setAnswers(Array(totalQuestions).fill(undefined));
+      setCurrentIndex(0);
+      setShowResult(false);
+      return;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // On mount / when stage resolves: route signed-in returners to result-first
+  useEffect(() => {
+    if (isRetakeRequested) return;
+    if (stageLoading) return;
+
+    if (viewResultMode || resultFirstMode) {
       setShowResult(true);
       return;
     }
@@ -93,16 +108,16 @@ const FamilyReadinessQuizPage: React.FC = () => {
       setResumePromptOpen(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [stageLoading, viewResultMode, resultFirstMode, isRetakeRequested]);
 
-  // Load existing reflection from profile (signed-in) when viewing result
+  // Load existing reflection + responses + assessedAt from profile (signed-in) when viewing result
   useEffect(() => {
     if (!user?.id || !showResult) return;
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("client_stage_quiz_responses")
+        .select("client_stage_quiz_responses, client_stage_assessed_at")
         .eq("id", user.id)
         .maybeSingle();
       if (error || cancelled) return;
@@ -112,6 +127,21 @@ const FamilyReadinessQuizPage: React.FC = () => {
         | undefined;
       const r = responses?.reflection as ReadinessReflection | undefined;
       if (r?.text) setInitialReflection(r);
+
+      // Build a clean responses map (questionId -> score) for PreviousAnswersPanel
+      if (responses && typeof responses === "object") {
+        const cleaned: Record<string, number> = {};
+        for (const q of readinessQuizQuestions) {
+          const v = responses[q.id];
+          if (typeof v === "number" && v >= 1 && v <= 4) {
+            cleaned[q.id] = v;
+          }
+        }
+        setSavedResponses(cleaned);
+      }
+
+      const ts = data?.client_stage_assessed_at as string | null | undefined;
+      if (ts) setAssessedAt(ts);
     })();
     return () => {
       cancelled = true;
