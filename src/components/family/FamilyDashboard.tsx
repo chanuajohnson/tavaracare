@@ -22,6 +22,33 @@ import { CaregiverMatchingModal } from "@/components/family/CaregiverMatchingMod
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 import { toast } from "sonner";
 
+/**
+ * Soft banner inviting families who haven't taken the readiness quiz to do so.
+ * Hidden once `client_stage` is set in their profile or localStorage.
+ */
+const ReadinessQuizBanner = () => {
+  const { hasStage, isLoading } = useFamilyStage();
+  if (isLoading || hasStage) return null;
+  return (
+    <Link
+      to="/family/readiness-quiz"
+      className="block mt-6 rounded-lg border-l-4 border-l-primary bg-primary/5 hover:bg-primary/10 transition-colors px-4 py-3"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">
+            Help us tailor your experience
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Take our 60-second readiness check so your dashboard fits where you are right now.
+          </p>
+        </div>
+        <ArrowRight className="h-4 w-4 text-primary shrink-0" />
+      </div>
+    </Link>
+  );
+};
+
 const FamilyDashboard = () => {
   const { user } = useAuth();
   const [isWelcomeCardExpanded, setIsWelcomeCardExpanded] = useState(false);
