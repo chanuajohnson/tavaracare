@@ -24,6 +24,8 @@ interface QuizResultCardProps {
   responses: Record<string, number>;
   /** Existing reflection from profile (signed-in users) */
   initialReflection?: ReadinessReflection | null;
+  /** ISO timestamp of last completion (signed-in users only) */
+  assessedAt?: string | null;
 }
 
 export const QuizResultCard: React.FC<QuizResultCardProps> = ({
