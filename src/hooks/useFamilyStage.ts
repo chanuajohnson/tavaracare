@@ -35,6 +35,13 @@ const readLocalStage = (): ReadinessStage | null => {
   }
 };
 
+/**
+ * Custom DOM event broadcast whenever the family stage is mutated
+ * (cleared, or saved after quiz completion). All `useFamilyStage()`
+ * instances listen for this and re-fetch so dependent UI stays in sync.
+ */
+export const FAMILY_STAGE_CHANGED_EVENT = "tavara:family-stage-changed";
+
 const wipeLocalReadinessKeys = () => {
   try {
     localStorage.removeItem(READINESS_LOCAL_STORAGE_KEY);
@@ -101,6 +108,21 @@ export const useFamilyStage = (): UseFamilyStageResult => {
     load();
   }, [load]);
 
+  // Sync all mounted instances of this hook whenever any caller mutates the
+  // family stage (clearStage, quiz completion, etc). Without this, only the
+  // component that triggered the mutation re-renders — sibling components
+  // like ReadinessQuizBanner / Stage4SupplyNudge keep their stale local
+  // state until a hard refresh.
+  useEffect(() => {
+    const handler = () => {
+      load();
+    };
+    window.addEventListener(FAMILY_STAGE_CHANGED_EVENT, handler);
+    return () => {
+      window.removeEventListener(FAMILY_STAGE_CHANGED_EVENT, handler);
+    };
+  }, [load]);
+
   const clearStage = useCallback(async (): Promise<boolean> => {
     // Always wipe local state first so abandonment of the DB call still
     // gives an immediate fresh-start experience.
@@ -127,6 +149,16 @@ export const useFamilyStage = (): UseFamilyStageResult => {
     setStage(1);
     setHasStage(false);
     setIsLoading(false);
+
+    // Notify all other mounted hook instances to refresh their state too,
+    // so dependent banners (e.g. ReadinessQuizBanner, Stage4SupplyNudge)
+    // appear/disappear in the same render cycle.
+    try {
+      window.dispatchEvent(new CustomEvent(FAMILY_STAGE_CHANGED_EVENT));
+    } catch {
+      // ignore — non-browser env
+    }
+
     return true;
   }, [user?.id, load]);
 
