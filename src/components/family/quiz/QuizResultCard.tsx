@@ -4,11 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, RotateCcw, ArrowRight, Lock } from "lucide-react";
+import { Sparkles, RotateCcw, ArrowRight, Lock, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { StageDefinition, ReadinessStage, ReadinessReflection } from "@/data/familyReadinessQuiz";
 import { QuizReflectionField } from "./QuizReflectionField";
 import { AnonymousLeadCapture } from "./AnonymousLeadCapture";
+import { RetakeConfirmDialog } from "./RetakeConfirmDialog";
+import { PreviousAnswersPanel } from "./PreviousAnswersPanel";
 
 interface QuizResultCardProps {
   stageDef: StageDefinition;
