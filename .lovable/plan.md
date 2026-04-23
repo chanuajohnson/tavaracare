@@ -1,73 +1,151 @@
+## Plan — Show all 4 stage results + give families a way back to their result
+
+### Part 1: All 4 quiz result screens (so you can see what every user sees)
+
+These are the actual final screens, by stage. Stage is **invisible to the user as a number** — only the title, badge, body, and CTAs are shown.
+
+---
+
+**🟢 STAGE 1 — "Just starting" (green)**
+
+> **You're at the beginning — let's keep this simple.**
+>
+> Right now, the focus is just getting support in place and helping things feel more stable. There's no need to think about changing anything else yet. We'll take this step by step, together.
+
+CTAs:
+
+1. **Find a caregiver** → `/family/matching`
+2. **Tell us about your loved one** → `/family/story` *(outline)*
+
+---
+
+**🟡 STAGE 2 — "Building trust" (amber)**
+
+> **You're settling in — this stage is about building trust.**
+>
+> You're getting a feel for how things work and what your family needs. Right now, the focus is consistency and comfort — not big changes. Tavara will check in gently as you go.
+
+CTAs:
+
+1. **Build your care team** → `/family/care-management`
+2. **Share their daily routine** → `/family/care-assessment` *(outline)*
+
+---
+
+**🟠 STAGE 3 — "Ready to expand" (orange)**
+
+> **You're ready for support beyond the basics.**
+>
+> You're starting to see where things could be easier or more structured. This is a good time to introduce support that takes pressure off you.
+
+CTAs:
+
+1. **Guided Home Reset** → `/family/care-management`
+2. **Care coordination** → `/subscription/features` *(outline)*
+3. **NIS payroll support** → `/family/care-management` *(outline)*
+
+---
+
+**🔴 STAGE 4 — "Lifting the daily load" (rose)** *(what you saw)*
+
+> **You're past the basics — let's lift the daily load.**
+>
+> Care is in place. What's draining you now isn't the caregiving — it's the running around. The bananas, the bread, the medication refills, the emergent pharmacy runs when no one feels well. Tavara can take this off your plate on a schedule you set, so the house stays stocked without you holding the whole list in your head.
+
+CTAs:
+
+1. **Set up recurring supply delivery** → `/errands#supplies`
+2. **Book a one-off errand run** → `/errands` *(outline)*
+3. **Talk to a care manager** → `/family/care-management` *(outline)*
+
+---
+
+### Part 2: Coverage gaps I'm fixing
 
 
-## Plan — Make the quiz recognize "errand & supply restocking" as the real Stage 4 need
+| Gap                                                                                                                                            | Fix                                                                                                                                                               |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stage 1 "Find a caregiver" CTA — but the platform is also a coordination platform; some Stage 1 users actually need *guidance before matching* | Add tertiary outline CTA: **"Chat with TAV first"** → `/` (opens TAV chat). Lets overwhelmed Stage 1 users talk before matching.                                  |
+| Stage 2 only has 2 CTAs (others have 3)                                                                                                        | Add tertiary outline CTA: **"See how scheduling works"** → `/family/care-management` so settling families can preview structure without committing                |
+| Stage 3 routes "Guided Home Reset" + "NIS payroll" both to `/family/care-management` (same destination, confusing)                             | Point Guided Home Reset to `/family/care-management?tab=environment` and NIS payroll to `/family/care-management?tab=payroll` (existing tabs). Distinct outcomes. |
+| No way back to result from dashboard or when back clicked or quiz reopened                                                                     | See Part 3.                                                                                                                                                       |
 
-### What you taught us with this feedback
 
-The current quiz treats Stage 4 as abstract ("optimize," "hand over the load," "premium coordination") — but your lived reality is concrete: **caregivers are sorted, what's eating you alive is bananas, bread, meds, household consumables, and emergent runs**. That's a service offer we already have built (`/errands` page with `CareSupplyPackages` for recurring delivery + bundles + cadence + WhatsApp scheduling) — the quiz just doesn't know to point you there.
+### Part 3: Persistent "Your readiness" quick-access card on the dashboard
 
-This is two changes: **(1) sharpen the quiz's language** so people in your situation feel seen, and **(2) wire the Stage 4 result to the errands service** that already exists.
+This is the core ask. Once a family completes the quiz, the result becomes a **permanent compact card** on `/dashboard/family` that:
 
-### Changes
+1. Shows their **stage badge + title** in the same color as the result screen (so they recognize it instantly — matches your screenshot)
+2. Shows the **same 2–3 next-step CTAs** they saw on the result screen, so they can pick one anytime — not just immediately after the quiz
+3. Has a small **"Retake"** link in the corner if life changed
+4. Replaces the existing `ReadinessQuizBanner` (which only shows when no stage is set)
 
-**1. Rewrite Q5 + Q6 with concrete, lived-experience options (`src/data/familyReadinessQuiz.ts`)**
+**Visual mock (compact):**
 
-Replace abstract Stage 3/4 options with the specific load you described. Stage 1/2 stay gentle.
+```text
+┌───────────────────────────────────────────────────┐
+│ ✦  Your readiness · Lifting the daily load    ⟲   │  ← rose accent, badge, retake icon
+│    "You're past the basics — let's lift the       │
+│     daily load."                                   │
+│                                                    │
+│  [Set up recurring delivery →] [Book errand →]    │  ← same CTAs as result screen
+│  [Talk to a care manager →]                        │
+└───────────────────────────────────────────────────┘
+```
 
-| Q | Card 1 (Stage 1) | Card 2 (Stage 2) | Card 3 (Stage 3) | Card 4 (Stage 4) |
-|---|---|---|---|---|
-| **Q5** *"What kind of support feels most helpful right now?"* | Just the basics to get started | Help staying organized and on track | Step-by-step guidance to improve things | **A real person to handle errands, supplies, and restocking** |
-| **Q6** *"What matters most to you right now?"* | My loved one's comfort | Keeping things manageable for me | Getting things properly set up | **Less running around — knowing groceries, meds & supplies just show up** |
+Component: `**FamilyReadinessQuickAccess**` — new file at `src/components/family/FamilyReadinessQuickAccess.tsx`. Reads `useFamilyStage()`, looks up `readinessStages[stage]`, renders title + truncated body + CTAs. Hidden if `!hasStage` (banner takes over).
 
-This is the exact language families in your stage will recognize. No clinical talk, no "optimize." Just: *the bananas show up, the meds get refilled, I don't have to drag myself out when I'm not feeling well.*
+### Part 4: Incomplete quiz recovery
 
-**2. Rewrite Stage 4 result copy + retarget CTAs to the errands service**
+Today, if a family starts the quiz and bails on Q3, their progress is lost — next visit they start over from Q1.
 
-In `readinessStages[4]`:
+**Fix:** The quiz already keeps `answers[]` in component state. We'll **persist the in-progress answers** to `localStorage` under `tavara_readiness_quiz_progress` (key: `{ answers, currentIndex, updatedAt }`) on every selection.
 
-- **Title:** *"You're past the basics — let's lift the daily load."*
-- **Body:** *"Care is in place. What's draining you now isn't the caregiving — it's the running around. The bananas, the bread, the medication refills, the emergent pharmacy runs when no one feels well. Tavara can take this off your plate on a schedule you set, so the house stays stocked without you holding the whole list in your head."*
-- **Next steps (replacing the abstract "Full Care Environment Reset" / "Premium coordination" / "Talk to a care manager"):**
-  1. **"Set up recurring supply delivery"** → `/errands#supplies` (deep-link to `CareSupplyPackages` section)
-  2. **"Book a one-off errand run"** → `/errands` (top of page — `ErrandsForm`)
-  3. **"Talk to a care manager"** → existing care-management link, kept as outline tertiary
+When the user revisits `/family/readiness-quiz`:
 
-**3. Add an anchor to the errands page so the deep link lands on supply packages (`src/pages/errands/ErrandsPage.tsx`)**
+- If a saved progress exists *and* it's incomplete *and* less than 30 days old → show a soft prompt at the top of Q1:
+  > **Pick up where you left off?** *You answered 3 of 6 last time.*
+  > [Continue] [Start over]
+- Cleared on completion (when result is shown) and on "Start over"
 
-Wrap `<CareSupplyPackages />` in `<section id="supplies" className="scroll-mt-24">` so `/errands#supplies` scrolls Stage 4 families straight to the recurring-delivery flow (bundles, cadence, WhatsApp schedule) without making them hunt past the hero and one-off form.
+Also adds the same prompt to the **dashboard banner** for users who bailed:
 
-**4. Stage-4-aware family dashboard nudge (`src/components/family/FamilyDashboard.tsx`)**
+- Banner copy changes from *"Take our 60-second readiness check"* to *"Finish your readiness check (3 of 6 answered)"* when in-progress data exists.
 
-When `client_stage === 4` AND the user has no recent errand activity, show a small soft card under the existing readiness banner area:
+### Part 5: After "Go to my dashboard" — clear path back to result
 
-> 📦 **Tired of holding the list?** Set up recurring delivery for groceries, meds, and household consumables. We deliver on your schedule. → *Set it up*
+Two changes solidify the loop:
 
-Single card, dismissible, links to `/errands#supplies`. Suppressed for stages 1–3 (they don't need this yet — same anti-Ana principle).
+1. The new `**FamilyReadinessQuickAccess` card** (Part 3) is the primary path back — it's always sitting on the dashboard.
+2. Add a tiny **"View my full result"** link inside the quick-access card that opens `/family/readiness-quiz?view=result` — a new query param the quiz page recognizes to **skip straight to the result screen** (using their saved stage from `useFamilyStage()`) instead of restarting the quiz. This is read-only mode — full result with all CTAs, no quiz UI.
 
 ### Files touched
 
-| File | Change |
-|---|---|
-| `src/data/familyReadinessQuiz.ts` | Rewrite Q5 card-4 + Q6 card-4 copy; rewrite `readinessStages[4]` title/body/nextSteps to point at `/errands#supplies` and `/errands` |
-| `src/pages/errands/ErrandsPage.tsx` | Wrap `<CareSupplyPackages />` in `<section id="supplies" className="scroll-mt-24">` |
-| `src/components/family/FamilyDashboard.tsx` | Add soft Stage-4-only "recurring supply delivery" nudge card with dismiss state in `localStorage` |
 
-**No** changes to: scoring logic, quiz UI components, AppRoutes, FamilyRegistration, AuthProvider, App.tsx, chat flow, errands form, payment buttons, or `CareSupplyPackages` itself.
+| File                                                   | Change                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/data/familyReadinessQuiz.ts`                      | Add 3rd CTA to Stage 1 ("Chat with TAV first") and Stage 2 ("See how scheduling works"); split Stage 3's two duplicate care-management links into `?tab=environment` and `?tab=payroll`                                                                                    |
+| `src/pages/family/FamilyReadinessQuizPage.tsx`         | Persist in-progress `{ answers, currentIndex }` to localStorage on every select; on mount, restore + offer "Continue / Start over" if incomplete data <30 days old; clear on completion. Recognize `?view=result` query param to render result directly using saved stage. |
+| `src/components/family/FamilyReadinessQuickAccess.tsx` | **NEW** — compact stage card with title, body, CTAs, "Retake" + "View full result" links. Reads `useFamilyStage()`. Hidden when `!hasStage`.                                                                                                                               |
+| `src/components/family/FamilyDashboard.tsx`            | Replace `<ReadinessQuizBanner />` with conditional render: `hasStage ? <FamilyReadinessQuickAccess /> : <ReadinessQuizBanner />`. Banner copy becomes progress-aware ("Finish your readiness check (X of 6 answered)") when in-progress localStorage exists.               |
+
+
+**No** changes to: scoring logic, `useFamilyStage`, AppRoutes, FamilyRegistration, AuthProvider, App.tsx, chat flow, errands page, schema, or RLS.
 
 ### Acceptance test
 
-1. Take the quiz answering mostly card-4 (especially the new Q5/Q6 options about errands and supplies) → land on **rewritten** Stage 4 result with the new title *"You're past the basics — let's lift the daily load"* and body referencing bananas/bread/meds
-2. Click **"Set up recurring supply delivery"** → land on `/errands` scrolled directly to the `CareSupplyPackages` section (bundles visible immediately, no need to scroll past hero)
-3. Click **"Book a one-off errand run"** → land at top of `/errands` (existing form)
-4. Sign in as a family with `client_stage = 4` → dashboard shows the new soft "Tired of holding the list?" nudge card
-5. Sign in as a family with `client_stage = 1, 2, or 3` → nudge card is **not** shown (Ana protection holds)
-6. Dismiss the dashboard card → it stays dismissed across reloads (localStorage flag)
+1. New family visits `/family/readiness-quiz`, answers 3 questions, closes tab → returns next day → sees *"Pick up where you left off? You answered 3 of 6 last time."* with Continue / Start over
+2. Same family on dashboard → banner now reads *"Finish your readiness check (3 of 6 answered)"*
+3. Family completes quiz, lands on result, taps *"Go to my dashboard"* → dashboard shows new `**FamilyReadinessQuickAccess` card** with their stage's title, body, and same CTAs as the result screen
+4. Family taps **Retake** in quick-access card → quiz restarts from Q1 with no saved progress
+5. Family taps **"View full result"** in quick-access card → lands on `/family/readiness-quiz?view=result` showing the full-size result screen (no quiz UI), with all CTAs and the same "Go to dashboard" / "Retake" actions
+6. Stage 1 family sees 3 CTAs including "Chat with TAV first"; Stage 2 sees 3 CTAs including "See how scheduling works"; Stage 3 sees Guided Home Reset and NIS payroll routing to **different** care-management tabs
+7. All 4 stages render with their correct color accent (green / amber / orange / rose) on both the result screen *and* the dashboard quick-access card
 
 ### Out of scope
 
-- Adding a new question (keeping it 6) — the rewritten Q5/Q6 cards carry the new signal cleanly
-- Changing scoring math — the average-rounded-to-stage logic still works
-- New routes, schema changes, or RLS — none needed
-- TAV tone variants per stage (already noted as separate workstream)
-- Touching the chat flow, FamilyRegistration, AppRoutes structure, or AuthProvider
-
+- Adding more questions (still 6 — the existing ones cover all signals)
+- Changing scoring math
+- Admin override UI for `client_stage` (separate workstream)
+- Push notifications to retake
+- TAV tone variants per stage (separate workstream)
