@@ -1,107 +1,117 @@
 
 
-## Plan — Make "Retake" actually reset the stage so the dashboard reverts to the quiz banner
+## Plan — Fix the cross-card reset bug + reposition the readiness banner so families see it sooner
 
-### The bug you're hitting
+### What's actually broken (root cause)
 
-Today, both Retake controls on the **"Optimization · Lifting the daily load"** card on the dashboard (the small ⟲ icon top-right and the "Retake" link bottom-right) just navigate to `/family/readiness-quiz?retake=1`. That route shows Q1 of a fresh quiz, but **the saved stage in `profiles.client_stage` is never cleared until they finish all 6 questions**. So:
+The screenshot shows that after tapping Reset on the "Optimization · Lifting the daily load" card:
 
-- The dashboard `FamilyReadinessQuickAccess` card stays exactly the same (because `hasStage` is still true)
-- They can't "start over from a clean dashboard" — only re-take to a new result
-- If they bail mid-retake, they're left with the old card silently still showing
+- ✅ `FamilyReadinessQuickAccess` correctly disappeared
+- ❌ `Stage4SupplyNudge` ("Tired of holding the list?") **stayed visible** even though it's gated on `hasStage && stage === 4`
+- ❌ `ReadinessQuizBanner` ("Help us tailor your experience") **didn't appear** even though `hasStage` should now be false
 
-You want: tapping Retake on the dashboard should **wipe the saved stage** so the dashboard flips back to the original `ReadinessQuizBanner` ("Help us tailor your experience"), as if the quiz had never been done. Then they can choose to take it again on their own terms.
+Both bugs share the same root cause: **`useFamilyStage()` is called independently in 3 different components (`ReadinessQuizBanner`, `FamilyReadinessQuickAccess`, `Stage4SupplyNudge`), and each call has its own isolated `useState` — they don't share state**. So when `clearStage()` runs inside `FamilyReadinessQuickAccess`, only that component re-renders. The other two still hold the stale `stage=4, hasStage=true` from their own initial DB fetch.
 
-### What we'll change
+The dashboard only "comes back to life" on a hard refresh because that's when every hook re-fetches.
 
-**Two retake paths, two different intents — make them explicit:**
+### Fix Part A — Make `useFamilyStage` reactive across components
 
-1. **Reset from dashboard** (the card's ⟲ icon and "Retake" link) → confirms, **clears the saved stage from DB + localStorage**, dashboard immediately reverts to the quiz banner. No navigation. They restart the quiz from the banner whenever they're ready.
-2. **Retake from result page** (the "Things changed — retake" button on `/family/readiness-quiz?view=result`) → still goes to Q1 with `?retake=1`, but **also clears the saved stage on confirmation** so abandoning mid-retake doesn't leave a stale card. The previous behavior of "preserve old stage until completion" was clever, but it created the exact confusion you hit — the dashboard card felt unkillable.
+Change `useFamilyStage` so all instances stay in sync after a reset. Two minimal options, picking the simpler one:
 
-Both paths use the **same `RetakeConfirmDialog`** with updated copy that reflects the new clearing behavior.
+- Emit a lightweight custom DOM event (`tavara:family-stage-changed`) inside `clearStage()` and the quiz-completion `persistStage()` path. Every `useFamilyStage()` instance subscribes to this event in a `useEffect` and re-runs `load()` when it fires.
 
-### Part 1 — Add a `clearFamilyStage` helper
+This avoids introducing a context provider or React Query just for this one state, keeps the hook's signature unchanged, and is bulletproof across pages. Other places that mutate `client_stage` (the quiz completion path) will also dispatch the event so the dashboard updates without a refresh.
 
-**File: `src/hooks/useFamilyStage.ts`** — extend the hook to expose a `clearStage()` function that:
+**File touched:** `src/hooks/useFamilyStage.ts` only — no schema, no provider tree change.
 
-- Clears `localStorage.tavara_readiness_stage`, `tavara_readiness_responses`, and the in-progress `tavara_readiness_quiz_progress` keys
-- If signed in, sets `profiles.client_stage = null`, `client_stage_assessed_at = null`, `client_stage_quiz_responses = null`
-- Refreshes local state so `hasStage` immediately becomes false → dashboard re-renders banner
+### Fix Part B — Tie the supply nudge to the readiness state, not floating on its own
+
+Once Part A is in place, `Stage4SupplyNudge` will correctly disappear after reset (because `hasStage` becomes false in its own hook instance too). No code change needed there beyond Part A — the existing guard already handles it.
+
+To be extra safe and match the user's expectation ("the second card is related to the first — they should rise and fall together"), we'll also add an explicit comment in `Stage4SupplyNudge` clarifying it depends on `hasStage`.
+
+### Fix Part C — Reposition the readiness banner higher on the dashboard
+
+Currently the order is:
 
 ```text
-useFamilyStage() now returns:
-  { stage, hasStage, isLoading, refresh, clearStage }
+1. FamilyShortcutMenuBar
+2. DailyCareQuickView           ← "Today's Care Activity"
+3. Rate Info ($40–$50+/hr)      ← "Tavara Care Rates"
+4. FamilyMatchNotification      ← "You have 6 caregiver matches"
+5. SchedulingStatusBanner
+6. CaregiverReadinessCard
+7. ProfessionalChatRequestsSection
+8. ReadinessQuizBanner          ← TOO LOW — buried below all care ops
+9. FamilyReadinessQuickAccess   ← TOO LOW
+10. Stage4SupplyNudge
 ```
 
-### Part 2 — Wire dashboard Retake to actually reset
+The user wants the readiness check to sit **above "Today's Care Activity"** when the family hasn't taken it (so it's emotionally forward-facing), and **above "Tavara Care Rates"** when they have taken it (visible but not pushy).
 
-**File: `src/components/family/FamilyReadinessQuickAccess.tsx`**
+**New order** (when the family has NOT taken the quiz yet — `!hasStage`):
 
-- Replace both `<Link to="/family/readiness-quiz?retake=1">` controls (the ⟲ icon and the "Retake" link) with `<button>` elements that open a confirmation dialog
-- On confirm → call `clearStage()` from the hook → toast *"Your readiness check has been reset. Take it again whenever you're ready."* → component automatically unmounts (because `hasStage` becomes false) and the `ReadinessQuizBanner` takes its place on the dashboard
-- The "View full result" link stays unchanged (read-only path)
+```text
+1. FamilyShortcutMenuBar
+2. ReadinessQuizBanner          ← MOVED UP — emotional check-in front and centre
+3. DailyCareQuickView
+4. Rate Info
+5. … (rest unchanged)
+```
 
-### Part 3 — Update RetakeConfirmDialog copy (one dialog, two contexts)
+**New order** (when the family HAS taken the quiz — `hasStage`):
 
-**File: `src/components/family/quiz/RetakeConfirmDialog.tsx`**
+```text
+1. FamilyShortcutMenuBar
+2. DailyCareQuickView
+3. FamilyReadinessQuickAccess   ← MOVED UP — above Rate Info, but below today's activity
+4. Stage4SupplyNudge            ← stays right below the quick-access card (only at stage 4)
+5. Rate Info
+6. … (rest unchanged)
+```
 
-Make the dialog accept a `mode` prop: `"reset"` (from dashboard) or `"retake-now"` (from result page).
+This is achieved by:
+- Moving `<ReadinessQuizBanner />`, `<FamilyReadinessQuickAccess />`, and `<Stage4SupplyNudge />` out of their current position (lines 367–369) up into the section right after `<FamilyShortcutMenuBar />` (around line 230) and `<DailyCareQuickView />` (line 233)
+- Keeping the components' internal `hasStage` gating — only one of `ReadinessQuizBanner` vs `FamilyReadinessQuickAccess` will ever render at a time, so the dashboard stays clean
 
-- **`mode="reset"`** copy:
-  > **Reset your readiness check?**
-  > This clears your current result so your dashboard goes back to the quiz invitation. You can take the check again anytime — no answers are kept.
-  > `[Cancel]` `[Yes, reset]`
+### Fix Part D — Make the empty-state banner copy more emotional
 
-- **`mode="retake-now"`** copy:
-  > **Retake your readiness check now?**
-  > Your current result will be cleared so we can capture where you are today. You'll start at question 1.
-  > `[Cancel]` `[Yes, retake]`
+Today the banner reads:
 
-### Part 4 — Update the result-page "Things changed — retake" to also clear
+> **Help us tailor your experience**
+> Take our 60-second readiness check so your dashboard fits where you are right now.
 
-**File: `src/pages/family/FamilyReadinessQuizPage.tsx`** (in `handleRetake`)
+The user described it as an "emotional health check-in", not a UI personalization tool. New copy on the empty-state version (the in-progress version stays unchanged because it's task-focused):
 
-Change behavior: on confirmation, **clear the stage from DB and localStorage immediately** (using the new `clearStage()` helper), then navigate to `/family/readiness-quiz?retake=1`. This way:
+> **How are you doing today?**
+> Take a 60-second emotional check-in so we can meet you where you actually are — not where the platform assumes.
 
-- If they complete the new quiz → fresh stage saved (existing behavior)
-- If they abandon mid-retake → their dashboard card is gone; they see the `ReadinessQuizBanner` with the existing in-progress resume prompt (*"Finish your readiness check (3 of 6 answered)"*), which is the right next step
-
-This trades the "preserve old result until new one completes" safety net for clarity. The user just told us the old behavior was confusing — explicit reset wins.
-
-### Part 5 — Edge cases handled
-
-- **Anonymous users**: `clearStage()` only touches localStorage, no DB call attempted. The lead-capture flow on the result page is unaffected.
-- **In-progress quiz state**: `clearStage()` also clears `READINESS_PROGRESS_LOCAL_KEY` so a fresh start really is fresh.
-- **Toast feedback**: Both reset paths show a confirmation toast so the user knows the wipe succeeded. No silent state changes.
-- **Failure**: If the DB update fails, we surface a toast (*"Couldn't reset just now — please try again"*) and leave the dashboard card in place. No partial state.
+Same `<Link>`, same destination, same icon. Just warmer copy that matches the user's framing.
 
 ### Files touched
 
 | File | Change |
 |---|---|
-| `src/hooks/useFamilyStage.ts` | Add `clearStage()` returning a Promise; wipes DB columns (signed-in) + 3 localStorage keys; refreshes local state |
-| `src/components/family/FamilyReadinessQuickAccess.tsx` | Replace both Retake `<Link>`s with buttons that open `RetakeConfirmDialog` in `mode="reset"`; on confirm call `clearStage()` and toast |
-| `src/components/family/quiz/RetakeConfirmDialog.tsx` | Add `mode` prop with two copy variants ("reset" / "retake-now"); default to "retake-now" for backward compatibility |
-| `src/components/family/quiz/QuizResultCard.tsx` | Pass `mode="retake-now"` to the dialog (no behavior change for the user, just clearer copy) |
-| `src/pages/family/FamilyReadinessQuizPage.tsx` | `handleRetake` now calls `clearStage()` before navigating to `?retake=1`, so the old DB stage is wiped immediately |
+| `src/hooks/useFamilyStage.ts` | Dispatch `tavara:family-stage-changed` event after `clearStage()` succeeds; subscribe to the same event in the hook's `useEffect` so all instances re-load in sync |
+| `src/pages/family/FamilyReadinessQuizPage.tsx` | After successful `persistStage()` on quiz completion, also dispatch `tavara:family-stage-changed` so the dashboard's banner→quick-access transition is instant on return |
+| `src/components/family/FamilyDashboard.tsx` | Move the 3 readiness-related elements (`<ReadinessQuizBanner />`, `<FamilyReadinessQuickAccess />`, `<Stage4SupplyNudge />`) from lines 367–369 to a new spot directly after `<DailyCareQuickView />` at line 234. Update `ReadinessQuizBanner` empty-state copy to the warmer "How are you doing today?" framing |
 
-**No changes to:** AppRoutes, AuthProvider, FamilyRegistration, scoring logic, `ReadinessQuizBanner` (it already reads `hasStage` correctly), reflection field, lead capture, or any schema/RLS.
+**No changes to:** `useFamilyStage`'s public signature, `FamilyReadinessQuickAccess`, `Stage4SupplyNudge` internals, `RetakeConfirmDialog`, schema, RLS, AppRoutes, AuthProvider, FamilyRegistration, scoring logic, or the lead capture flow.
 
 ### Acceptance test
 
-1. Family with `client_stage=4` on `/dashboard/family` sees the "Optimization · Lifting the daily load" card → taps the small ⟲ icon top-right → confirmation dialog appears with reset copy → confirm → toast appears → card disappears → `ReadinessQuizBanner` ("Help us tailor your experience") shows in its place
-2. Verify in DB: `profiles.client_stage`, `client_stage_assessed_at`, `client_stage_quiz_responses` are all `null` for that user
-3. Same flow via the bottom-right "Retake" link on the card → identical result
-4. Family on `/family/readiness-quiz?view=result` taps "Things changed — retake" → dialog shows retake-now copy → confirm → DB stage cleared, localStorage cleared, navigated to Q1 of fresh quiz
-5. Family abandons that mid-retake (closes tab on Q3) → returns to dashboard → sees `ReadinessQuizBanner` with progress nudge ("Finish your readiness check (3 of 6 answered)"), NOT the old optimization card
-6. Anonymous user on result page → still sees lead capture flow unchanged (no `clearStage` DB call attempted, only localStorage cleared on retake)
-7. Retake then complete the new quiz → new stage saved → dashboard now shows the new `FamilyReadinessQuickAccess` card with the new stage
+1. Family with `client_stage=4` on `/dashboard/family` → sees `FamilyReadinessQuickAccess` (Optimization card) **above** the Tavara Care Rates card and **below** Today's Care Activity. Stage4 supply nudge sits right under it.
+2. Same family taps the ⟲ Reset icon → confirms → toast appears → **both** the Optimization card AND the "Tired of holding the list?" card disappear in the same render (no refresh needed) → in their place, the warmer `ReadinessQuizBanner` ("How are you doing today?") appears, positioned right above Today's Care Activity.
+3. Family taps that banner → goes to the quiz → completes Q1–Q6 → on return to `/dashboard/family`, the new `FamilyReadinessQuickAccess` card appears in the higher position immediately, no refresh needed.
+4. Family who has never taken the quiz → opens dashboard for the first time → sees `ReadinessQuizBanner` directly under the shortcut menu bar, above Today's Care Activity.
+5. Family at stage 1, 2, or 3 → sees their `FamilyReadinessQuickAccess` card in the higher position, and **no** Stage4 supply nudge (existing gate preserved).
+6. Anonymous (logged-out) visitor to `/dashboard/family` → sees the welcome card (existing behavior), no readiness banner or quick-access card (gated on `user`).
+7. Verify in DevTools: dispatching `window.dispatchEvent(new CustomEvent('tavara:family-stage-changed'))` triggers a re-fetch in all mounted `useFamilyStage()` instances.
 
 ### Out of scope
 
-- Showing the quiz result anywhere else after reset (it's gone — that's the point)
-- Soft-delete / undo of a reset (confirmation dialog is the safety net)
-- Admin override / restore of a cleared stage
-- Touching the `Stage4SupplyNudge` dismissal (separate localStorage key, behaves correctly when stage clears because `hasStage` becomes false)
+- Replacing `useFamilyStage` with React Query or a context provider (the event-bus fix is minimal and matches the existing patterns in the codebase)
+- Adding analytics on banner impressions / quiz starts (separate workstream)
+- Restyling the banner — only the copy changes; visual treatment stays
+- Changing where the readiness card sits on any non-dashboard route
 
