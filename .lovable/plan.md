@@ -1,68 +1,68 @@
 
 
-## Plan — Make Denise's daily logs visible in the admin Activity tab
+## Plan — Stop silent log loss + give Denise (and you) certainty about save status
 
 ### What's actually happening
 
-I queried Denise's records directly in the database. Her logs ARE saved — just invisible in the admin UI for three reasons that compound:
+I queried the DB directly. Denise has **only 3 logs total** in `daily_care_logs` — Apr 15, 16, 17. There is **nothing past Apr 17** anywhere (not in `daily_care_logs`, not in `work_logs`, no orphan rows). The admin UI is showing the truth.
 
-| What you see in admin | What's in the DB | Why it doesn't render |
-|---|---|---|
-| "0 / 4 logs this week" | 3 logs exist on Apr 15, 16, 17 | Those dates are **last week** (week starts Mon Apr 20). The "logs this week" counter only counts current-week rows. |
-| "This Week's Shifts" → all rows show "No log" | Denise has 7 shifts last week + 4 this week | Even her last-week shifts show "No log" because the table is filtered to current week only — last week's shifts (where her logs exist) aren't shown at all. |
-| Each log row in DB has `family_id = NULL`, `care_plan_id = NULL`, `started_at = NULL` | The current save code (DailyChecklist.tsx) writes all of these, but Denise's 3 logs predate that fix — they're **legacy rows** | The shift↔log matcher in `useProfessionalActivity.ts` joins on `care_plan_id OR family_id`. Both NULL → no match → her shift rows render as "No log" even on dates a log exists. |
+So the question isn't "why doesn't the admin show her logs" — it's **"why does Denise believe she saved when she didn't?"**
 
-The "Recent Activity" feed at the bottom of the same screen DOES show her 3 saves correctly — that's the proof her data is there. The compliance summary and shift table are just filtering it out.
+Reading `DailyChecklist.tsx`, the most likely cause is in the draft auto-restore logic (lines 117-140):
 
-### Fix — three small, surgical changes
+> Local drafts are only restored when `draft.shiftDate === today`. If she ticked items yesterday and didn't hit Save, today's open shows a **blank checklist** — but yesterday's draft is still sitting in `localStorage` (never cleared). She has no signal that yesterday's work was lost.
 
-**1. Backfill Denise's 3 legacy logs** (one-time SQL update)
+Combined with the Save button likely being below the fold on mobile (and no persistent "Unsaved changes" indicator), it's plausible she's been ticking items thinking auto-save covers her, then closing the tab.
 
-Set `family_id`, `care_plan_id`, `started_at`, and `last_activity_at` on her 3 existing logs by matching to her shifts on the same date. Concretely:
+### Fix — three changes that prevent this from ever happening again
 
-- Apr 15 log → care_plan `3d634783...`, family `9874b53e...` (Ana Maria Aimey), `started_at = created_at`, `last_activity_at = created_at`
-- Apr 16 log → same family/plan, `started_at = created_at`, `last_activity_at = created_at`
-- Apr 17 log → same family/plan, `started_at = created_at`, `last_activity_at = created_at`
+**1. "Unsaved changes" sticky banner inside `DailyChecklist.tsx`**
 
-This makes the shift↔log join work retroactively for her existing data and gives the admin UI real timestamps to display.
+Add a small amber sticky bar at the **top** of the checklist whenever `checkedItems` (or notes/time) has changed since the last successful save. Says: *"You have unsaved changes — tap Save Daily Log at the bottom to record this shift."* with a `Save Now` button right in the bar that calls the same `handleSave()`. This means she literally cannot tick items without seeing a clear path to persist them. The banner disappears the instant a save succeeds.
 
-**2. Generic backfill for other professionals with the same legacy gap**
+**2. Auto-stale draft warning + recovery**
 
-Same pattern, applied to ALL `daily_care_logs` rows where `family_id IS NULL` AND `care_plan_id IS NULL` — match each orphan log to a `care_shifts` row on the same `shift_date` for the same `professional_id`/`caregiver_id`, and copy over the shift's `family_id` and `care_plan_id`. Backfill `started_at` and `last_activity_at` from `created_at` where null. This silently fixes any other caregiver with pre-fix logs sitting in the same trap.
+When she opens the checklist and there's a **stale local draft** for a different date (e.g. yesterday's draft when today is a new day), show a **one-time toast + small recovery card**: *"You have an unsaved draft from Apr 22 (14 items ticked). [Open it] · [Discard]"*. If she taps Open, we set `shiftDate` to that date and restore the draft so she can save it now. This rescues any in-flight work she may already have lost over the past week.
 
-**3. Fix `useProfessionalActivity.ts` to widen the visible range**
+**3. Save success/failure visibility upgrade**
 
-Two small edits in the hook (admin Activity tab):
+- Replace the small `toast.success(...)` after save with a brief inline confirmation panel: ✅ *"Saved at 11:42 AM. Tavara recorded you on the job."* — visible until she navigates away or starts editing again. This is the trust signal she needs.
+- On save failure (network error, RLS rejection, etc.), instead of just `toast.error`, also write the failed payload + error message to `localStorage` under a `tavara_checklist_save_errors_${userId}` key and show a persistent red bar: *"Save failed — your work is preserved locally. [Retry] · [Show error]"*. This way if it ever IS a backend issue, we have evidence.
 
-- **Compliance Summary "Logs this week"**: today, "this week" = Mon→Sun starting current Monday. Change to a **7-day rolling window** (last 7 days) so logs from the prior week still register while admins are reviewing. The "/4" denominator becomes count of shifts in that same 7-day window. *(This is the metric the user is staring at when they say "Denise has been entering her logs.")*
-- **"This Week's Shifts" table**: rename to **"Recent Shifts"** and show the **last 14 days** of shifts (not just current calendar week). Same row design, same columns, same badges. This way Apr 15–17 logs show up alongside Apr 20–24 upcoming shifts in one continuous view, and admins can immediately verify recent compliance without needing to click through to "View all logs."
+### Bonus — admin-side visibility into "drafted but never saved"
 
-No other component touched. The fallback log entries (orphan logs with no matching shift) already render correctly via the existing code path at lines 209–230 of the hook.
+Add a small line in the admin Activity tab compliance summary:
+
+> "📝 0 logs saved past Apr 17 — last activity Apr 17, 3:29 PM"
+
+Pulls `MAX(last_activity_at)` for the professional and surfaces the gap in plain English so you don't have to manually count rows.
 
 ### Files touched
 
 | File | Change |
 |---|---|
-| New migration `supabase/migrations/<ts>_backfill_orphan_care_logs.sql` | UPDATE Denise's 3 logs explicitly + generic UPDATE joining `daily_care_logs` ↔ `care_shifts` for any other orphans; backfill `started_at`/`last_activity_at` from `created_at` |
-| `src/hooks/useProfessionalActivity.ts` | Replace `startOfWeekIso()` usage with `last7DaysIso()` for weekly counters; replace the `thisWeekShifts` filter in `ProfessionalActivityTab.tsx` with a 14-day rolling filter |
-| `src/components/admin/ProfessionalActivityTab.tsx` | Change card title `"This Week's Shifts"` → `"Recent Shifts (last 14 days)"`; reuse new `recentShifts` from filter |
+| `src/components/professional/DailyChecklist.tsx` | Add `lastSavedSnapshot` state + `isDirty` derived flag; render sticky `<UnsavedChangesBanner />` when dirty; add inline post-save confirmation panel; add stale-draft detection that surveys localStorage on mount and offers recovery; on save failure, persist failure record to `localStorage` and show red retry bar |
+| `src/components/professional/UnsavedChangesBanner.tsx` (NEW) | Small amber sticky bar with "Save Now" CTA — pure presentational |
+| `src/components/professional/StaleDraftRecoveryCard.tsx` (NEW) | One-time card shown above the form when a different-date draft exists; "Open it" / "Discard" actions |
+| `src/components/admin/ProfessionalActivityTab.tsx` | Add a one-line "Last logged activity: {date, time}" + "Days since last log: N" to the Compliance Summary card so the gap is impossible to miss |
 
-No DailyChecklist save logic changes (the save flow is already correct for new logs — verified at lines 444–469). No RLS changes. No new tables. No effect on family-side care log display.
+No DB schema changes. No RLS changes. No touch to `App.tsx`, AuthProvider, registration, or chat flow. The save logic itself (lines 417-526) is correct and stays untouched — we're only adding visibility/safety scaffolding around it.
 
 ### Acceptance test
 
-1. Open admin → Denise's profile → Activity tab → **Compliance Summary now shows "3 / 7 Logs this week"** (3 logs Apr 15–17 against 7 weekday shifts Apr 13–17 + Apr 20–24 inside the 7-day window — exact denominator depends on today's date, but the numerator is **3**, not 0)
-2. **"Recent Shifts (last 14 days)"** table now lists Apr 13 → Apr 24, with green ✓ badges on Apr 15/16/17 rows showing "First Log Saved" timestamps and checklist completion ratios pulled from her actual checklist_data
-3. The 4 future shifts (Apr 20/21/22/24) still show "Upcoming" / "No log" appropriately
-4. **Recent Activity feed** continues to show the 3 "Saved Daily Checklist" entries (no regression)
-5. Run query on a different professional with a similar orphan log → their admin Activity tab also resolves correctly post-migration
-6. Open DailyChecklist as a caregiver → save a new log → confirm `family_id`, `care_plan_id`, `started_at`, `last_activity_at` are all populated (no regression on the fix that's already in place)
+1. Tick 5 items in the checklist → amber sticky banner appears at top: *"You have unsaved changes — Save Now"* — both `Save Now` button and the existing bottom button work
+2. Hit Save → banner disappears, green inline panel shows ✅ *"Saved at HH:MM"* — verify a new row in `daily_care_logs` for today
+3. Tick more items after save → banner reappears (dirty state restored)
+4. Close browser without saving (with ticked items) → reopen tomorrow → toast appears: *"Unsaved draft from {yesterday} — Open it / Discard"* — Open restores and lets her save retroactively
+5. Force a save failure (e.g. disconnect network, hit Save) → red persistent bar appears: *"Save failed — work preserved locally. Retry."* → reconnect, click Retry → succeeds, red bar clears
+6. Open admin → Denise's Activity tab → Compliance Summary now shows *"Last logged activity: Apr 17, 3:29 PM · 6 days since last log"* — instant signal even before opening shift table
+7. Have Denise herself open the checklist on her phone → she sees the amber banner the moment she ticks the first item, can't miss the Save action
 
 ### Out of scope
 
-- Restructuring the chat flow, registration, or any chat-protected component
-- Touching `App.tsx`, AuthProvider, family-side care log views
-- Editing `DailyChecklist.tsx` save logic (already correct)
-- The 5 unrelated security findings shown in the side panel
-- Real-time push of new logs into the admin tab (still requires manual Refresh)
+- Auto-save to DB on every tick (rejected — would create incomplete log rows that pollute compliance metrics)
+- Push notifications for unsaved drafts (separate workstream)
+- Touching the chat flow, registration, AuthProvider, App.tsx
+- Touching the actual save SQL — it's correct
+- Backfill for Apr 18-23 (no data exists to backfill — those shifts genuinely have no logs)
 
