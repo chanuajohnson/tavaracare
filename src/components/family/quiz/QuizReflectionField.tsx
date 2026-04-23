@@ -90,11 +90,16 @@ export const QuizReflectionField: React.FC<QuizReflectionFieldProps> = ({
 
         const existingResponses =
           (profile?.client_stage_quiz_responses as Record<string, unknown>) || {};
-        const newResponses = { ...existingResponses, reflection };
+        const newResponses = {
+          ...existingResponses,
+          reflection: { text: reflection.text, submitted_at: reflection.submitted_at },
+        };
 
         const { error: updateErr } = await supabase
           .from("profiles")
-          .update({ client_stage_quiz_responses: newResponses })
+          .update({
+            client_stage_quiz_responses: newResponses as unknown as never,
+          })
           .eq("id", user.id);
 
         if (updateErr) throw updateErr;
