@@ -488,6 +488,23 @@ const Index = () => {
             </Button>
           </motion.div>
 
+          {/* Soft readiness-quiz CTA — non-destructive, additive */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+            className="mb-16 -mt-8"
+          >
+            <Link
+              to="/family/readiness-quiz"
+              className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm sm:text-base px-5 py-2.5 rounded-full transition-colors"
+            >
+              <HelpCircle className="h-4 w-4" />
+              New here? Take our 60-second readiness check
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </motion.div>
+
           {/* Urgent CTAs */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}

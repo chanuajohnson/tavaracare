@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Home, Sparkles, ArrowRight, ShieldCheck, AlertTriangle } from "lucide-react";
+import { useFamilyStage } from "@/hooks/useFamilyStage";
 
 interface CareEnvironmentJourneyStepContentProps {
   isMandatory?: boolean;
@@ -13,6 +14,15 @@ export const CareEnvironmentJourneyStepContent = ({
   isMandatory = false,
   onContactCoordinator
 }: CareEnvironmentJourneyStepContentProps) => {
+  // Stage gating: don't surface the home reset upsell to families who are
+  // still in Entry/Overwhelm (1) or Settling/Trust Forming (2) — only show
+  // it once they've signaled readiness (3) or optimization (4). Mandatory
+  // safety cases always bypass this gate so we never hide critical guidance.
+  const { stage, isLoading: stageLoading } = useFamilyStage();
+  if (!isMandatory && !stageLoading && stage < 3) {
+    return null;
+  }
+
   const tiers = [
     {
       level: 1,

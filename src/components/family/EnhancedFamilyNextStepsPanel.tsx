@@ -12,7 +12,29 @@ import { JourneyPathVisualization } from "./JourneyPathVisualization";
 import { JourneyStageCard } from "./JourneyStageCard";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 import { useIsMobile, useIsSmallMobile } from "@/hooks/use-mobile";
+import { useFamilyStage } from "@/hooks/useFamilyStage";
 import { useState } from "react";
+
+// Stage-aware tone overrides for the panel headline area.
+// Stage is invisible to the user — only the copy shifts.
+const STAGE_TONE: Record<1 | 2 | 3 | 4, { headline: string; subhead: string }> = {
+  1: {
+    headline: "Let's keep this simple.",
+    subhead: "One thing at a time. We'll start with what matters most today.",
+  },
+  2: {
+    headline: "Building your rhythm.",
+    subhead: "You're settling in — focus on consistency, not big changes.",
+  },
+  3: {
+    headline: "Ready to expand.",
+    subhead: "Now's a good time to add support that takes pressure off you.",
+  },
+  4: {
+    headline: "Optimizing your care.",
+    subhead: "Let's hand over more of the day-to-day so you can breathe.",
+  },
+};
 
 interface EnhancedFamilyNextStepsPanelProps {
   showAllSteps?: boolean;
@@ -24,6 +46,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isSmallMobile = useIsSmallMobile();
+  const { stage: familyStage, hasStage: familyHasStage } = useFamilyStage();
   const { 
     steps, 
     paths,
@@ -52,6 +75,10 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
 
   // Enhanced lead capture state management
   const [leadCaptureSource, setLeadCaptureSource] = useState('');
+
+  // Stage-aware tone — only applies to signed-in families who've completed
+  // the readiness quiz, so we never override copy for anonymous demo viewers.
+  const stageTone = !isAnonymous && familyHasStage ? STAGE_TONE[familyStage] : null;
 
   // Family-specific step to source mapping for lead capture
   const getLeadCaptureSource = (stepTitle: string, stepCategory: string): string => {
@@ -299,7 +326,14 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                 </CardTitle>
                 
                 <p className="text-xs sm:text-sm text-muted-foreground mb-4 leading-relaxed">
-                  {showAllSteps 
+                  {stageTone ? (
+                    <>
+                      <span className="block font-medium text-foreground mb-1">
+                        {stageTone.headline}
+                      </span>
+                      {stageTone.subhead}
+                    </>
+                  ) : showAllSteps 
                     ? isAnonymous
                       ? "✨ Experience how families complete their personalized care journey with Tavara's comprehensive support system"
                       : "Complete these thoughtfully designed stages to connect with qualified caregivers and begin your personalized care experience"
