@@ -115,6 +115,32 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
         </CardContent>
       </Card>
 
+      {/* Freshness + retake controls (signed-in users only) */}
+      {!isAnonymous && freshness && (
+        <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3 space-y-3">
+          <div className="flex items-start gap-2 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>{freshness.label}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRetakeRequest}
+              className="gap-2"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Things changed — retake
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* See my answers — signed-in users with stored responses */}
+      {!isAnonymous && Object.keys(responses).length > 0 && (
+        <PreviousAnswersPanel responses={responses} />
+      )}
+
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
           A good next step for you
