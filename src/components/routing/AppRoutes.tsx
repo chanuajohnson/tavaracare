@@ -58,6 +58,7 @@ import CreateCarePlanPage from "@/pages/family/care-management/CreateCarePlanPag
 import CareJourneyProgressPage from "@/pages/family/CareJourneyProgressPage";
 import FamilyOnboardingChecklistPage from "@/pages/family/FamilyOnboardingChecklistPage";
 import CareLogUpgradePage from "@/pages/family/CareLogUpgradePage";
+import FamilyReadinessQuizPage from "@/pages/family/FamilyReadinessQuizPage";
 
 // Profile Pages
 import ProfileEditPage from "@/pages/profile/ProfileEditPage";
@@ -163,6 +164,7 @@ export const AppRoutes = () => {
       <Route path="/family/care-journey-progress" element={<CareJourneyProgressPage />} />
       <Route path="/family/onboarding-checklist" element={<FamilyOnboardingChecklistPage />} />
       <Route path="/family/upgrade/care-log-access" element={<CareLogUpgradePage />} />
+      <Route path="/family/readiness-quiz" element={<FamilyReadinessQuizPage />} />
       
       {/* Community Routes */}
       <Route path="/community" element={<CommunityFeaturesOverview />} />
