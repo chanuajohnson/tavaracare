@@ -230,11 +230,21 @@ const FamilyReadinessQuizPage: React.FC = () => {
     setCurrentIndex((i) => i - 1);
   };
 
-  const handleRetake = () => {
+  const handleRetake = async () => {
     clearQuizProgress();
     setAnswers(Array(totalQuestions).fill(undefined));
     setCurrentIndex(0);
     setShowResult(false);
+    setInitialReflection(null);
+    setSavedResponses({});
+    setAssessedAt(null);
+    // Clear saved stage immediately so abandoning mid-retake doesn't leave a
+    // stale dashboard card behind. If the DB write fails, surface a toast but
+    // still proceed to Q1 — the local state has already been wiped.
+    const ok = await clearStage();
+    if (!ok) {
+      toast.error("Couldn't clear your previous result — please try again.");
+    }
     // Navigate to ?retake=1 so result-first mode is bypassed and any existing
     // ?view=result query param is cleared.
     navigate("/family/readiness-quiz?retake=1", { replace: true });
