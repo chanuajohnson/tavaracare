@@ -1,100 +1,68 @@
 
 
-## Plan — Fix `/subscriptions` 404 + add Tavara Care Delivery Packages (recurring supplies)
+## Plan — Make Denise's daily logs visible in the admin Activity tab
 
-### Part 1 — Fix the 404 (small)
+### What's actually happening
 
-**Problem:** You typed `/subscriptions` (plural). Only `/subscription` (singular) is registered in `src/components/routing/AppRoutes.tsx` (line 175).
+I queried Denise's records directly in the database. Her logs ARE saved — just invisible in the admin UI for three reasons that compound:
 
-**Fix:** Add an alias route `/subscriptions` that renders the same `<SubscriptionPage />`. Both URLs work; nothing else moves. Same fix for `/subscriptions/features` → `<SubscriptionFeaturesPage />`. Per project guardrails I'll only add 2 lines inside `AppRoutes.tsx`, no restructuring.
+| What you see in admin | What's in the DB | Why it doesn't render |
+|---|---|---|
+| "0 / 4 logs this week" | 3 logs exist on Apr 15, 16, 17 | Those dates are **last week** (week starts Mon Apr 20). The "logs this week" counter only counts current-week rows. |
+| "This Week's Shifts" → all rows show "No log" | Denise has 7 shifts last week + 4 this week | Even her last-week shifts show "No log" because the table is filtered to current week only — last week's shifts (where her logs exist) aren't shown at all. |
+| Each log row in DB has `family_id = NULL`, `care_plan_id = NULL`, `started_at = NULL` | The current save code (DailyChecklist.tsx) writes all of these, but Denise's 3 logs predate that fix — they're **legacy rows** | The shift↔log matcher in `useProfessionalActivity.ts` joins on `care_plan_id OR family_id`. Both NULL → no match → her shift rows render as "No log" even on dates a log exists. |
 
----
+The "Recent Activity" feed at the bottom of the same screen DOES show her 3 saves correctly — that's the proof her data is there. The compliance summary and shift table are just filtering it out.
 
-### Part 2 — Tavara Care Delivery Packages
+### Fix — three small, surgical changes
 
-A new recurring-supplies module that lives **inside the Errands service** (`/errands`) and is also surfaceable on the Care Environment Support tier. Families pick the items they want, choose a cadence (weekly / biweekly / monthly), and Tavara delivers them on schedule. Admin manages the catalog and per-family subscriptions.
+**1. Backfill Denise's 3 legacy logs** (one-time SQL update)
 
-#### What the family sees (on `/errands`, new section under Pricing)
+Set `family_id`, `care_plan_id`, `started_at`, and `last_activity_at` on her 3 existing logs by matching to her shifts on the same date. Concretely:
 
-A new **"📦 Recurring Care Supplies"** card with:
+- Apr 15 log → care_plan `3d634783...`, family `9874b53e...` (Ana Maria Aimey), `started_at = created_at`, `last_activity_at = created_at`
+- Apr 16 log → same family/plan, `started_at = created_at`, `last_activity_at = created_at`
+- Apr 17 log → same family/plan, `started_at = created_at`, `last_activity_at = created_at`
 
-1. **Curated bundles** to start fast (one-click selectable):
-   - **Caregiver Essentials** — gloves, hand sanitizer, disinfectant, cleaning cloths, paper towels, garbage bags
-   - **Personal Care** — soap, toothpaste, toothbrushes, deodorant, face moisturizer, deep hair conditioner, house slippers
-   - **Incontinence & Hygiene** — adult diapers (size selectable), wet wipes, rubbing alcohol, hydrogen peroxide, methylated spirit
-   - **Alzheimer's / Parkinson's Comfort Kit** — soft slippers, easy-grip toothbrush, no-rinse body wash, barrier cream, oil, big-bottle vinegar (for natural cleaning)
-   - **Home Reset Add-Ons** — clothes baskets (dirty laundry), bathroom/toilet mats, room deodorizer
-2. **À-la-carte item picker** — full catalog with quantity per item
-3. **Cadence selector** per package or per item: Weekly · Biweekly · Monthly · One-time
-4. **Delivery day** preference (Mon–Sat)
-5. **Estimated total** with line-item breakdown + `TT$50` Tavara delivery fee per drop
-6. CTA: **"Schedule Recurring Delivery"** → opens WhatsApp pre-filled with the selection + cadence (using centralized number 18687865357 per project rules) for confirmation, OR **"Pay Deposit & Lock In"** via existing `PayPalErrandsButton`
+This makes the shift↔log join work retroactively for her existing data and gives the admin UI real timestamps to display.
 
-#### What admin sees (new admin page `/admin/care-supplies`)
+**2. Generic backfill for other professionals with the same legacy gap**
 
-- **Catalog Manager**: add/edit items — name, category (caregiver / personal / hygiene / cognitive-support / home-reset), unit, default unit price (TTD), is_active, sort_order, supplier note
-- **Bundle Manager**: define bundles (name, description, items + default qty)
-- **Family Subscriptions Table**: every family's active recurring delivery — items, cadence, next delivery date, status (active / paused / cancelled), monthly value
-- **"Mark Delivered" + auto-advance** next delivery date per cadence; logs to history
-- Cadence/value rolls into the existing **Unit Economics** dashboard as a new revenue stream
+Same pattern, applied to ALL `daily_care_logs` rows where `family_id IS NULL` AND `care_plan_id IS NULL` — match each orphan log to a `care_shifts` row on the same `shift_date` for the same `professional_id`/`caregiver_id`, and copy over the shift's `family_id` and `care_plan_id`. Backfill `started_at` and `last_activity_at` from `created_at` where null. This silently fixes any other caregiver with pre-fix logs sitting in the same trap.
 
-#### Data model (3 new tables)
+**3. Fix `useProfessionalActivity.ts` to widen the visible range**
 
-| Table | Columns |
-|---|---|
-| `care_supply_items` | `id`, `name`, `category`, `description`, `unit_label` (e.g. "pack of 100"), `unit_price_ttd`, `image_url`, `is_active`, `sort_order`, timestamps |
-| `care_supply_bundles` | `id`, `name`, `description`, `category`, `is_active`, `sort_order`, timestamps; plus `care_supply_bundle_items` join (`bundle_id`, `item_id`, `default_quantity`) |
-| `care_supply_subscriptions` | `id`, `family_user_id` (fk auth.users), `cadence` enum(`weekly`,`biweekly`,`monthly`,`one_time`), `delivery_day`, `next_delivery_at`, `status` enum(`active`,`paused`,`cancelled`), `notes`, `created_by_admin`, timestamps; plus `care_supply_subscription_items` (`subscription_id`, `item_id`, `quantity`, `price_snapshot_ttd`) |
-| `care_supply_deliveries` | `id`, `subscription_id`, `delivered_at`, `total_ttd`, `notes`, `marked_by` — append-only history |
+Two small edits in the hook (admin Activity tab):
 
-**RLS**:
-- Items + bundles: `SELECT` public (active only); write = admin only via `has_role(auth.uid(), 'admin')`
-- Subscriptions + deliveries: family can `SELECT` their own; admin can do everything; writes by family limited to `INSERT` (create their own) and `UPDATE status='paused'` on their own row
+- **Compliance Summary "Logs this week"**: today, "this week" = Mon→Sun starting current Monday. Change to a **7-day rolling window** (last 7 days) so logs from the prior week still register while admins are reviewing. The "/4" denominator becomes count of shifts in that same 7-day window. *(This is the metric the user is staring at when they say "Denise has been entering her logs.")*
+- **"This Week's Shifts" table**: rename to **"Recent Shifts"** and show the **last 14 days** of shifts (not just current calendar week). Same row design, same columns, same badges. This way Apr 15–17 logs show up alongside Apr 20–24 upcoming shifts in one continuous view, and admins can immediately verify recent compliance without needing to click through to "View all logs."
 
-#### Files touched
+No other component touched. The fallback log entries (orphan logs with no matching shift) already render correctly via the existing code path at lines 209–230 of the hook.
+
+### Files touched
 
 | File | Change |
 |---|---|
-| `src/components/routing/AppRoutes.tsx` | + 2 alias routes (`/subscriptions`, `/subscriptions/features`) |
-| `supabase/migrations/<ts>_care_supply_packages.sql` | NEW — 4 tables, enums, RLS, seed bundles & ~25 items |
-| `src/hooks/useCareSupplyCatalog.ts` | NEW — fetch items + bundles |
-| `src/hooks/useCareSupplySubscription.ts` | NEW — current family's subscription CRUD |
-| `src/components/errands/CareSupplyPackages.tsx` | NEW — family-facing bundle + à-la-carte picker, cadence selector, total calc, WhatsApp/PayPal CTA |
-| `src/components/errands/SupplyItemPicker.tsx` | NEW — searchable catalog grid with qty steppers |
-| `src/components/errands/CadenceSelector.tsx` | NEW — weekly/biweekly/monthly/one-time chip group |
-| `src/pages/errands/ErrandsPage.tsx` | + render `<CareSupplyPackages />` after `<PricingBanner />` |
-| `src/pages/admin/AdminCareSuppliesPage.tsx` | NEW — admin catalog + bundle + subscriptions manager |
-| `src/components/admin/care-supplies/CatalogManager.tsx` | NEW |
-| `src/components/admin/care-supplies/BundleManager.tsx` | NEW |
-| `src/components/admin/care-supplies/SubscriptionsTable.tsx` | NEW (with "Mark Delivered" + cadence auto-advance) |
-| `src/components/routing/AppRoutes.tsx` | + 1 line: `/admin/care-supplies` route |
-| `src/components/admin/AdminQuickActions.tsx` (or sidebar) | + entry "Care Supplies" (only if admin nav exists; otherwise just the route) |
+| New migration `supabase/migrations/<ts>_backfill_orphan_care_logs.sql` | UPDATE Denise's 3 logs explicitly + generic UPDATE joining `daily_care_logs` ↔ `care_shifts` for any other orphans; backfill `started_at`/`last_activity_at` from `created_at` |
+| `src/hooks/useProfessionalActivity.ts` | Replace `startOfWeekIso()` usage with `last7DaysIso()` for weekly counters; replace the `thisWeekShifts` filter in `ProfessionalActivityTab.tsx` with a 14-day rolling filter |
+| `src/components/admin/ProfessionalActivityTab.tsx` | Change card title `"This Week's Shifts"` → `"Recent Shifts (last 14 days)"`; reuse new `recentShifts` from filter |
 
-#### Seed catalog (initial items, all editable in admin after)
+No DailyChecklist save logic changes (the save flow is already correct for new logs — verified at lines 444–469). No RLS changes. No new tables. No effect on family-side care log display.
 
-Gloves (box of 100) · Wet wipes · Adult diapers S/M/L/XL · Hand sanitizer · Disinfectant · Cleaning cloths · Paper towels · Garbage bags · Rubbing alcohol · Methylated spirit · Hydrogen peroxide · Big bottle vinegar · Soap · Toothpaste · Toothbrushes · Deodorant · Face moisturizer · Deep hair conditioner (steam) · House slippers · Clothes baskets · Bathroom/toilet mats · Coconut oil · Barrier cream · No-rinse body wash · Easy-grip toothbrush · Room deodorizer
+### Acceptance test
 
-Prices: admin-editable; seed with placeholder TTD values flagged `needs_pricing_review = true` (extra column) so you can sweep through and confirm before launch.
+1. Open admin → Denise's profile → Activity tab → **Compliance Summary now shows "3 / 7 Logs this week"** (3 logs Apr 15–17 against 7 weekday shifts Apr 13–17 + Apr 20–24 inside the 7-day window — exact denominator depends on today's date, but the numerator is **3**, not 0)
+2. **"Recent Shifts (last 14 days)"** table now lists Apr 13 → Apr 24, with green ✓ badges on Apr 15/16/17 rows showing "First Log Saved" timestamps and checklist completion ratios pulled from her actual checklist_data
+3. The 4 future shifts (Apr 20/21/22/24) still show "Upcoming" / "No log" appropriately
+4. **Recent Activity feed** continues to show the 3 "Saved Daily Checklist" entries (no regression)
+5. Run query on a different professional with a similar orphan log → their admin Activity tab also resolves correctly post-migration
+6. Open DailyChecklist as a caregiver → save a new log → confirm `family_id`, `care_plan_id`, `started_at`, `last_activity_at` are all populated (no regression on the fix that's already in place)
 
-#### Tie-in to existing Care Environment Support
+### Out of scope
 
-On the `Full Care Environment Reset` tier (Level 3, monthly retainer), the admin onboarding checklist will gain a "Set up Recurring Supplies" suggested step that deep-links to `/admin/care-supplies?family={id}` to create the subscription on the family's behalf. No DB change to the existing `billable_service_items` — purely a UI link.
-
-#### Acceptance test
-
-1. Visit `https://tavara.care/subscriptions` → loads same page as `/subscription` (no 404)
-2. `/errands` → new "Recurring Care Supplies" section visible under pricing; tapping "Caregiver Essentials" prefills 6 items; cadence defaults to **Monthly**; total TTD recalculates as items toggle/qty changes
-3. Change cadence to Weekly → total stays per-delivery, label updates to "every week"
-4. Click "Schedule Recurring Delivery" → WhatsApp opens to 18687865357 with message listing items, qty, cadence, delivery day
-5. Authed family clicks "Pay Deposit & Lock In" → creates `care_supply_subscriptions` row (status=`active`, `next_delivery_at` = next matching delivery_day) + items snapshot
-6. Admin → `/admin/care-supplies` → sees the new subscription; can edit items, change cadence, pause, mark delivered (creates `care_supply_deliveries` row, advances `next_delivery_at` by cadence interval)
-7. Non-admin trying to `UPDATE care_supply_items` via console → RLS denies
-8. Mobile 375px → bundle cards stack, qty steppers tappable, cadence chips wrap cleanly
-
-#### Out of scope
-
-- Real-time delivery tracking / driver app
-- Inventory management for Tavara stockroom (assume buy-on-demand from supermarket per delivery)
-- Auto-charging recurring payments (PayPal recurring stays as today; supply payments handled per-delivery via existing PayPal/WhatsApp flow until you opt-in to wire recurring billing)
-- Touching `App.tsx` root, `AuthProvider`, registration flows, family chat flow (per guardrails)
+- Restructuring the chat flow, registration, or any chat-protected component
+- Touching `App.tsx`, AuthProvider, family-side care log views
+- Editing `DailyChecklist.tsx` save logic (already correct)
+- The 5 unrelated security findings shown in the side panel
+- Real-time push of new logs into the admin tab (still requires manual Refresh)
 
