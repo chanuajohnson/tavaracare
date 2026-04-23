@@ -346,8 +346,13 @@ const FamilyReadinessQuizPage: React.FC = () => {
                   onRetake={handleRetake}
                   onSaveStage={handleSaveStageAnonymous}
                   stage={finalStage}
-                  responses={buildResponsesObject(answers)}
+                  responses={
+                    viewResultMode || resultFirstMode
+                      ? savedResponses
+                      : buildResponsesObject(answers)
+                  }
                   initialReflection={initialReflection}
+                  assessedAt={assessedAt}
                 />
               )}
             </AnimatePresence>
