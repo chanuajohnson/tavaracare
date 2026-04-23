@@ -12,7 +12,29 @@ import { JourneyPathVisualization } from "./JourneyPathVisualization";
 import { JourneyStageCard } from "./JourneyStageCard";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 import { useIsMobile, useIsSmallMobile } from "@/hooks/use-mobile";
+import { useFamilyStage } from "@/hooks/useFamilyStage";
 import { useState } from "react";
+
+// Stage-aware tone overrides for the panel headline area.
+// Stage is invisible to the user — only the copy shifts.
+const STAGE_TONE: Record<1 | 2 | 3 | 4, { headline: string; subhead: string }> = {
+  1: {
+    headline: "Let's keep this simple.",
+    subhead: "One thing at a time. We'll start with what matters most today.",
+  },
+  2: {
+    headline: "Building your rhythm.",
+    subhead: "You're settling in — focus on consistency, not big changes.",
+  },
+  3: {
+    headline: "Ready to expand.",
+    subhead: "Now's a good time to add support that takes pressure off you.",
+  },
+  4: {
+    headline: "Optimizing your care.",
+    subhead: "Let's hand over more of the day-to-day so you can breathe.",
+  },
+};
 
 interface EnhancedFamilyNextStepsPanelProps {
   showAllSteps?: boolean;
