@@ -148,12 +148,11 @@ export const ProfessionalActivityTab: React.FC<Props> = ({
 
   const [logsDialogOpen, setLogsDialogOpen] = useState(false);
 
-  const thisWeekShifts = shifts.filter((s) => {
-    const d = new Date();
-    const day = d.getDay() || 7;
-    if (day !== 1) d.setHours(-24 * (day - 1));
-    d.setHours(0, 0, 0, 0);
-    return s.date >= d.toISOString().slice(0, 10);
+  const recentShifts = shifts.filter((s) => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 14);
+    cutoff.setHours(0, 0, 0, 0);
+    return s.date >= cutoff.toISOString().slice(0, 10);
   });
 
   if (loading) {
