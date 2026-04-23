@@ -1,19 +1,25 @@
-import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
+import { Button } from "@/components/ui/button";
 import { QuizProgressDots } from "@/components/family/quiz/QuizProgressDots";
 import { QuizQuestionCard } from "@/components/family/quiz/QuizQuestionCard";
 import { QuizResultCard } from "@/components/family/quiz/QuizResultCard";
+import { useFamilyStage } from "@/hooks/useFamilyStage";
 import {
   readinessQuizQuestions,
   readinessStages,
   scoreQuiz,
   READINESS_LOCAL_STORAGE_KEY,
   READINESS_RESPONSES_LOCAL_KEY,
+  readQuizProgress,
+  writeQuizProgress,
+  clearQuizProgress,
+  countAnswered,
   type ReadinessStage,
 } from "@/data/familyReadinessQuiz";
 
@@ -22,23 +28,64 @@ const AUTO_ADVANCE_MS = 250;
 const FamilyReadinessQuizPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const viewParam = searchParams.get("view");
+
+  const { stage: savedStage, hasStage } = useFamilyStage();
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<(ReadinessStage | undefined)[]>(
     () => Array(readinessQuizQuestions.length).fill(undefined)
   );
   const [showResult, setShowResult] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [resumePromptOpen, setResumePromptOpen] = useState(false);
+  const [pendingProgress, setPendingProgress] = useState<{
+    answers: (ReadinessStage | undefined)[];
+    currentIndex: number;
+  } | null>(null);
 
   const totalQuestions = readinessQuizQuestions.length;
   const currentQuestion = readinessQuizQuestions[currentIndex];
   const isAnonymous = !user;
 
+  // Direct view=result mode — show their saved stage as the full result
+  const viewResultMode = viewParam === "result" && hasStage;
+
   const finalStage: ReadinessStage = useMemo(() => {
+    if (viewResultMode) return savedStage;
     const numeric = answers.filter((a): a is ReadinessStage => !!a);
     return scoreQuiz(numeric);
-  }, [answers]);
+  }, [answers, viewResultMode, savedStage]);
 
   const stageDef = readinessStages[finalStage];
+
+  // On mount: if ?view=result and we have a saved stage, jump straight to result
+  useEffect(() => {
+    if (viewResultMode) {
+      setShowResult(true);
+      return;
+    }
+
+    // Otherwise, look for in-progress quiz to offer resume
+    const progress = readQuizProgress();
+    if (
+      progress &&
+      progress.answers.length === totalQuestions &&
+      countAnswered(progress.answers) > 0 &&
+      countAnswered(progress.answers) < totalQuestions
+    ) {
+      setPendingProgress({
+        answers: progress.answers,
+        currentIndex: Math.min(
+          Math.max(progress.currentIndex, 0),
+          totalQuestions - 1
+        ),
+      });
+      setResumePromptOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const buildResponsesObject = (currentAnswers: (ReadinessStage | undefined)[]) => {
     return readinessQuizQuestions.reduce<Record<string, number>>((acc, q, i) => {
@@ -54,7 +101,6 @@ const FamilyReadinessQuizPage: React.FC = () => {
   ) => {
     const responses = buildResponsesObject(finalAnswers);
 
-    // Always write to localStorage so anonymous → signup migration is possible
     try {
       localStorage.setItem(READINESS_LOCAL_STORAGE_KEY, String(stage));
       localStorage.setItem(
@@ -62,10 +108,12 @@ const FamilyReadinessQuizPage: React.FC = () => {
         JSON.stringify(responses)
       );
     } catch {
-      // ignore storage failures (private mode etc.)
+      // ignore storage failures
     }
 
-    // Persist to profile if signed in
+    // Completed — clear any in-progress data
+    clearQuizProgress();
+
     if (user?.id) {
       setIsSaving(true);
       try {
@@ -95,9 +143,14 @@ const FamilyReadinessQuizPage: React.FC = () => {
     next[currentIndex] = score;
     setAnswers(next);
 
+    // Persist in-progress on every selection
+    writeQuizProgress(next, currentIndex);
+
     setTimeout(() => {
       if (currentIndex < totalQuestions - 1) {
-        setCurrentIndex((i) => i + 1);
+        const nextIndex = currentIndex + 1;
+        setCurrentIndex(nextIndex);
+        writeQuizProgress(next, nextIndex);
       } else {
         const stage = scoreQuiz(
           next.filter((a): a is ReadinessStage => !!a)
@@ -117,14 +170,34 @@ const FamilyReadinessQuizPage: React.FC = () => {
   };
 
   const handleRetake = () => {
+    clearQuizProgress();
     setAnswers(Array(totalQuestions).fill(undefined));
     setCurrentIndex(0);
     setShowResult(false);
+    // If we were in view=result mode, drop the query param
+    if (viewParam) {
+      navigate("/family/readiness-quiz", { replace: true });
+    }
   };
 
   const handleSaveStageAnonymous = () => {
-    // Stage is already in localStorage from persistStage; route to signup.
     navigate(`/auth?tab=signup&role=family`);
+  };
+
+  const handleResumeContinue = () => {
+    if (!pendingProgress) return;
+    setAnswers(pendingProgress.answers);
+    setCurrentIndex(pendingProgress.currentIndex);
+    setResumePromptOpen(false);
+    setPendingProgress(null);
+  };
+
+  const handleResumeStartOver = () => {
+    clearQuizProgress();
+    setAnswers(Array(totalQuestions).fill(undefined));
+    setCurrentIndex(0);
+    setResumePromptOpen(false);
+    setPendingProgress(null);
   };
 
   return (
@@ -135,7 +208,7 @@ const FamilyReadinessQuizPage: React.FC = () => {
         }
         journeyStage="pre-onboarding"
         additionalData={
-          showResult ? { stage: finalStage } : undefined
+          showResult ? { stage: finalStage, viewMode: viewResultMode ? "result" : "fresh" } : undefined
         }
       />
 
@@ -157,8 +230,28 @@ const FamilyReadinessQuizPage: React.FC = () => {
           )}
         </div>
 
+        {/* Resume prompt */}
+        {resumePromptOpen && pendingProgress && !showResult && (
+          <div className="mb-6 rounded-lg border border-primary/30 bg-primary/5 p-4">
+            <p className="text-sm font-medium text-foreground">
+              Pick up where you left off?
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              You answered {countAnswered(pendingProgress.answers)} of {totalQuestions} last time.
+            </p>
+            <div className="flex gap-2 mt-3">
+              <Button size="sm" onClick={handleResumeContinue}>
+                Continue
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleResumeStartOver}>
+                Start over
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Sticky progress dots */}
-        {!showResult && (
+        {!showResult && !resumePromptOpen && (
           <div className="sticky top-2 z-10 flex justify-center mb-6">
             <div className="bg-background/80 backdrop-blur-sm rounded-full px-4 py-2 border border-border/60 shadow-sm">
               <QuizProgressDots
@@ -170,34 +263,36 @@ const FamilyReadinessQuizPage: React.FC = () => {
         )}
 
         {/* Body */}
-        <div className="relative min-h-[420px]">
-          <AnimatePresence mode="wait">
-            {!showResult ? (
-              <QuizQuestionCard
-                key={currentQuestion.id}
-                question={currentQuestion}
-                questionNumber={currentIndex + 1}
-                totalQuestions={totalQuestions}
-                selectedScore={answers[currentIndex]}
-                canGoBack={currentIndex > 0}
-                onSelect={handleSelect}
-                onBack={handleBack}
-              />
-            ) : (
-              <QuizResultCard
-                key="result"
-                stageDef={stageDef}
-                isAnonymous={isAnonymous}
-                isSaving={isSaving}
-                onRetake={handleRetake}
-                onSaveStage={handleSaveStageAnonymous}
-              />
-            )}
-          </AnimatePresence>
-        </div>
+        {!resumePromptOpen && (
+          <div className="relative min-h-[420px]">
+            <AnimatePresence mode="wait">
+              {!showResult ? (
+                <QuizQuestionCard
+                  key={currentQuestion.id}
+                  question={currentQuestion}
+                  questionNumber={currentIndex + 1}
+                  totalQuestions={totalQuestions}
+                  selectedScore={answers[currentIndex]}
+                  canGoBack={currentIndex > 0}
+                  onSelect={handleSelect}
+                  onBack={handleBack}
+                />
+              ) : (
+                <QuizResultCard
+                  key="result"
+                  stageDef={stageDef}
+                  isAnonymous={isAnonymous}
+                  isSaving={isSaving}
+                  onRetake={handleRetake}
+                  onSaveStage={handleSaveStageAnonymous}
+                />
+              )}
+            </AnimatePresence>
+          </div>
+        )}
 
         {/* Reassurance footer */}
-        {!showResult && (
+        {!showResult && !resumePromptOpen && (
           <p className="text-center text-xs text-muted-foreground mt-8">
             We use this only to tailor your experience. You can retake it
             anytime.
