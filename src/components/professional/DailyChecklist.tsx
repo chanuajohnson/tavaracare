@@ -16,7 +16,9 @@ import { toast } from 'sonner';
 import { CHECKLIST_SECTIONS } from './checklist/checklistSections';
 import { ChecklistSectionCard } from './checklist/ChecklistSectionCard';
 import { openCheckInWhatsApp } from '@/utils/whatsapp/checkInTemplate';
-import { UnsavedChangesBanner } from './UnsavedChangesBanner';
+// NOTE: UnsavedChangesBanner intentionally removed — bottom Save / Save & Send buttons
+// are the single source of truth. The persistent red save-failure bar (below) handles
+// any actual save errors so caregivers are never left wondering.
 import { StaleDraftRecoveryCard } from './StaleDraftRecoveryCard';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import {
