@@ -881,6 +881,16 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
                   className="mt-2"
                 />
               )}
+              {/* Empty-state notice: if the assignments hook returned nothing,
+                  surface it immediately instead of letting the Save button look frozen.
+                  This is the failure mode that bit Denise from Apr 18 onward. */}
+              {assignments.length === 0 && (
+                <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  We couldn't find any active client assignments for you yet. You can still log
+                  today's shift by choosing <strong>"Other (type name)"</strong> above. If this
+                  looks wrong, please contact Tavara support so we can fix your care team link.
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="shiftDate">Date</Label>
