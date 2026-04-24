@@ -16,7 +16,9 @@ import { toast } from 'sonner';
 import { CHECKLIST_SECTIONS } from './checklist/checklistSections';
 import { ChecklistSectionCard } from './checklist/ChecklistSectionCard';
 import { openCheckInWhatsApp } from '@/utils/whatsapp/checkInTemplate';
-import { UnsavedChangesBanner } from './UnsavedChangesBanner';
+// NOTE: UnsavedChangesBanner intentionally removed — bottom Save / Save & Send buttons
+// are the single source of truth. The persistent red save-failure bar (below) handles
+// any actual save errors so caregivers are never left wondering.
 import { StaleDraftRecoveryCard } from './StaleDraftRecoveryCard';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import {
@@ -687,14 +689,9 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
 
   return (
     <div className="space-y-6">
-      {/* Sticky "Unsaved changes" banner — visible whenever local edits diverge from last save */}
-      {isDirty && (
-        <UnsavedChangesBanner
-          onSaveNow={handleSave}
-          saving={saving}
-          changeCount={completedItems}
-        />
-      )}
+      {/* Orange "Unsaved changes" banner removed per caregiver feedback —
+          bottom Save / Save & Send buttons remain the single source of truth.
+          Real failures still surface via the persistent red save-error bar below. */}
 
       {/* Persistent save-failure bar with retry */}
       {saveError && (
@@ -883,6 +880,16 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
                   onChange={e => setCustomClientName(e.target.value)}
                   className="mt-2"
                 />
+              )}
+              {/* Empty-state notice: if the assignments hook returned nothing,
+                  surface it immediately instead of letting the Save button look frozen.
+                  This is the failure mode that bit Denise from Apr 18 onward. */}
+              {assignments.length === 0 && (
+                <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  We couldn't find any active client assignments for you yet. You can still log
+                  today's shift by choosing <strong>"Other (type name)"</strong> above. If this
+                  looks wrong, please contact Tavara support so we can fix your care team link.
+                </div>
               )}
             </div>
             <div className="space-y-2">
