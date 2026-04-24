@@ -1,117 +1,103 @@
+# Fix Denise's Daily Checklist Saves — Final Plan
 
+## Why this is happening (confirmed via DB inspection)
 
-## Plan — Fix the cross-card reset bug + reposition the readiness banner so families see it sooner
+Denise's `care_team_members` row for the Aimey care plan has `family_id` pointing at **Chanua (admin)** instead of **Ana Maria Aimey**. This causes:
+- `get_professional_accessible_family_profiles(denise.id)` to return Chanua instead of Ana Maria.
+- Denise's "Client" dropdown in `DailyChecklist` to show an admin instead of the family.
+- `handleSave` to silently `return` when the selected shift can't be matched against `availableShifts` for the actual care plan → Save button looks frozen, no toast, no error.
 
-### What's actually broken (root cause)
+Tricia's row is correct, which is why her saves persist end-to-end (including with the orange banner in place — so the banner is **not** the cause of Denise's failures, but you've asked to remove it anyway).
 
-The screenshot shows that after tapping Reset on the "Optimization · Lifting the daily load" card:
+Successful logs from Denise on Apr 15–17 used the **"Other (ad-hoc shift)"** path, which bypasses assignment/shift validation. From Apr 18 onward she attempted the scheduled path and hit the silent-failure branch.
 
-- ✅ `FamilyReadinessQuickAccess` correctly disappeared
-- ❌ `Stage4SupplyNudge` ("Tired of holding the list?") **stayed visible** even though it's gated on `hasStage && stage === 4`
-- ❌ `ReadinessQuizBanner` ("Help us tailor your experience") **didn't appear** even though `hasStage` should now be false
+---
 
-Both bugs share the same root cause: **`useFamilyStage()` is called independently in 3 different components (`ReadinessQuizBanner`, `FamilyReadinessQuickAccess`, `Stage4SupplyNudge`), and each call has its own isolated `useState` — they don't share state**. So when `clearStage()` runs inside `FamilyReadinessQuickAccess`, only that component re-renders. The other two still hold the stale `stage=4, hasStage=true` from their own initial DB fetch.
+## Step 1 — Data repair (Supabase, two precise statements; NOT a global sweep)
 
-The dashboard only "comes back to life" on a hard refresh because that's when every hook re-fetches.
-
-### Fix Part A — Make `useFamilyStage` reactive across components
-
-Change `useFamilyStage` so all instances stay in sync after a reset. Two minimal options, picking the simpler one:
-
-- Emit a lightweight custom DOM event (`tavara:family-stage-changed`) inside `clearStage()` and the quiz-completion `persistStage()` path. Every `useFamilyStage()` instance subscribes to this event in a `useEffect` and re-runs `load()` when it fires.
-
-This avoids introducing a context provider or React Query just for this one state, keeps the hook's signature unchanged, and is bulletproof across pages. Other places that mutate `client_stage` (the quiz completion path) will also dispatch the event so the dashboard updates without a refresh.
-
-**File touched:** `src/hooks/useFamilyStage.ts` only — no schema, no provider tree change.
-
-### Fix Part B — Tie the supply nudge to the readiness state, not floating on its own
-
-Once Part A is in place, `Stage4SupplyNudge` will correctly disappear after reset (because `hasStage` becomes false in its own hook instance too). No code change needed there beyond Part A — the existing guard already handles it.
-
-To be extra safe and match the user's expectation ("the second card is related to the first — they should rise and fall together"), we'll also add an explicit comment in `Stage4SupplyNudge` clarifying it depends on `hasStage`.
-
-### Fix Part C — Reposition the readiness banner higher on the dashboard
-
-Currently the order is:
-
-```text
-1. FamilyShortcutMenuBar
-2. DailyCareQuickView           ← "Today's Care Activity"
-3. Rate Info ($40–$50+/hr)      ← "Tavara Care Rates"
-4. FamilyMatchNotification      ← "You have 6 caregiver matches"
-5. SchedulingStatusBanner
-6. CaregiverReadinessCard
-7. ProfessionalChatRequestsSection
-8. ReadinessQuizBanner          ← TOO LOW — buried below all care ops
-9. FamilyReadinessQuickAccess   ← TOO LOW
-10. Stage4SupplyNudge
+**1a. Fix Denise's row only**
+```sql
+UPDATE care_team_members
+SET family_id = '9874b53e-ea23-4ccb-abed-ddbb0367edf5',  -- Ana Maria Aimey
+    updated_at = now()
+WHERE id = '2acc673b-e572-4f55-8677-b25530d2cd73'
+  AND caregiver_id = '24fe4121-89e6-4a3a-ba9c-c56e768afc05'  -- Denise
+  AND care_plan_id  = '3d634783-c041-476d-8360-2980846a39e4'; -- Aimey plan
 ```
 
-The user wants the readiness check to sit **above "Today's Care Activity"** when the family hasn't taken it (so it's emotionally forward-facing), and **above "Tavara Care Rates"** when they have taken it (visible but not pushy).
-
-**New order** (when the family has NOT taken the quiz yet — `!hasStage`):
-
-```text
-1. FamilyShortcutMenuBar
-2. ReadinessQuizBanner          ← MOVED UP — emotional check-in front and centre
-3. DailyCareQuickView
-4. Rate Info
-5. … (rest unchanged)
+**1b. Add Chanua as admin coordinator on the Aimey plan (per your request to remain visibly attached)**
+```sql
+INSERT INTO care_team_members (
+  care_plan_id, family_id, caregiver_id, role, status, display_name, notes
+) VALUES (
+  '3d634783-c041-476d-8360-2980846a39e4',  -- Aimey plan
+  '9874b53e-ea23-4ccb-abed-ddbb0367edf5',  -- Ana Maria (correct family link)
+  '6d089663-8794-444e-99fa-ae480d3f3c35',  -- Chanua (admin)
+  'other',
+  'active',
+  'Chanua Johnson — Care Coordinator (Admin)',
+  'Tavara admin coordinator attached for oversight; not a billable caregiver.'
+);
 ```
 
-**New order** (when the family HAS taken the quiz — `hasStage`):
+This keeps you visibly attached to the plan **without** stealing the family slot from Ana Maria. Your `/admin/...` coordination path is unaffected — it never relied on this row.
 
-```text
-1. FamilyShortcutMenuBar
-2. DailyCareQuickView
-3. FamilyReadinessQuickAccess   ← MOVED UP — above Rate Info, but below today's activity
-4. Stage4SupplyNudge            ← stays right below the quick-access card (only at stage 4)
-5. Rate Info
-6. … (rest unchanged)
+---
+
+## Step 2 — Code change: `src/components/professional/DailyChecklist.tsx` (only file touched)
+
+1. **Remove the orange banner**
+   - Remove the `import { UnsavedChangesBanner } from './UnsavedChangesBanner'` (or equivalent) and its render block.
+   - Bottom Save / Save & Send buttons remain the single source of truth.
+
+2. **Replace silent `return` paths in `handleSave` with a persistent inline red error bar via `setSaveError(...)`**
+   - `assignments.length === 0` → "We couldn't find any care plans assigned to you. Please contact Tavara support."
+   - selected shift = `__other__` but no notes → "Please add a quick note describing today's shift before saving."
+   - selected shift not found in `availableShifts` → "Please pick a shift from the list, or choose 'Other (ad-hoc shift)'."
+   - Supabase insert error → surface the actual error message returned from Supabase.
+
+3. **Add an amber inline notice under the Client dropdown** when `assignments.length === 0`:
+   - Tells the caregiver to use "Other (ad-hoc shift)" or contact Tavara, so future data mismatches surface immediately instead of looking like a frozen button.
+
+No other files, no routing, no auth, no providers, no RPC, no `useCurrentAssignments` change.
+
+---
+
+## Step 3 — Read-only audit query (printed for you, not auto-run)
+
+```sql
+SELECT ctm.id, pc.full_name AS caregiver, pf.full_name AS ctm_family,
+       pf.role AS ctm_family_role, pcp.full_name AS plan_family, cp.title
+FROM care_team_members ctm
+JOIN care_plans cp  ON cp.id  = ctm.care_plan_id
+LEFT JOIN profiles pc  ON pc.id  = ctm.caregiver_id
+LEFT JOIN profiles pf  ON pf.id  = ctm.family_id
+LEFT JOIN profiles pcp ON pcp.id = cp.family_id
+WHERE ctm.family_id <> cp.family_id
+  AND ctm.status = 'active';
 ```
 
-This is achieved by:
-- Moving `<ReadinessQuizBanner />`, `<FamilyReadinessQuickAccess />`, and `<Stage4SupplyNudge />` out of their current position (lines 367–369) up into the section right after `<FamilyShortcutMenuBar />` (around line 230) and `<DailyCareQuickView />` (line 233)
-- Keeping the components' internal `hasStage` gating — only one of `ReadinessQuizBanner` vs `FamilyReadinessQuickAccess` will ever render at a time, so the dashboard stays clean
+Run from `/admin` whenever you want to spot future mismatches. We will NOT auto-sweep.
 
-### Fix Part D — Make the empty-state banner copy more emotional
+---
 
-Today the banner reads:
+## Guardrails honored (will NOT touch)
 
-> **Help us tailor your experience**
-> Take our 60-second readiness check so your dashboard fits where you are right now.
+- `src/App.tsx`, routing, navigation, layout
+- `AuthProvider`, Supabase client, query providers
+- `src/pages/registration/FamilyRegistration.tsx`
+- Chat flow files, registration flows, multi-select managers
+- `get_professional_accessible_family_profiles` RPC (admin path stays exactly as-is)
+- `useCurrentAssignments.ts` (no behavioral change needed once data is correct)
+- Tricia's row, any other professional's row, any other care plan
+- Stage4SupplyNudge / FamilyReadinessQuickAccess / family dashboard
 
-The user described it as an "emotional health check-in", not a UI personalization tool. New copy on the empty-state version (the in-progress version stays unchanged because it's task-focused):
+---
 
-> **How are you doing today?**
-> Take a 60-second emotional check-in so we can meet you where you actually are — not where the platform assumes.
+## Expected outcome
 
-Same `<Link>`, same destination, same icon. Just warmer copy that matches the user's framing.
-
-### Files touched
-
-| File | Change |
-|---|---|
-| `src/hooks/useFamilyStage.ts` | Dispatch `tavara:family-stage-changed` event after `clearStage()` succeeds; subscribe to the same event in the hook's `useEffect` so all instances re-load in sync |
-| `src/pages/family/FamilyReadinessQuizPage.tsx` | After successful `persistStage()` on quiz completion, also dispatch `tavara:family-stage-changed` so the dashboard's banner→quick-access transition is instant on return |
-| `src/components/family/FamilyDashboard.tsx` | Move the 3 readiness-related elements (`<ReadinessQuizBanner />`, `<FamilyReadinessQuickAccess />`, `<Stage4SupplyNudge />`) from lines 367–369 to a new spot directly after `<DailyCareQuickView />` at line 234. Update `ReadinessQuizBanner` empty-state copy to the warmer "How are you doing today?" framing |
-
-**No changes to:** `useFamilyStage`'s public signature, `FamilyReadinessQuickAccess`, `Stage4SupplyNudge` internals, `RetakeConfirmDialog`, schema, RLS, AppRoutes, AuthProvider, FamilyRegistration, scoring logic, or the lead capture flow.
-
-### Acceptance test
-
-1. Family with `client_stage=4` on `/dashboard/family` → sees `FamilyReadinessQuickAccess` (Optimization card) **above** the Tavara Care Rates card and **below** Today's Care Activity. Stage4 supply nudge sits right under it.
-2. Same family taps the ⟲ Reset icon → confirms → toast appears → **both** the Optimization card AND the "Tired of holding the list?" card disappear in the same render (no refresh needed) → in their place, the warmer `ReadinessQuizBanner` ("How are you doing today?") appears, positioned right above Today's Care Activity.
-3. Family taps that banner → goes to the quiz → completes Q1–Q6 → on return to `/dashboard/family`, the new `FamilyReadinessQuickAccess` card appears in the higher position immediately, no refresh needed.
-4. Family who has never taken the quiz → opens dashboard for the first time → sees `ReadinessQuizBanner` directly under the shortcut menu bar, above Today's Care Activity.
-5. Family at stage 1, 2, or 3 → sees their `FamilyReadinessQuickAccess` card in the higher position, and **no** Stage4 supply nudge (existing gate preserved).
-6. Anonymous (logged-out) visitor to `/dashboard/family` → sees the welcome card (existing behavior), no readiness banner or quick-access card (gated on `user`).
-7. Verify in DevTools: dispatching `window.dispatchEvent(new CustomEvent('tavara:family-stage-changed'))` triggers a re-fetch in all mounted `useFamilyStage()` instances.
-
-### Out of scope
-
-- Replacing `useFamilyStage` with React Query or a context provider (the event-bus fix is minimal and matches the existing patterns in the codebase)
-- Adding analytics on banner impressions / quiz starts (separate workstream)
-- Restyling the banner — only the copy changes; visual treatment stays
-- Changing where the readiness card sits on any non-dashboard route
-
+- Denise's "Client" dropdown shows **Ana Maria Aimey** (correct).
+- Her Apr 20–24 scheduled shifts appear; she can save against them and entries persist in `daily_care_logs` with checklist ticks, notes, timestamps.
+- You (Chanua) remain visibly attached to the Aimey plan as "Care Coordinator (Admin)" and continue to administer everything from `/admin/...` exactly as today.
+- Any future data mismatch (anyone) shows a visible red error bar + amber notice instead of a silent failure.
+- Orange `UnsavedChangesBanner` is gone.
