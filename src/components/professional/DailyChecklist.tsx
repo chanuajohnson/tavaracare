@@ -689,14 +689,9 @@ export const DailyChecklist = ({ preloadLogId, preloadClientName, preloadDate }:
 
   return (
     <div className="space-y-6">
-      {/* Sticky "Unsaved changes" banner — visible whenever local edits diverge from last save */}
-      {isDirty && (
-        <UnsavedChangesBanner
-          onSaveNow={handleSave}
-          saving={saving}
-          changeCount={completedItems}
-        />
-      )}
+      {/* Orange "Unsaved changes" banner removed per caregiver feedback —
+          bottom Save / Save & Send buttons remain the single source of truth.
+          Real failures still surface via the persistent red save-error bar below. */}
 
       {/* Persistent save-failure bar with retry */}
       {saveError && (
