@@ -3,6 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Download, FileText, Sparkles, Info } from 'lucide-react';
 import { useLifecycleCost } from '@/hooks/admin/useLifecycleCost';
 import {
@@ -37,7 +43,6 @@ export default function LifecycleCostPage() {
 
   const presets = useMemo(() => buildScenarioPresets(pricing), [pricing]);
 
-  // Build the custom scenario from the builder state
   const customScenario: ScenarioConfig = useMemo(() => {
     const sub = builder.subscription === 'premium' ? pricing.sub_premium : pricing.sub_active;
     let weeklyAddons = 0;
@@ -51,7 +56,7 @@ export default function LifecycleCostPage() {
       case 'podiatric': weeklyAddons += pricing.addon_secondary_podiatric; break;
     }
     return {
-      key: 'conservative', // reuse type — render label as "Custom"
+      key: 'conservative',
       label: 'Custom',
       description: `$${builder.hourlyRate}/hr × ${builder.hoursPerDay}h × ${builder.daysPerWeek}d, ${builder.subscription === 'premium' ? 'Premium' : 'Active'} Care Mgmt`,
       hourlyRate: builder.hourlyRate,
@@ -90,7 +95,22 @@ export default function LifecycleCostPage() {
 
   return (
     <div className="container mx-auto py-8 space-y-6">
-      {/* Header */}
+      {/* Print override: expand all accordion panels in printed PDF */}
+      <style>{`
+        @media print {
+          [data-radix-collection-item] [data-state="closed"] {
+            display: block !important;
+          }
+          [data-state="closed"] > div[role="region"],
+          [data-state="closed"] + div[role="region"] {
+            display: block !important;
+            height: auto !important;
+            animation: none !important;
+          }
+        }
+      `}</style>
+
+      {/* Header — always visible */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -114,84 +134,180 @@ export default function LifecycleCostPage() {
         </div>
       </div>
 
-      {/* Free plan value — what families experience BEFORE paying anything */}
-      <FreePlanValueCard />
-
-      {/* Day 0 mandatory bundle — NIS removed (now optional, see OptionalServicesRow) */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Badge variant="default">Day 0</Badge>
-            Mandatory setup bundle — paid before any care begins
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Day0Item label="Care Assessment & Setup" amount={pricing.setup_assessment} />
-            <Day0Item label="Caregiver Matching & Placement" amount={pricing.setup_matching} />
-            <Day0Item label="Care Readiness Assessment" amount={pricing.setup_readiness} />
-            <div className="rounded-md bg-primary/10 border border-primary/30 p-3 flex flex-col justify-center">
-              <div className="text-[10px] uppercase text-muted-foreground">Day 0 Total</div>
-              <div className="text-lg font-bold text-primary">
-                {fmtTTD(
-                  pricing.setup_assessment + pricing.setup_matching +
-                  pricing.setup_readiness + day0Optional
-                )}
-              </div>
-              <div className="text-[10px] text-muted-foreground/70">
-                {fmtUSDBracket(
-                  pricing.setup_assessment + pricing.setup_matching +
-                  pricing.setup_readiness + day0Optional
-                )}
-              </div>
-              {day0Optional > 0 && (
-                <div className="text-[10px] text-muted-foreground mt-1">
-                  incl. {fmtTTD(day0Optional)} optional
+      {/* Stacked accordion — only "Before Day 0" open by default */}
+      <Accordion
+        type="multiple"
+        defaultValue={['before-day-0']}
+        className="space-y-3"
+      >
+        {/* 1. Before Day 0 */}
+        <AccordionItem
+          value="before-day-0"
+          className="border rounded-lg px-4 bg-card"
+        >
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex flex-col md:flex-row md:items-center gap-2 text-left">
+              <Badge className="bg-primary hover:bg-primary text-primary-foreground w-fit">
+                Before Day 0
+              </Badge>
+              <div>
+                <div className="font-semibold text-base">
+                  What families get for free — no payment required
                 </div>
-              )}
+                <div className="text-xs text-muted-foreground font-normal">
+                  Register, assess, capture Legacy Story, see auto-matches — all at zero cost
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="mt-3 flex items-start gap-2 rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
-            <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
-            <span>
-              <strong className="text-foreground">Billing rhythm:</strong> Day 0 = mandatory setup
-              fees only. Day 5 (Friday of week 1) = first partial-week wages + first week of
-              subscription. Weeks 2–13 settle into the stable weekly rhythm shown below.
-              All figures in <strong className="text-foreground">TTD</strong>; USD shown
-              in brackets at indicative rate.
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+          </AccordionTrigger>
+          <AccordionContent>
+            <FreePlanValueCard />
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* Three-scenario comparison */}
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Three side-by-side scenarios</h2>
-        <ScenarioComparisonGrid timelines={timelines} showWeek5Adjust={builder.showWeek5Adjust} />
-      </div>
+        {/* 2. Day 0 mandatory bundle */}
+        <AccordionItem
+          value="day-0"
+          className="border rounded-lg px-4 bg-card"
+        >
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex flex-col md:flex-row md:items-center gap-2 text-left">
+              <Badge variant="default" className="w-fit">Day 0</Badge>
+              <div>
+                <div className="font-semibold text-base">
+                  Mandatory setup bundle — paid before any care begins
+                </div>
+                <div className="text-xs text-muted-foreground font-normal">
+                  Care Assessment, Caregiver Matching & Placement, Care Readiness
+                </div>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Day0Item label="Care Assessment & Setup" amount={pricing.setup_assessment} />
+              <Day0Item label="Caregiver Matching & Placement" amount={pricing.setup_matching} />
+              <Day0Item label="Care Readiness Assessment" amount={pricing.setup_readiness} />
+              <div className="rounded-md bg-primary/10 border border-primary/30 p-3 flex flex-col justify-center">
+                <div className="text-[10px] uppercase text-muted-foreground">Day 0 Total</div>
+                <div className="text-lg font-bold text-primary">
+                  {fmtTTD(
+                    pricing.setup_assessment + pricing.setup_matching +
+                    pricing.setup_readiness + day0Optional
+                  )}
+                </div>
+                <div className="text-[10px] text-muted-foreground/70">
+                  {fmtUSDBracket(
+                    pricing.setup_assessment + pricing.setup_matching +
+                    pricing.setup_readiness + day0Optional
+                  )}
+                </div>
+                {day0Optional > 0 && (
+                  <div className="text-[10px] text-muted-foreground mt-1">
+                    incl. {fmtTTD(day0Optional)} optional
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="mt-3 flex items-start gap-2 rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
+              <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <span>
+                <strong className="text-foreground">Billing rhythm:</strong> Day 0 = mandatory setup
+                fees only. Day 5 (Friday of week 1) = first full-week care payments + first week of
+                subscription. Weeks 2–13 settle into the stable weekly rhythm shown below.
+                All figures in <strong className="text-foreground">TTD</strong>; USD shown
+                in brackets at indicative rate.
+              </span>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* Optional services — surfaced right under scenarios so prospects see the menu */}
-      <OptionalServicesRow pricing={pricing} />
+        {/* 3. Three side-by-side scenarios */}
+        <AccordionItem
+          value="scenarios"
+          className="border rounded-lg px-4 bg-card"
+        >
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex flex-col md:flex-row md:items-center gap-2 text-left">
+              <Badge variant="secondary" className="w-fit">Scenarios</Badge>
+              <div>
+                <div className="font-semibold text-base">
+                  Three side-by-side scenarios
+                </div>
+                <div className="text-xs text-muted-foreground font-normal">
+                  Conservative · Typical · Premium — first 13 weeks of care
+                </div>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <ScenarioComparisonGrid timelines={timelines} showWeek5Adjust={builder.showWeek5Adjust} />
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* Builder + Custom timeline */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <div className="xl:col-span-2">
-          <LifecycleCostBuilder state={builder} pricing={pricing} onChange={setBuilder} />
-        </div>
-        <div>
-          <ScenarioComparisonGrid
-            timelines={[customTimeline]}
-            showWeek5Adjust={builder.showWeek5Adjust}
-          />
-        </div>
-      </div>
+        {/* 4. Optional services */}
+        <AccordionItem
+          value="optional"
+          className="border rounded-lg px-4 bg-card"
+        >
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex flex-col md:flex-row md:items-center gap-2 text-left">
+              <Badge variant="outline" className="w-fit">Optional</Badge>
+              <div>
+                <div className="font-semibold text-base">
+                  Services added when needed — not blindsided
+                </div>
+                <div className="text-xs text-muted-foreground font-normal">
+                  Never auto-billed. Families opt in over the journey as needs evolve.
+                </div>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <OptionalServicesRow pricing={pricing} />
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* Disclaimer — payment flow corrected: families pay Tavara, Tavara disperses */}
+        {/* 5. Custom builder */}
+        <AccordionItem
+          value="builder"
+          className="border rounded-lg px-4 bg-card"
+        >
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex flex-col md:flex-row md:items-center gap-2 text-left">
+              <Badge variant="secondary" className="w-fit">Build</Badge>
+              <div>
+                <div className="font-semibold text-base">
+                  Build your own scenario
+                </div>
+                <div className="text-xs text-muted-foreground font-normal">
+                  Customize hours, rate, subscription tier, and add-ons
+                </div>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+              <div className="xl:col-span-2">
+                <LifecycleCostBuilder state={builder} pricing={pricing} onChange={setBuilder} />
+              </div>
+              <div>
+                <ScenarioComparisonGrid
+                  timelines={[customTimeline]}
+                  showWeek5Adjust={builder.showWeek5Adjust}
+                />
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+
+      {/* Disclaimer — always visible */}
       <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
         <p>
           <strong className="text-foreground">Tavara is a Care Coordination & Management Platform —
           not an agency.</strong> Families pay all care payments and subscription fees to Tavara.
-          Tavara coordinates disbursement to caregivers, NIS filings, payroll records, and
+          Tavara coordinates disbursement to caregivers, NIS filings, care payment records, and
           compliance reporting on the family's behalf as the household employer of record.
         </p>
         <p className="text-[11px]">
