@@ -206,5 +206,3 @@ const Day0Item: React.FC<{ label: string; amount: number }> = ({ label, amount }
     <div className="text-[10px] text-muted-foreground/70">{fmtUSDBracket(amount)}</div>
   </div>
 );
-  </div>
-);
