@@ -83,9 +83,9 @@ export const DEFAULT_PRICING: PricingCatalog = {
   addon_medication: 99,
   addon_sop_monitoring: 149,
   addon_meal: 75,
-  addon_secondary_light: 150,
-  addon_secondary_standard: 250,
-  addon_secondary_high: 400,
+  addon_secondary_light: 350,
+  addon_secondary_standard: 0,
+  addon_secondary_high: 0,
   addon_secondary_podiatric: 349,
   onetime_sop_activation: 199,
   onetime_home_reset: 499,
@@ -252,6 +252,10 @@ export interface OptionalServiceItem {
   amount: number;
   cadence: 'one-time' | 'weekly';
   category: 'day0' | 'addon' | 'secondary';
+  /** When true, the price is not a fixed rate — render as "Custom quote" and exclude from totals. */
+  customQuote?: boolean;
+  /** Optional short caption shown under the price for context. */
+  note?: string;
 }
 
 export function buildOptionalServices(p: PricingCatalog): OptionalServiceItem[] {
@@ -262,8 +266,28 @@ export function buildOptionalServices(p: PricingCatalog): OptionalServiceItem[] 
     { label: 'Medication Management Support', amount: p.addon_medication, cadence: 'weekly', category: 'addon' },
     { label: 'Daily Care SOP + Monitoring', amount: p.addon_sop_monitoring, cadence: 'weekly', category: 'addon' },
     { label: 'Meal Support Upgrade', amount: p.addon_meal, cadence: 'weekly', category: 'addon' },
-    { label: 'Light Secondary Support', amount: p.addon_secondary_light, cadence: 'weekly', category: 'secondary' },
-    { label: 'Standard Secondary Support', amount: p.addon_secondary_standard, cadence: 'weekly', category: 'secondary' },
-    { label: 'High-Need Secondary Support', amount: p.addon_secondary_high, cadence: 'weekly', category: 'secondary' },
+    {
+      label: 'Light Secondary Support',
+      amount: p.addon_secondary_light,
+      cadence: 'weekly',
+      category: 'secondary',
+      note: 'One task per day for the secondary person.',
+    },
+    {
+      label: 'Standard Secondary Support',
+      amount: p.addon_secondary_standard,
+      cadence: 'weekly',
+      category: 'secondary',
+      customQuote: true,
+      note: 'Custom quote — caregiver consultation required; care payments may roughly double.',
+    },
+    {
+      label: 'High-Need Secondary Support',
+      amount: p.addon_secondary_high,
+      cadence: 'weekly',
+      category: 'secondary',
+      customQuote: true,
+      note: 'Custom quote — re-assessment or additional caregiver recommended.',
+    },
   ];
 }
