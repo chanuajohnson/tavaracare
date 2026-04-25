@@ -78,18 +78,37 @@ export const OptionalServicesRow: React.FC<Props> = ({ pricing }) => {
 };
 
 const OptionalRow: React.FC<{
-  item: { label: string; amount: number; cadence: 'one-time' | 'weekly' };
+  item: {
+    label: string;
+    amount: number;
+    cadence: 'one-time' | 'weekly';
+    customQuote?: boolean;
+    note?: string;
+  };
 }> = ({ item }) => (
-  <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2">
-    <span className="text-xs leading-tight pr-2">{item.label}</span>
+  <div className="flex items-start justify-between rounded-md border bg-background px-3 py-2 gap-2">
+    <div className="flex-1 min-w-0">
+      <div className="text-xs leading-tight">{item.label}</div>
+      {item.note && (
+        <div className="text-[10px] text-muted-foreground mt-0.5 leading-snug">{item.note}</div>
+      )}
+    </div>
     <div className="text-right flex-shrink-0">
-      <div className="text-xs font-semibold whitespace-nowrap">
-        {fmtTTD(item.amount)}
-        <span className="text-muted-foreground font-normal text-[10px]">
-          {item.cadence === 'weekly' ? '/wk' : ' once'}
-        </span>
-      </div>
-      <div className="text-[9px] text-muted-foreground/70">{fmtUSDBracket(item.amount)}</div>
+      {item.customQuote ? (
+        <Badge variant="outline" className="text-[10px] whitespace-nowrap">
+          Custom quote
+        </Badge>
+      ) : (
+        <>
+          <div className="text-xs font-semibold whitespace-nowrap">
+            {fmtTTD(item.amount)}
+            <span className="text-muted-foreground font-normal text-[10px]">
+              {item.cadence === 'weekly' ? '/wk' : ' once'}
+            </span>
+          </div>
+          <div className="text-[9px] text-muted-foreground/70">{fmtUSDBracket(item.amount)}</div>
+        </>
+      )}
     </div>
   </div>
 );
