@@ -473,16 +473,17 @@ export default function SubscriptionFeaturesPage() {
                         <li>✔ Profile & care preferences</li>
                         <li>✔ Care needs assessment</li>
                         <li>✔ Legacy Story</li>
-                        <li>✔ Caregiver matching</li>
-                        <li>✔ Medication management</li>
-                        <li>✔ Meal planning</li>
+                        <li>✔ Auto-matched caregivers</li>
+                        <li>✔ Medication documentation</li>
+                        <li>✔ Meal documentation</li>
+                        <li>✔ Grocery list documentation</li>
                         <li>✔ Unlimited chat</li>
                       </ul>
                     </div>
 
                     <div className="p-3 border-2 border-primary rounded-md bg-primary/5 mb-2">
                       <h3 className="font-medium text-primary">Active Care Management</h3>
-                      <p className="text-sm text-muted-foreground">$699/week · $2,499/month</p>
+                      <p className="text-sm text-muted-foreground">$499/week · $1,799/month</p>
                       <div className="mt-2 text-xs text-muted-foreground">All Basic features + dedicated care coordinator, structured coordination, billing support</div>
                     </div>
 
