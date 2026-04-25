@@ -113,14 +113,20 @@ export const LifecycleCostBuilder: React.FC<Props> = ({ state, pricing, onChange
             >
               <option value="none">None</option>
               <option value="light">Light — {fmtUSD(pricing.addon_secondary_light)}/wk</option>
-              <option value="standard">Standard — {fmtUSD(pricing.addon_secondary_standard)}/wk</option>
-              <option value="high">High-need — {fmtUSD(pricing.addon_secondary_high)}/wk</option>
+              <option value="standard">Standard — Custom quote</option>
+              <option value="high">High-need — Custom quote (re-assessment)</option>
               <option value="podiatric">Podiatric — {fmtUSD(pricing.addon_secondary_podiatric)}/wk</option>
             </select>
             {secondaryPrice > 0 && (
               <Badge variant="secondary" className="text-[10px]">
                 +{fmtUSD(secondaryPrice)}/wk recurring
               </Badge>
+            )}
+            {(state.addonSecondary === 'standard' || state.addonSecondary === 'high') && (
+              <p className="text-[10px] text-muted-foreground leading-snug">
+                Custom quote — not included in the projected total. Requires caregiver consultation
+                {state.addonSecondary === 'high' ? ' and a re-assessment or additional caregiver.' : '; care payments may roughly double.'}
+              </p>
             )}
           </div>
         </div>
