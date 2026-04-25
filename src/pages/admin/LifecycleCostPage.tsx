@@ -113,7 +113,7 @@ export default function LifecycleCostPage() {
         </div>
       </div>
 
-      {/* Day 0 mandatory bundle */}
+      {/* Day 0 mandatory bundle — NIS removed (now optional, see OptionalServicesRow) */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -122,22 +122,27 @@ export default function LifecycleCostPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Day0Item label="Care Assessment & Setup" amount={pricing.setup_assessment} />
             <Day0Item label="Caregiver Matching & Placement" amount={pricing.setup_matching} />
             <Day0Item label="Care Readiness Assessment" amount={pricing.setup_readiness} />
-            <Day0Item label="NIS Employer Registration" amount={pricing.setup_nis} />
             <div className="rounded-md bg-primary/10 border border-primary/30 p-3 flex flex-col justify-center">
               <div className="text-[10px] uppercase text-muted-foreground">Day 0 Total</div>
               <div className="text-lg font-bold text-primary">
-                {fmtUSD(
+                {fmtTTD(
                   pricing.setup_assessment + pricing.setup_matching +
-                  pricing.setup_readiness + pricing.setup_nis + day0Optional
+                  pricing.setup_readiness + day0Optional
+                )}
+              </div>
+              <div className="text-[10px] text-muted-foreground/70">
+                {fmtUSDBracket(
+                  pricing.setup_assessment + pricing.setup_matching +
+                  pricing.setup_readiness + day0Optional
                 )}
               </div>
               {day0Optional > 0 && (
-                <div className="text-[10px] text-muted-foreground">
-                  incl. {fmtUSD(day0Optional)} optional
+                <div className="text-[10px] text-muted-foreground mt-1">
+                  incl. {fmtTTD(day0Optional)} optional
                 </div>
               )}
             </div>
@@ -145,9 +150,11 @@ export default function LifecycleCostPage() {
           <div className="mt-3 flex items-start gap-2 rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
             <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <span>
-              <strong className="text-foreground">Billing rhythm:</strong> Day 0 = setup fees only.
-              Day 5 (Friday of week 1) = first partial-week wages + first week of subscription.
-              Weeks 2–13 settle into the stable weekly rhythm shown below.
+              <strong className="text-foreground">Billing rhythm:</strong> Day 0 = mandatory setup
+              fees only. Day 5 (Friday of week 1) = first partial-week wages + first week of
+              subscription. Weeks 2–13 settle into the stable weekly rhythm shown below.
+              All figures in <strong className="text-foreground">TTD</strong>; USD shown
+              in brackets at indicative rate.
             </span>
           </div>
         </CardContent>
@@ -158,6 +165,9 @@ export default function LifecycleCostPage() {
         <h2 className="text-lg font-semibold mb-3">Three side-by-side scenarios</h2>
         <ScenarioComparisonGrid timelines={timelines} showWeek5Adjust={builder.showWeek5Adjust} />
       </div>
+
+      {/* Optional services — surfaced right under scenarios so prospects see the menu */}
+      <OptionalServicesRow pricing={pricing} />
 
       {/* Builder + Custom timeline */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
@@ -172,41 +182,18 @@ export default function LifecycleCostPage() {
         </div>
       </div>
 
-      {/* Optional add-ons reference */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Optional services — added when applicable</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            These appear over the journey as needs evolve. Not bundled at Day 0.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
-            <AddonRow label="Medication Management Support" price={`${fmtUSD(pricing.addon_medication)}/wk`} />
-            <AddonRow label="Daily Care SOP + Monitoring" price={`${fmtUSD(pricing.addon_sop_monitoring)}/wk`} />
-            <AddonRow label="Daily Care SOP — One-Time Activation" price={`${fmtUSD(pricing.onetime_sop_activation)} once`} />
-            <AddonRow label="Meal Support Upgrade" price={`${fmtUSD(pricing.addon_meal)}/wk`} />
-            <AddonRow label="Light Secondary Support" price={`${fmtUSD(pricing.addon_secondary_light)}/wk`} />
-            <AddonRow label="Standard Secondary Support" price={`${fmtUSD(pricing.addon_secondary_standard)}/wk`} />
-            <AddonRow label="High-Need Secondary Support" price={`${fmtUSD(pricing.addon_secondary_high)}/wk`} />
-            <AddonRow label="Podiatric — Secondary Member" price={`${fmtUSD(pricing.addon_secondary_podiatric)}/wk`} />
-            <AddonRow label="Guided Home Reset" price={`${fmtUSD(pricing.onetime_home_reset)} once`} />
-            <AddonRow label="Care Plan Adjustment Fee" price={`${fmtUSD(pricing.fee_plan_adjust)} per change`} />
-            <AddonRow label="Basic Escalation Support" price={`${fmtUSD(pricing.fee_basic_escalation)} per event`} />
-            <AddonRow label="Urgent Escalation Support" price={`${fmtUSD(pricing.fee_urgent_escalation)} per event`} />
-          </div>
-          <div className="mt-4 rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
-            <strong className="text-foreground">Also available on-demand:</strong> Payroll & HR services,
-            official letters (employment, NIS, BIR), care reports & history exports — quoted per request.
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Disclaimer */}
-      <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
-        <strong className="text-foreground">Tavara Care</strong> is a Care Coordination & Management Platform —
-        not an agency. Caregiver wages are paid by the family directly to the caregiver. Subscription and
-        service fees are paid to Tavara for coordination, oversight, and platform services.
+      {/* Disclaimer — payment flow corrected: families pay Tavara, Tavara disperses */}
+      <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
+        <p>
+          <strong className="text-foreground">Tavara is a Care Coordination & Management Platform —
+          not an agency.</strong> Families pay all care payments and subscription fees to Tavara.
+          Tavara coordinates disbursement to caregivers, NIS filings, payroll records, and
+          compliance reporting on the family's behalf as the household employer of record.
+        </p>
+        <p className="text-[11px]">
+          All figures shown in <strong className="text-foreground">TTD</strong>. USD equivalents in
+          brackets at an indicative rate of TTD 6.78 = USD 1.00 (for reference only).
+        </p>
       </div>
     </div>
   );
@@ -215,13 +202,9 @@ export default function LifecycleCostPage() {
 const Day0Item: React.FC<{ label: string; amount: number }> = ({ label, amount }) => (
   <div className="rounded-md border p-3">
     <div className="text-[10px] uppercase text-muted-foreground leading-tight">{label}</div>
-    <div className="text-base font-semibold mt-1">{fmtUSD(amount)}</div>
+    <div className="text-base font-semibold mt-1">{fmtTTD(amount)}</div>
+    <div className="text-[10px] text-muted-foreground/70">{fmtUSDBracket(amount)}</div>
   </div>
 );
-
-const AddonRow: React.FC<{ label: string; price: string }> = ({ label, price }) => (
-  <div className="flex items-center justify-between rounded-md border px-3 py-2">
-    <span className="text-xs">{label}</span>
-    <Badge variant="outline" className="text-[10px]">{price}</Badge>
   </div>
 );
