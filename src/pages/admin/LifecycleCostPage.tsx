@@ -15,6 +15,7 @@ import {
 import { LifecycleCostBuilder, type BuilderState } from '@/components/admin/lifecycle/LifecycleCostBuilder';
 import { ScenarioComparisonGrid } from '@/components/admin/lifecycle/ScenarioComparisonGrid';
 import { OptionalServicesRow } from '@/components/admin/lifecycle/OptionalServicesRow';
+import { FreePlanValueCard } from '@/components/admin/lifecycle/FreePlanValueCard';
 
 const DEFAULT_BUILDER: BuilderState = {
   hourlyRate: 40,
@@ -112,6 +113,9 @@ export default function LifecycleCostPage() {
           </Button>
         </div>
       </div>
+
+      {/* Free plan value — what families experience BEFORE paying anything */}
+      <FreePlanValueCard />
 
       {/* Day 0 mandatory bundle — NIS removed (now optional, see OptionalServicesRow) */}
       <Card>
