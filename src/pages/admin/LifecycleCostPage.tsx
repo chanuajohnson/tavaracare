@@ -8,11 +8,13 @@ import { useLifecycleCost } from '@/hooks/admin/useLifecycleCost';
 import {
   buildScenarioPresets,
   buildScenarioTimeline,
-  fmtUSD,
+  fmtTTD,
+  fmtUSDBracket,
   type ScenarioConfig,
 } from '@/utils/lifecycleScenarios';
 import { LifecycleCostBuilder, type BuilderState } from '@/components/admin/lifecycle/LifecycleCostBuilder';
 import { ScenarioComparisonGrid } from '@/components/admin/lifecycle/ScenarioComparisonGrid';
+import { OptionalServicesRow } from '@/components/admin/lifecycle/OptionalServicesRow';
 
 const DEFAULT_BUILDER: BuilderState = {
   hourlyRate: 40,
