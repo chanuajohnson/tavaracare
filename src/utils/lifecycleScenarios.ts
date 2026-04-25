@@ -94,8 +94,14 @@ export const DEFAULT_PRICING: PricingCatalog = {
   fee_urgent_escalation: 200,
 };
 
+/**
+ * Day-0 MANDATORY setup bundle.
+ * NIS Employer Registration ($349) is OPTIONAL — billed only when families employ
+ * a caregiver formally and want NIS compliance handled. Surfaced separately in
+ * the Optional Services row so prospects aren't blindsided.
+ */
 export function day0Bundle(p: PricingCatalog): number {
-  return p.setup_assessment + p.setup_matching + p.setup_readiness + p.setup_nis;
+  return p.setup_assessment + p.setup_matching + p.setup_readiness;
 }
 
 export function buildScenarioPresets(p: PricingCatalog): Record<ScenarioPreset, ScenarioConfig> {
@@ -203,6 +209,61 @@ export function buildScenarioTimeline(
   };
 }
 
+/**
+ * TTD → USD indicative conversion rate.
+ * Matches src/utils/currency.ts (USD_TO_TTD_RATE = 6.78) so the whole app
+ * stays on a single source of truth. Update both files together if the rate moves.
+ */
+export const TTD_PER_USD = 6.78;
+
+/** Format a TTD amount as the primary figure, e.g. "TTD $2,099". */
+export function fmtTTD(n: number): string {
+  return 'TTD $' + Math.round(n).toLocaleString('en-US');
+}
+
+/** Format the indicative USD equivalent in brackets, e.g. "(USD ~$309)". */
+export function fmtUSDBracket(ttd: number): string {
+  const usd = ttd / TTD_PER_USD;
+  return '(USD ~$' + Math.round(usd).toLocaleString('en-US') + ')';
+}
+
+/**
+ * Combined TTD primary + USD bracketed.
+ * Use as the canonical money formatter on display surfaces.
+ */
+export function fmtTTDWithUSD(n: number): string {
+  return `${fmtTTD(n)} ${fmtUSDBracket(n)}`;
+}
+
+/**
+ * @deprecated Use fmtTTD or fmtTTDWithUSD. Kept as alias so existing imports
+ * compile during the rollout — the underlying numbers are TTD, never USD.
+ */
 export function fmtUSD(n: number): string {
-  return '$' + Math.round(n).toLocaleString('en-US');
+  return fmtTTD(n);
+}
+
+/**
+ * Optional services menu — shown to prospects so the full evolving cost picture
+ * is transparent at Day 0. Not added to mandatory totals.
+ */
+export interface OptionalServiceItem {
+  label: string;
+  amount: number;
+  cadence: 'one-time' | 'weekly';
+  category: 'day0' | 'addon' | 'secondary';
+}
+
+export function buildOptionalServices(p: PricingCatalog): OptionalServiceItem[] {
+  return [
+    { label: 'NIS Employer Registration Support', amount: p.setup_nis, cadence: 'one-time', category: 'day0' },
+    { label: 'Daily Care SOP — One-Time Activation', amount: p.onetime_sop_activation, cadence: 'one-time', category: 'day0' },
+    { label: 'Guided Home Reset', amount: p.onetime_home_reset, cadence: 'one-time', category: 'day0' },
+    { label: 'Medication Management Support', amount: p.addon_medication, cadence: 'weekly', category: 'addon' },
+    { label: 'Daily Care SOP + Monitoring', amount: p.addon_sop_monitoring, cadence: 'weekly', category: 'addon' },
+    { label: 'Meal Support Upgrade', amount: p.addon_meal, cadence: 'weekly', category: 'addon' },
+    { label: 'Light Secondary Support', amount: p.addon_secondary_light, cadence: 'weekly', category: 'secondary' },
+    { label: 'Standard Secondary Support', amount: p.addon_secondary_standard, cadence: 'weekly', category: 'secondary' },
+    { label: 'High-Need Secondary Support', amount: p.addon_secondary_high, cadence: 'weekly', category: 'secondary' },
+  ];
 }
