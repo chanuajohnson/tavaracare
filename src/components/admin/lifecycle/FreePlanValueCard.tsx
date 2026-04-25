@@ -21,12 +21,12 @@ import {
  */
 export const FreePlanValueCard: React.FC = () => {
   return (
-    <Card className="border-emerald-500/40 bg-gradient-to-br from-emerald-50/50 to-transparent dark:from-emerald-950/20">
+    <Card className="border-primary/40 bg-gradient-to-br from-primary/5 to-transparent">
       <CardHeader className="pb-3">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           <div>
             <CardTitle className="text-base flex items-center gap-2">
-              <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white">Before Day 0</Badge>
+              <Badge className="bg-primary hover:bg-primary text-primary-foreground">Before Day 0</Badge>
               What families get for free — no payment required
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
@@ -96,7 +96,7 @@ const FreeFeature: React.FC<{ icon: React.ComponentType<{ className?: string }>;
   label,
 }) => (
   <div className="flex items-start gap-2 rounded-md border bg-background p-2">
-    <Icon className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+    <Icon className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
     <span className="text-xs leading-tight">{label}</span>
   </div>
 );
