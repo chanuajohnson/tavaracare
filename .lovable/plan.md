@@ -1,45 +1,47 @@
-# Reprice Secondary Household Support Add-ons
+## Goal
+Tidy the `/admin/lifecycle-cost` page by wrapping each major section in a single shared accordion so prospects see clean headings and expand only what they need. Default-open the first section; everything else collapsed.
 
-## Scope
-Update the three secondary support rows in `billable_service_items` to fairly compensate caregivers, and ensure the lifecycle UI surfaces the new prices and the "Custom Quote" status without breaking the builder math.
+## File to edit
+- `src/pages/admin/LifecycleCostPage.tsx` (only this file — uses existing `@/components/ui/accordion` shadcn primitive, no new components, no logic changes)
 
----
+## Accordion structure (top → bottom)
 
-## 1. Database changes (`billable_service_items`)
+Use a single `<Accordion type="multiple" defaultValue={["before-day-0"]}>` so users can open multiple panels at once, but only the first is open on load.
 
-Run a data update (insert tool, not migration — schema unchanged) on these 3 rows by ID:
+| Order | Value | Trigger heading | Body (existing content, unchanged) |
+|------|------|----------------|------------------------------------|
+| 1 | `before-day-0` | **Before Day 0** — *What families get for free — no payment required* | `<FreePlanValueCard />` (the intro copy already lives inside it; we'll just hide the card's own header chrome by leaving it as-is — header becomes a bit redundant with the trigger, so we'll drop the inner CardHeader title row and keep only the descriptive paragraph + features grid + bridge box) |
+| 2 | `day-0` | **Day 0** — *Mandatory setup bundle — paid before any care begins* | The existing Day 0 Card body (4-item grid + billing-rhythm info box) |
+| 3 | `scenarios` | **Three side-by-side scenarios** — *Conservative · Typical · Premium* | `<ScenarioComparisonGrid timelines={timelines} ... />` |
+| 4 | `optional` | **Optional** — *Services added when needed — not blindsided* | `<OptionalServicesRow pricing={pricing} />` |
+| 5 | `builder` | **Build your own scenario** — *Customize hours, rate, subscription, add-ons* | The existing 2-column builder + custom timeline grid |
 
-| Row | Current | New |
-|---|---|---|
-| **Light Secondary Support** (`0fd30345…`) | $150/wk | **$350/wk** — description: *"Approved support for one secondary task per day for an additional household member (e.g. light meal assistance, medication reminder, or shower guidance). Billed weekly. Beyond a single daily task, a re-assessment is required."* |
-| **Standard Secondary Support** (`5e4729cc…`) | $250/wk | **$0 (custom-quote)** — description: *"Custom quote — requires consultation with the assigned caregiver. Standard support for a secondary household member can effectively double the caregiver's workload, so care payments may need to roughly double. Quoted only after the caregiver agrees and the secondary person's specific needs are reviewed; a re-assessment or additional caregiver may be recommended."* |
-| **High-Need Secondary Support** (`3c1e1cf7…`) | $400/wk | **$0 (custom-quote)** — description: *"Custom quote — high-need support for a secondary household member is not absorbed under a single caregiver. A formal re-assessment and a dedicated additional caregiver are recommended. Pricing set after consultation."* |
+The page header (title, Print/PDF buttons) and the bottom disclaimer stay **outside** the accordion as always-visible context.
 
-Podiatric Secondary ($349) is **left untouched**.
+## Trigger styling
+- Use a 2-line trigger: bold heading on top, muted subtitle below.
+- Include the same coloured `Badge` (Before Day 0 / Day 0 / Optional) inline with the heading so the visual cues from the current cards are preserved.
+- Wrap each `AccordionItem` in a subtle border + rounded container (`border rounded-lg px-4`) so it reads as a card stack rather than a flat list.
 
-## 2. Code propagation
+## Small content tweak inside FreePlanValueCard
+Because the accordion trigger now shows the "Before Day 0 / What families get for free" heading, the duplicate `CardHeader` title inside `FreePlanValueCard` becomes redundant. Two options:
+- **Option A (recommended):** keep `FreePlanValueCard` untouched — the duplication is mild and protects the card's standalone reusability.
+- Option B: add a `hideHeader?: boolean` prop and hide just the `CardTitle` line when used inside the accordion. (Only do this if you ask for it.)
 
-### `src/utils/lifecycleScenarios.ts`
-- Update `DEFAULT_PRICING` fallbacks: `addon_secondary_light: 350`, `addon_secondary_standard: 0`, `addon_secondary_high: 0`.
-- In `buildOptionalServices`, append `customQuote: true` flag (new optional field on `OptionalServiceItem`) for Standard + High-Need so the UI can render "Custom quote" instead of `$0/wk`.
+Going with **Option A** unless you say otherwise — zero risk to the component, and the trigger + inner title together actually reinforce the message.
 
-### `src/components/admin/lifecycle/OptionalServicesRow.tsx`
-- When `item.customQuote` is true, render the price column as a `Custom quote` badge instead of `$0/wk`, with a one-line caption explaining consultation is required.
+## What does NOT change
+- No logic changes (pricing, timelines, builder state all stay).
+- No changes to `FreePlanValueCard`, `ScenarioComparisonGrid`, `OptionalServicesRow`, `LifecycleCostBuilder`, or any utility.
+- No database changes.
+- No artifact regeneration (PDF/PPTX) unless you reply "regen artifacts".
+- Print behaviour: the browser's print stylesheet will collapse accordions to whatever's open. To keep PDF print fidelity, we can optionally force all panels open when printing via a tiny CSS rule (`@media print { [data-state="closed"] > [role="region"] { display: block !important; } }`) — included in the plan as a one-liner inside the page.
 
-### `src/components/admin/lifecycle/LifecycleCostBuilder.tsx`
-- For the Secondary Support `<select>`: relabel Standard → `Standard — Custom quote` and High-need → `High-need — Custom quote (re-assessment)`.
-- When the user picks `standard` or `high`, **do not** add a numeric value to `weeklyAddons` (already $0, but add a small inline warning under the dropdown: *"Custom quote — not included in the projected total. Contact admin for pricing."*).
+## Mobile / responsive
+Accordion is natively mobile-friendly. Triggers will stack heading + subtitle on narrow screens; badges remain inline. No breakpoint changes needed.
 
-### `src/pages/admin/LifecycleCostPage.tsx`
-- No math change needed (the $0 values already flow through correctly), but the Custom scenario card will display the warning sourced from the builder.
-
-## 3. What stays the same
-- Hook `useLifecycleCost` already pulls the new prices live via regex match — no change needed.
-- TTD/USD formatting, billing-rhythm copy, Day-0 bundle, and the FreePlanValueCard are untouched.
-- No artifact regeneration in this turn (PDF/PPTX) — say "regen artifacts" if you want v3 files.
-
-## 4. Verification
-After approval the AI will:
-1. Run the data update (insert tool) and re-query the 3 rows to confirm new values.
-2. Edit the 3 TS/TSX files above.
-3. Spot-check `/admin/lifecycle-cost` renders: Light = `TTD $350/wk`, Standard + High-Need = `Custom quote` badges in the Optional Services row and builder dropdown.
+## Acceptance check (after implementation)
+1. Visit `/admin/lifecycle-cost` — only "Before Day 0" panel is expanded.
+2. Click each of the other 4 triggers — each panel expands independently and shows the existing content unchanged.
+3. Print preview shows all panels expanded (thanks to the print CSS override).
+4. No console errors; no pricing/data drift.
