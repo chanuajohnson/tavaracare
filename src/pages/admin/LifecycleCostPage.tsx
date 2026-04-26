@@ -127,8 +127,13 @@ export default function LifecycleCostPage() {
             <Download className="h-4 w-4 mr-1.5" /> Print / Save PDF
           </Button>
           <Button variant="outline" size="sm" asChild>
-            <a href="/mnt/documents/tavara-lifecycle-cost.pdf" target="_blank" rel="noreferrer">
-              <FileText className="h-4 w-4 mr-1.5" /> 1-page PDF
+            <a href="/mnt/documents/tavara-lifecycle-cost_v3.pdf" target="_blank" rel="noreferrer">
+              <FileText className="h-4 w-4 mr-1.5" /> 1-page PDF (v3)
+            </a>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <a href="/mnt/documents/tavara-lifecycle-cost_v3.pptx" target="_blank" rel="noreferrer">
+              <FileText className="h-4 w-4 mr-1.5" /> 6-slide deck (v3)
             </a>
           </Button>
         </div>
