@@ -1,47 +1,74 @@
-## Goal
-Tidy the `/admin/lifecycle-cost` page by wrapping each major section in a single shared accordion so prospects see clean headings and expand only what they need. Default-open the first section; everything else collapsed.
+## Where the artifacts live
 
-## File to edit
-- `src/pages/admin/LifecycleCostPage.tsx` (only this file — uses existing `@/components/ui/accordion` shadcn primitive, no new components, no logic changes)
+All in `/mnt/documents/`:
+- `tavara-lifecycle-cost.pdf` — Apr 24 (original, pre-changes) — **stale**
+- `tavara-lifecycle-cost.pptx` — Apr 24 (original, pre-changes) — **stale**
+- `tavara-lifecycle-cost_v2.pdf` — Apr 25 12:47 (before today's repricing/terminology/accordion work) — **stale**
 
-## Accordion structure (top → bottom)
+The in-app "1-page PDF" button on `/admin/lifecycle-cost` currently links to the original (v1), not even v2.
 
-Use a single `<Accordion type="multiple" defaultValue={["before-day-0"]}>` so users can open multiple panels at once, but only the first is open on load.
+## What needs to flow into v3
 
-| Order | Value | Trigger heading | Body (existing content, unchanged) |
-|------|------|----------------|------------------------------------|
-| 1 | `before-day-0` | **Before Day 0** — *What families get for free — no payment required* | `<FreePlanValueCard />` (the intro copy already lives inside it; we'll just hide the card's own header chrome by leaving it as-is — header becomes a bit redundant with the trigger, so we'll drop the inner CardHeader title row and keep only the descriptive paragraph + features grid + bridge box) |
-| 2 | `day-0` | **Day 0** — *Mandatory setup bundle — paid before any care begins* | The existing Day 0 Card body (4-item grid + billing-rhythm info box) |
-| 3 | `scenarios` | **Three side-by-side scenarios** — *Conservative · Typical · Premium* | `<ScenarioComparisonGrid timelines={timelines} ... />` |
-| 4 | `optional` | **Optional** — *Services added when needed — not blindsided* | `<OptionalServicesRow pricing={pricing} />` |
-| 5 | `builder` | **Build your own scenario** — *Customize hours, rate, subscription, add-ons* | The existing 2-column builder + custom timeline grid |
+1. **Secondary support repricing**
+   - Light Secondary: **$350/wk** (was $150)
+   - Standard Secondary: **Custom quote** (was $250/wk) — note: caregiver consultation, possible doubled care payments
+   - High-Need Secondary: **Custom quote** (was $400/wk) — note: re-assessment or additional caregiver recommended
+2. **Terminology**: "Wages" → "Care payments", "Payroll" → "Care payment records"
+3. **Day 5 billing copy**: "Day 5 (Friday of week 1) = first **full** week of care payments + first week of subscription fees. Weeks 2–13 settle into the stable weekly rhythm."
+4. **"Before Day 0" free-plan value section** — anonymous "one of our families recently registered, completed care assessment, captured Legacy Story, drafted a care plan, reviewed auto-matches — all before paying a cent."
+5. **Optional services notes** — NIS coordination scope, SOP activation real-time visibility, Guided Home Reset = coordination of contractors
+6. **Custom-quote badging** for Standard/High-Need secondary (no auto-price in scenario totals)
+7. **Updated disclaimer** — Tavara as Care Coordination & Management Platform, never an agency; TTD primary, USD bracketed at 6.78
 
-The page header (title, Print/PDF buttons) and the bottom disclaimer stay **outside** the accordion as always-visible context.
+## Files to create
 
-## Trigger styling
-- Use a 2-line trigger: bold heading on top, muted subtitle below.
-- Include the same coloured `Badge` (Before Day 0 / Day 0 / Optional) inline with the heading so the visual cues from the current cards are preserved.
-- Wrap each `AccordionItem` in a subtle border + rounded container (`border rounded-lg px-4`) so it reads as a card stack rather than a flat list.
+| File | Purpose |
+|---|---|
+| `/mnt/documents/tavara-lifecycle-cost_v3.pdf` | 1-page A4 landscape PDF — full lifecycle on one page (Before Day 0 strip → Day 0 bundle → 3 scenarios table → Optional services row → Disclaimer) |
+| `/mnt/documents/tavara-lifecycle-cost_v3.pptx` | ~6-slide deck mirroring the on-screen accordion sections, suitable for prospect calls |
 
-## Small content tweak inside FreePlanValueCard
-Because the accordion trigger now shows the "Before Day 0 / What families get for free" heading, the duplicate `CardHeader` title inside `FreePlanValueCard` becomes redundant. Two options:
-- **Option A (recommended):** keep `FreePlanValueCard` untouched — the duplication is mild and protects the card's standalone reusability.
-- Option B: add a `hideHeader?: boolean` prop and hide just the `CardTitle` line when used inside the accordion. (Only do this if you ask for it.)
+## Generation approach
 
-Going with **Option A** unless you say otherwise — zero risk to the component, and the trigger + inner title together actually reinforce the message.
+- **PDF**: ReportLab (Python), landscape A4, single page. Use Tavara primary color palette (existing brand blue), Arial/Calibri stack, smart quotes, no Unicode subs/sups. Pull live pricing constants from `src/utils/lifecycleScenarios.ts` so the artifact matches what prospects see in-app.
+- **PPTX**: pptxgenjs (Node), 6 slides:
+  1. Title — "Care Lifecycle Cost — Day 0 → Month 3"
+  2. Before Day 0 — free-plan value (anonymous family story + 6 free capabilities)
+  3. Day 0 — mandatory setup bundle (3 items + total in TTD/USD)
+  4. Three scenarios — Conservative / Typical / Premium side-by-side, weeks 1-13 stable rhythm
+  5. Optional services — opt-in menu with custom-quote badges where applicable
+  6. Disclaimer + bank/legal positioning
+  
+  Embed any images as base64. Use a content-informed palette (Tavara brand blues + warm neutrals), header font with personality, body font clean. Visual motif: rounded cards with thin colored top border. No accent lines under titles.
+
+## Mandatory QA pass (per skill instructions)
+
+For both artifacts:
+1. Generate → convert each page/slide to JPEG at 150 DPI via LibreOffice + pdftoppm
+2. Inspect every page using read tool — look for: overlapping text, clipped content, edge bleeding, low contrast, misaligned columns, leftover placeholders, font glyph issues (black boxes), uneven spacing
+3. List issues found explicitly (assume issues exist on first pass)
+4. Fix script → re-render → re-verify affected pages only
+5. Repeat until a full pass is clean
+6. Final textual verification: `python -m markitdown` on PPTX, `pdftotext` on PDF, grep for "wages", "payroll", "Anna", "Lorem", placeholder strings — must all return zero hits
+7. Summarize QA findings + fixes in the final reply
+
+Temporary QA images stay in `/tmp/`, not `/mnt/documents/`.
+
+## In-app link update (small code change)
+
+Update `src/pages/admin/LifecycleCostPage.tsx` header button:
+- Change `href="/mnt/documents/tavara-lifecycle-cost.pdf"` → `href="/mnt/documents/tavara-lifecycle-cost_v3.pdf"`
+- Add a second link/button for the PPTX (`tavara-lifecycle-cost_v3.pptx`) so prospects can grab both formats
+
+That is the only code edit. No component, logic, or pricing changes.
+
+## Deliverables in final reply
+
+- Two `<lov-artifact>` tags (v3 PDF + v3 PPTX)
+- QA summary listing what was checked and any issues found + fixed
+- Confirmation that in-app download button now points at v3
 
 ## What does NOT change
-- No logic changes (pricing, timelines, builder state all stay).
-- No changes to `FreePlanValueCard`, `ScenarioComparisonGrid`, `OptionalServicesRow`, `LifecycleCostBuilder`, or any utility.
-- No database changes.
-- No artifact regeneration (PDF/PPTX) unless you reply "regen artifacts".
-- Print behaviour: the browser's print stylesheet will collapse accordions to whatever's open. To keep PDF print fidelity, we can optionally force all panels open when printing via a tiny CSS rule (`@media print { [data-state="closed"] > [role="region"] { display: block !important; } }`) — included in the plan as a one-liner inside the page.
 
-## Mobile / responsive
-Accordion is natively mobile-friendly. Triggers will stack heading + subtitle on narrow screens; badges remain inline. No breakpoint changes needed.
-
-## Acceptance check (after implementation)
-1. Visit `/admin/lifecycle-cost` — only "Before Day 0" panel is expanded.
-2. Click each of the other 4 triggers — each panel expands independently and shows the existing content unchanged.
-3. Print preview shows all panels expanded (thanks to the print CSS override).
-4. No console errors; no pricing/data drift.
+- No database changes
+- No logic changes in `lifecycleScenarios.ts`, `OptionalServicesRow`, `LifecycleCostBuilder`, `ScenarioComparisonGrid`, `FreePlanValueCard`
+- v1 and v2 artifacts stay in place as version history
