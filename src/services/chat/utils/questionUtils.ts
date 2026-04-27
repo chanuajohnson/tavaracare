@@ -37,7 +37,7 @@ export const isMultiSelectQuestion = (
   questionIndex: number
 ): boolean => {
   const question = getCurrentQuestion(role, sectionIndex, questionIndex);
-  return question?.type === "checkbox" || question?.type === "multiselect";
+  return question?.type === "multi-select";
 };
 
 /**

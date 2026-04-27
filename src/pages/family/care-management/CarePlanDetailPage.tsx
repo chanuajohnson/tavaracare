@@ -7,7 +7,9 @@ import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCarePlanData } from "@/hooks/useCarePlanData";
 import { CareTeamMemberWithProfile } from "@/types/careTypes";
-import { ChefHat } from "lucide-react";
+import { ChefHat, FileText, ClipboardList, Info, Receipt } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 import { CareTeamTab } from "@/components/care-plan/CareTeamTab";
 import { PlanDetailsTab } from "@/components/care-plan/PlanDetailsTab";
@@ -20,6 +22,9 @@ import { CarePlanLoadingState } from "@/components/care-plan/CarePlanLoadingStat
 import { CarePlanNotFound } from "@/components/care-plan/CarePlanNotFound";
 import { RemoveTeamMemberDialog } from "@/components/care-plan/RemoveTeamMemberDialog";
 import { MealPlanner } from "@/components/meal-planning/MealPlanner";
+import { ShiftReportGenerator } from "@/components/care-plan/ShiftReportGenerator";
+import { DailyCareLogsTab } from "@/components/care-plan/DailyCareLogsTab";
+import { DocumentsTab } from "@/components/care-plan/DocumentsTab";
 
 const CarePlanDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,36 +33,16 @@ const CarePlanDetailPage = () => {
   const [searchParams] = useSearchParams();
   const [confirmRemoveDialogOpen, setConfirmRemoveDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<CareTeamMemberWithProfile | null>(null);
+  const [isAdminViewing, setIsAdminViewing] = useState(false);
+  const [familyName, setFamilyName] = useState<string | null>(null);
 
   // Get the tab from URL parameters, default to 'details'
   const initialTab = searchParams.get('tab') || 'details';
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  // Simplified auth verification
-  useEffect(() => {
-    if (!authLoading && !user) {
-      console.log('[CarePlanDetailPage] No authenticated user, redirecting to auth');
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
+  const isProfessionalView = searchParams.get('from') === 'professional';
 
-  // Don't render anything while auth is loading or user is null
-  if (authLoading) {
-    console.log('[CarePlanDetailPage] Auth loading...');
-    return <CarePlanLoadingState />;
-  }
-
-  if (!user) {
-    console.log('[CarePlanDetailPage] No user authenticated');
-    return <CarePlanLoadingState />;
-  }
-
-  // Don't render if no care plan ID
-  if (!id) {
-    console.log('[CarePlanDetailPage] No care plan ID provided');
-    return <CarePlanNotFound />;
-  }
-
+  // ALL hooks must be called before any conditional returns
   const {
     loading,
     error,
@@ -70,9 +55,18 @@ const CarePlanDetailPage = () => {
     reloadCareTeamMembers,
     reloadCareShifts,
   } = useCarePlanData({
-    carePlanId: id,
-    userId: user.id,
+    carePlanId: id || '',
+    userId: user?.id || '',
+    isProfessionalView,
   });
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      console.log('[CarePlanDetailPage] No authenticated user, redirecting to auth');
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
 
   // Update active tab when URL parameter changes
   useEffect(() => {
@@ -82,8 +76,45 @@ const CarePlanDetailPage = () => {
     }
   }, [searchParams, activeTab]);
 
+  // Check if admin is viewing on behalf of a family
+  useEffect(() => {
+    if (carePlan && user && carePlan.familyId !== user.id) {
+      const checkAdmin = async () => {
+        const { data } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
+        
+        if (data) {
+          setIsAdminViewing(true);
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', carePlan.familyId)
+            .maybeSingle();
+          setFamilyName(profile?.full_name || 'Family');
+        }
+      };
+      checkAdmin();
+    }
+  }, [carePlan, user]);
+
+  // Now safe to do conditional returns (all hooks above)
+  if (authLoading) {
+    return <CarePlanLoadingState />;
+  }
+
+  if (!user) {
+    return <CarePlanLoadingState />;
+  }
+
+  if (!id) {
+    return <CarePlanNotFound />;
+  }
+
   if (loading) {
-    console.log('[CarePlanDetailPage] Care plan data loading');
     return <CarePlanLoadingState />;
   }
 
@@ -93,35 +124,64 @@ const CarePlanDetailPage = () => {
   }
 
   if (!carePlan) {
-    console.log('[CarePlanDetailPage] No care plan found');
     return <CarePlanNotFound />;
   }
-
-  console.log('[CarePlanDetailPage] Rendering care plan:', carePlan.id);
 
   return (
     <div className="min-h-screen bg-background">
       <PageViewTracker actionType="family_care_plan_view" additionalData={{ plan_id: id }} />
       
       <Container className="py-8">
+        {isAdminViewing && (
+          <Alert className="mb-4 border-blue-200 bg-blue-50">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              You are managing this care plan on behalf of <strong>{familyName}</strong>. 
+              All changes are visible to the family in real-time.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <CarePlanHeader carePlan={carePlan} />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-6">
+          <TabsList className="mb-6 flex-wrap">
             <TabsTrigger value="details">Plan Details</TabsTrigger>
-            <TabsTrigger value="team">Care Team</TabsTrigger>
-            <TabsTrigger value="medications">Medications</TabsTrigger>
-            <TabsTrigger value="meals" className="flex items-center gap-2">
-              <ChefHat className="h-4 w-4" />
-              Meals
+            <TabsTrigger value="documents">
+              <Receipt className="mr-2 h-4 w-4" />
+              Documents
             </TabsTrigger>
+            <TabsTrigger value="team">Care Team</TabsTrigger>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            <TabsTrigger value="payroll">Care Payments & Hours</TabsTrigger>
+            <TabsTrigger value="medications">Medications</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
-            <TabsTrigger value="payroll">Payroll & Hours</TabsTrigger>
+            <TabsTrigger value="meals">
+              <ChefHat className="mr-2 h-4 w-4" />
+              Meal Planning
+            </TabsTrigger>
+            <TabsTrigger value="shift-reports">
+              <FileText className="mr-2 h-4 w-4" />
+              Shift Reports
+            </TabsTrigger>
+            <TabsTrigger value="daily-logs">
+              <ClipboardList className="mr-2 h-4 w-4" />
+              Daily Logs
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="details">
             <PlanDetailsTab carePlan={carePlan} />
+          </TabsContent>
+
+          <TabsContent value="documents">
+            <DocumentsTab
+              carePlanId={id}
+              carePlanTitle={carePlan.title}
+              familyId={carePlan.familyId}
+              familyName={user?.user_metadata?.full_name || familyName || 'Family'}
+              familyEmail={user?.email}
+            />
           </TabsContent>
           
           <TabsContent value="team">
@@ -148,8 +208,9 @@ const CarePlanDetailPage = () => {
           
           <TabsContent value="schedule">
             <EnhancedScheduleTab
-              carePlanId={id}
-              familyId={user.id}
+              carePlanId={id!}
+              carePlanTitle={carePlan?.title || 'Care Plan'}
+              familyId={carePlan?.familyId || user.id}
               careShifts={careShifts}
               careTeamMembers={careTeamMembers}
               onShiftUpdated={reloadCareShifts}
@@ -157,12 +218,25 @@ const CarePlanDetailPage = () => {
             />
           </TabsContent>
 
+          <TabsContent value="shift-reports">
+            <ShiftReportGenerator
+              carePlanId={id}
+              careShifts={careShifts}
+              careTeamMembers={careTeamMembers}
+              carePlanTitle={carePlan.title}
+            />
+          </TabsContent>
+
           <TabsContent value="reports">
             <MedicationReportsTab carePlanId={id} />
           </TabsContent>
+
+          <TabsContent value="daily-logs">
+            <DailyCareLogsTab carePlanId={id} />
+          </TabsContent>
           
           <TabsContent value="payroll">
-            <PayrollTab carePlanId={id} />
+            <PayrollTab carePlanId={id} familyId={carePlan?.familyId} isProfessionalView={searchParams.get('from') === 'professional'} />
           </TabsContent>
         </Tabs>
       </Container>

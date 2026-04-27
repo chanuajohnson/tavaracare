@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Pill, Calendar, BarChart3, ArrowLeft } from "lucide-react";
+import { Plus, Search, Pill, Calendar, BarChart3, ArrowLeft, Download, Copy } from "lucide-react";
+import { MedicationExportButtons } from "@/components/medication/MedicationExportButtons";
+import { MedicationCardPrintable } from "@/components/medication/MedicationCardPrintable";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { MedicationCard } from "@/components/medication/MedicationCard";
 import { MedicationForm } from "@/components/medication/MedicationForm";
@@ -292,8 +294,8 @@ export default function MedicationManagementPage() {
             </TabsList>
 
             <TabsContent value="list" className="space-y-6">
-              {/* Search and Filters */}
-              <div className="flex items-center gap-4">
+              {/* Search and Export Actions */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
@@ -303,7 +305,20 @@ export default function MedicationManagementPage() {
                     className="pl-10"
                   />
                 </div>
+                <MedicationExportButtons
+                  medications={medications}
+                  carePlanTitle={carePlanTitle}
+                  printableElementId="medication-card-printable"
+                  disabled={isLoading}
+                />
               </div>
+
+              {/* Hidden printable card for JPG export */}
+              <MedicationCardPrintable
+                id="medication-card-printable"
+                medications={medications}
+                carePlanTitle={carePlanTitle}
+              />
 
               {/* Medications List */}
               {isLoading ? (

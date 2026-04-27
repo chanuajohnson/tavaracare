@@ -1,0 +1,1 @@
+UPDATE profiles SET professional_type = 'caregiver', years_of_experience = '6-10 years' WHERE id = '33a739ce-d822-410a-a9bb-b64fabb4d15c';

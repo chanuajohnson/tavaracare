@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
       admin_availability_slots: {
@@ -167,6 +172,73 @@ export type Database = {
           },
         ]
       }
+      admin_match_interventions: {
+        Row: {
+          admin_id: string
+          admin_match_score: number | null
+          caregiver_id: string
+          created_at: string | null
+          family_user_id: string
+          id: string
+          intervention_type: string
+          notes: string | null
+          original_match_score: number | null
+          reason: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          admin_id: string
+          admin_match_score?: number | null
+          caregiver_id: string
+          created_at?: string | null
+          family_user_id: string
+          id?: string
+          intervention_type: string
+          notes?: string | null
+          original_match_score?: number | null
+          reason?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          admin_id?: string
+          admin_match_score?: number | null
+          caregiver_id?: string
+          created_at?: string | null
+          family_user_id?: string
+          id?: string
+          intervention_type?: string
+          notes?: string | null
+          original_match_score?: number | null
+          reason?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_match_interventions_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_match_interventions_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_match_interventions_family_user_id_fkey"
+            columns: ["family_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_visit_config: {
         Row: {
           advance_booking_days: number
@@ -272,6 +344,108 @@ export type Database = {
         }
         Relationships: []
       }
+      automatic_assignments: {
+        Row: {
+          algorithm_version: string | null
+          caregiver_id: string
+          created_at: string | null
+          family_user_id: string
+          id: string
+          is_active: boolean | null
+          match_explanation: string | null
+          match_score: number
+          shift_compatibility_score: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          algorithm_version?: string | null
+          caregiver_id: string
+          created_at?: string | null
+          family_user_id: string
+          id?: string
+          is_active?: boolean | null
+          match_explanation?: string | null
+          match_score: number
+          shift_compatibility_score?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          algorithm_version?: string | null
+          caregiver_id?: string
+          created_at?: string | null
+          family_user_id?: string
+          id?: string
+          is_active?: boolean | null
+          match_explanation?: string | null
+          match_score?: number
+          shift_compatibility_score?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automatic_assignments_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automatic_assignments_family_user_id_fkey"
+            columns: ["family_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billable_service_items: {
+        Row: {
+          billing_type: string
+          category: string
+          created_at: string | null
+          default_quantity: number | null
+          description: string
+          id: string
+          is_active: boolean | null
+          label: string
+          sort_order: number | null
+          unit_price: number | null
+          visible_in_invoice: boolean | null
+          visible_in_quote: boolean | null
+          visible_in_unit_economics: boolean | null
+        }
+        Insert: {
+          billing_type: string
+          category: string
+          created_at?: string | null
+          default_quantity?: number | null
+          description: string
+          id?: string
+          is_active?: boolean | null
+          label: string
+          sort_order?: number | null
+          unit_price?: number | null
+          visible_in_invoice?: boolean | null
+          visible_in_quote?: boolean | null
+          visible_in_unit_economics?: boolean | null
+        }
+        Update: {
+          billing_type?: string
+          category?: string
+          created_at?: string | null
+          default_quantity?: number | null
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          sort_order?: number | null
+          unit_price?: number | null
+          visible_in_invoice?: boolean | null
+          visible_in_quote?: boolean | null
+          visible_in_unit_economics?: boolean | null
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           calendar_id: string
@@ -328,15 +502,21 @@ export type Database = {
           assistance_naps: boolean | null
           assistance_oral_care: boolean | null
           assistance_toileting: boolean | null
+          care_location: string | null
+          care_recipient_name: string | null
+          checkin_preference: string | null
+          chronic_illness_type: string | null
           cognitive_notes: string | null
           communication_method: string | null
           created_at: string | null
+          cultural_preferences: string | null
           daily_report_required: boolean | null
           dementia_redirection: boolean | null
           diagnosed_conditions: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           emergency_contact_relationship: string | null
+          emergency_plan: string | null
           equipment_use: boolean | null
           escort_to_appointments: boolean | null
           fall_monitoring: boolean | null
@@ -344,6 +524,7 @@ export type Database = {
           gentle_engagement: boolean | null
           grocery_runs: boolean | null
           id: string
+          known_allergies: string | null
           laundry_support: boolean | null
           meal_prep: boolean | null
           memory_reminders: boolean | null
@@ -351,8 +532,11 @@ export type Database = {
           preferred_days: string[] | null
           preferred_time_end: string | null
           preferred_time_start: string | null
+          primary_contact_name: string | null
+          primary_contact_phone: string | null
           profile_id: string | null
           tidy_room: boolean | null
+          triggers_soothing_techniques: string | null
           updated_at: string | null
           vitals_check: boolean | null
           wandering_prevention: boolean | null
@@ -371,15 +555,21 @@ export type Database = {
           assistance_naps?: boolean | null
           assistance_oral_care?: boolean | null
           assistance_toileting?: boolean | null
+          care_location?: string | null
+          care_recipient_name?: string | null
+          checkin_preference?: string | null
+          chronic_illness_type?: string | null
           cognitive_notes?: string | null
           communication_method?: string | null
           created_at?: string | null
+          cultural_preferences?: string | null
           daily_report_required?: boolean | null
           dementia_redirection?: boolean | null
           diagnosed_conditions?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relationship?: string | null
+          emergency_plan?: string | null
           equipment_use?: boolean | null
           escort_to_appointments?: boolean | null
           fall_monitoring?: boolean | null
@@ -387,6 +577,7 @@ export type Database = {
           gentle_engagement?: boolean | null
           grocery_runs?: boolean | null
           id?: string
+          known_allergies?: string | null
           laundry_support?: boolean | null
           meal_prep?: boolean | null
           memory_reminders?: boolean | null
@@ -394,8 +585,11 @@ export type Database = {
           preferred_days?: string[] | null
           preferred_time_end?: string | null
           preferred_time_start?: string | null
+          primary_contact_name?: string | null
+          primary_contact_phone?: string | null
           profile_id?: string | null
           tidy_room?: boolean | null
+          triggers_soothing_techniques?: string | null
           updated_at?: string | null
           vitals_check?: boolean | null
           wandering_prevention?: boolean | null
@@ -414,15 +608,21 @@ export type Database = {
           assistance_naps?: boolean | null
           assistance_oral_care?: boolean | null
           assistance_toileting?: boolean | null
+          care_location?: string | null
+          care_recipient_name?: string | null
+          checkin_preference?: string | null
+          chronic_illness_type?: string | null
           cognitive_notes?: string | null
           communication_method?: string | null
           created_at?: string | null
+          cultural_preferences?: string | null
           daily_report_required?: boolean | null
           dementia_redirection?: boolean | null
           diagnosed_conditions?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relationship?: string | null
+          emergency_plan?: string | null
           equipment_use?: boolean | null
           escort_to_appointments?: boolean | null
           fall_monitoring?: boolean | null
@@ -430,6 +630,7 @@ export type Database = {
           gentle_engagement?: boolean | null
           grocery_runs?: boolean | null
           id?: string
+          known_allergies?: string | null
           laundry_support?: boolean | null
           meal_prep?: boolean | null
           memory_reminders?: boolean | null
@@ -437,8 +638,11 @@ export type Database = {
           preferred_days?: string[] | null
           preferred_time_end?: string | null
           preferred_time_start?: string | null
+          primary_contact_name?: string | null
+          primary_contact_phone?: string | null
           profile_id?: string | null
           tidy_room?: boolean | null
+          triggers_soothing_techniques?: string | null
           updated_at?: string | null
           vitals_check?: boolean | null
           wandering_prevention?: boolean | null
@@ -452,6 +656,98 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_plan_edit_log: {
+        Row: {
+          care_plan_id: string
+          created_at: string | null
+          edit_summary: string
+          edit_type: string
+          edited_by: string
+          editor_role: string
+          id: string
+        }
+        Insert: {
+          care_plan_id: string
+          created_at?: string | null
+          edit_summary: string
+          edit_type: string
+          edited_by: string
+          editor_role: string
+          id?: string
+        }
+        Update: {
+          care_plan_id?: string
+          created_at?: string | null
+          edit_summary?: string
+          edit_type?: string
+          edited_by?: string
+          editor_role?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_plan_edit_log_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_plan_service_selections: {
+        Row: {
+          approved_by_family: boolean | null
+          care_plan_id: string
+          created_at: string | null
+          id: string
+          notes: string | null
+          override_price: number | null
+          quantity: number | null
+          selected: boolean | null
+          service_item_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          approved_by_family?: boolean | null
+          care_plan_id: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          override_price?: number | null
+          quantity?: number | null
+          selected?: boolean | null
+          service_item_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          approved_by_family?: boolean | null
+          care_plan_id?: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          override_price?: number | null
+          quantity?: number | null
+          selected?: boolean | null
+          service_item_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_plan_service_selections_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_plan_service_selections_service_item_id_fkey"
+            columns: ["service_item_id"]
+            isOneToOne: false
+            referencedRelation: "billable_service_items"
             referencedColumns: ["id"]
           },
         ]
@@ -642,6 +938,248 @@ export type Database = {
           },
         ]
       }
+      care_supply_bundle_items: {
+        Row: {
+          bundle_id: string
+          created_at: string
+          default_quantity: number
+          id: string
+          item_id: string
+        }
+        Insert: {
+          bundle_id: string
+          created_at?: string
+          default_quantity?: number
+          id?: string
+          item_id: string
+        }
+        Update: {
+          bundle_id?: string
+          created_at?: string
+          default_quantity?: number
+          id?: string
+          item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_supply_bundle_items_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "care_supply_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_supply_bundle_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "care_supply_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_supply_bundles: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          emoji: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      care_supply_deliveries: {
+        Row: {
+          created_at: string
+          delivered_at: string
+          id: string
+          marked_by: string | null
+          notes: string | null
+          subscription_id: string
+          total_ttd: number
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string
+          id?: string
+          marked_by?: string | null
+          notes?: string | null
+          subscription_id: string
+          total_ttd?: number
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string
+          id?: string
+          marked_by?: string | null
+          notes?: string | null
+          subscription_id?: string
+          total_ttd?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_supply_deliveries_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "care_supply_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_supply_items: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          needs_pricing_review: boolean
+          sort_order: number
+          supplier_note: string | null
+          unit_label: string
+          unit_price_ttd: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          needs_pricing_review?: boolean
+          sort_order?: number
+          supplier_note?: string | null
+          unit_label?: string
+          unit_price_ttd?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          needs_pricing_review?: boolean
+          sort_order?: number
+          supplier_note?: string | null
+          unit_label?: string
+          unit_price_ttd?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      care_supply_subscription_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          price_snapshot_ttd: number
+          quantity: number
+          subscription_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          price_snapshot_ttd?: number
+          quantity?: number
+          subscription_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          price_snapshot_ttd?: number
+          quantity?: number
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_supply_subscription_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "care_supply_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_supply_subscription_items_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "care_supply_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_supply_subscriptions: {
+        Row: {
+          cadence: Database["public"]["Enums"]["care_supply_cadence"]
+          created_at: string
+          created_by_admin: string | null
+          delivery_day: string
+          family_user_id: string
+          id: string
+          next_delivery_at: string | null
+          notes: string | null
+          status: Database["public"]["Enums"]["care_supply_subscription_status"]
+          updated_at: string
+        }
+        Insert: {
+          cadence?: Database["public"]["Enums"]["care_supply_cadence"]
+          created_at?: string
+          created_by_admin?: string | null
+          delivery_day?: string
+          family_user_id: string
+          id?: string
+          next_delivery_at?: string | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["care_supply_subscription_status"]
+          updated_at?: string
+        }
+        Update: {
+          cadence?: Database["public"]["Enums"]["care_supply_cadence"]
+          created_at?: string
+          created_by_admin?: string | null
+          delivery_day?: string
+          family_user_id?: string
+          id?: string
+          next_delivery_at?: string | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["care_supply_subscription_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       care_tasks: {
         Row: {
           assigned_to: string | null
@@ -698,9 +1236,13 @@ export type Database = {
           care_plan_id: string | null
           caregiver_id: string
           created_at: string | null
+          date_employed: string | null
+          date_of_birth: string | null
           display_name: string | null
           family_id: string
           id: string
+          is_nis_registered: boolean
+          nis_number: string | null
           notes: string | null
           overtime_rate: number | null
           regular_rate: number | null
@@ -712,9 +1254,13 @@ export type Database = {
           care_plan_id?: string | null
           caregiver_id: string
           created_at?: string | null
+          date_employed?: string | null
+          date_of_birth?: string | null
           display_name?: string | null
           family_id: string
           id?: string
+          is_nis_registered?: boolean
+          nis_number?: string | null
           notes?: string | null
           overtime_rate?: number | null
           regular_rate?: number | null
@@ -726,9 +1272,13 @@ export type Database = {
           care_plan_id?: string | null
           caregiver_id?: string
           created_at?: string | null
+          date_employed?: string | null
+          date_of_birth?: string | null
           display_name?: string | null
           family_id?: string
           id?: string
+          is_nis_registered?: boolean
+          nis_number?: string | null
           notes?: string | null
           overtime_rate?: number | null
           regular_rate?: number | null
@@ -759,6 +1309,428 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      caregiver_assignments: {
+        Row: {
+          admin_override_score: number | null
+          algorithm_version: string | null
+          assigned_by_admin_id: string | null
+          assignment_reason: string | null
+          assignment_type: string
+          care_plan_id: string | null
+          caregiver_id: string
+          created_at: string
+          family_user_id: string
+          id: string
+          is_active: boolean
+          match_explanation: string | null
+          match_score: number
+          notes: string | null
+          priority_level: number | null
+          shift_compatibility_score: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_override_score?: number | null
+          algorithm_version?: string | null
+          assigned_by_admin_id?: string | null
+          assignment_reason?: string | null
+          assignment_type: string
+          care_plan_id?: string | null
+          caregiver_id: string
+          created_at?: string
+          family_user_id: string
+          id?: string
+          is_active?: boolean
+          match_explanation?: string | null
+          match_score?: number
+          notes?: string | null
+          priority_level?: number | null
+          shift_compatibility_score?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_override_score?: number | null
+          algorithm_version?: string | null
+          assigned_by_admin_id?: string | null
+          assignment_reason?: string | null
+          assignment_type?: string
+          care_plan_id?: string | null
+          caregiver_id?: string
+          created_at?: string
+          family_user_id?: string
+          id?: string
+          is_active?: boolean
+          match_explanation?: string | null
+          match_score?: number
+          notes?: string | null
+          priority_level?: number | null
+          shift_compatibility_score?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      caregiver_chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_tav_moderated: boolean
+          is_user: boolean
+          message_type: string
+          sender: string
+          session_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_tav_moderated?: boolean
+          is_user: boolean
+          message_type?: string
+          sender?: string
+          session_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_tav_moderated?: boolean
+          is_user?: boolean
+          message_type?: string
+          sender?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caregiver_chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "caregiver_chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      caregiver_chat_requests: {
+        Row: {
+          accepted_at: string | null
+          caregiver_id: string
+          created_at: string | null
+          declined_at: string | null
+          family_user_id: string
+          id: string
+          initial_message: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          caregiver_id: string
+          created_at?: string | null
+          declined_at?: string | null
+          family_user_id: string
+          id?: string
+          initial_message: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          caregiver_id?: string
+          created_at?: string | null
+          declined_at?: string | null
+          family_user_id?: string
+          id?: string
+          initial_message?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_caregiver_chat_requests_caregiver_id"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      caregiver_chat_sessions: {
+        Row: {
+          caregiver_id: string
+          created_at: string
+          family_user_id: string
+          id: string
+          is_premium: boolean
+          max_daily_messages: number
+          messages_sent: number
+          session_date: string
+          updated_at: string
+        }
+        Insert: {
+          caregiver_id: string
+          created_at?: string
+          family_user_id: string
+          id?: string
+          is_premium?: boolean
+          max_daily_messages?: number
+          messages_sent?: number
+          session_date?: string
+          updated_at?: string
+        }
+        Update: {
+          caregiver_id?: string
+          created_at?: string
+          family_user_id?: string
+          id?: string
+          is_premium?: boolean
+          max_daily_messages?: number
+          messages_sent?: number
+          session_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      caregiver_notifications: {
+        Row: {
+          caregiver_id: string
+          created_at: string | null
+          data: Json | null
+          id: string
+          is_read: boolean | null
+          message: string
+          notification_type: string
+          read_at: string | null
+          title: string
+        }
+        Insert: {
+          caregiver_id: string
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          notification_type?: string
+          read_at?: string | null
+          title: string
+        }
+        Update: {
+          caregiver_id?: string
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          notification_type?: string
+          read_at?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      caregiver_spotlight: {
+        Row: {
+          caregiver_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_order: number
+          end_date: string | null
+          featured_image_url: string | null
+          headline: string
+          id: string
+          is_active: boolean
+          start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          caregiver_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          end_date?: string | null
+          featured_image_url?: string | null
+          headline: string
+          id?: string
+          is_active?: boolean
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          caregiver_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          end_date?: string | null
+          featured_image_url?: string | null
+          headline?: string
+          id?: string
+          is_active?: boolean
+          start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caregiver_spotlight_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caregiver_spotlight_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      caregiver_testimonials: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          care_period_end: string | null
+          care_period_start: string | null
+          caregiver_id: string
+          content: string
+          created_at: string
+          family_id: string | null
+          family_name: string
+          family_relationship: string | null
+          id: string
+          is_approved: boolean
+          is_verified: boolean
+          rating: number | null
+          source: string | null
+          updated_at: string
+          whatsapp_conversation_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          care_period_end?: string | null
+          care_period_start?: string | null
+          caregiver_id: string
+          content: string
+          created_at?: string
+          family_id?: string | null
+          family_name: string
+          family_relationship?: string | null
+          id?: string
+          is_approved?: boolean
+          is_verified?: boolean
+          rating?: number | null
+          source?: string | null
+          updated_at?: string
+          whatsapp_conversation_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          care_period_end?: string | null
+          care_period_start?: string | null
+          caregiver_id?: string
+          content?: string
+          created_at?: string
+          family_id?: string | null
+          family_name?: string
+          family_relationship?: string | null
+          id?: string
+          is_approved?: boolean
+          is_verified?: boolean
+          rating?: number | null
+          source?: string | null
+          updated_at?: string
+          whatsapp_conversation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caregiver_testimonials_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caregiver_testimonials_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caregiver_testimonials_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_conversation_flows: {
+        Row: {
+          created_at: string | null
+          current_stage: string
+          id: string
+          session_id: string
+          stage_data: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_stage?: string
+          id?: string
+          session_id: string
+          stage_data?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_stage?: string
+          id?: string
+          session_id?: string
+          stage_data?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      chat_prompt_templates: {
+        Row: {
+          category: string
+          context_requirements: Json | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          order_index: number | null
+          prompt_text: string
+          stage: string
+        }
+        Insert: {
+          category: string
+          context_requirements?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_index?: number | null
+          prompt_text: string
+          stage: string
+        }
+        Update: {
+          category?: string
+          context_requirements?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_index?: number | null
+          prompt_text?: string
+          stage?: string
+        }
+        Relationships: []
       }
       chatbot_conversations: {
         Row: {
@@ -1019,6 +1991,277 @@ export type Database = {
           },
         ]
       }
+      daily_care_log_feedback: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          author_role: string
+          comment: string
+          created_at: string | null
+          family_id: string
+          id: string
+          log_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          author_role?: string
+          comment: string
+          created_at?: string | null
+          family_id: string
+          id?: string
+          log_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          author_role?: string
+          comment?: string
+          created_at?: string | null
+          family_id?: string
+          id?: string
+          log_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_care_log_feedback_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_care_log_feedback_log_id_fkey"
+            columns: ["log_id"]
+            isOneToOne: false
+            referencedRelation: "daily_care_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_care_logs: {
+        Row: {
+          care_plan_id: string | null
+          checklist_data: Json
+          client_name: string | null
+          created_at: string | null
+          family_id: string | null
+          id: string
+          last_activity_at: string | null
+          notes: string | null
+          professional_id: string
+          shift_date: string
+          shift_type: string | null
+          started_at: string | null
+          time_in: string | null
+          time_out: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          care_plan_id?: string | null
+          checklist_data?: Json
+          client_name?: string | null
+          created_at?: string | null
+          family_id?: string | null
+          id?: string
+          last_activity_at?: string | null
+          notes?: string | null
+          professional_id: string
+          shift_date?: string
+          shift_type?: string | null
+          started_at?: string | null
+          time_in?: string | null
+          time_out?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          care_plan_id?: string | null
+          checklist_data?: Json
+          client_name?: string | null
+          created_at?: string | null
+          family_id?: string | null
+          id?: string
+          last_activity_at?: string | null
+          notes?: string | null
+          professional_id?: string
+          shift_date?: string
+          shift_type?: string | null
+          started_at?: string | null
+          time_in?: string | null
+          time_out?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_care_logs_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_care_logs_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employer_settings: {
+        Row: {
+          address: string | null
+          created_at: string
+          employer_registration_number: string | null
+          family_id: string
+          id: string
+          phone: string | null
+          service_centre_code: string | null
+          trade_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          employer_registration_number?: string | null
+          family_id: string
+          id?: string
+          phone?: string | null
+          service_centre_code?: string | null
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          employer_registration_number?: string | null
+          family_id?: string
+          id?: string
+          phone?: string | null
+          service_centre_code?: string | null
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employer_settings_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_chat_messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          is_tav_moderated: boolean
+          is_user: boolean
+          message_type: string
+          session_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          is_tav_moderated?: boolean
+          is_user: boolean
+          message_type?: string
+          session_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_tav_moderated?: boolean
+          is_user?: boolean
+          message_type?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "family_chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_chat_requests: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          declined_at: string | null
+          family_user_id: string
+          id: string
+          initial_message: string
+          professional_id: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          declined_at?: string | null
+          family_user_id: string
+          id?: string
+          initial_message: string
+          professional_id: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          declined_at?: string | null
+          family_user_id?: string
+          id?: string
+          initial_message?: string
+          professional_id?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      family_chat_sessions: {
+        Row: {
+          created_at: string | null
+          family_user_id: string
+          id: string
+          is_premium: boolean
+          max_daily_messages: number
+          messages_sent: number
+          professional_id: string
+          session_date: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          family_user_id: string
+          id?: string
+          is_premium?: boolean
+          max_daily_messages?: number
+          messages_sent?: number
+          professional_id: string
+          session_date?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          family_user_id?: string
+          id?: string
+          is_premium?: boolean
+          max_daily_messages?: number
+          messages_sent?: number
+          professional_id?: string
+          session_date?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       feature_interest_tracking: {
         Row: {
           action_type: string | null
@@ -1114,20 +2357,6 @@ export type Database = {
             foreignKeyName: "feature_votes_feature_id_fkey"
             columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: "feature_lookup"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feature_votes_feature_id_fkey"
-            columns: ["feature_id"]
-            isOneToOne: false
-            referencedRelation: "feature_statistics"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feature_votes_feature_id_fkey"
-            columns: ["feature_id"]
-            isOneToOne: false
             referencedRelation: "features"
             referencedColumns: ["id"]
           },
@@ -1203,6 +2432,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      flyer_locations: {
+        Row: {
+          address: string | null
+          business_name: string
+          category: string
+          code: string
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string | null
+          flyers_count: number | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          placed_date: string | null
+          updated_at: string | null
+          variant: string | null
+        }
+        Insert: {
+          address?: string | null
+          business_name: string
+          category: string
+          code: string
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          flyers_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          placed_date?: string | null
+          updated_at?: string | null
+          variant?: string | null
+        }
+        Update: {
+          address?: string | null
+          business_name?: string
+          category?: string
+          code?: string
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          flyers_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          placed_date?: string | null
+          updated_at?: string | null
+          variant?: string | null
+        }
+        Relationships: []
       }
       goal_completions: {
         Row: {
@@ -1769,6 +3049,113 @@ export type Database = {
           },
         ]
       }
+      manual_caregiver_assignments: {
+        Row: {
+          assigned_by_admin_id: string
+          assignment_reason: string | null
+          caregiver_id: string
+          created_at: string | null
+          family_user_id: string
+          id: string
+          is_active: boolean | null
+          match_score: number | null
+          updated_at: string | null
+          visit_booking_id: string | null
+          visit_scheduled: boolean | null
+        }
+        Insert: {
+          assigned_by_admin_id: string
+          assignment_reason?: string | null
+          caregiver_id: string
+          created_at?: string | null
+          family_user_id: string
+          id?: string
+          is_active?: boolean | null
+          match_score?: number | null
+          updated_at?: string | null
+          visit_booking_id?: string | null
+          visit_scheduled?: boolean | null
+        }
+        Update: {
+          assigned_by_admin_id?: string
+          assignment_reason?: string | null
+          caregiver_id?: string
+          created_at?: string | null
+          family_user_id?: string
+          id?: string
+          is_active?: boolean | null
+          match_score?: number | null
+          updated_at?: string | null
+          visit_booking_id?: string | null
+          visit_scheduled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_caregiver_assignments_assigned_by_admin_id_fkey"
+            columns: ["assigned_by_admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_caregiver_assignments_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_caregiver_assignments_family_user_id_fkey"
+            columns: ["family_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_caregiver_assignments_visit_booking_id_fkey"
+            columns: ["visit_booking_id"]
+            isOneToOne: false
+            referencedRelation: "visit_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_recalculation_log: {
+        Row: {
+          assignments_created: number | null
+          assignments_removed: number | null
+          caregiver_id: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          processed_at: string | null
+          recalculation_type: string
+          status: string | null
+        }
+        Insert: {
+          assignments_created?: number | null
+          assignments_removed?: number | null
+          caregiver_id: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          recalculation_type: string
+          status?: string | null
+        }
+        Update: {
+          assignments_created?: number | null
+          assignments_removed?: number | null
+          caregiver_id?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          recalculation_type?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
       meal_plan_items: {
         Row: {
           created_at: string
@@ -2085,6 +3472,41 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_checklists: {
+        Row: {
+          checked_items: Json | null
+          family_id: string
+          id: string
+          notes: Json | null
+          started_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          checked_items?: Json | null
+          family_id: string
+          id?: string
+          notes?: Json | null
+          started_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          checked_items?: Json | null
+          family_id?: string
+          id?: string
+          notes?: Json | null
+          started_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_checklists_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_transactions: {
         Row: {
           amount: number
@@ -2147,14 +3569,24 @@ export type Database = {
       }
       payroll_entries: {
         Row: {
+          bank_transfer_date: string | null
+          bank_transfer_notes: string | null
+          bank_transfer_ref: string | null
           care_plan_id: string
           care_team_member_id: string
           created_at: string | null
+          employee_contribution: number | null
+          employer_contribution: number | null
           entered_at: string | null
           expense_total: number | null
+          gross_pay: number | null
           holiday_hours: number | null
           holiday_rate: number | null
           id: string
+          net_pay_after_nis: number | null
+          nis_applicable: boolean | null
+          nis_class: string | null
+          nis_response: Json | null
           overtime_hours: number | null
           overtime_rate: number | null
           pay_period_end: string | null
@@ -2168,14 +3600,24 @@ export type Database = {
           work_log_id: string
         }
         Insert: {
+          bank_transfer_date?: string | null
+          bank_transfer_notes?: string | null
+          bank_transfer_ref?: string | null
           care_plan_id: string
           care_team_member_id: string
           created_at?: string | null
+          employee_contribution?: number | null
+          employer_contribution?: number | null
           entered_at?: string | null
           expense_total?: number | null
+          gross_pay?: number | null
           holiday_hours?: number | null
           holiday_rate?: number | null
           id?: string
+          net_pay_after_nis?: number | null
+          nis_applicable?: boolean | null
+          nis_class?: string | null
+          nis_response?: Json | null
           overtime_hours?: number | null
           overtime_rate?: number | null
           pay_period_end?: string | null
@@ -2189,14 +3631,24 @@ export type Database = {
           work_log_id: string
         }
         Update: {
+          bank_transfer_date?: string | null
+          bank_transfer_notes?: string | null
+          bank_transfer_ref?: string | null
           care_plan_id?: string
           care_team_member_id?: string
           created_at?: string | null
+          employee_contribution?: number | null
+          employer_contribution?: number | null
           entered_at?: string | null
           expense_total?: number | null
+          gross_pay?: number | null
           holiday_hours?: number | null
           holiday_rate?: number | null
           id?: string
+          net_pay_after_nis?: number | null
+          nis_applicable?: boolean | null
+          nis_class?: string | null
+          nis_response?: Json | null
           overtime_hours?: number | null
           overtime_rate?: number | null
           pay_period_end?: string | null
@@ -2355,6 +3807,147 @@ export type Database = {
         }
         Relationships: []
       }
+      professional_onboarding_checklists: {
+        Row: {
+          checked_items: Json | null
+          family_id: string | null
+          id: string
+          notes: Json | null
+          professional_id: string
+          started_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          checked_items?: Json | null
+          family_id?: string | null
+          id?: string
+          notes?: Json | null
+          professional_id: string
+          started_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          checked_items?: Json | null
+          family_id?: string | null
+          id?: string
+          notes?: Json | null
+          professional_id?: string
+          started_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_onboarding_checklists_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_onboarding_checklists_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professional_references: {
+        Row: {
+          created_at: string
+          id: string
+          professional_id: string
+          reference_email: string | null
+          reference_name: string
+          reference_notes: string | null
+          reference_phone: string | null
+          reference_relationship: string
+          status: string
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+          years_known: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          professional_id: string
+          reference_email?: string | null
+          reference_name: string
+          reference_notes?: string | null
+          reference_phone?: string | null
+          reference_relationship: string
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          years_known?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          professional_id?: string
+          reference_email?: string | null
+          reference_name?: string
+          reference_notes?: string | null
+          reference_phone?: string | null
+          reference_relationship?: string
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          years_known?: string | null
+        }
+        Relationships: []
+      }
+      professional_screening: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          interviewer_name: string | null
+          notes: string | null
+          professional_id: string
+          rating: number | null
+          recommendation: string | null
+          scheduled_at: string | null
+          screening_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          interviewer_name?: string | null
+          notes?: string | null
+          professional_id: string
+          rating?: number | null
+          recommendation?: string | null
+          scheduled_at?: string | null
+          screening_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          interviewer_name?: string | null
+          notes?: string | null
+          professional_id?: string
+          rating?: number | null
+          recommendation?: string | null
+          scheduled_at?: string | null
+          screening_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           additional_notes: string | null
@@ -2363,6 +3956,7 @@ export type Database = {
           admin_scheduling_requested_at: string | null
           administers_medication: boolean | null
           availability: string[] | null
+          available_for_matching: boolean
           avatar_url: string | null
           background_check: boolean | null
           background_check_proof_url: string | null
@@ -2373,12 +3967,16 @@ export type Database = {
           care_schedule: string | null
           care_services: string[] | null
           care_types: string[] | null
+          care_urgency: Database["public"]["Enums"]["care_urgency"] | null
           caregiver_preferences: string | null
           caregiver_type: string | null
           caregiving_areas: string[] | null
           caregiving_experience: string | null
           certification_proof_url: string | null
           certifications: string[] | null
+          client_stage: number | null
+          client_stage_assessed_at: string | null
+          client_stage_quiz_responses: Json | null
           communication_channels: string[] | null
           community_motivation: string | null
           community_roles: string[] | null
@@ -2387,6 +3985,7 @@ export type Database = {
           created_at: string | null
           custom_availability_alerts: string | null
           custom_schedule: string | null
+          drivers_license: boolean | null
           email_verification_sent_at: string | null
           email_verified: boolean | null
           emergency_contact: string | null
@@ -2412,11 +4011,15 @@ export type Database = {
           list_in_community_directory: boolean | null
           list_in_directory: boolean | null
           location: string | null
+          manual_match_assigned: boolean | null
+          matching_requirements: string | null
           medical_conditions_experience: string[] | null
           onboarding_progress: Json | null
+          onboarding_stage: string | null
           other_certification: string | null
           other_medical_condition: string | null
           other_special_needs: string | null
+          own_transportation: boolean | null
           payment_methods: string[] | null
           phone_number: string | null
           preferred_contact_method: string | null
@@ -2429,17 +4032,22 @@ export type Database = {
           registration_skipped: boolean | null
           relationship: string | null
           role: Database["public"]["Enums"]["user_role"]
+          screening_cleared: boolean | null
           special_needs: string[] | null
           specialized_care: string[] | null
           tech_interests: string[] | null
           updated_at: string | null
           verification_badge_earned_at: string | null
+          video_available: boolean | null
           visit_notes: string | null
           visit_payment_reference: string | null
           visit_payment_status: string | null
           visit_scheduled_date: string | null
           visit_scheduling_status: string | null
           website: string | null
+          whatsapp_linked_at: string | null
+          whatsapp_phone: string | null
+          whatsapp_verified: boolean | null
           why_choose_caregiving: string | null
           work_type: string | null
           years_of_experience: string | null
@@ -2451,6 +4059,7 @@ export type Database = {
           admin_scheduling_requested_at?: string | null
           administers_medication?: boolean | null
           availability?: string[] | null
+          available_for_matching?: boolean
           avatar_url?: string | null
           background_check?: boolean | null
           background_check_proof_url?: string | null
@@ -2461,12 +4070,16 @@ export type Database = {
           care_schedule?: string | null
           care_services?: string[] | null
           care_types?: string[] | null
+          care_urgency?: Database["public"]["Enums"]["care_urgency"] | null
           caregiver_preferences?: string | null
           caregiver_type?: string | null
           caregiving_areas?: string[] | null
           caregiving_experience?: string | null
           certification_proof_url?: string | null
           certifications?: string[] | null
+          client_stage?: number | null
+          client_stage_assessed_at?: string | null
+          client_stage_quiz_responses?: Json | null
           communication_channels?: string[] | null
           community_motivation?: string | null
           community_roles?: string[] | null
@@ -2475,6 +4088,7 @@ export type Database = {
           created_at?: string | null
           custom_availability_alerts?: string | null
           custom_schedule?: string | null
+          drivers_license?: boolean | null
           email_verification_sent_at?: string | null
           email_verified?: boolean | null
           emergency_contact?: string | null
@@ -2500,11 +4114,15 @@ export type Database = {
           list_in_community_directory?: boolean | null
           list_in_directory?: boolean | null
           location?: string | null
+          manual_match_assigned?: boolean | null
+          matching_requirements?: string | null
           medical_conditions_experience?: string[] | null
           onboarding_progress?: Json | null
+          onboarding_stage?: string | null
           other_certification?: string | null
           other_medical_condition?: string | null
           other_special_needs?: string | null
+          own_transportation?: boolean | null
           payment_methods?: string[] | null
           phone_number?: string | null
           preferred_contact_method?: string | null
@@ -2517,17 +4135,22 @@ export type Database = {
           registration_skipped?: boolean | null
           relationship?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          screening_cleared?: boolean | null
           special_needs?: string[] | null
           specialized_care?: string[] | null
           tech_interests?: string[] | null
           updated_at?: string | null
           verification_badge_earned_at?: string | null
+          video_available?: boolean | null
           visit_notes?: string | null
           visit_payment_reference?: string | null
           visit_payment_status?: string | null
           visit_scheduled_date?: string | null
           visit_scheduling_status?: string | null
           website?: string | null
+          whatsapp_linked_at?: string | null
+          whatsapp_phone?: string | null
+          whatsapp_verified?: boolean | null
           why_choose_caregiving?: string | null
           work_type?: string | null
           years_of_experience?: string | null
@@ -2539,6 +4162,7 @@ export type Database = {
           admin_scheduling_requested_at?: string | null
           administers_medication?: boolean | null
           availability?: string[] | null
+          available_for_matching?: boolean
           avatar_url?: string | null
           background_check?: boolean | null
           background_check_proof_url?: string | null
@@ -2549,12 +4173,16 @@ export type Database = {
           care_schedule?: string | null
           care_services?: string[] | null
           care_types?: string[] | null
+          care_urgency?: Database["public"]["Enums"]["care_urgency"] | null
           caregiver_preferences?: string | null
           caregiver_type?: string | null
           caregiving_areas?: string[] | null
           caregiving_experience?: string | null
           certification_proof_url?: string | null
           certifications?: string[] | null
+          client_stage?: number | null
+          client_stage_assessed_at?: string | null
+          client_stage_quiz_responses?: Json | null
           communication_channels?: string[] | null
           community_motivation?: string | null
           community_roles?: string[] | null
@@ -2563,6 +4191,7 @@ export type Database = {
           created_at?: string | null
           custom_availability_alerts?: string | null
           custom_schedule?: string | null
+          drivers_license?: boolean | null
           email_verification_sent_at?: string | null
           email_verified?: boolean | null
           emergency_contact?: string | null
@@ -2588,11 +4217,15 @@ export type Database = {
           list_in_community_directory?: boolean | null
           list_in_directory?: boolean | null
           location?: string | null
+          manual_match_assigned?: boolean | null
+          matching_requirements?: string | null
           medical_conditions_experience?: string[] | null
           onboarding_progress?: Json | null
+          onboarding_stage?: string | null
           other_certification?: string | null
           other_medical_condition?: string | null
           other_special_needs?: string | null
+          own_transportation?: boolean | null
           payment_methods?: string[] | null
           phone_number?: string | null
           preferred_contact_method?: string | null
@@ -2605,22 +4238,134 @@ export type Database = {
           registration_skipped?: boolean | null
           relationship?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          screening_cleared?: boolean | null
           special_needs?: string[] | null
           specialized_care?: string[] | null
           tech_interests?: string[] | null
           updated_at?: string | null
           verification_badge_earned_at?: string | null
+          video_available?: boolean | null
           visit_notes?: string | null
           visit_payment_reference?: string | null
           visit_payment_status?: string | null
           visit_scheduled_date?: string | null
           visit_scheduling_status?: string | null
           website?: string | null
+          whatsapp_linked_at?: string | null
+          whatsapp_phone?: string | null
+          whatsapp_verified?: boolean | null
           why_choose_caregiving?: string | null
           work_type?: string | null
           years_of_experience?: string | null
         }
         Relationships: []
+      }
+      quarterly_action_items: {
+        Row: {
+          category: string
+          completed_at: string | null
+          completion_notes: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          owner: string | null
+          quarter: string
+          sort_order: number
+          status: string
+          target_date: string | null
+          title: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          category?: string
+          completed_at?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          owner?: string | null
+          quarter: string
+          sort_order?: number
+          status?: string
+          target_date?: string | null
+          title: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          category?: string
+          completed_at?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          owner?: string | null
+          quarter?: string
+          sort_order?: number
+          status?: string
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      quiz_leads: {
+        Row: {
+          client_stage: number
+          contact_method: string
+          converted_user_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          quiz_responses: Json
+          reflection: string | null
+          source_path: string | null
+          updated_at: string
+          whatsapp_number: string | null
+        }
+        Insert: {
+          client_stage: number
+          contact_method: string
+          converted_user_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          quiz_responses?: Json
+          reflection?: string | null
+          source_path?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Update: {
+          client_stage?: number
+          contact_method?: string
+          converted_user_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          quiz_responses?: Json
+          reflection?: string | null
+          source_path?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_leads_converted_user_id_fkey"
+            columns: ["converted_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recipes: {
         Row: {
@@ -2720,6 +4465,103 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      screening_question_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          questions: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          questions?: Json
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          questions?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      screening_sessions: {
+        Row: {
+          access_token: string
+          ai_recommendation: string | null
+          ai_summary: string | null
+          assigned_to: string | null
+          candidate_name: string
+          created_at: string
+          id: string
+          professional_id: string
+          responses: Json
+          status: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string
+          ai_recommendation?: string | null
+          ai_summary?: string | null
+          assigned_to?: string | null
+          candidate_name: string
+          created_at?: string
+          id?: string
+          professional_id: string
+          responses?: Json
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          ai_recommendation?: string | null
+          ai_summary?: string | null
+          assigned_to?: string | null
+          candidate_name?: string
+          created_at?: string
+          id?: string
+          professional_id?: string
+          responses?: Json
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "screening_sessions_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "screening_sessions_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "screening_sessions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "screening_question_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       session_analytics: {
         Row: {
@@ -2974,31 +4816,61 @@ export type Database = {
       }
       subscription_plans: {
         Row: {
+          audience: string
+          button_text: string
           created_at: string | null
           description: string | null
           duration_days: number
           features: Json | null
           id: string
+          is_active: boolean
+          is_popular: boolean
           name: string
+          period_monthly: string
+          period_weekly: string
           price: number
+          price_monthly: number | null
+          price_weekly: number | null
+          slug: string | null
+          sort_order: number
         }
         Insert: {
+          audience?: string
+          button_text?: string
           created_at?: string | null
           description?: string | null
           duration_days: number
           features?: Json | null
           id?: string
+          is_active?: boolean
+          is_popular?: boolean
           name: string
+          period_monthly?: string
+          period_weekly?: string
           price: number
+          price_monthly?: number | null
+          price_weekly?: number | null
+          slug?: string | null
+          sort_order?: number
         }
         Update: {
+          audience?: string
+          button_text?: string
           created_at?: string | null
           description?: string | null
           duration_days?: number
           features?: Json | null
           id?: string
+          is_active?: boolean
+          is_popular?: boolean
           name?: string
+          period_monthly?: string
+          period_weekly?: string
           price?: number
+          price_monthly?: number | null
+          price_weekly?: number | null
+          slug?: string | null
+          sort_order?: number
         }
         Relationships: []
       }
@@ -3026,6 +4898,208 @@ export type Database = {
           request_type?: string
           status?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      tav_analytics: {
+        Row: {
+          id: string
+          metadata: Json | null
+          metric_type: string
+          metric_value: number | null
+          session_id: string | null
+          timestamp: string
+        }
+        Insert: {
+          id?: string
+          metadata?: Json | null
+          metric_type: string
+          metric_value?: number | null
+          session_id?: string | null
+          timestamp?: string
+        }
+        Update: {
+          id?: string
+          metadata?: Json | null
+          metric_type?: string
+          metric_value?: number | null
+          session_id?: string | null
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tav_analytics_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "tav_demo_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tav_demo_sessions: {
+        Row: {
+          company_name: string | null
+          conversation_data: Json | null
+          conversion_stage: string | null
+          created_at: string
+          customization_preferences: Json | null
+          demo_duration_seconds: number | null
+          demo_type: string
+          email_captured: string | null
+          form_interactions: number | null
+          id: string
+          lead_captured: boolean | null
+          messages_sent: number | null
+          session_token: string
+          updated_at: string
+          use_case_selected: string | null
+          visitor_ip: string | null
+          visitor_location: Json | null
+        }
+        Insert: {
+          company_name?: string | null
+          conversation_data?: Json | null
+          conversion_stage?: string | null
+          created_at?: string
+          customization_preferences?: Json | null
+          demo_duration_seconds?: number | null
+          demo_type?: string
+          email_captured?: string | null
+          form_interactions?: number | null
+          id?: string
+          lead_captured?: boolean | null
+          messages_sent?: number | null
+          session_token: string
+          updated_at?: string
+          use_case_selected?: string | null
+          visitor_ip?: string | null
+          visitor_location?: Json | null
+        }
+        Update: {
+          company_name?: string | null
+          conversation_data?: Json | null
+          conversion_stage?: string | null
+          created_at?: string
+          customization_preferences?: Json | null
+          demo_duration_seconds?: number | null
+          demo_type?: string
+          email_captured?: string | null
+          form_interactions?: number | null
+          id?: string
+          lead_captured?: boolean | null
+          messages_sent?: number | null
+          session_token?: string
+          updated_at?: string
+          use_case_selected?: string | null
+          visitor_ip?: string | null
+          visitor_location?: Json | null
+        }
+        Relationships: []
+      }
+      tav_leads: {
+        Row: {
+          budget_range: string | null
+          company_name: string | null
+          company_size: string | null
+          created_at: string
+          demo_session_id: string | null
+          email: string
+          full_name: string | null
+          id: string
+          industry: string | null
+          lead_score: number | null
+          notes: string | null
+          qualification_status: string | null
+          technical_expertise: string | null
+          timeline: string | null
+          updated_at: string
+          use_case: string
+        }
+        Insert: {
+          budget_range?: string | null
+          company_name?: string | null
+          company_size?: string | null
+          created_at?: string
+          demo_session_id?: string | null
+          email: string
+          full_name?: string | null
+          id?: string
+          industry?: string | null
+          lead_score?: number | null
+          notes?: string | null
+          qualification_status?: string | null
+          technical_expertise?: string | null
+          timeline?: string | null
+          updated_at?: string
+          use_case: string
+        }
+        Update: {
+          budget_range?: string | null
+          company_name?: string | null
+          company_size?: string | null
+          created_at?: string
+          demo_session_id?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          industry?: string | null
+          lead_score?: number | null
+          notes?: string | null
+          qualification_status?: string | null
+          technical_expertise?: string | null
+          timeline?: string | null
+          updated_at?: string
+          use_case?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tav_leads_demo_session_id_fkey"
+            columns: ["demo_session_id"]
+            isOneToOne: false
+            referencedRelation: "tav_demo_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tav_plans: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          features: Json
+          id: string
+          is_active: boolean | null
+          limits: Json
+          plan_name: string
+          plan_type: string
+          price_annual: number | null
+          price_monthly: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          features?: Json
+          id?: string
+          is_active?: boolean | null
+          limits?: Json
+          plan_name: string
+          plan_type: string
+          price_annual?: number | null
+          price_monthly?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          features?: Json
+          id?: string
+          is_active?: boolean | null
+          limits?: Json
+          plan_name?: string
+          plan_type?: string
+          price_annual?: number | null
+          price_monthly?: number | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -3061,6 +5135,69 @@ export type Database = {
           total_lessons?: number
         }
         Relationships: []
+      }
+      urgent_availability: {
+        Row: {
+          admin_featured: boolean
+          available_from: string
+          available_until: string | null
+          caregiver_id: string
+          created_at: string
+          created_by: string | null
+          featured_order: number | null
+          id: string
+          notes: string | null
+          preferred_hours: string | null
+          reason: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_featured?: boolean
+          available_from?: string
+          available_until?: string | null
+          caregiver_id: string
+          created_at?: string
+          created_by?: string | null
+          featured_order?: number | null
+          id?: string
+          notes?: string | null
+          preferred_hours?: string | null
+          reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_featured?: boolean
+          available_from?: string
+          available_until?: string | null
+          caregiver_id?: string
+          created_at?: string
+          created_by?: string | null
+          featured_order?: number | null
+          id?: string
+          notes?: string | null
+          preferred_hours?: string | null
+          reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "urgent_availability_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "urgent_availability_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_cohorts: {
         Row: {
@@ -3352,6 +5489,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_subscriptions: {
         Row: {
           created_at: string | null
@@ -3568,10 +5726,292 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_api_care_notes: {
+        Row: {
+          care_plan_id: string | null
+          caregiver_id: string | null
+          created_at: string
+          family_id: string | null
+          id: string
+          media_urls: Json | null
+          note_content: string
+          note_type: string
+          processed_at: string | null
+          structured_data: Json | null
+          submitted_via_whatsapp: boolean | null
+          whatsapp_message_id: string | null
+        }
+        Insert: {
+          care_plan_id?: string | null
+          caregiver_id?: string | null
+          created_at?: string
+          family_id?: string | null
+          id?: string
+          media_urls?: Json | null
+          note_content: string
+          note_type?: string
+          processed_at?: string | null
+          structured_data?: Json | null
+          submitted_via_whatsapp?: boolean | null
+          whatsapp_message_id?: string | null
+        }
+        Update: {
+          care_plan_id?: string | null
+          caregiver_id?: string | null
+          created_at?: string
+          family_id?: string | null
+          id?: string
+          media_urls?: Json | null
+          note_content?: string
+          note_type?: string
+          processed_at?: string | null
+          structured_data?: Json | null
+          submitted_via_whatsapp?: boolean | null
+          whatsapp_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_api_care_notes_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_api_consent: {
+        Row: {
+          consent_date: string | null
+          consent_given: boolean
+          consent_method: string | null
+          created_at: string
+          formatted_phone: string
+          id: string
+          message_categories: Json | null
+          opt_out_date: string | null
+          opt_out_reason: string | null
+          phone_number: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          consent_date?: string | null
+          consent_given?: boolean
+          consent_method?: string | null
+          created_at?: string
+          formatted_phone: string
+          id?: string
+          message_categories?: Json | null
+          opt_out_date?: string | null
+          opt_out_reason?: string | null
+          phone_number: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          consent_date?: string | null
+          consent_given?: boolean
+          consent_method?: string | null
+          created_at?: string
+          formatted_phone?: string
+          id?: string
+          message_categories?: Json | null
+          opt_out_date?: string | null
+          opt_out_reason?: string | null
+          phone_number?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_api_message_delivery: {
+        Row: {
+          delivered_at: string | null
+          delivery_status: string
+          failure_reason: string | null
+          id: string
+          message_content: string | null
+          message_id: string
+          message_type: string
+          read_at: string | null
+          recipient_phone: string
+          sent_at: string
+          sent_by: string | null
+          template_name: string | null
+          template_variables: Json | null
+          webhook_data: Json | null
+        }
+        Insert: {
+          delivered_at?: string | null
+          delivery_status?: string
+          failure_reason?: string | null
+          id?: string
+          message_content?: string | null
+          message_id: string
+          message_type?: string
+          read_at?: string | null
+          recipient_phone: string
+          sent_at?: string
+          sent_by?: string | null
+          template_name?: string | null
+          template_variables?: Json | null
+          webhook_data?: Json | null
+        }
+        Update: {
+          delivered_at?: string | null
+          delivery_status?: string
+          failure_reason?: string | null
+          id?: string
+          message_content?: string | null
+          message_id?: string
+          message_type?: string
+          read_at?: string | null
+          recipient_phone?: string
+          sent_at?: string
+          sent_by?: string | null
+          template_name?: string | null
+          template_variables?: Json | null
+          webhook_data?: Json | null
+        }
+        Relationships: []
+      }
+      whatsapp_api_templates: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          language_code: string
+          meta_template_id: string | null
+          rejection_reason: string | null
+          status: string
+          template_category: string
+          template_content: Json
+          template_name: string
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          language_code?: string
+          meta_template_id?: string | null
+          rejection_reason?: string | null
+          status?: string
+          template_category: string
+          template_content: Json
+          template_name: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          language_code?: string
+          meta_template_id?: string | null
+          rejection_reason?: string | null
+          status?: string
+          template_category?: string
+          template_content?: Json
+          template_name?: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Relationships: []
+      }
+      whatsapp_api_webhook_events: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_type: string
+          id: string
+          message_id: string | null
+          phone_number: string | null
+          processed: boolean | null
+          processed_at: string | null
+          raw_payload: Json
+          webhook_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_type: string
+          id?: string
+          message_id?: string | null
+          phone_number?: string | null
+          processed?: boolean | null
+          processed_at?: string | null
+          raw_payload: Json
+          webhook_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          message_id?: string | null
+          phone_number?: string | null
+          processed?: boolean | null
+          processed_at?: string | null
+          raw_payload?: Json
+          webhook_id?: string
+        }
+        Relationships: []
+      }
+      whatsapp_auth: {
+        Row: {
+          code_expires_at: string | null
+          country_code: string
+          created_at: string | null
+          formatted_number: string
+          id: string
+          is_verified: boolean | null
+          last_verification_attempt: string | null
+          phone_number: string
+          updated_at: string | null
+          user_metadata: Json | null
+          verification_attempts: number | null
+          verification_code: string | null
+        }
+        Insert: {
+          code_expires_at?: string | null
+          country_code?: string
+          created_at?: string | null
+          formatted_number: string
+          id?: string
+          is_verified?: boolean | null
+          last_verification_attempt?: string | null
+          phone_number: string
+          updated_at?: string | null
+          user_metadata?: Json | null
+          verification_attempts?: number | null
+          verification_code?: string | null
+        }
+        Update: {
+          code_expires_at?: string | null
+          country_code?: string
+          created_at?: string | null
+          formatted_number?: string
+          id?: string
+          is_verified?: boolean | null
+          last_verification_attempt?: string | null
+          phone_number?: string
+          updated_at?: string | null
+          user_metadata?: Json | null
+          verification_attempts?: number | null
+          verification_code?: string | null
+        }
+        Relationships: []
+      }
       whatsapp_message_log: {
         Row: {
           content: string
           created_at: string
+          delivery_status: string | null
           direction: string
           id: string
           message_id: string | null
@@ -3579,12 +6019,14 @@ export type Database = {
           phone_number: string
           processed: boolean
           processed_at: string | null
+          status: string | null
           template_name: string | null
           user_id: string | null
         }
         Insert: {
           content: string
           created_at?: string
+          delivery_status?: string | null
           direction: string
           id?: string
           message_id?: string | null
@@ -3592,12 +6034,14 @@ export type Database = {
           phone_number: string
           processed?: boolean
           processed_at?: string | null
+          status?: string | null
           template_name?: string | null
           user_id?: string | null
         }
         Update: {
           content?: string
           created_at?: string
+          delivery_status?: string | null
           direction?: string
           id?: string
           message_id?: string | null
@@ -3605,6 +6049,7 @@ export type Database = {
           phone_number?: string
           processed?: boolean
           processed_at?: string | null
+          status?: string | null
           template_name?: string | null
           user_id?: string | null
         }
@@ -3617,6 +6062,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      whatsapp_sessions: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          phone_number: string
+          session_token: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          is_active?: boolean | null
+          phone_number: string
+          session_token: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          phone_number?: string
+          session_token?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       work_log_expenses: {
         Row: {
@@ -3676,6 +6154,8 @@ export type Database = {
           shift_id: string | null
           start_time: string
           status: string | null
+          submitted_by_role: string | null
+          submitted_by_user_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -3691,6 +6171,8 @@ export type Database = {
           shift_id?: string | null
           start_time: string
           status?: string | null
+          submitted_by_role?: string | null
+          submitted_by_user_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -3706,6 +6188,8 @@ export type Database = {
           shift_id?: string | null
           start_time?: string
           status?: string | null
+          submitted_by_role?: string | null
+          submitted_by_user_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -3734,50 +6218,67 @@ export type Database = {
       }
     }
     Views: {
-      daily_pmf_metrics: {
-        Row: {
-          daily_retained_users: number | null
-          date: string | null
-          family_active_users: number | null
-          family_dashboard_views: number | null
-          family_new_signups: number | null
-          matching_clicks_family: number | null
-          professional_active_users: number | null
-          professional_new_signups: number | null
-          subscription_clicks_family: number | null
-          unlock_clicks_family: number | null
-        }
-        Relationships: []
-      }
-      feature_lookup: {
-        Row: {
-          id: string | null
-          title: string | null
-        }
-        Insert: {
-          id?: string | null
-          title?: string | null
-        }
-        Update: {
-          id?: string | null
-          title?: string | null
-        }
-        Relationships: []
-      }
-      feature_statistics: {
-        Row: {
-          description: string | null
-          id: string | null
-          status: Database["public"]["Enums"]["feature_status"] | null
-          title: string | null
-          vote_count: number | null
-          voted_users: string[] | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
-      admin_delete_user: {
+      admin_delete_user: { Args: { target_user_id: string }; Returns: Json }
+      admin_get_all_profiles: {
+        Args: never
+        Returns: {
+          address: string
+          available_for_matching: boolean
+          avatar_url: string
+          care_types: string[]
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          location: string
+          phone_number: string
+          professional_type: string
+          role: Database["public"]["Enums"]["user_role"]
+          specialized_care: string[]
+          updated_at: string
+          years_of_experience: string
+        }[]
+      }
+      admin_get_all_profiles_secure: {
+        Args: never
+        Returns: {
+          address: string
+          available_for_matching: boolean
+          avatar_url: string
+          care_types: string[]
+          care_urgency: Database["public"]["Enums"]["care_urgency"]
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          location: string
+          phone_number: string
+          professional_type: string
+          role: Database["public"]["Enums"]["user_role"]
+          specialized_care: string[]
+          updated_at: string
+          years_of_experience: string
+        }[]
+      }
+      admin_get_user_journey_progress: {
+        Args: { target_user_id: string }
+        Returns: {
+          completion_percentage: number
+          current_step: number
+          last_activity_at: string
+          role: string
+          total_steps: number
+          user_id: string
+        }[]
+      }
+      calculate_and_update_journey_progress: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
+      calculate_and_update_journey_progress_fixed: {
         Args: { target_user_id: string }
         Returns: undefined
       }
@@ -3785,73 +6286,256 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: undefined
       }
+      calculate_unified_match_score: {
+        Args: { target_caregiver_id: string; target_family_user_id: string }
+        Returns: Json
+      }
+      can_access_professional_data: { Args: never; Returns: boolean }
       cancel_visit_booking: {
         Args: { booking_id: string; reason?: string }
         Returns: undefined
       }
+      cleanup_expired_whatsapp_codes: { Args: never; Returns: undefined }
+      cleanup_stale_assignments: { Args: never; Returns: string }
+      create_admin_assignment: {
+        Args: {
+          admin_override_score?: number
+          assignment_notes?: string
+          assignment_reason?: string
+          calculated_match_score: number
+          target_caregiver_id: string
+          target_family_user_id: string
+        }
+        Returns: string
+      }
+      create_automatic_assignment: {
+        Args: {
+          algorithm_version_param?: string
+          assignment_explanation?: string
+          calculated_match_score: number
+          calculated_shift_compatibility_score?: number
+          target_caregiver_id: string
+          target_family_user_id: string
+        }
+        Returns: string
+      }
+      create_unified_assignment: {
+        Args: {
+          admin_override_score_param?: number
+          assignment_notes_param?: string
+          assignment_reason_param?: string
+          assignment_type_param: string
+          care_plan_id_param?: string
+          target_caregiver_id: string
+          target_family_user_id: string
+        }
+        Returns: string
+      }
       detect_medication_conflicts: {
         Args: {
-          p_medication_id: string
           p_administered_at: string
+          p_medication_id: string
           p_time_window_hours?: number
         }
         Returns: {
-          id: string
           administered_at: string
           administered_by: string
           administered_by_role: string
-          status: string
+          id: string
           notes: string
+          status: string
         }[]
       }
-      generate_admin_configured_slots: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
+      detect_stale_assignments: {
+        Args: never
+        Returns: {
+          assignment_id: string
+          assignment_type: string
+          caregiver_id: string
+          family_user_id: string
+          issue: string
+        }[]
       }
-      generate_default_availability_slots: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      get_current_user_role: {
-        Args: Record<PropertyKey, never>
+      format_whatsapp_number: {
+        Args: { country_code_input?: string; phone_input: string }
         Returns: string
       }
-      get_feature_vote_count: {
-        Args: { feature_id: string }
-        Returns: number
+      generate_admin_configured_slots: { Args: never; Returns: undefined }
+      generate_default_availability_slots: { Args: never; Returns: undefined }
+      get_current_user_role: { Args: never; Returns: string }
+      get_family_profiles_for_professional_chat: {
+        Args: { professional_user_id: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          id: string
+        }[]
+      }
+      get_feature_vote_count: { Args: { feature_id: string }; Returns: number }
+      get_professional_accessible_family_profiles: {
+        Args: { professional_id: string }
+        Returns: {
+          full_name: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
+      get_professional_care_plan_team_members: {
+        Args: { plan_id: string }
+        Returns: {
+          avatar_url: string
+          care_plan_id: string
+          caregiver_id: string
+          full_name: string
+          id: string
+          phone_number: string
+          professional_type: string
+          role: string
+          status: string
+        }[]
+      }
+      get_public_family_profiles: {
+        Args: never
+        Returns: {
+          care_schedule: string
+          care_types: string[]
+          care_urgency: Database["public"]["Enums"]["care_urgency"]
+          chronic_illness_type: string
+          diagnosed_conditions: string
+          full_name: string
+          id: string
+          location: string
+        }[]
+      }
+      get_public_professional_profiles: {
+        Args: { ids: string[] }
+        Returns: {
+          avatar_url: string
+          care_schedule: string
+          care_types: string[]
+          expected_rate: string
+          full_name: string
+          hourly_rate: string
+          id: string
+          location: string
+          professional_type: string
+          years_of_experience: string
+        }[]
+      }
+      get_unmatched_family_count: { Args: never; Returns: number }
+      get_user_profile_secure: {
+        Args: { target_user_id: string }
+        Returns: {
+          additional_notes: string
+          address: string
+          available_for_matching: boolean
+          avatar_url: string
+          background_check: boolean
+          budget_preferences: string
+          care_recipient_name: string
+          care_schedule: string
+          care_services: string[]
+          care_types: string[]
+          caregiver_preferences: string
+          caregiver_type: string
+          certifications: string[]
+          commute_mode: string
+          created_at: string
+          custom_schedule: string
+          emergency_contact: string
+          first_name: string
+          full_name: string
+          hourly_rate: string
+          id: string
+          languages: string[]
+          last_login_at: string
+          last_name: string
+          location: string
+          phone_number: string
+          preferred_contact_method: string
+          preferred_work_locations: string
+          professional_type: string
+          relationship: string
+          role: Database["public"]["Enums"]["user_role"]
+          special_needs: string[]
+          specialized_care: string[]
+          updated_at: string
+          video_available: boolean
+          visit_notes: string
+          visit_payment_reference: string
+          visit_payment_status: string
+          visit_scheduling_status: string
+          years_of_experience: string
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
       }
       has_user_voted_for_feature: {
         Args: { feature_id: string; user_id: string }
         Returns: boolean
       }
+      increment_verification_attempts: {
+        Args: { phone_input: string }
+        Returns: undefined
+      }
+      is_current_user_admin: { Args: never; Returns: boolean }
+      recalculate_all_journey_progress: { Args: never; Returns: string }
       reschedule_visit_booking: {
         Args: {
           booking_id: string
-          new_slot_id: string
           new_date: string
+          new_slot_id: string
           new_time: string
           reason?: string
         }
         Returns: undefined
       }
+      reset_user_assignments: {
+        Args: { target_family_user_id: string }
+        Returns: undefined
+      }
+      sync_admin_role_to_jwt: { Args: never; Returns: string }
+      trigger_automatic_assignment_process: {
+        Args: { target_family_user_id?: string }
+        Returns: string
+      }
       update_care_plan_status: {
-        Args: { plan_id: string; new_status: string }
+        Args: { new_status: string; plan_id: string }
         Returns: undefined
       }
       update_site_visit_status: {
-        Args: { plan_id: string; new_status: string }
+        Args: { new_status: string; plan_id: string }
+        Returns: undefined
+      }
+      update_user_profile:
+        | { Args: { profile_data: Json }; Returns: undefined }
+        | {
+            Args: { profile_data: Json; user_id_param: string }
+            Returns: undefined
+          }
+      update_video_availability: {
+        Args: { available: boolean; user_id_param: string }
         Returns: undefined
       }
       update_visit_payment_status: {
         Args: {
-          user_id_param: string
-          payment_status_param: string
           payment_reference_param?: string
+          payment_status_param: string
+          user_id_param: string
         }
         Returns: undefined
       }
       validate_admin_signup_code: {
         Args: { provided_code: string }
+        Returns: boolean
+      }
+      validate_whatsapp_number: {
+        Args: { phone_input: string }
         Returns: boolean
       }
     }
@@ -3862,6 +6546,9 @@ export type Database = {
         | "cancelled"
         | "completed"
         | "locked"
+      app_role: "admin" | "moderator" | "user"
+      care_supply_cadence: "weekly" | "biweekly" | "monthly" | "one_time"
+      care_supply_subscription_status: "active" | "paused" | "cancelled"
       care_urgency:
         | "immediate"
         | "within_week"
@@ -3912,21 +6599,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -3944,14 +6635,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -3967,14 +6660,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -3990,14 +6685,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -4005,14 +6702,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
@@ -4027,6 +6726,9 @@ export const Constants = {
         "completed",
         "locked",
       ],
+      app_role: ["admin", "moderator", "user"],
+      care_supply_cadence: ["weekly", "biweekly", "monthly", "one_time"],
+      care_supply_subscription_status: ["active", "paused", "cancelled"],
       care_urgency: [
         "immediate",
         "within_week",

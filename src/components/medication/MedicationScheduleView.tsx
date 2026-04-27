@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Clock, CheckCircle, AlertTriangle, Calendar, Pill } from "lucide-react";
+import { CalendarDays, Clock, CheckCircle, AlertTriangle, Calendar, Pill, Undo2 } from "lucide-react";
 import { format, isToday, startOfDay, endOfDay } from "date-fns";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { medicationService, MedicationWithAdministrations } from "@/services/medicationService";
@@ -46,6 +46,7 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [administeringDose, setAdministeringDose] = useState<string | null>(null);
+  const [undoingDose, setUndoingDose] = useState<string | null>(null);
   const [showConflictDialog, setShowConflictDialog] = useState(false);
   const [conflictInfo, setConflictInfo] = useState<any>(null);
 
@@ -103,7 +104,7 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
               medicationName: med.name,
               dosage: med.dosage || '',
               time: time,
-              timeLabel: timeLabel,
+              timeLabel: String(timeLabel),
               administered: !!administered,
               administrationId: administrationRecord?.id,
               conflictDetected: false,
@@ -114,8 +115,16 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
 
         // Also handle array-based times format (legacy support)
         if (med.schedule?.times && Array.isArray(med.schedule.times)) {
-          med.schedule.times.forEach((time: string) => {
+          med.schedule.times.forEach((timeEntry: any) => {
+            // Handle both string times ("08:00") and object times ({time: "08:00", withFood: true})
+            const time = typeof timeEntry === 'object' && timeEntry !== null
+              ? String(timeEntry.time || '08:00')
+              : String(timeEntry);
+            
             const doseDateTime = new Date(`${format(date, 'yyyy-MM-dd')}T${time}`);
+            
+            // Skip invalid dates
+            if (isNaN(doseDateTime.getTime())) return;
             
             const administered = med.recent_administrations?.some(admin => {
               const adminDate = new Date(admin.administered_at);
@@ -129,16 +138,29 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
                      Math.abs(adminDate.getTime() - doseDateTime.getTime()) < 2 * 60 * 60 * 1000;
             });
 
+            // Build enhanced instructions from object flags
+            let enhancedInstructions = med.instructions || '';
+            if (typeof timeEntry === 'object' && timeEntry !== null) {
+              const flags: string[] = [];
+              if (timeEntry.withFood) flags.push('Take with food');
+              if (timeEntry.beforeBed) flags.push('Take before bed');
+              if (flags.length > 0) {
+                enhancedInstructions = enhancedInstructions
+                  ? `${enhancedInstructions} — ${flags.join(', ')}`
+                  : flags.join(', ');
+              }
+            }
+
             doses.push({
               medicationId: med.id,
               medicationName: med.name,
               dosage: med.dosage || '',
               time: time,
-              timeLabel: time,
+              timeLabel: String(time),
               administered: !!administered,
               administrationId: administrationRecord?.id,
               conflictDetected: false,
-              instructions: med.instructions
+              instructions: enhancedInstructions
             });
           });
         }
@@ -167,7 +189,7 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
     setAdministeringDose(doseKey);
 
     try {
-      const administeredAt = new Date(`${format(selectedDate, 'yyyy-MM-dd')}T${dose.time}`).toISOString();
+      const administeredAt = new Date().toISOString();
       
       const result = await medicationService.recordAdministrationWithConflictDetection(
         dose.medicationId,
@@ -204,7 +226,7 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
         const dose = scheduledDoses.find(d => getDoseKey(d) === doseKey);
         if (!dose || dose.administered) continue;
 
-        const administeredAt = new Date(`${format(selectedDate, 'yyyy-MM-dd')}T${dose.time}`).toISOString();
+        const administeredAt = new Date().toISOString();
         
         const result = await medicationService.recordAdministrationWithConflictDetection(
           dose.medicationId,
@@ -242,7 +264,7 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
 
     try {
       const { dose, result } = conflictInfo;
-      const administeredAt = new Date(`${format(selectedDate, 'yyyy-MM-dd')}T${dose.time}`).toISOString();
+      const administeredAt = new Date().toISOString();
       
       const finalResult = await medicationService.recordAdministrationWithConflictDetection(
         dose.medicationId,
@@ -288,7 +310,9 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
   };
 
   const formatTimeLabel = (timeLabel: string, time: string) => {
-    const capitalizedLabel = timeLabel.charAt(0).toUpperCase() + timeLabel.slice(1);
+    const label = String(timeLabel || '');
+    if (!label) return time;
+    const capitalizedLabel = label.charAt(0).toUpperCase() + label.slice(1);
     return `${capitalizedLabel} (${time})`;
   };
 
@@ -395,6 +419,37 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
 
                       {dose.conflictDetected && (
                         <AlertTriangle className="h-5 w-5 text-orange-500" />
+                      )}
+
+                      {dose.administered && dose.administrationId && (
+                        <Button
+                          onClick={async () => {
+                            const doseKey = getDoseKey(dose);
+                            setUndoingDose(doseKey);
+                            const success = await medicationService.deleteAdministration(dose.administrationId!);
+                            if (success) {
+                              loadMedicationsAndSchedule();
+                              onAdministrationUpdate?.();
+                            }
+                            setUndoingDose(null);
+                          }}
+                          disabled={undoingDose === getDoseKey(dose)}
+                          variant="outline"
+                          size="sm"
+                          className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                        >
+                          {undoingDose === getDoseKey(dose) ? (
+                            <div className="flex items-center gap-1">
+                              <div className="animate-spin rounded-full h-3 w-3 border-b border-orange-600"></div>
+                              Undoing...
+                            </div>
+                          ) : (
+                            <>
+                              <Undo2 className="h-3 w-3 mr-1" />
+                              Undo
+                            </>
+                          )}
+                        </Button>
                       )}
 
                       {!dose.administered && (

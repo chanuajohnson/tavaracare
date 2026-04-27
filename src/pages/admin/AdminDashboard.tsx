@@ -3,15 +3,25 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings, UserCheck, MapPin, Link2, Shield, HeartHandshake, ClipboardCheck, DollarSign } from "lucide-react";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
+import { QuizLeadsPanel } from "@/components/admin/QuizLeadsPanel";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
+import { UnifiedMatchingInterface } from "@/components/admin/UnifiedMatchingInterface";
+import { MatchRecalculationLog } from '@/components/admin/MatchRecalculationLog';
+import { ManualAssignmentTrigger } from '@/components/debug/ManualAssignmentTrigger';
 import { supabase } from '@/integrations/supabase/client';
+import { backfillAvailableCaregiverMatches } from '@/utils/admin/manualMatchRecalculation';
+import { toast } from 'sonner';
+import { RefreshCw } from 'lucide-react';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [pendingSchedulingCount, setPendingSchedulingCount] = useState(0);
+  const [showMatchingInterface, setShowMatchingInterface] = useState(false);
+  const [pendingMatchesCount, setPendingMatchesCount] = useState(0);
 
   const fetchPendingSchedulingCount = async () => {
     try {
@@ -28,13 +38,36 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchPendingMatchesCount = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact' })
+        .eq('role', 'family')
+        .is('manual_match_assigned', false);
+
+      if (error) throw error;
+      setPendingMatchesCount(data?.length || 0);
+    } catch (error) {
+      console.error('Error fetching pending matches count:', error);
+    }
+  };
+
   useEffect(() => {
     fetchPendingSchedulingCount();
+    fetchPendingMatchesCount();
     
-    // Refresh count every 30 seconds
-    const interval = setInterval(fetchPendingSchedulingCount, 30000);
+    // Refresh counts every 30 seconds
+    const interval = setInterval(() => {
+      fetchPendingSchedulingCount();
+      fetchPendingMatchesCount();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleHeroVideoClick = () => {
+    navigate('/admin/hero-video-management');
+  };
 
   const handleVisitScheduleClick = () => {
     // Navigate directly to the queue tab if there are pending requests
@@ -53,6 +86,46 @@ export default function AdminDashboard() {
     navigate('/admin/user-journey');
   };
 
+  const handleWhatsAppNudgeClick = () => {
+    navigate('/admin/whatsapp-nudge');
+  };
+
+  const handlePlatformAnalyticsClick = () => {
+    navigate('/admin/platform-analytics');
+  };
+
+  const handleShiftManagementClick = () => {
+    navigate('/admin/shift-management');
+  };
+
+  const handleMatchingClick = () => {
+    setShowMatchingInterface(true);
+  };
+
+  const handleFlyerLocationsClick = () => {
+    navigate('/admin/flyer-locations');
+  };
+
+  const handleCampaignLinksClick = () => {
+    navigate('/admin/campaign-links');
+  };
+
+  const handleScreeningClick = () => {
+    navigate('/admin/caregiver-screening');
+  };
+
+  const handleFamilyCarePlansClick = () => {
+    navigate('/admin/family-care-plans');
+  };
+
+  const handleOnboardingChecklistClick = () => {
+    navigate('/admin/onboarding-checklist');
+  };
+
+  const handleUnitEconomicsClick = () => {
+    navigate('/admin/unit-economics');
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -63,19 +136,59 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 mb-8">
+        <Button
+          onClick={handleMatchingClick}
+          className="h-20 flex flex-col items-center justify-center gap-2 relative"
+          variant="outline"
+        >
+          <UserCheck className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Caregiver Matching</span>
+          {pendingMatchesCount > 0 && (
+            <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+              {pendingMatchesCount}
+            </div>
+          )}
+        </Button>
+        <Button
+          onClick={handleHeroVideoClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <Video className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Hero Video Management</span>
+        </Button>
+
         <Button
           onClick={handleVisitScheduleClick}
           className="h-20 flex flex-col items-center justify-center gap-2 relative"
           variant="outline"
         >
           <Calendar className="h-6 w-6" />
-          <span className="text-sm font-medium">Visit Schedule Management</span>
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Visit Schedule Management</span>
           {pendingSchedulingCount > 0 && (
             <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
               {pendingSchedulingCount}
             </div>
           )}
+        </Button>
+
+        <Button
+          onClick={handleShiftManagementClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <Settings className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Shift Configuration</span>
+        </Button>
+
+        <Button
+          onClick={handleWhatsAppNudgeClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <MessageCircle className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">WhatsApp Nudge System</span>
         </Button>
         
         <Button
@@ -84,7 +197,7 @@ export default function AdminDashboard() {
           variant="outline"
         >
           <MessageSquare className="h-6 w-6" />
-          <span className="text-sm font-medium">TAVARA Feedback</span>
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">TAVARA Feedback</span>
         </Button>
         
         <Button
@@ -93,16 +206,70 @@ export default function AdminDashboard() {
           variant="outline"
         >
           <TrendingUp className="h-6 w-6" />
-          <span className="text-sm font-medium">User Journey Analytics</span>
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">User Journey Analytics</span>
         </Button>
         
         <Button
+          onClick={handlePlatformAnalyticsClick}
           className="h-20 flex flex-col items-center justify-center gap-2"
           variant="outline"
-          disabled
         >
           <BarChart className="h-6 w-6" />
-          <span className="text-sm font-medium">Platform Analytics</span>
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Platform Analytics</span>
+        </Button>
+
+        <Button
+          onClick={handleFlyerLocationsClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <MapPin className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Flyer Locations</span>
+        </Button>
+
+        <Button
+          onClick={handleCampaignLinksClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <Link2 className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Campaign Links</span>
+        </Button>
+
+        <Button
+          onClick={handleScreeningClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <Shield className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Caregiver Screening</span>
+        </Button>
+
+        <Button
+          onClick={handleFamilyCarePlansClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <HeartHandshake className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Family Care Plans</span>
+        </Button>
+
+        <Button
+          onClick={handleOnboardingChecklistClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <ClipboardCheck className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Onboarding Checklist</span>
+        </Button>
+
+        <Button
+          onClick={handleUnitEconomicsClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <DollarSign className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Unit Economics</span>
         </Button>
       </div>
 
@@ -137,6 +304,9 @@ export default function AdminDashboard() {
         {/* User Management */}
         <AdminUserManagement />
 
+        {/* Quiz Leads (anonymous Care Readiness Check completers) */}
+        <QuizLeadsPanel />
+
         {/* Feature Interest Tracking */}
         <Card>
           <CardHeader>
@@ -156,7 +326,33 @@ export default function AdminDashboard() {
             <FeedbackManagement />
           </CardContent>
         </Card>
+
+        {/* Match Recalculation Log */}
+        <MatchRecalculationLog />
+
+        {/* Debug Assignment Function */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Debug Assignment Function</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ManualAssignmentTrigger />
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Unified Matching Interface Modal */}
+      <Dialog open={showMatchingInterface} onOpenChange={setShowMatchingInterface}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <UnifiedMatchingInterface
+            onClose={() => setShowMatchingInterface(false)}
+            onMatchAssigned={() => {
+              setShowMatchingInterface(false);
+              fetchPendingMatchesCount();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

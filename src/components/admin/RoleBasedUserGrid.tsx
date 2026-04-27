@@ -6,17 +6,20 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { MiniJourneyProgress } from './MiniJourneyProgress';
 import { UserDetailModal } from './UserDetailModal';
 import { UserWithProgress } from '@/types/adminTypes';
-import { Users, User, Building, Shield, Mail, Phone, MapPin } from 'lucide-react';
+import { Users, User, Building, Shield, Mail, Phone, MapPin, UserCheck, UserX, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { MatchingStatusToggle } from './MatchingStatusToggle';
+import { Button } from "@/components/ui/button";
 
 interface RoleBasedUserGridProps {
   users: UserWithProgress[];
   selectedUsers: string[];
   onUserSelect: (userId: string, checked: boolean) => void;
   onRefresh?: () => void;
+  onDeleteUser?: (userId: string, user: UserWithProgress) => void;
 }
 
-export function RoleBasedUserGrid({ users, selectedUsers, onUserSelect, onRefresh }: RoleBasedUserGridProps) {
+export function RoleBasedUserGrid({ users, selectedUsers, onUserSelect, onRefresh, onDeleteUser }: RoleBasedUserGridProps) {
   const [selectedUser, setSelectedUser] = useState<UserWithProgress | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -110,6 +113,38 @@ export function RoleBasedUserGrid({ users, selectedUsers, onUserSelect, onRefres
             userId={user.id} 
             userRole={user.role as any}
           />
+          
+          {/* Actions Row */}
+          <div className="pt-2 border-t space-y-2">
+            {/* Matching Status for Professionals and Families */}
+            {(user.role === 'professional' || user.role === 'family') && (
+              <MatchingStatusToggle
+                userId={user.id}
+                currentStatus={user.available_for_matching ?? true}
+                userFullName={user.full_name || 'Unknown User'}
+                onStatusChange={onRefresh || (() => {})}
+                compact={true}
+              />
+            )}
+            
+            {/* Delete Button */}
+            {onDeleteUser && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteUser(user.id, user);
+                }}
+                className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                disabled={user.role === 'admin'}
+                title={user.role === 'admin' ? 'Cannot delete admin users' : `Delete ${user.full_name || 'user'}`}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete User
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </motion.div>
@@ -156,9 +191,9 @@ export function RoleBasedUserGrid({ users, selectedUsers, onUserSelect, onRefres
 
       <UserDetailModal
         user={selectedUser}
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        onRefresh={onRefresh || (() => {})}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onUserUpdate={onRefresh || (() => {})}
       />
     </div>
   );

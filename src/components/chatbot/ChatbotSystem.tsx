@@ -3,6 +3,8 @@ import React from 'react';
 import { useChat } from './ChatProvider';
 import { ChatbotLauncher } from './ChatbotLauncher';
 import { FullScreenChatDialog } from './FullScreenChatDialog';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { AsyncErrorBoundary } from '@/components/common/AsyncErrorBoundary';
 
 interface ChatbotSystemProps {
   children?: React.ReactNode;
@@ -22,18 +24,22 @@ const ChatbotSystemInner: React.FC<Omit<ChatbotSystemProps, 'children'>> = ({
   return (
     <>
       {/* Regular floating chat launcher */}
-      <ChatbotLauncher 
-        position={position}
-        spacing={spacing}
-        className={className}
-      />
+      <ErrorBoundary level="component" name="ChatbotLauncher">
+        <ChatbotLauncher 
+          position={position}
+          spacing={spacing}
+          className={className}
+        />
+      </ErrorBoundary>
       
       {/* Full-screen chat dialog */}
       {isFullScreen && (
-        <FullScreenChatDialog
-          open={isFullScreen}
-          onClose={closeFullScreenChat}
-        />
+        <AsyncErrorBoundary name="FullScreenChat">
+          <FullScreenChatDialog
+            open={isFullScreen}
+            onClose={closeFullScreenChat}
+          />
+        </AsyncErrorBoundary>
       )}
     </>
   );

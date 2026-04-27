@@ -1,16 +1,56 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ConversationalFormChat } from './ConversationalFormChat';
+import { useTavaraState } from '../hooks/useTavaraState';
 
 interface ExpandableChatSectionProps {
   role: 'family' | 'professional' | 'community' | null;
+  realTimeDataCallback?: (message: string, isUser: boolean) => void;
 }
 
-export const ExpandableChatSection: React.FC<ExpandableChatSectionProps> = ({ role }) => {
+export const ExpandableChatSection: React.FC<ExpandableChatSectionProps> = ({ role, realTimeDataCallback }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const expandableContentRef = useRef<HTMLDivElement>(null);
+  const { state, enterChatMode, exitChatMode, incrementMessageCount } = useTavaraState();
+  
+  // DEBUG: Log callback availability in ExpandableChatSection
+  console.warn('🔗 [ExpandableChatSection] realTimeDataCallback available:', !!realTimeDataCallback);
+
+  // Auto-scroll to show the chat input when expanded and enter chat mode
+  useEffect(() => {
+    if (isExpanded && expandableContentRef.current) {
+      // Enter chat mode when expanding
+      enterChatMode();
+      
+      // Use a small delay to ensure the animation has started
+      const scrollTimeout = setTimeout(() => {
+        expandableContentRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'end',
+          inline: 'nearest'
+        });
+      }, 100);
+
+      return () => clearTimeout(scrollTimeout);
+    } else if (!isExpanded) {
+      // Exit chat mode when collapsing
+      exitChatMode();
+    }
+  }, [isExpanded, enterChatMode, exitChatMode]);
+
+  // Enhanced realtime data callback that tracks message count
+  const enhancedRealTimeCallback = (message: string, isUser: boolean) => {
+    // Increment message count for UI sizing logic
+    incrementMessageCount();
+    
+    // Call the original callback
+    if (realTimeDataCallback) {
+      realTimeDataCallback(message, isUser);
+    }
+  };
 
   return (
     <div className="border-t border-gray-200 mt-4">
@@ -36,6 +76,7 @@ export const ExpandableChatSection: React.FC<ExpandableChatSectionProps> = ({ ro
       <AnimatePresence>
         {isExpanded && (
           <motion.div
+            ref={expandableContentRef}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -52,7 +93,10 @@ export const ExpandableChatSection: React.FC<ExpandableChatSectionProps> = ({ ro
               </div>
 
               {/* Conversational Form Chat Component */}
-              <ConversationalFormChat role={role} />
+              <ConversationalFormChat 
+                role={role} 
+                realTimeDataCallback={enhancedRealTimeCallback}
+              />
             </div>
           </motion.div>
         )}

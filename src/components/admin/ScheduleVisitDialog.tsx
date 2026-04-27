@@ -20,7 +20,7 @@ interface ScheduleVisitDialogProps {
   preselectedUser?: {
     id: string;
     full_name: string;
-    preferred_visit_type: 'virtual' | 'in_person';
+    preferred_visit_type: 'virtual' | 'in_person' | 'trial_day' | 'direct_hire';
   };
 }
 
@@ -45,7 +45,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
     bookingDate: undefined as Date | undefined,
     bookingTime: '',
     selectedSlotId: '',
-    visitType: preselectedUser?.preferred_visit_type || 'virtual' as 'virtual' | 'in_person',
+    visitType: preselectedUser?.preferred_visit_type || 'virtual' as 'virtual' | 'in_person' | 'trial_day' | 'direct_hire',
     familyAddress: '',
     familyPhone: '',
     adminNotes: ''
@@ -376,6 +376,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
               <Label>Selected User</Label>
               <div className="p-3 bg-gray-50 rounded-md">
                 <div className="font-medium">{preselectedUser.full_name}</div>
+                <div className="text-xs text-muted-foreground font-mono">UID: {preselectedUser.id.substring(0, 8)}</div>
                 <div className="text-sm text-gray-500">Preferred: {preselectedUser.preferred_visit_type}</div>
               </div>
             </div>

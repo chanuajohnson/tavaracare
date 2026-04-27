@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
-import { usePayPalSubscription } from '@/hooks/usePayPalSubscription';
 import { Loader2, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -34,11 +33,24 @@ export function PayPalSubscribeButton({
   isComingSoon = true,
   paymentType = 'subscription'
 }: PayPalSubscribeButtonProps) {
-  const [{ isPending }] = usePayPalScriptReducer();
-  const { createSubscription, completeSubscription, isLoading } = usePayPalSubscription();
   const [showPayPal, setShowPayPal] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
   const navigate = useNavigate();
+  
+  // Check if PayPal is available (env var set)
+  const hasPayPalClientId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
+  
+  // Only use PayPal hooks if client ID exists
+  let isPending = false;
+  try {
+    if (hasPayPalClientId) {
+      const [{ isPending: scriptPending }] = usePayPalScriptReducer();
+      isPending = scriptPending;
+    }
+  } catch (error) {
+    // Fail silently if hook can't be used
+    console.warn("PayPal script reducer unavailable");
+  }
   
   // Default URLs if not provided
   const defaultReturnUrl = window.location.origin + '/subscription/success';
@@ -48,52 +60,25 @@ export function PayPalSubscribeButton({
     setShowPayPal(true);
   };
   
-  const handleCreateSubscription = async () => {
+  const handleCreateSubscription = async (data: any, actions: any) => {
     try {
-      setProcessingPayment(true);
-      console.log(`Creating ${paymentType} for plan: ${planId} (${planName})`);
+      console.log(`Creating subscription for plan: ${planId} (${planName})`);
       
-      if (paymentType === 'subscription') {
-        const result = await createSubscription({
-          planId,
-          returnUrl: returnUrl || defaultReturnUrl,
-          cancelUrl: cancelUrl || defaultCancelUrl,
-        });
-        
-        if (!result) {
-          console.error("No result from createSubscription");
-          throw new Error("Failed to initiate subscription");
-        }
-        
-        console.log("Subscription creation result:", result);
-        
-        if (result.approval_url) {
-          console.log("Redirecting to PayPal approval URL:", result.approval_url);
-          window.location.href = result.approval_url;
-          return result.subscription_id;
-        } else {
-          console.error("No approval URL in response", result);
-          throw new Error("Missing PayPal approval URL");
-        }
-      } else {
-        // For trial_day and one_time payments, return a mock order ID
-        const mockOrderId = `ORDER_${Date.now()}`;
-        console.log("Mock one-time payment order created:", mockOrderId);
-        return mockOrderId;
-      }
+      // Create subscription with USD plan
+      return actions.subscription.create({
+        plan_id: planId
+      });
     } catch (error) {
-      console.error(`Error creating ${paymentType}:`, error);
+      console.error('Error creating subscription:', error);
       
-      toast.error(`${paymentType === 'subscription' ? 'Subscription' : 'Payment'} Error`, {
+      toast.error('Subscription Error', {
         description: error instanceof Error 
           ? error.message 
-          : `An unknown error occurred while creating your ${paymentType}`
+          : 'An unknown error occurred while creating your subscription'
       });
       
       if (onError) onError(error instanceof Error ? error : new Error('Unknown error'));
-      return null;
-    } finally {
-      setProcessingPayment(false);
+      throw error;
     }
   };
 
@@ -107,18 +92,10 @@ export function PayPalSubscribeButton({
           throw new Error("No subscription ID received from PayPal");
         }
         
-        const subscription = await completeSubscription({
-          subscriptionId: data.subscriptionID
-        });
-        
-        if (!subscription) {
-          throw new Error("Failed to complete subscription");
-        }
-        
-        console.log("Subscription completed:", subscription);
+        console.log("Subscription approved:", data.subscriptionID);
         
         if (onSuccess) {
-          onSuccess(subscription.id);
+          onSuccess(data.subscriptionID);
         }
         
         toast.success("Subscription Activated", {
@@ -171,7 +148,7 @@ export function PayPalSubscribeButton({
     }
   };
   
-  if (isPending || isLoading) {
+  if (isPending) {
     return (
       <Button disabled className={className}>
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -186,6 +163,29 @@ export function PayPalSubscribeButton({
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         Processing...
       </Button>
+    );
+  }
+  
+  // Display disabled button if PayPal is not configured
+  if (!hasPayPalClientId) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant={variant} 
+              className={`${className} opacity-90`}
+              disabled
+            >
+              <Clock className="mr-2 h-4 w-4" />
+              PayPal Unavailable
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>PayPal integration is not configured in this environment</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
   
@@ -225,8 +225,7 @@ export function PayPalSubscribeButton({
         </Button>
         <PayPalButtons
           style={{ layout: "vertical", tagline: false }}
-          createOrder={paymentType === 'subscription' ? undefined : handleCreateSubscription}
-          createSubscription={paymentType === 'subscription' ? handleCreateSubscription : undefined}
+          createSubscription={handleCreateSubscription}
           onApprove={handleApprove}
           onError={(err) => {
             console.error("PayPal Error:", err);
@@ -259,10 +258,6 @@ export function PayPalSubscribeButton({
     );
   }
   
-  const buttonText = paymentType === 'subscription' 
-    ? 'Subscribe with PayPal' 
-    : `Pay $${price.replace('$', '').replace(' TTD', '')} TTD with PayPal`;
-  
   return (
     <Button 
       onClick={handleShowPayPal} 
@@ -276,7 +271,7 @@ export function PayPalSubscribeButton({
           Processing...
         </>
       ) : (
-        buttonText
+        'Subscribe with PayPal'
       )}
     </Button>
   );

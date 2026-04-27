@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,8 +21,37 @@ export const FamilyNextStepsPanel = () => {
     setShowCaregiverMatchingModal
   } = useFamilyJourneyProgress();
 
-  // Show only the first 7 steps in the dashboard panel for cleaner UI
-  const dashboardSteps = steps.slice(0, 7);
+  // Show first 8 steps in dashboard panel (now includes care coordination steps)
+  const dashboardSteps = steps.slice(0, 8);
+
+  // Helper function to get button text based on step number and completion status
+  const getButtonText = (step: any) => {
+    if (step.completed) {
+      switch (step.step_number) {
+        case 1: return "Edit";
+        case 2: return "Edit";
+        case 3: return "Edit";
+        case 4: return "Edit";
+        case 5: return "View";
+        case 6: return "Edit";
+        case 7: return "Edit";
+        case 8: return "View";
+        default: return "View";
+      }
+    } else {
+      switch (step.step_number) {
+        case 1: return "Complete";
+        case 2: return "Complete";
+        case 3: return "Complete";
+        case 4: return "Complete";
+        case 5: return "View";
+        case 6: return "Start Setup";
+        case 7: return "Start Planning";
+        case 8: return "Schedule";
+        default: return "Complete";
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -145,7 +175,7 @@ export const FamilyNextStepsPanel = () => {
                           disabled={!step.accessible}
                           onClick={() => step.action && step.action()}
                         >
-                          {step.buttonText}
+                          {getButtonText(step)}
                           <ArrowRight className="ml-1 h-3 w-3" />
                         </Button>
                       </div>

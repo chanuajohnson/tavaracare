@@ -3,3 +3,5 @@
 export * from './types';
 export * from './fetchServices';
 export * from './mutationServices';
+export * from './nisService';
+export * from './employerSettingsService';

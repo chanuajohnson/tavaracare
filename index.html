@@ -8,10 +8,78 @@
     <meta name="description" content="Trinidad and Tobago based care platform" />
     <meta name="author" content="Lovable" />
     <meta property="og:image" content="/og-image.png" />
+    <meta name="facebook-domain-verification" content="tdqa1e00ddj0x0mxuoc9gbh206t7lp" />
     <link rel="icon" href="/favicon-new.ico" type="image/x-icon">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-GSZ843MWBM"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-GSZ843MWBM');
+    </script>
+    <!-- Meta Pixel Code -->
+    <script>
+      // Enhanced conditional loading for Facebook Pixel
+      (function() {
+        // Wait for DOM to be ready
+        function initializeFacebookPixel() {
+          const hostname = window.location.hostname;
+          const isProduction = hostname === 'tavara.care';
+          const isNotLovable = !hostname.includes('lovable.app') && 
+                              !hostname.includes('lovableproject.com') && 
+                              !hostname.includes('localhost');
+          
+          console.log('Facebook Pixel check:', { hostname, isProduction, isNotLovable });
+          
+          // Only load on production domain
+          if (isProduction && isNotLovable) {
+            console.log('Loading Facebook Pixel for production');
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '1356411628792394');
+            fbq('track', 'PageView');
+          } else {
+            console.log('Facebook Pixel NOT loaded - not on production domain');
+          }
+        }
+        
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initializeFacebookPixel);
+        } else {
+          initializeFacebookPixel();
+        }
+      })();
+    </script>
+    <!-- End Meta Pixel Code -->
   </head>
 
   <body>
+    <!-- Meta Pixel Noscript -->
+    <script>
+      // Only add noscript fallback for production
+      (function() {
+        const hostname = window.location.hostname;
+        const isProduction = hostname === 'tavara.care';
+        const isNotLovable = !hostname.includes('lovable.app') && 
+                            !hostname.includes('lovableproject.com') && 
+                            !hostname.includes('localhost');
+        
+        if (isProduction && isNotLovable) {
+          document.write('<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1356411628792394&ev=PageView&noscript=1" /></noscript>');
+        }
+      })();
+    </script>
+    <!-- End Meta Pixel Noscript -->
+
     <div id="root"></div>
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>

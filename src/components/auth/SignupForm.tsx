@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,23 +52,9 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
       localStorage.setItem('registeringAs', role);
       localStorage.setItem('registrationRole', role);
       
-      // Set up user metadata with role and name for profile creation
-      const metadata = {
-        first_name: firstName,
-        last_name: lastName,
-        full_name: `${firstName} ${lastName}`.trim(),
-        role: role,
-        // Include admin code in metadata if admin role selected
-        ...(role === "admin" && { admin_code: adminCode })
-      };
-      
-      console.log('Setting user metadata:', metadata);
-      
       // Pass the registration to the parent component
       await onSubmit(email, password, firstName, lastName, role, role === "admin" ? adminCode : undefined);
       
-      // Show success message
-      toast.success("Account created successfully! Please check your email to confirm your account.");
       setSubmissionStatus("success");
       
     } catch (error: any) {
@@ -96,7 +81,7 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
             <h3 className="font-medium text-lg">Registration Started!</h3>
             <div className="mt-2 space-y-4">
               <p>
-                Your {role === "admin" ? "administrator" : role} account has been created successfully. We've sent a confirmation email to <strong>{email}</strong>.
+                Your {role === "admin" ? "administrator" : role} account has been created successfully. We've sent a verification email to <strong>{email}</strong>.
               </p>
               <div className="bg-amber-50 border border-amber-200 p-3 rounded-md text-amber-800 text-sm">
                 <h4 className="font-medium mb-1 flex items-center">
@@ -105,8 +90,13 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
                 <ol className="list-decimal list-inside text-left space-y-1">
                   <li>Check your email inbox for a confirmation link</li>
                   <li>Click the confirmation link to verify your email</li>
-                  <li>You'll be redirected to complete your {role} profile</li>
+                  <li>You'll be automatically redirected to your {role} dashboard</li>
+                  <li>Complete your profile setup to get started</li>
                 </ol>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 p-3 rounded-md text-blue-800 text-sm">
+                <p className="font-medium">Important:</p>
+                <p>After clicking the verification link, you'll be automatically logged in and taken to your {role} dashboard where you can complete your profile.</p>
               </div>
               <p className="text-sm text-gray-600 mt-2">
                 If you don't see the email, please check your spam folder.

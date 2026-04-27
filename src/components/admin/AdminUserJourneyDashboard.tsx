@@ -3,11 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from '@/lib/supabase';
 import { BulkActionPanel } from './BulkActionPanel';
 import { RoleBasedUserGrid } from './RoleBasedUserGrid';
 import { UserWithProgress, RoleStats } from '@/types/adminTypes';
 import { Search, Users, TrendingUp, UserCheck, Clock } from 'lucide-react';
+import { useAdminProfiles } from '@/hooks/useAdminProfiles';
 
 interface AuthUser {
   id: string;
@@ -16,86 +16,31 @@ interface AuthUser {
 }
 
 export function AdminUserJourneyDashboard() {
-  const [users, setUsers] = useState<UserWithProgress[]>([]);
+  const { profiles, loading, error, refetch } = useAdminProfiles();
   const [filteredUsers, setFilteredUsers] = useState<UserWithProgress[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [loading, setLoading] = useState(true);
   const [roleStats, setRoleStats] = useState<Record<string, RoleStats>>({});
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      
-      // Query only columns that exist in the profiles table
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          full_name,
-          role,
-          created_at,
-          updated_at,
-          avatar_url,
-          location,
-          phone_number,
-          professional_type,
-          years_of_experience,
-          care_types,
-          specialized_care
-        `)
-        .order('created_at', { ascending: false });
+  // Transform admin profiles to UserWithProgress format
+  const users: UserWithProgress[] = profiles.map(profile => ({
+    id: profile.id,
+    email: profile.email || 'No email',
+    full_name: profile.full_name || 'Unknown User',
+    role: profile.role as 'family' | 'professional' | 'community' | 'admin',
+    email_verified: true, // Assume verified for existing users
+    last_login_at: profile.updated_at || profile.created_at,
+    created_at: profile.created_at,
+    avatar_url: profile.avatar_url,
+    location: profile.location,
+    phone_number: profile.phone_number,
+    professional_type: profile.professional_type,
+    years_of_experience: profile.years_of_experience,
+    care_types: profile.care_types || [],
+    specialized_care: profile.specialized_care || []
+  }));
 
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        return;
-      }
-
-      // Get auth users data to get email addresses
-      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) {
-        console.error('Error fetching auth users:', authError);
-        // Continue without email data if auth query fails
-      }
-
-      // Create a map of user emails from auth data
-      const emailMap = new Map<string, string>();
-      if (authData?.users) {
-        (authData.users as AuthUser[]).forEach((user: AuthUser) => {
-          if (user.id && user.email) {
-            emailMap.set(user.id, user.email);
-          }
-        });
-      }
-
-      // Transform the data to match our interface
-      const transformedUsers: UserWithProgress[] = (profiles || []).map(profile => ({
-        id: profile.id,
-        email: emailMap.get(profile.id) || 'No email available',
-        full_name: profile.full_name || 'Unknown User',
-        role: profile.role || 'family',
-        email_verified: false, // Default since we don't have this in profiles
-        last_login_at: profile.updated_at || profile.created_at,
-        created_at: profile.created_at,
-        avatar_url: profile.avatar_url,
-        location: profile.location,
-        phone_number: profile.phone_number,
-        professional_type: profile.professional_type,
-        years_of_experience: profile.years_of_experience,
-        care_types: profile.care_types,
-        specialized_care: profile.specialized_care
-      }));
-
-      setUsers(transformedUsers);
-      calculateRoleStats(transformedUsers);
-    } catch (error) {
-      console.error('Error in fetchUsers:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const calculateRoleStats = (userData: UserWithProgress[]) => {
     const stats: Record<string, RoleStats> = {};
@@ -124,8 +69,10 @@ export function AdminUserJourneyDashboard() {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (users.length > 0) {
+      calculateRoleStats(users);
+    }
+  }, [users]);
 
   useEffect(() => {
     let filtered = users;
@@ -248,7 +195,7 @@ export function AdminUserJourneyDashboard() {
           selectedUsers={selectedUsers}
           users={filteredUsers}
           onClearSelection={() => setSelectedUsers([])}
-          onRefresh={fetchUsers}
+          onRefresh={refetch}
         />
       )}
 
@@ -323,7 +270,7 @@ export function AdminUserJourneyDashboard() {
             users={filteredUsers}
             selectedUsers={selectedUsers}
             onUserSelect={handleUserSelect}
-            onRefresh={fetchUsers}
+            onRefresh={refetch}
           />
         </CardContent>
       </Card>

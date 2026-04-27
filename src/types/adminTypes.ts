@@ -33,6 +33,7 @@ export interface UserWithProgress {
   years_of_experience?: string;
   care_types?: string[];
   specialized_care?: string[];
+  available_for_matching?: boolean;
 }
 
 // Alias for compatibility with BulkActionPanel

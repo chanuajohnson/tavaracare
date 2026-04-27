@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { Clock, User, Phone, Heart, AlertCircle, Calendar, Brain, Home, Car, Sparkles } from "lucide-react";
+import { Brain, User, Phone, Heart, AlertCircle, Calendar, Home, Car, Sparkles } from "lucide-react";
+import { applyPrefillDataToForm } from '@/utils/chat/prefillReader';
 
 interface CareNeedsFormData {
   // Header fields
@@ -18,9 +20,6 @@ interface CareNeedsFormData {
   primary_contact_name: string;
   primary_contact_phone: string;
   care_location: string;
-  preferred_shift_start: string;
-  preferred_shift_end: string;
-  preferred_days: string[];
   
   // Daily Living Tasks (ADLs)
   assistance_bathing: boolean;
@@ -79,9 +78,6 @@ const initialFormData: CareNeedsFormData = {
   primary_contact_name: "",
   primary_contact_phone: "",
   care_location: "",
-  preferred_shift_start: "",
-  preferred_shift_end: "",
-  preferred_days: [],
   assistance_bathing: false,
   assistance_dressing: false,
   assistance_toileting: false,
@@ -119,28 +115,63 @@ const initialFormData: CareNeedsFormData = {
   additional_notes: ""
 };
 
-const daysOfWeek = [
-  { value: "monday", label: "Monday" },
-  { value: "tuesday", label: "Tuesday" },
-  { value: "wednesday", label: "Wednesday" },
-  { value: "thursday", label: "Thursday" },
-  { value: "friday", label: "Friday" },
-  { value: "saturday", label: "Saturday" },
-  { value: "sunday", label: "Sunday" }
-];
+interface CareNeedsAssessmentFormProps {
+  isDemo?: boolean;
+}
 
-export const CareNeedsAssessmentForm = () => {
+export const CareNeedsAssessmentForm = ({ isDemo: isExternalDemo = false }: CareNeedsAssessmentFormProps = {}) => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const isEditMode = searchParams.get('mode') === 'edit';
   const [formData, setFormData] = useState<CareNeedsFormData>(initialFormData);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [existingAssessment, setExistingAssessment] = useState(false);
+  const [prefillApplied, setPrefillApplied] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    // Skip loading for demo mode
+    const searchParams = new URLSearchParams(window.location.search);
+    const isDemoMode = isExternalDemo || searchParams.get('demo') === 'true';
+    
+    if (user && !isDemoMode) {
       loadExistingAssessment();
+    } else if (isDemoMode) {
+      setLoading(false);
     }
-  }, [user]);
+  }, [user, isExternalDemo]);
+
+  // Apply prefill data from chat sessions (skip for demo mode)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const isDemoMode = isExternalDemo || searchParams.get('demo') === 'true';
+    
+    if (!prefillApplied && !isDemoMode) {
+      console.log('Checking for care assessment prefill data...');
+      
+      const setFormValue = (field: string, value: any) => {
+        console.log(`Setting care assessment field ${field} to:`, value);
+        setFormData(prev => ({ ...prev, [field]: value }));
+      };
+      
+      const hasPrefill = applyPrefillDataToForm(
+        setFormValue, 
+        { 
+          logDataReceived: true,
+          formType: 'care_assessment'
+        }
+      );
+      
+      if (hasPrefill) {
+        console.log('Successfully applied prefill data to care assessment form');
+        toast.success('Your chat information has been applied to this form');
+      }
+      
+      setPrefillApplied(true);
+    } else {
+      setPrefillApplied(true);
+    }
+  }, [prefillApplied, isExternalDemo]);
 
   const loadExistingAssessment = async () => {
     if (!user) return;
@@ -163,10 +194,12 @@ export const CareNeedsAssessmentForm = () => {
         setFormData({
           ...initialFormData,
           ...data,
-          preferred_days: data.preferred_days || [],
-          preferred_shift_start: data.preferred_time_start || "",
-          preferred_shift_end: data.preferred_time_end || ""
         });
+        
+        // Show feedback when data is loaded for editing
+        if (isEditMode) {
+          toast.success('Care assessment loaded for editing');
+        }
       }
     } catch (error) {
       console.error("Error loading assessment:", error);
@@ -177,16 +210,93 @@ export const CareNeedsAssessmentForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Demo mode - skip database operations
+    const searchParams = new URLSearchParams(window.location.search);
+    const isDemo = isExternalDemo || searchParams.get('demo') === 'true';
+    
+    if (isDemo) {
+      toast.success('Demo Care Assessment Complete! 🎉 Your assessment has been simulated successfully.');
+      setTimeout(() => {
+        window.location.href = '/demo/family/story';
+      }, 1500);
+      return;
+    }
+    
     if (!user) return;
+
+    // Validate required fields
+    if (!formData.care_recipient_name || !formData.primary_contact_name || !formData.primary_contact_phone || !formData.care_location) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+
+    if (!formData.emergency_contact_name || !formData.emergency_contact_phone || !formData.emergency_contact_relationship) {
+      toast.error("Please fill in all emergency contact fields.");
+      return;
+    }
 
     try {
       setSubmitting(true);
 
       const assessmentData = {
-        ...formData,
         profile_id: user.id,
-        preferred_time_start: formData.preferred_shift_start,
-        preferred_time_end: formData.preferred_shift_end,
+        care_recipient_name: formData.care_recipient_name,
+        primary_contact_name: formData.primary_contact_name,
+        primary_contact_phone: formData.primary_contact_phone,
+        care_location: formData.care_location,
+        
+        // Daily Living Tasks
+        assistance_bathing: formData.assistance_bathing,
+        assistance_dressing: formData.assistance_dressing,
+        assistance_toileting: formData.assistance_toileting,
+        assistance_oral_care: formData.assistance_oral_care,
+        assistance_feeding: formData.assistance_feeding,
+        assistance_mobility: formData.assistance_mobility,
+        assistance_medication: formData.assistance_medication,
+        assistance_companionship: formData.assistance_companionship,
+        assistance_naps: formData.assistance_naps,
+        
+        // Cognitive Support
+        dementia_redirection: formData.dementia_redirection,
+        memory_reminders: formData.memory_reminders,
+        gentle_engagement: formData.gentle_engagement,
+        wandering_prevention: formData.wandering_prevention,
+        triggers_soothing_techniques: formData.triggers_soothing_techniques || null,
+        
+        // Medical Conditions
+        diagnosed_conditions: formData.diagnosed_conditions || null,
+        chronic_illness_type: formData.chronic_illness_type || null,
+        vitals_check: formData.vitals_check,
+        equipment_use: formData.equipment_use,
+        fall_monitoring: formData.fall_monitoring,
+        
+        // Housekeeping & Meals
+        tidy_room: formData.tidy_room,
+        laundry_support: formData.laundry_support,
+        meal_prep: formData.meal_prep,
+        grocery_runs: formData.grocery_runs,
+        
+        // Transportation
+        escort_to_appointments: formData.escort_to_appointments,
+        fresh_air_walks: formData.fresh_air_walks,
+        
+        // Emergency Protocols
+        emergency_contact_name: formData.emergency_contact_name,
+        emergency_contact_phone: formData.emergency_contact_phone,
+        emergency_contact_relationship: formData.emergency_contact_relationship,
+        known_allergies: formData.known_allergies || null,
+        emergency_plan: formData.emergency_plan || null,
+        
+        // Communication Preferences
+        communication_method: formData.communication_method,
+        daily_report_required: formData.daily_report_required,
+        checkin_preference: formData.checkin_preference,
+        
+        // Cultural Preferences
+        cultural_preferences: formData.cultural_preferences || null,
+        additional_notes: formData.additional_notes || null,
+        
         updated_at: new Date().toISOString()
       };
 
@@ -205,13 +315,16 @@ export const CareNeedsAssessmentForm = () => {
       }
 
       if (error) {
+        console.error("Database error:", error);
         throw error;
       }
 
       toast.success(existingAssessment ? "Assessment updated successfully!" : "Assessment completed successfully!");
       
       // Redirect back to family dashboard
-      window.location.href = "/dashboard/family";
+      setTimeout(() => {
+        window.location.href = "/dashboard/family";
+      }, 1500);
     } catch (error) {
       console.error("Error saving assessment:", error);
       toast.error("Failed to save assessment. Please try again.");
@@ -222,15 +335,6 @@ export const CareNeedsAssessmentForm = () => {
 
   const updateFormData = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleDayToggle = (day: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      preferred_days: checked 
-        ? [...prev.preferred_days, day]
-        : prev.preferred_days.filter(d => d !== day)
-    }));
   };
 
   if (loading) {
@@ -257,10 +361,13 @@ export const CareNeedsAssessmentForm = () => {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-primary-900 mb-2 flex items-center gap-2">
               <Brain className="h-8 w-8 text-primary" />
-              Client Care Needs Breakdown
+              {isEditMode ? 'Edit Care Needs Assessment' : 'Client Care Needs Breakdown'}
             </h1>
             <p className="text-lg text-gray-600">
-              Help us understand your loved one's specific care requirements to match you with the right caregiver.
+              {isEditMode 
+                ? 'Update your loved one\'s care requirements and preferences.'
+                : 'Help us understand your loved one\'s specific care requirements to match you with the right caregiver.'
+              }
             </p>
           </div>
 
@@ -313,41 +420,6 @@ export const CareNeedsAssessmentForm = () => {
                       placeholder="Address where care will be provided"
                       required
                     />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="preferred_shift_start">Preferred Shift Start Time</Label>
-                    <Input
-                      id="preferred_shift_start"
-                      type="time"
-                      value={formData.preferred_shift_start}
-                      onChange={(e) => updateFormData('preferred_shift_start', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="preferred_shift_end">Preferred Shift End Time</Label>
-                    <Input
-                      id="preferred_shift_end"
-                      type="time"
-                      value={formData.preferred_shift_end}
-                      onChange={(e) => updateFormData('preferred_shift_end', e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label>Days of Week</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-                    {daysOfWeek.map(day => (
-                      <div key={day.value} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={day.value}
-                          checked={formData.preferred_days.includes(day.value)}
-                          onCheckedChange={(checked) => handleDayToggle(day.value, checked as boolean)}
-                        />
-                        <Label htmlFor={day.value} className="text-sm">{day.label}</Label>
-                      </div>
-                    ))}
                   </div>
                 </div>
               </CardContent>

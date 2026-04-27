@@ -1,5 +1,4 @@
-
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { 
@@ -38,8 +37,11 @@ import { useSupportActions } from '@/hooks/useSupportActions';
 export function Navigation() {
   const { user, signOut, isLoading, userRole } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNavigationDropdownOpen, setIsNavigationDropdownOpen] = useState(false);
+  const [isSupportDropdownOpen, setIsSupportDropdownOpen] = useState(false);
 
   // Support functionality hooks
   const {
@@ -147,30 +149,32 @@ export function Navigation() {
           <div className={`${isMobile ? (isMenuOpen ? "flex flex-col absolute top-16 left-0 right-0 bg-background border-b z-50 p-4 space-y-3" : "hidden") : "flex items-center gap-4"}`}>
             {(!isMobile || isMenuOpen) && (
               <>
-                <Link to="/about" className="text-gray-700 hover:text-primary">
+                <Link to="/about" className="text-gray-700 hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                   About
                 </Link>
-                
-                <Link to="/features" className="text-gray-700 hover:text-primary">
-                  Features
+                <Link to="/errands" className="text-gray-700 hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                  Errands
+                </Link>
+                <Link to="/tav-demo" className="text-gray-700 hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                  TAV Demo
                 </Link>
                 
                 {isSpecificUser && (
-                  <Link to="/admin/user-journey" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700">
+                  <Link to="/admin/user-journey" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700" onClick={() => setIsMenuOpen(false)}>
                     <BarChart className="h-4 w-4" />
                     <span className="hidden sm:inline">User Journey</span>
                   </Link>
                 )}
                 
                 {user && dashboardPath ? (
-                  <Link to={dashboardPath} className="flex items-center gap-1 text-gray-700 hover:text-primary">
+                  <Link to={dashboardPath} className="flex items-center gap-1 text-gray-700 hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                     <LayoutDashboard className="h-4 w-4" />
                     <span className={isMobile ? "inline" : "hidden sm:inline"}>
                       {userRole ? `${userRole.charAt(0).toUpperCase() + userRole.slice(1)} Dashboard` : 'Dashboard'}
                     </span>
                   </Link>
                 ) : !user ? (
-                  <DropdownMenu>
+                  <DropdownMenu open={isNavigationDropdownOpen} onOpenChange={setIsNavigationDropdownOpen}>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="flex items-center gap-1">
                         <LayoutDashboard className="h-4 w-4" />
@@ -182,29 +186,64 @@ export function Navigation() {
                       <DropdownMenuGroup>
                         <DropdownMenuLabel>Dashboards</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
-                          <Link to="/dashboard/family">Family Dashboard</Link>
+                        <DropdownMenuItem
+                          className="flex items-center gap-2 cursor-pointer"
+                          onClick={() => {
+                            setIsNavigationDropdownOpen(false);
+                            navigate('/dashboard/family');
+                          }}
+                        >
+                          <LayoutDashboard className="h-4 w-4" />
+                          <span>Family Dashboard</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Link to="/dashboard/professional">Professional Dashboard</Link>
+                        <DropdownMenuItem
+                          className="flex items-center gap-2 cursor-pointer"
+                          onClick={() => {
+                            setIsNavigationDropdownOpen(false);
+                            navigate('/dashboard/professional');
+                          }}
+                        >
+                          <LayoutDashboard className="h-4 w-4" />
+                          <span>Professional Dashboard</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Link to="/dashboard/community">Community Dashboard</Link>
+                        <DropdownMenuItem
+                          className="flex items-center gap-2 cursor-pointer"
+                          onClick={() => {
+                            setIsNavigationDropdownOpen(false);
+                            navigate('/dashboard/community');
+                          }}
+                        >
+                          <LayoutDashboard className="h-4 w-4" />
+                          <span>Community Dashboard</span>
                         </DropdownMenuItem>
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem>
-                        <Link to="/auth/register">Create Account</Link>
+                      <DropdownMenuItem
+                        className="flex items-center gap-2 cursor-pointer"
+                        onClick={() => {
+                          setIsNavigationDropdownOpen(false);
+                          navigate('/auth/register');
+                        }}
+                      >
+                        <LogIn className="h-4 w-4" />
+                        <span>Create Account</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Link to="/auth/reset-password">Forgot Password</Link>
+                      <DropdownMenuItem
+                        className="flex items-center gap-2 cursor-pointer"
+                        onClick={() => {
+                          setIsNavigationDropdownOpen(false);
+                          navigate('/auth/reset-password');
+                        }}
+                      >
+                        <FileQuestion className="h-4 w-4" />
+                        <span>Forgot Password</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 ) : null}
 
                 {/* Help Support Menu */}
-                <DropdownMenu>
+                <DropdownMenu open={isSupportDropdownOpen} onOpenChange={setIsSupportDropdownOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="flex items-center gap-1">
                       <HelpCircle className="h-4 w-4" />
@@ -214,28 +253,40 @@ export function Navigation() {
                   <DropdownMenuContent align="end" className="w-56 bg-white border shadow-lg z-[100]">
                     <DropdownMenuItem
                       className="flex items-center gap-2 cursor-pointer"
-                      onClick={handleFAQClick}
+                      onClick={() => {
+                        setIsSupportDropdownOpen(false);
+                        handleFAQClick();
+                      }}
                     >
                       <FileQuestion className="h-4 w-4" />
                       <span>FAQ Section</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       className="flex items-center gap-2 cursor-pointer"
-                      onClick={handleOpenWhatsApp}
+                      onClick={() => {
+                        setIsSupportDropdownOpen(false);
+                        handleOpenWhatsApp();
+                      }}
                     >
                       <Phone className="h-4 w-4" />
                       <span>WhatsApp Support</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="flex items-center gap-2 cursor-pointer"
-                      onClick={() => setIsContactFormOpen(true)}
+                      onClick={() => {
+                        setIsSupportDropdownOpen(false);
+                        setIsContactFormOpen(true);
+                      }}
                     >
                       <FileQuestion className="h-4 w-4" />
                       <span>Contact Support</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="flex items-center gap-2 cursor-pointer"
-                      onClick={() => setIsFeedbackFormOpen(true)}
+                      onClick={() => {
+                        setIsSupportDropdownOpen(false);
+                        setIsFeedbackFormOpen(true);
+                      }}
                     >
                       <MessageSquare className="h-4 w-4" />
                       <span>Give Feedback</span>
@@ -258,7 +309,7 @@ export function Navigation() {
                     <span>{isMobile ? "Sign Out" : "Sign Out"}</span>
                   </Button>
                 ) : (
-                  <Link to="/auth">
+                  <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
                     <Button variant="default" size="sm" className="flex items-center gap-2">
                       <LogIn className="h-4 w-4" />
                       <span>Sign In</span>

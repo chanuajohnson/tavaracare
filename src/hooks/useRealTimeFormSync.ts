@@ -1,0 +1,487 @@
+import { useCallback, useRef } from 'react';
+import { conversationContextTracker } from '@/services/conversationContextTracker';
+
+interface FormSetters {
+  setFirstName: (value: string) => void;
+  setLastName: (value: string) => void;
+  setEmail: (value: string) => void;
+  setPhoneNumber: (value: string) => void;
+  setLocation?: (value: string) => void;
+  setAddress: (value: string) => void;
+  setCareRecipientName: (value: string) => void;
+  setRelationship: (value: string) => void;
+}
+
+interface ExtractedData {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  address?: string;
+  care_recipient_name?: string;
+  relationship?: string;
+}
+
+export const useRealTimeFormSync = (formSetters: FormSetters | null) => {
+  const lastProcessedMessage = useRef<string>('');
+  
+  console.log('🔧 [useRealTimeFormSync] Hook initialized with formSetters:', !!formSetters);
+
+  // Helper method to check if a message is a confirmation response
+  const isConfirmationResponse = useCallback((message: string): boolean => {
+    const lowerMessage = message.toLowerCase().trim();
+    const confirmationResponses = ['yes', 'yeah', 'yep', 'correct', 'right', 'that\'s right', 'that is right', 'true'];
+    return confirmationResponses.includes(lowerMessage);
+  }, []);
+
+  // Helper method to apply extracted data
+  const applyExtractedData = useCallback((extractedData: ExtractedData) => {
+    if (!formSetters) {
+      console.log('⚠️ [Real-time Sync] Skipping: form setters not available');
+      return;
+    }
+
+    // Apply extracted data to form fields with enhanced logging
+    if (Object.keys(extractedData).length === 0) {
+      console.log('⚠️ [Real-time Sync] No data extracted from message');
+      return;
+    }
+
+    Object.entries(extractedData).forEach(([key, value]) => {
+      if (value) {
+        console.log(`🔧 [Real-time Sync] Applying ${key}:`, value);
+        try {
+          switch (key) {
+            case 'first_name':
+              formSetters.setFirstName(value);
+              console.log('✅ [Real-time Sync] Successfully set first name:', value);
+              // Add visual feedback
+              if (typeof window !== 'undefined') {
+                setTimeout(() => {
+                  const input = document.querySelector('#firstName') as HTMLInputElement;
+                  if (input) {
+                    input.style.background = 'rgba(34, 197, 94, 0.1)';
+                    input.style.transition = 'background 0.3s ease';
+                    setTimeout(() => {
+                      input.style.background = '';
+                    }, 2000);
+                  }
+                }, 100);
+              }
+              break;
+            case 'last_name':
+              formSetters.setLastName(value);
+              console.log('✅ [Real-time Sync] Successfully set last name:', value);
+              break;
+            case 'email':
+              formSetters.setEmail(value);
+              console.log('✅ [Real-time Sync] Successfully set email:', value);
+              break;
+            case 'phone':
+              formSetters.setPhoneNumber(value);
+              console.log('✅ [Real-time Sync] Successfully set phone:', value);
+              break;
+            case 'location':
+              if (formSetters.setLocation) {
+                formSetters.setLocation(value);
+                console.log('✅ [Real-time Sync] Successfully set location:', value);
+              }
+              break;
+            case 'address':
+              console.log('🏠 [Real-time Sync] BEFORE setAddress - value:', value);
+              console.log('🏠 [Real-time Sync] BEFORE setAddress - formSetters.setAddress type:', typeof formSetters.setAddress);
+              formSetters.setAddress(value);
+              console.log('✅ [Real-time Sync] Successfully set address:', value);
+              // Add visual feedback for address field
+              if (typeof window !== 'undefined') {
+                setTimeout(() => {
+                  const textarea = document.querySelector('#address') as HTMLTextAreaElement;
+                  console.log('🏠 [Real-time Sync] Looking for address field element:', !!textarea);
+                  if (textarea) {
+                    console.log('🏠 [Real-time Sync] Found address field, current value:', textarea.value);
+                    textarea.style.background = 'rgba(34, 197, 94, 0.1)';
+                    textarea.style.transition = 'background 0.3s ease';
+                    setTimeout(() => {
+                      textarea.style.background = '';
+                    }, 2000);
+                  } else {
+                    console.warn('🏠 [Real-time Sync] Address field element not found in DOM');
+                  }
+                }, 100);
+              }
+              break;
+            case 'care_recipient_name':
+              formSetters.setCareRecipientName(value);
+              console.log('✅ [Real-time Sync] Successfully set care recipient name:', value);
+              break;
+            case 'relationship':
+              formSetters.setRelationship(value);
+              console.log('✅ [Real-time Sync] Successfully set relationship:', value);
+              break;
+          }
+        } catch (error) {
+          console.error(`❌ [Real-time Sync] Error setting ${key}:`, error);
+        }
+
+        // Store in localStorage for persistence
+        const sessionId = new URLSearchParams(window.location.search).get('session') || 'default';
+        const storageKey = `tavara_extracted_${sessionId}`;
+        const existing = JSON.parse(localStorage.getItem(storageKey) || '{}');
+        existing[key] = value;
+        localStorage.setItem(storageKey, JSON.stringify(existing));
+      }
+    });
+  }, [formSetters]);
+
+  const extractDataFromMessage = useCallback((message: string, expectedFieldType?: string): ExtractedData => {
+    console.log('🔍 [Real-time Sync] Starting extraction for message:', message);
+    console.log('🎯 [Real-time Sync] Expected field type:', expectedFieldType);
+    
+    const extracted: ExtractedData = {};
+    const lowerMessage = message.toLowerCase();
+
+    // Get context-aware field type if not provided
+    const contextFieldType = expectedFieldType || conversationContextTracker.getExpectedFieldType();
+    console.log('🔄 [Real-time Sync] Using field type:', contextFieldType);
+
+    // Enhanced patterns for different field types
+    const firstNamePatterns = [
+      /(?:my name is|i'm|i am|call me)\s+([a-zA-Z]+)/i,
+      /(?:first name is|first name:)\s+([a-zA-Z]+)/i,
+      /(?:it's|its)\s+([a-zA-Z]+)/i, // "it's chanua"
+      /([a-zA-Z]+)(?:\s*is\s*my\s*name)/i // "chanua is my name"
+    ];
+
+    const lastNamePatterns = [
+      /(?:last name is|last name:)\s+([a-zA-Z]+)/i,
+      /(?:my surname is|surname:)\s+([a-zA-Z]+)/i,
+      /(?:family name is|family name:)\s+([a-zA-Z]+)/i
+    ];
+
+    // Context-aware single word pattern (most important change)
+    const singleWordPattern = /^([a-zA-Z]{2,})$/;
+
+    // Email patterns
+    const emailPattern = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
+
+    // Phone patterns
+    const phonePattern = /(\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4})/;
+
+    // Location patterns - Trinidad & Tobago locations
+    const locationPatterns = [
+      // Popular locations
+      /(?:^|[^a-zA-Z])(port of spain|port_of_spain|pos)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(san fernando|san_fernando)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(chaguanas)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(arima)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(point fortin|point_fortin)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(freeport)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(sangre grande|sangre_grande)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(rio claro|rio_claro)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(couva)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(princes town|princes_town)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(penal)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(debe)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(tunapuna)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(piarco)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(marabella)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(fyzabad)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(siparia)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(moruga)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(toco)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(valencia)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(mayaro)(?:[^a-zA-Z]|$)/i,
+      // Tobago locations
+      /(?:^|[^a-zA-Z])(scarborough)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(roxborough)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(charlotteville)(?:[^a-zA-Z]|$)/i,
+      /(?:^|[^a-zA-Z])(plymouth)(?:[^a-zA-Z]|$)/i
+    ];
+
+    // Track context-aware extraction attempts and successes by field type
+    let contextExtractionSucceeded = false;
+    let contextFieldExtracted: string | null = null;
+
+    // Context-aware extraction logic
+    if (contextFieldType) {
+      console.log('🎯 [Real-time Sync] Using context-aware extraction for:', contextFieldType);
+      
+      // Check single word pattern first when we know the context
+      const singleWordMatch = message.match(singleWordPattern);
+      if (singleWordMatch && singleWordMatch[1]) {
+        const value = singleWordMatch[1].charAt(0).toUpperCase() + singleWordMatch[1].slice(1).toLowerCase();
+        
+        switch (contextFieldType) {
+          case 'first_name':
+            extracted.first_name = value;
+            contextExtractionSucceeded = true;
+            contextFieldExtracted = 'first_name';
+            console.log('✅ [Real-time Sync] Context-aware first name:', value);
+            break;
+          case 'last_name':
+            extracted.last_name = value;
+            contextExtractionSucceeded = true;
+            contextFieldExtracted = 'last_name';
+            console.log('✅ [Real-time Sync] Context-aware last name:', value);
+            break;
+          case 'location':
+            // Try to match location to dropdown values
+            const matchedLocation = matchLocationToDropdownValue(value);
+            if (matchedLocation) {
+              extracted.location = matchedLocation;
+              contextExtractionSucceeded = true;
+              contextFieldExtracted = 'location';
+              console.log('✅ [Real-time Sync] Context-aware location matched:', matchedLocation);
+            }
+            break;
+          case 'address':
+            // For address, accept the full message as the address
+            console.log('🏠 [Real-time Sync] PROCESSING ADDRESS - raw message:', message);
+            console.log('🏠 [Real-time Sync] PROCESSING ADDRESS - trimmed message:', message.trim());
+            extracted.address = message.trim();
+            contextExtractionSucceeded = true;
+            contextFieldExtracted = 'address';
+            console.log('✅ [Real-time Sync] Context-aware address extracted:', message.trim());
+            console.log('🏠 [Real-time Sync] extracted.address value:', extracted.address);
+            break;
+        }
+      }
+    }
+
+    // Early return if context extraction succeeded - don't run any fallback patterns
+    if (contextExtractionSucceeded) {
+      console.log(`✅ [Real-time Sync] Context extraction succeeded for ${contextFieldExtracted}, skipping ALL fallback patterns`);
+      // Skip all fallback pattern matching - only do email/phone extraction below
+    } else {
+      console.log('🔍 [Real-time Sync] Context extraction failed, trying fallback patterns...');
+      
+      // Fallback to explicit patterns for first name - only if context wasn't looking for last name
+      if (!extracted.first_name && contextFieldType !== 'last_name') {
+        console.log('🔍 [Real-time Sync] Testing explicit first name patterns...');
+        for (let i = 0; i < firstNamePatterns.length; i++) {
+          const pattern = firstNamePatterns[i];
+          const match = message.match(pattern);
+          if (match && match[1] && match[1].length >= 2) {
+            const name = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+            extracted.first_name = name;
+            console.log('✅ [Real-time Sync] Found first name via explicit pattern:', name);
+            break;
+          }
+        }
+      }
+
+      // Fallback to explicit patterns for last name - only if context wasn't looking for first name
+      if (!extracted.last_name && contextFieldType !== 'first_name') {
+        console.log('🔍 [Real-time Sync] Testing explicit last name patterns...');
+        for (const pattern of lastNamePatterns) {
+          const match = message.match(pattern);
+          if (match && match[1]) {
+            const name = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+            extracted.last_name = name;
+            console.log('✅ [Real-time Sync] Found last name via explicit pattern:', name);
+            break;
+          }
+        }
+      }
+    }
+
+    // ALWAYS extract email and phone regardless of context
+    // Extract email
+    const emailMatch = message.match(emailPattern);
+    if (emailMatch) {
+      extracted.email = emailMatch[1];
+      console.log('✅ [Real-time Sync] Found email:', emailMatch[1]);
+    }
+
+    // Extract phone
+    const phoneMatch = message.match(phonePattern);
+    if (phoneMatch) {
+      extracted.phone = phoneMatch[1].replace(/[^\d+]/g, '');
+      console.log('✅ [Real-time Sync] Found phone:', extracted.phone);
+    }
+
+    // Early return if context extraction succeeded - skip location and relationship patterns
+    if (contextExtractionSucceeded) {
+      console.log(`🚀 [Real-time Sync] Returning early with context result for ${contextFieldExtracted}`);
+      return extracted;
+    }
+
+    // Extract location if not found via context
+    if (!extracted.location) {
+      console.log('🔍 [Real-time Sync] Testing location patterns...');
+      for (const pattern of locationPatterns) {
+        const match = message.match(pattern);
+        if (match && match[1]) {
+          const locationValue = normalizeLocationName(match[1]);
+          const matchedLocation = matchLocationToDropdownValue(locationValue);
+          if (matchedLocation) {
+            extracted.location = matchedLocation;
+            console.log('✅ [Real-time Sync] Found location via pattern:', matchedLocation);
+            break;
+          }
+        }
+      }
+    }
+
+    // Care recipient name patterns
+    const careRecipientPatterns = [
+      /(?:caring for|taking care of|my (?:mom|dad|mother|father|husband|wife|spouse|partner))\s+(?:is\s+)?([a-zA-Z\s]+)/i,
+      /(?:his|her|their) name is\s+([a-zA-Z\s]+)/i
+    ];
+
+    for (const pattern of careRecipientPatterns) {
+      const match = message.match(pattern);
+      if (match && match[1]) {
+        const name = match[1].trim().replace(/\s+/g, ' ');
+        extracted.care_recipient_name = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+        break;
+      }
+    }
+
+    // Relationship patterns
+    const relationshipPatterns = [
+      /(?:my|for my|caring for my)\s+(mom|mother|dad|father|husband|wife|spouse|partner|son|daughter|child|parent)/i,
+      /(?:he is my|she is my|they are my)\s+(mom|mother|dad|father|husband|wife|spouse|partner|son|daughter|child|parent)/i
+    ];
+
+    for (const pattern of relationshipPatterns) {
+      const match = message.match(pattern);
+      if (match && match[1]) {
+        const relationship = match[1].toLowerCase();
+        // Normalize relationship terms
+        const normalized = relationship
+          .replace(/mom|mother/, 'parent')
+          .replace(/dad|father/, 'parent')
+          .replace(/husband|wife|spouse|partner/, 'spouse');
+        extracted.relationship = normalized;
+        break;
+      }
+    }
+
+    return extracted;
+  }, []);
+
+  const processMessage = useCallback((message: string, isUser: boolean) => {
+    console.log('🚀 [Real-time Sync] processMessage called:', {
+      message,
+      isUser,
+      hasFormSetters: !!formSetters,
+      lastProcessed: lastProcessedMessage.current
+    });
+
+    // Track bot messages for context, process user messages
+    if (!isUser) {
+      console.log('🤖 [Real-time Sync] Bot message - updating context:', message.substring(0, 50));
+      conversationContextTracker.setExpectedFieldFromBotMessage(message);
+      const fieldTypeAfterBot = conversationContextTracker.getExpectedFieldType();
+      console.log('🎯 [Real-time Sync] After bot message, expected field type is:', fieldTypeAfterBot);
+      return;
+    }
+
+    // CRITICAL: Log the user message and current context
+    const currentExpectedField = conversationContextTracker.getExpectedFieldType();
+    const confirmationPending = conversationContextTracker.getConfirmationPending();
+    console.log('👤 [Real-time Sync] USER MESSAGE RECEIVED:', message);
+    console.log('🎯 [Real-time Sync] CURRENT EXPECTED FIELD TYPE:', currentExpectedField);
+    console.log('✅ [Real-time Sync] CONFIRMATION PENDING:', confirmationPending);
+    
+    // Check if this is a confirmation response
+    if (confirmationPending && isConfirmationResponse(message)) {
+      console.log('🎯 [Real-time Sync] CONFIRMATION RESPONSE DETECTED - using pending value:', confirmationPending.value);
+      const extractedData = { [confirmationPending.fieldType]: confirmationPending.value };
+      applyExtractedData(extractedData);
+      conversationContextTracker.clearConfirmationPending();
+      conversationContextTracker.clearExpectedField();
+      lastProcessedMessage.current = message;
+      return;
+    }
+    if (message === lastProcessedMessage.current) {
+      console.log('⏭️ [Real-time Sync] Skipping: already processed this message');
+      return;
+    }
+    if (!formSetters) {
+      console.log('⚠️ [Real-time Sync] Skipping: form setters not available yet');
+      return;
+    }
+
+    lastProcessedMessage.current = message;
+    console.log('🔄 [Real-time Sync] Processing message:', message);
+    const extractedData = extractDataFromMessage(message);
+    
+    // Clear context after processing user response
+    if (Object.keys(extractedData).length > 0) {
+      conversationContextTracker.clearExpectedField();
+    }
+
+    console.log('🎯 [Real-time Sync] Extracted data:', extractedData);
+    applyExtractedData(extractedData);
+  }, [extractDataFromMessage, isConfirmationResponse, applyExtractedData]);
+
+  // Helper function to normalize location names
+  const normalizeLocationName = (location: string): string => {
+    return location.toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z_]/g, '');
+  };
+
+  // Helper function to match user input to dropdown values
+  const matchLocationToDropdownValue = (input: string): string | null => {
+    const normalized = normalizeLocationName(input);
+    
+    // Direct matches
+    const directMatches: Record<string, string> = {
+      'port_of_spain': 'port_of_spain',
+      'pos': 'port_of_spain',
+      'san_fernando': 'san_fernando',
+      'chaguanas': 'chaguanas',
+      'arima': 'arima',
+      'point_fortin': 'point_fortin',
+      'freeport': 'freeport',
+      'sangre_grande': 'sangre_grande',
+      'rio_claro': 'rio_claro',
+      'couva': 'couva',
+      'princes_town': 'princes_town',
+      'penal': 'penal',
+      'debe': 'debe',
+      'tunapuna': 'tunapuna',
+      'piarco': 'piarco',
+      'marabella': 'marabella',
+      'fyzabad': 'fyzabad',
+      'siparia': 'siparia',
+      'moruga': 'moruga',
+      'toco': 'toco',
+      'valencia': 'valencia',
+      'mayaro': 'mayaro',
+      'scarborough': 'scarborough',
+      'roxborough': 'roxborough',
+      'charlotteville': 'charlotteville',
+      'plymouth': 'plymouth'
+    };
+
+    return directMatches[normalized] || null;
+  };
+
+  // Always return a stable processMessage function (even when formSetters is null)
+  const stableProcessMessage = useCallback((message: string, options: { isFinal?: boolean } | boolean = {}) => {
+    console.log('🔗 [useRealTimeFormSync] stableProcessMessage called:', !!formSetters);
+    
+    // Handle backward compatibility - convert boolean to options object
+    const isUser = typeof options === 'boolean' ? options : false;
+    const isFinal = typeof options === 'object' ? options.isFinal : true;
+    
+    if (formSetters) {
+      processMessage(message, isUser);
+    } else {
+      console.log('⚠️ [useRealTimeFormSync] formSetters not ready, storing for later');
+      // Could store pending messages here if needed
+    }
+  }, [processMessage, formSetters]);
+
+  console.log('🔧 [useRealTimeFormSync] Returning stableProcessMessage:', !!stableProcessMessage);
+
+  return {
+    processMessage: stableProcessMessage,
+    extractDataFromMessage
+  };
+};

@@ -57,38 +57,29 @@ export const generateNextQuestionMessage = (
     const section = flow.sections[sectionIndex];
     const question = section.questions[questionIndex];
     
-    // For select/multiselect/checkbox, provide options
+    // For select/multi-select, provide options
     let options;
     if (
       question.type === "select" ||
-      question.type === "multiselect" ||
-      question.type === "checkbox"
+      question.type === "multi-select"
     ) {
       options = question.options?.map(option => ({
-        id: option,
-        label: option
+        id: option.value,
+        label: option.label
       }));
     }
     
-    // For confirm questions, provide yes/no options
-    if (question.type === "confirm") {
-      options = [
-        { id: "yes", label: "Yes" },
-        { id: "no", label: "No" }
-      ];
-    }
-    
-    // Use just the question label without redundant intro text
-    let message = question.label;
+    // Use the question text property
+    let message = question.text;
     
     // Add special prompts for specific question types
     if (question.id === "budget") {
-      message = `${question.label} Please specify an hourly range (e.g., $20-30/hour) or say 'Negotiable'.`;
+      message = `${question.text} Please specify an hourly range (e.g., $20-30/hour) or say 'Negotiable'.`;
     }
     
     // For multi-select questions, add instruction
-    if (question.type === "checkbox" || question.type === "multiselect") {
-      message = `${question.label} (Please select all that apply)`;
+    if (question.type === "multi-select") {
+      message = `${question.text} (Please select all that apply)`;
       
       // Add "Done selecting" option for multi-select
       if (options && options.length > 0) {

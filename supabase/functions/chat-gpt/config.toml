@@ -3,3 +3,6 @@ project_id = "cpdfmyemjrefnhddyrck"
 
 [functions.chat-gpt]
 verify_jwt = false
+
+[functions.tav-chat-enhanced]
+verify_jwt = false

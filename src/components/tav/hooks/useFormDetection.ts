@@ -13,10 +13,17 @@ export interface FormField {
   helpText?: string;
 }
 
+export interface FormSection {
+  id: string;
+  title: string;
+  fields: string[];
+}
+
 export interface DetectedForm {
   formId: string;
   formTitle: string;
   fields: FormField[];
+  sections?: FormSection[];
   currentStep?: number;
   totalSteps?: number;
   userRole?: 'family' | 'professional' | 'community';
@@ -32,16 +39,57 @@ const FORM_MAPPINGS: Record<string, DetectedForm> = {
     formTitle: 'Family Registration',
     userRole: 'family',
     journeyStage: 'registration',
-    autoGreetingMessage: "💙 Welcome to your family registration! I'm TAV, and I can help you fill out this form conversationally or guide you through each step. You can always close me and work independently, but I'm here to make this delightful. Would you like my assistance?",
+    autoGreetingMessage: "💙 Welcome to your family registration! I'm TAV, and I can help you fill out this form conversationally or guide you through each step. This is the REAL Tavara experience - the same magical TAV assistance our families get! Would you like my help?",
+    sections: [
+      {
+        id: 'personal-info',
+        title: 'Personal & Contact Information',
+        fields: ['firstName', 'lastName', 'phoneNumber', 'email', 'address']
+      },
+      {
+        id: 'care-recipient',
+        title: 'Care Recipient Information', 
+        fields: ['careRecipientName', 'relationship']
+      },
+      {
+        id: 'care-needs',
+        title: 'Care Needs & Preferences',
+        fields: ['careTypes', 'specialNeeds']
+      },
+      {
+        id: 'care-schedule', 
+        title: 'Care Schedule & Availability',
+        fields: ['careSchedule', 'customCareSchedule']
+      },
+      {
+        id: 'budget-preferences',
+        title: 'Budget & Caregiver Preferences', 
+        fields: ['budget', 'caregiverType', 'caregiverPreferences']
+      },
+      {
+        id: 'additional-info',
+        title: 'Additional Information',
+        fields: ['additionalNotes', 'preferredContactMethod']
+      }
+    ],
     fields: [
       {
-        id: 'full_name',
-        name: 'full_name',
-        label: 'Full Name',
+        id: 'first_name',
+        name: 'first_name',
+        label: 'First Name',
         type: 'text',
         required: true,
-        conversationalPrompt: "What's your full name?",
+        conversationalPrompt: "What's your first name?",
         helpText: "I'll use this to personalize your care experience."
+      },
+      {
+        id: 'last_name',
+        name: 'last_name',
+        label: 'Last Name',
+        type: 'text',
+        required: true,
+        conversationalPrompt: "What's your last name?",
+        helpText: "Your full name helps us address you properly."
       },
       {
         id: 'email',
@@ -53,13 +101,32 @@ const FORM_MAPPINGS: Record<string, DetectedForm> = {
         helpText: "This will be your login and where we send important updates."
       },
       {
-        id: 'phone_number',
-        name: 'phone_number',
+        id: 'phone',
+        name: 'phone',
         label: 'Phone Number',
         type: 'tel',
         required: true,
         conversationalPrompt: "What's the best phone number to reach you?",
         helpText: "We'll use this for urgent care coordination."
+      },
+      {
+        id: 'location',
+        name: 'location',
+        label: 'Location',
+        type: 'select',
+        required: true,
+        options: ['port_of_spain', 'san_fernando', 'chaguanas', 'arima', 'point_fortin', 'freeport', 'sangre_grande', 'rio_claro', 'couva', 'princes_town', 'penal', 'debe', 'tunapuna', 'piarco', 'marabella', 'fyzabad', 'siparia', 'moruga', 'toco', 'valencia', 'mayaro', 'scarborough', 'roxborough', 'charlotteville', 'plymouth'],
+        conversationalPrompt: "What's your location? Here are some popular areas: Port of Spain, San Fernando, Chaguanas, Arima, Point Fortin, Freeport. Would you like to see all available locations or select one of these?",
+        helpText: "This helps us connect you with caregivers in your area."
+      },
+      {
+        id: 'address',
+        name: 'address',
+        label: 'Specific Address',
+        type: 'textarea',
+        required: true,
+        conversationalPrompt: "What's your specific address?",
+        helpText: "This is for care coordination and service delivery."
       }
     ]
   },
@@ -69,7 +136,16 @@ const FORM_MAPPINGS: Record<string, DetectedForm> = {
     formTitle: 'Care Needs Assessment',
     userRole: 'family',
     journeyStage: 'assessment',
-    autoGreetingMessage: "💙 I see you're working on your care needs assessment! This is so important for finding the right support. I can help you think through each care need conversationally, or guide you section by section. What would be most helpful?",
+    autoGreetingMessage: "💙 I see you're working on your care needs assessment! This is so important for finding the right support. This is the REAL Tavara experience - I can help you think through each care need conversationally, or guide you section by section. What would be most helpful?",
+    fields: []
+  },
+  
+  '/family/care-needs': {
+    formId: 'care-needs-assessment',
+    formTitle: 'Care Needs Assessment', 
+    userRole: 'family',
+    journeyStage: 'assessment',
+    autoGreetingMessage: "💙 Welcome to our care needs assessment! This is the REAL Tavara experience - the same magical TAV assistance our families get. I can help you think through each care need conversationally, or guide you section by section. What would be most helpful?",
     fields: [
       {
         id: 'care_recipient_name',
@@ -108,7 +184,16 @@ const FORM_MAPPINGS: Record<string, DetectedForm> = {
     formTitle: 'Legacy Story',
     userRole: 'family',
     journeyStage: 'story',
-    autoGreetingMessage: "💙 What a beautiful step - capturing your loved one's story! This helps caregivers connect with who they truly are. I can help you think through their story conversationally, or you can write freely. Either way, this will be treasured. How would you like to begin?",
+    autoGreetingMessage: "💙 What a beautiful step - capturing your loved one's story! This is the REAL Tavara experience - I can help you think through their story conversationally, or you can write freely. Either way, this will be treasured. How would you like to begin?",
+    fields: []
+  },
+  
+  '/legacy/stories': {
+    formId: 'legacy-story',
+    formTitle: 'Legacy Stories',
+    userRole: 'family', 
+    journeyStage: 'story',
+    autoGreetingMessage: "💙 Welcome to our legacy stories platform! This is the REAL Tavara experience - the same magical TAV assistance our families get. I can help you capture your loved one's story conversationally, or guide you through sharing family memories. How would you like to begin?",
     fields: [
       {
         id: 'care_recipient_story',
@@ -128,7 +213,7 @@ const FORM_MAPPINGS: Record<string, DetectedForm> = {
     formTitle: 'Professional Registration',
     userRole: 'professional',
     journeyStage: 'registration',
-    autoGreetingMessage: "🤝 Welcome to your professional registration! I'm TAV, and I'm here to help you showcase your expertise beautifully. I can guide you through each section conversationally, or you can work independently. Let's make this easy - would you like my assistance?",
+    autoGreetingMessage: "🤝 Welcome to your professional registration! I'm TAV, and I'm here to help you showcase your expertise beautifully. This is the REAL Tavara experience - the same magical TAV assistance our professionals get! Would you like my help?",
     fields: [
       {
         id: 'professional_type',
@@ -237,7 +322,7 @@ const FORM_MAPPINGS: Record<string, DetectedForm> = {
     formTitle: 'Community Registration',
     userRole: 'community',
     journeyStage: 'registration',
-    autoGreetingMessage: "🌟 Welcome to our caring community! Thank you for wanting to make a difference. I can help you share your interests and find the perfect way to contribute. Let's discover how you'd like to be part of our village of care!",
+    autoGreetingMessage: "🌟 Welcome to our caring community! Thank you for wanting to make a difference. This is the REAL Tavara experience - the same magical TAV assistance our community members get! Let's discover how you'd like to be part of our village of care!",
     fields: [
       {
         id: 'community_motivation',
@@ -326,7 +411,13 @@ export const useFormDetection = () => {
 
   useEffect(() => {
     const detectForm = () => {
-      const path = location.pathname;
+      let path = location.pathname;
+      
+      // Handle demo routes by mapping them to their corresponding form routes
+      if (path.startsWith('/demo/')) {
+        path = path.replace('/demo', '');
+      }
+      
       const detectedForm = FORM_MAPPINGS[path];
       
       if (detectedForm) {

@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { subDays, startOfMonth, endOfMonth } from 'date-fns';
 
-export type DateRangeFilter = 'last7' | 'last30' | 'thisMonth' | 'all';
+export type DateRangeFilter = 'last7' | 'last30' | 'last60' | 'last90' | 'thisMonth' | 'all';
 
 export const usePayrollFilters = <T extends { created_at?: string | null, care_team_member_id?: string, caregiver_name?: string }>(
   items: T[],
@@ -9,7 +9,7 @@ export const usePayrollFilters = <T extends { created_at?: string | null, care_t
 ) => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilter>('last30');
+  const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilter>('all');
   const [caregiverFilter, setCaregiverFilter] = useState<string>('all');
 
   const handleDateRangeChange = (value: string) => {
@@ -47,6 +47,14 @@ export const usePayrollFilters = <T extends { created_at?: string | null, care_t
         break;
       case 'last30':
         startDate = subDays(today, 30);
+        filtered = filtered.filter(item => filterByDate(item, startDate));
+        break;
+      case 'last60':
+        startDate = subDays(today, 60);
+        filtered = filtered.filter(item => filterByDate(item, startDate));
+        break;
+      case 'last90':
+        startDate = subDays(today, 90);
         filtered = filtered.filter(item => filterByDate(item, startDate));
         break;
       case 'thisMonth':

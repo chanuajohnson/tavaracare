@@ -1,247 +1,189 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { 
-  MAX_RESET_ATTEMPTS, 
-  getResetAttempts, 
-  incrementResetAttempts, 
-  clearResetAttempts,
-  isPasswordStrong,
-  logResetAttempt
-} from '@/utils/passwordResetUtils';
-import { Loader2, ArrowLeft, Eye, EyeOff } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EyeIcon, EyeOffIcon, CheckIcon } from 'lucide-react';
+import { clearAllAuthFlowFlags } from '@/utils/authFlowUtils';
 
 interface PasswordResetFormProps {
   emailAddress: string | null;
 }
 
-export const PasswordResetForm = ({ emailAddress }: PasswordResetFormProps) => {
-  const navigate = useNavigate();
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+const PasswordResetForm = ({ emailAddress }: PasswordResetFormProps) => {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const validatePassword = (password: string) => {
+    const validations = {
+      length: password.length >= 6,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password)
+    };
+    
+    return validations;
+  };
+
+  const passwordValidations = validatePassword(password);
+  const isPasswordValid = Object.values(passwordValidations).every(Boolean);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const attempts = getResetAttempts();
-    if (attempts >= MAX_RESET_ATTEMPTS) {
-      toast.error("Too many attempts", {
-        description: "Please request a new password reset link"
-      });
-      navigate('/auth/reset-password');
+    if (!isPasswordValid) {
+      toast.error('Please ensure your password meets all requirements');
       return;
     }
 
-    if (!isPasswordStrong(password)) {
-      toast.error("Password is too weak", {
-        description: "Please use at least 8 characters"
-      });
-      return;
-    }
-    
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
-    
     if (password !== confirmPassword) {
-      toast.error("Passwords don't match");
+      toast.error('Passwords do not match');
       return;
     }
-    
+
     setIsLoading(true);
 
     try {
-      console.log("🔒 Updating password for user");
-      const { error } = await supabase.auth.updateUser({ password });
-      
+      const { error } = await supabase.auth.updateUser({
+        password: password
+      });
+
       if (error) {
-        console.error("❌ Password update error:", error);
         throw error;
       }
 
-      console.log("✅ Password updated successfully, signing out");
+      // Mark password reset as complete
+      sessionStorage.setItem('passwordResetComplete', 'true');
       
-      // Log successful reset
-      logResetAttempt(true);
+      // Clear all auth flow flags to allow normal redirection
+      clearAllAuthFlowFlags();
+
+      toast.success('Password updated successfully! You will be redirected to your dashboard.');
       
-      // Sign out after reset for security, using global scope to clear on all devices
-      await supabase.auth.signOut({ scope: "global" });
-      
-      // Clean up all reset-related storage
-      clearResetAttempts();
-      sessionStorage.removeItem('skipPostLoginRedirect');
-      localStorage.removeItem('recentResetAttempts');
-      
-      navigate("/auth", { 
-        replace: true,
-        state: { resetSuccess: true, email: emailAddress }
-      });
-      
-      toast.success("Password has been reset successfully", {
-        description: "You can now log in with your new password"
-      });
+      // Navigate to home and let AuthProvider handle the dashboard redirection
+      navigate('/', { replace: true });
+
     } catch (error: any) {
-      console.error('❌ Password update error:', error);
-      
-      // Increment attempts counter and log the failure
-      const newAttempts = incrementResetAttempts();
-      logResetAttempt(false, error.message);
-      
-      // Show appropriate error message based on attempts
-      if (newAttempts >= MAX_RESET_ATTEMPTS) {
-        toast.error("Too many failed attempts", {
-          description: "Please request a new password reset link"
-        });
-        navigate('/auth/reset-password');
-      } else {
-        let errorMessage = "Please try again";
-        if (error.message.includes('same password')) {
-          errorMessage = "Please choose a different password";
-        } else if (error.message.includes('weak password')) {
-          errorMessage = "Please choose a stronger password";
-        }
-        
-        toast.error("Failed to update password", {
-          description: errorMessage
-        });
-      }
+      console.error('Password reset error:', error);
+      toast.error(error.message || 'Failed to update password');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Card className="shadow-lg w-full">
+    <Card className="w-full">
       <CardHeader>
-        <div className="flex items-center mb-2">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => navigate("/auth/reset-password")}
-            className="mr-2 h-8 w-8"
-            disabled={isLoading}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <CardTitle>Set New Password</CardTitle>
-        </div>
+        <CardTitle>Create New Password</CardTitle>
         <CardDescription>
-          {emailAddress ? `Update password for ${emailAddress}` : "Please enter your new password below"}
+          {emailAddress && `For ${emailAddress}`}
+          <br />
+          Please enter your new password below.
         </CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium">New Password</label>
+            <Label htmlFor="password">New Password</Label>
             <div className="relative">
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your new password"
-                disabled={isLoading}
-                minLength={6}
+                placeholder="Enter new password"
                 required
-                className="focus:ring-2 focus:ring-blue-500 pr-10"
-                autoComplete="new-password"
               />
               <Button
                 type="button"
                 variant="ghost"
-                size="icon"
+                size="sm"
                 className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                 onClick={() => setShowPassword(!showPassword)}
-                disabled={isLoading}
               >
                 {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-gray-400" />
+                  <EyeOffIcon className="h-4 w-4" />
                 ) : (
-                  <Eye className="h-4 w-4 text-gray-400" />
+                  <EyeIcon className="h-4 w-4" />
                 )}
               </Button>
             </div>
-            {password && (
-              <p className={`text-xs ${isPasswordStrong(password) ? 'text-green-600' : 'text-yellow-600'}`}>
-                {isPasswordStrong(password) ? '✓ Password strength: Good' : '⚠ Use at least 8 characters for better security'}
-              </p>
-            )}
           </div>
-          
+
+          {password && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Password Requirements</Label>
+              <div className="space-y-1 text-sm">
+                <div className={`flex items-center space-x-2 ${passwordValidations.length ? 'text-green-600' : 'text-gray-400'}`}>
+                  <CheckIcon className="h-3 w-3" />
+                  <span>At least 6 characters</span>
+                </div>
+                <div className={`flex items-center space-x-2 ${passwordValidations.uppercase ? 'text-green-600' : 'text-gray-400'}`}>
+                  <CheckIcon className="h-3 w-3" />
+                  <span>One uppercase letter</span>
+                </div>
+                <div className={`flex items-center space-x-2 ${passwordValidations.lowercase ? 'text-green-600' : 'text-gray-400'}`}>
+                  <CheckIcon className="h-3 w-3" />
+                  <span>One lowercase letter</span>
+                </div>
+                <div className={`flex items-center space-x-2 ${passwordValidations.number ? 'text-green-600' : 'text-gray-400'}`}>
+                  <CheckIcon className="h-3 w-3" />
+                  <span>One number</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
-            <label htmlFor="confirm-password" className="text-sm font-medium">Confirm Password</label>
+            <Label htmlFor="confirmPassword">Confirm New Password</Label>
             <div className="relative">
               <Input
-                id="confirm-password"
+                id="confirmPassword"
                 type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm your new password"
-                disabled={isLoading}
-                minLength={6}
+                placeholder="Confirm new password"
                 required
-                className="focus:ring-2 focus:ring-blue-500 pr-10"
-                autoComplete="new-password"
               />
               <Button
                 type="button"
                 variant="ghost"
-                size="icon"
+                size="sm"
                 className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                disabled={isLoading}
               >
                 {showConfirmPassword ? (
-                  <EyeOff className="h-4 w-4 text-gray-400" />
+                  <EyeOffIcon className="h-4 w-4" />
                 ) : (
-                  <Eye className="h-4 w-4 text-gray-400" />
+                  <EyeIcon className="h-4 w-4" />
                 )}
               </Button>
             </div>
-            {confirmPassword && (
-              <p className={`text-xs ${password === confirmPassword ? 'text-green-600' : 'text-red-600'}`}>
-                {password === confirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
-              </p>
-            )}
           </div>
-        </CardContent>
-        
-        <CardFooter className="flex flex-col gap-4">
+
+          {confirmPassword && password !== confirmPassword && (
+            <p className="text-sm text-red-600">Passwords do not match</p>
+          )}
+
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isLoading || !password || !confirmPassword || password !== confirmPassword}
+            disabled={isLoading || !isPasswordValid || password !== confirmPassword}
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Updating Password...
-              </>
-            ) : (
-              "Update Password"
-            )}
+            {isLoading ? 'Updating...' : 'Update Password'}
           </Button>
-          
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate("/auth/reset-password")}
-            className="w-full"
-            disabled={isLoading}
-          >
-            Request New Reset Link
-          </Button>
-        </CardFooter>
-      </form>
+        </form>
+      </CardContent>
     </Card>
   );
 };
+
+export default PasswordResetForm;
