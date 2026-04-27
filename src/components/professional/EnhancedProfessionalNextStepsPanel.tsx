@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Circle, ArrowRight, Clock, Target, TrendingUp, BookOpen, FileCheck, Calendar, Briefcase } from 'lucide-react';
+import { CheckCircle2, Circle, ArrowRight, Clock, Target, TrendingUp, BookOpen, FileCheck, Calendar, Briefcase, Users, Shield, ClipboardCheck, ExternalLink, DollarSign } from 'lucide-react';
 import { useEnhancedProfessionalProgress } from '@/hooks/useEnhancedProfessionalProgress';
 import { ProfessionalJourneyStageCard } from './ProfessionalJourneyStageCard';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { LeadCaptureModal } from '@/components/family/LeadCaptureModal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DailyChecklist } from './DailyChecklist';
 
 export const EnhancedProfessionalNextStepsPanel = () => {
   const { user } = useAuth();
@@ -22,12 +24,16 @@ export const EnhancedProfessionalNextStepsPanel = () => {
     completedSteps,
     totalSteps,
     loading,
-    refreshProgress
+    refreshProgress,
+    agreedRate,
+    weeklyHours,
+    projectedWeeklyEarnings
   } = useEnhancedProfessionalProgress();
 
   const [showAllSteps, setShowAllSteps] = useState(false);
   const [showLeadCaptureModal, setShowLeadCaptureModal] = useState(false);
   const [leadCaptureSource, setLeadCaptureSource] = useState('');
+  const [showChecklist, setShowChecklist] = useState(false);
 
   // Handle step actions for anonymous users
   const handleAnonymousStepClick = (stepCategory: string, stepTitle: string) => {
@@ -38,7 +44,9 @@ export const EnhancedProfessionalNextStepsPanel = () => {
         'Start Training': 'professional_step_training',
         'Complete Profile': 'professional_step_profile',
         'Add Qualifications': 'professional_step_qualifications',
-        'Begin Matching': 'professional_step_matching'
+        'Begin Matching': 'professional_step_matching',
+        'Add References': 'professional_step_references',
+        'Awaiting Interview': 'professional_step_screening'
       };
       
       const source = sourceMap[stepTitle] || `professional_step_${stepCategory}`;
@@ -53,6 +61,7 @@ export const EnhancedProfessionalNextStepsPanel = () => {
     switch (stageId) {
       case 'foundation': return <Target className="h-4 w-4" />;
       case 'qualification': return <FileCheck className="h-4 w-4" />;
+      case 'vetting': return <Shield className="h-4 w-4" />;
       case 'matching': return <Calendar className="h-4 w-4" />;
       case 'active': return <Briefcase className="h-4 w-4" />;
       default: return <Circle className="h-4 w-4" />;
@@ -63,6 +72,8 @@ export const EnhancedProfessionalNextStepsPanel = () => {
     switch (step.category) {
       case 'profile': return <Target className="h-4 w-4" />;
       case 'documents': return <FileCheck className="h-4 w-4" />;
+      case 'references': return <Users className="h-4 w-4" />;
+      case 'screening': return <Shield className="h-4 w-4" />;
       case 'training': return <BookOpen className="h-4 w-4" />;
       case 'availability': return <Calendar className="h-4 w-4" />;
       case 'assignments': return <Briefcase className="h-4 w-4" />;
@@ -141,6 +152,38 @@ export const EnhancedProfessionalNextStepsPanel = () => {
             </div>
           </CardHeader>
         </Card>
+
+        {/* Compensation Card — shown when rate is confirmed */}
+        {agreedRate && (
+          <Card className="border border-green-200 bg-green-50/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <DollarSign className="h-5 w-5 text-green-700" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-green-900 text-sm">Your Compensation</h4>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                    <span className="text-sm text-green-700">
+                      <span className="font-medium">Rate:</span> {agreedRate}
+                    </span>
+                    {weeklyHours && (
+                      <span className="text-sm text-green-700">
+                        <span className="font-medium">Hours:</span> {weeklyHours} hrs/wk
+                      </span>
+                    )}
+                    {projectedWeeklyEarnings && (
+                      <span className="text-sm text-green-700">
+                        <span className="font-medium">Est. Weekly:</span> ${projectedWeeklyEarnings.toLocaleString()}/wk
+                      </span>
+                    )}
+                    <span className="text-xs text-green-600">Paid weekly, every Friday</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Journey Stages */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -233,6 +276,26 @@ export const EnhancedProfessionalNextStepsPanel = () => {
               ))}
             </div>
 
+
+            {/* Always-visible resource links */}
+            <div className="mt-4 pt-4 border-t border-border space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">📚 Essential Resources</p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button variant="outline" size="sm" className="flex-1 gap-2 justify-start" asChild>
+                  <a href="/documents/Tavara_Nurse_Handbook.pdf" target="_blank" rel="noopener noreferrer">
+                    <BookOpen className="h-4 w-4 text-primary" />
+                    Nurse Handbook & SOP
+                    <ExternalLink className="h-3 w-3 ml-auto text-muted-foreground" />
+                  </a>
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1 gap-2 justify-start" onClick={() => setShowChecklist(true)}>
+                  <ClipboardCheck className="h-4 w-4 text-primary" />
+                  Daily Care Checklist
+                  <ArrowRight className="h-3 w-3 ml-auto text-muted-foreground" />
+                </Button>
+              </div>
+            </div>
+
             {steps.length > 4 && (
               <div className="mt-4 text-center">
                 <Button
@@ -258,6 +321,19 @@ export const EnhancedProfessionalNextStepsPanel = () => {
           source={leadCaptureSource}
         />
       )}
+
+      {/* Daily Checklist Dialog */}
+      <Dialog open={showChecklist} onOpenChange={setShowChecklist}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5 text-primary" />
+              Daily Care Checklist
+            </DialogTitle>
+          </DialogHeader>
+          <DailyChecklist />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

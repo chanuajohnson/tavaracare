@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Video, Home, CheckCircle, Calendar, Clock } from "lucide-react";
+import { CheckCircle, Calendar as CalendarIcon, Briefcase, Clock, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface ScheduleVisitModalProps {
   open: boolean;
@@ -16,6 +20,8 @@ interface ScheduleVisitModalProps {
   onVisitScheduled?: () => void;
 }
 
+type CareOption = 'trial_day' | 'direct_hire';
+
 export const ScheduleVisitModal = ({ 
   open, 
   onOpenChange, 
@@ -23,79 +29,163 @@ export const ScheduleVisitModal = ({
   onVisitScheduled
 }: ScheduleVisitModalProps) => {
   const { user } = useAuth();
-  const [visitType, setVisitType] = useState<'virtual' | 'in_person'>('virtual');
+  const [selectedOption, setSelectedOption] = useState<CareOption>('trial_day');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [alreadyScheduled, setAlreadyScheduled] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(true);
+
+  // Check if user has already submitted a scheduling request
+  useEffect(() => {
+    const checkSchedulingStatus = async () => {
+      if (!user || !open) {
+        setCheckingStatus(false);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('visit_scheduling_status, ready_for_admin_scheduling')
+          .eq('id', user.id)
+          .single();
+
+        if (!error && data) {
+          setAlreadyScheduled(
+            data.visit_scheduling_status === 'ready_to_schedule' ||
+            data.visit_scheduling_status === 'scheduled' ||
+            data.ready_for_admin_scheduling === true
+          );
+        }
+      } catch (err) {
+        console.error('Error checking scheduling status:', err);
+      } finally {
+        setCheckingStatus(false);
+      }
+    };
+    checkSchedulingStatus();
+  }, [user, open]);
 
   const handleRequestScheduling = async () => {
     if (!user) return;
+    if (!selectedDate) {
+      toast.error("Please select your preferred start date.");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
-      // Update user profile with scheduling request
+      const visitNotes = JSON.stringify({
+        preferred_start_date: format(selectedDate, 'yyyy-MM-dd'),
+        care_option: selectedOption,
+        requested_at: new Date().toISOString()
+      });
       const { error } = await supabase
         .from('profiles')
         .update({
           ready_for_admin_scheduling: true,
-          preferred_visit_type: visitType,
+          preferred_visit_type: selectedOption,
           admin_scheduling_requested_at: new Date().toISOString(),
-          visit_scheduling_status: 'ready_to_schedule'
+          visit_scheduling_status: 'ready_to_schedule',
+          visit_notes: visitNotes,
         })
         .eq('id', user.id);
 
       if (error) throw error;
 
       setIsConfirmed(true);
-      toast.success("Scheduling request sent to admin!");
+      toast.success("Care request submitted successfully!");
       
-      // Call the callback to update journey progress
-      if (onVisitScheduled) {
-        onVisitScheduled();
-      }
+      if (onVisitScheduled) onVisitScheduled();
       
-      // Close modal after a short delay
       setTimeout(() => {
         onOpenChange(false);
-        setIsConfirmed(false);
-        setIsSubmitting(false);
-      }, 2000);
+        resetModal();
+      }, 2500);
       
     } catch (error) {
-      console.error('Error requesting admin scheduling:', error);
-      toast.error("Failed to send scheduling request. Please try again.");
+      console.error('Error submitting care request:', error);
+      toast.error("Failed to submit request. Please try again.");
       setIsSubmitting(false);
     }
   };
 
   const resetModal = () => {
-    setVisitType('virtual');
+    setSelectedOption('trial_day');
+    setSelectedDate(undefined);
     setIsConfirmed(false);
     setIsSubmitting(false);
   };
 
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      resetModal();
-    }
-    onOpenChange(open);
+  const handleOpenChange = (openState: boolean) => {
+    if (!openState) resetModal();
+    onOpenChange(openState);
   };
+
+  const openWhatsAppAdmin = () => {
+    const text = `Hi Tavara! I'd like to check on my care scheduling request. My name is ${user?.email || 'a family member'}.`;
+    const url = `https://api.whatsapp.com/send/?phone=18687865357&text=${encodeURIComponent(text)}&type=phone_number&app_absent=0`;
+    window.open(url, '_blank');
+  };
+
+  if (checkingStatus) {
+    return (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="max-w-md">
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  if (alreadyScheduled && !isConfirmed) {
+    return (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="max-w-md">
+          <div className="text-center py-6 space-y-4">
+            <CheckCircle className="h-14 w-14 text-green-500 mx-auto" />
+            <h3 className="text-xl font-semibold text-foreground">
+              Care Request Already Submitted!
+            </h3>
+            <p className="text-muted-foreground">
+              Your care request has already been submitted. Our admin team is reviewing it and will be in touch within 24 hours.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Need to talk to someone right away? Message us directly on WhatsApp.
+            </p>
+            <div className="flex flex-col gap-2 pt-2">
+              <Button onClick={openWhatsAppAdmin} className="gap-2">
+                <MessageCircle className="h-4 w-4" />
+                Message Us on WhatsApp
+              </Button>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   if (isConfirmed) {
     return (
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-md">
           <div className="text-center py-8">
-            <div className="mb-4">
-              <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Scheduling Request Sent!
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-foreground mb-2">
+              {selectedOption === 'trial_day' ? 'Trial Day Request Sent!' : 'Hire Request Submitted!'}
             </h3>
-            <p className="text-gray-600 mb-4">
-              Our admin team will schedule your {visitType === 'virtual' ? 'virtual' : 'in-person'} visit and contact you within 24 hours with the details.
+            <p className="text-muted-foreground mb-4">
+              {selectedOption === 'trial_day'
+                ? `Your trial day request for ${format(selectedDate!, 'PPP')} has been submitted. Our team will confirm your matched caregiver within 24 hours.`
+                : `Your care start request for ${format(selectedDate!, 'PPP')} has been submitted. We'll set up your recurring care schedule and confirm within 24 hours.`}
             </p>
-            <p className="text-sm text-gray-500">
-              You'll receive an email confirmation once your visit is scheduled.
+            <p className="text-sm text-muted-foreground">
+              You'll receive an email confirmation with all the details.
             </p>
           </div>
         </DialogContent>
@@ -107,114 +197,149 @@ export const ScheduleVisitModal = ({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Request Visit Scheduling</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">Get Started with Care</DialogTitle>
           <p className="text-muted-foreground">
-            Choose your preferred visit type and our admin team will schedule you within 24 hours.
+            Choose how you'd like to begin — try a caregiver for a day or start ongoing care right away.
           </p>
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Visit Type Selection */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Select Your Preferred Visit Type</h3>
-            <RadioGroup value={visitType} onValueChange={(value: 'virtual' | 'in_person') => setVisitType(value)}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50">
-                  <RadioGroupItem value="virtual" id="virtual" />
-                  <Label htmlFor="virtual" className="flex-1 cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <Video className="h-6 w-6 text-blue-600" />
-                      <div>
-                        <div className="font-medium">Virtual Visit</div>
-                        <div className="text-sm text-gray-500">30-minute video call consultation</div>
-                        <Badge variant="secondary" className="mt-1">FREE</Badge>
-                      </div>
-                    </div>
-                  </Label>
-                </div>
-                
-                <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50">
-                  <RadioGroupItem value="in_person" id="in_person" />
-                  <Label htmlFor="in_person" className="flex-1 cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <Home className="h-6 w-6 text-green-600" />
-                      <div>
-                        <div className="font-medium">In-Person Home Visit</div>
-                        <div className="text-sm text-gray-500">Comprehensive home assessment</div>
-                        <Badge variant="outline" className="mt-1">$300 TTD</Badge>
-                      </div>
-                    </div>
-                  </Label>
-                </div>
+          <RadioGroup value={selectedOption} onValueChange={(v: CareOption) => setSelectedOption(v)}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Trial Day */}
+              <div 
+                className={cn(
+                  "flex items-start space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-colors",
+                  selectedOption === 'trial_day' ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                )}
+                onClick={() => setSelectedOption('trial_day')}
+              >
+                <RadioGroupItem value="trial_day" id="trial_day" className="mt-1" />
+                <Label htmlFor="trial_day" className="flex-1 cursor-pointer">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CalendarIcon className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Trial Day</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Try a matched caregiver for a full 8-hour day
+                  </p>
+                  <Badge className="bg-primary/10 text-primary hover:bg-primary/10">$320 TTD ($40/hr)</Badge>
+                </Label>
               </div>
-            </RadioGroup>
-          </div>
 
-          {/* Standard Scheduling Information */}
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h4 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Standard Scheduling Information
-            </h4>
-            <div className="text-sm text-blue-800 space-y-2">
-              <div className="flex items-center gap-2">
-                <Clock className="h-3 w-3" />
-                <span><strong>Time:</strong> 11:00 AM start time</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-3 w-3" />
-                <span><strong>Duration:</strong> 2-hour appointment slot</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-3 w-3" />
-                <span><strong>Available Days:</strong> Tuesday - Friday</span>
+              {/* Hire Immediately */}
+              <div 
+                className={cn(
+                  "flex items-start space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-colors",
+                  selectedOption === 'direct_hire' ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                )}
+                onClick={() => setSelectedOption('direct_hire')}
+              >
+                <RadioGroupItem value="direct_hire" id="direct_hire" className="mt-1" />
+                <Label htmlFor="direct_hire" className="flex-1 cursor-pointer">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Briefcase className="h-5 w-5 text-accent-foreground" />
+                    <span className="font-semibold">Hire Immediately</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Start ongoing care with your preferred caregiver
+                  </p>
+                  <Badge variant="outline">From $40 TTD/hr</Badge>
+                </Label>
               </div>
             </div>
+          </RadioGroup>
+
+          {/* Date Picker */}
+          <div>
+            <h4 className="font-medium mb-2 flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4" />
+              Select Your Preferred Start Date
+            </h4>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn("w-full justify-start text-left font-normal", !selectedDate && "text-muted-foreground")}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, 'PPP') : 'Pick a date'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  disabled={(date) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const day = date.getDay();
+                    return date < today || day === 0 || day === 1; // Disable past, Sun, Mon
+                  }}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+            <p className="text-xs text-muted-foreground mt-1">Available: Tuesday – Saturday</p>
           </div>
 
-          {/* Visit Benefits */}
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-            <h4 className="font-medium text-green-900 mb-2">What's included in your visit:</h4>
-            <ul className="text-sm text-green-800 space-y-1">
-              <li>• Personalized care assessment</li>
-              <li>• Access to detailed caregiver profiles</li>
-              <li>• Custom care plan recommendations</li>
-              <li>• Direct introduction to matched caregivers</li>
-              {visitType === 'in_person' && (
-                <li>• Comprehensive home safety evaluation</li>
+          {/* Contextual Info */}
+          {selectedOption === 'trial_day' && (
+            <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
+              <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Trial Day Details
+              </h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Full 8-hour day with a matched caregiver (8 AM – 4 PM)</li>
+                <li>• Your $320 trial credit applies toward a subscription if you convert</li>
+                <li>• Personalized care based on your assessment</li>
+                <li>• Admin confirms your caregiver match within 24 hours</li>
+              </ul>
+            </div>
+          )}
+
+          {selectedOption === 'direct_hire' && (
+            <div className="bg-accent/30 p-4 rounded-lg border border-accent">
+              <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                <Briefcase className="h-4 w-4" />
+                Ongoing Care Details
+              </h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• We'll match you with the best available caregiver for your needs</li>
+                <li>• Recurring care schedule set up by our admin team</li>
+                <li>• Flexible scheduling based on your care assessment</li>
+                <li>• Change or adjust your care plan anytime</li>
+              </ul>
+            </div>
+          )}
+
+          {/* Next Steps */}
+          <div className="bg-muted/50 p-4 rounded-lg border">
+            <h4 className="font-medium text-foreground mb-2">📋 What happens next:</h4>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li>1. You submit your preference and preferred start date</li>
+              <li>2. Our team assigns your best-matched available caregiver</li>
+              <li>3. You receive confirmation with caregiver details within 24 hours</li>
+              {selectedOption === 'trial_day' && (
+                <li>4. After your trial day, choose to hire or subscribe for ongoing care</li>
               )}
             </ul>
           </div>
 
-          {/* Admin Scheduling Notice */}
-          <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-            <h4 className="font-medium text-amber-900 mb-2">📋 Next Steps:</h4>
-            <div className="text-sm text-amber-800">
-              <p className="mb-2">Once you submit your preference:</p>
-              <ul className="space-y-1">
-                <li>• Our admin team will be notified of your scheduling request</li>
-                <li>• We'll contact you within 24 hours to confirm your appointment</li>
-                <li>• You'll receive an email with all visit details and preparation instructions</li>
-              </ul>
-            </div>
-          </div>
-
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
-            <Button 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              className="flex-1"
-              disabled={isSubmitting}
-            >
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1" disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleRequestScheduling}
-              disabled={isSubmitting}
-              className="flex-1"
-            >
-              {isSubmitting ? 'Sending Request...' : 'Request Admin Scheduling'}
+            <Button onClick={handleRequestScheduling} disabled={isSubmitting || !selectedDate} className="flex-1">
+              {isSubmitting 
+                ? 'Submitting...' 
+                : selectedOption === 'trial_day' 
+                  ? 'Request Trial Day ($320 TTD)' 
+                  : 'Request Care Start'}
             </Button>
           </div>
         </div>

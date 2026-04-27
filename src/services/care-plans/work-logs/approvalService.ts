@@ -23,12 +23,13 @@ export const approveWorkLog = async (workLogId: string): Promise<boolean> => {
 
     const payrollData = await calculatePayrollEntry(workLog as WorkLog);
     
-    const totalAmount = 
+    const grossPay = 
       (payrollData.regularHours * payrollData.regularRate) +
       (payrollData.overtimeHours * payrollData.overtimeRate) +
       (payrollData.holidayHours * payrollData.holidayRate) +
       payrollData.expenseTotal;
 
+    // NIS is now calculated at payment time (weekly aggregation), not per-entry
     const { error: payrollError } = await supabase
       .from('payroll_entries')
       .insert({
@@ -42,16 +43,21 @@ export const approveWorkLog = async (workLogId: string): Promise<boolean> => {
         holiday_hours: payrollData.holidayHours,
         holiday_rate: payrollData.holidayRate,
         expense_total: payrollData.expenseTotal,
-        total_amount: totalAmount,
+        total_amount: grossPay,
+        gross_pay: grossPay,
         payment_status: 'pending',
-        // Add these two fields for proper date tracking
         pay_period_start: workLog.start_time,
-        pay_period_end: workLog.end_time
+        pay_period_end: workLog.end_time,
+        // NIS fields left as defaults — will be populated at payment processing
+        nis_applicable: false,
+        employee_contribution: 0,
+        employer_contribution: 0,
+        net_pay_after_nis: grossPay,
       });
       
     if (payrollError) throw payrollError;
 
-    toast.success("Work log approved and payroll entry created");
+    toast.success("Work log approved and care payment created. NIS will be calculated when payment is processed.");
     return true;
   } catch (error) {
     console.error("Error approving work log:", error);
@@ -78,4 +84,67 @@ export const rejectWorkLog = async (workLogId: string, reason?: string): Promise
     toast.error("Failed to reject work log");
     return false;
   }
+};
+
+export const deleteWorkLog = async (workLogId: string): Promise<boolean> => {
+  try {
+    // First delete any linked pending payroll entries
+    const { error: payrollDeleteError } = await supabase
+      .from('payroll_entries')
+      .delete()
+      .eq('work_log_id', workLogId)
+      .eq('payment_status', 'pending');
+
+    if (payrollDeleteError) {
+      console.error("Error deleting linked payroll entries:", payrollDeleteError);
+    }
+
+    // Delete the work log itself
+    const { error } = await supabase
+      .from('work_logs')
+      .delete()
+      .eq('id', workLogId)
+      .eq('status', 'pending');
+
+    if (error) throw error;
+    toast.success("Work log deleted successfully");
+    return true;
+  } catch (error) {
+    console.error("Error deleting work log:", error);
+    toast.error("Failed to delete work log");
+    return false;
+  }
+};
+
+export const bulkApproveWorkLogs = async (ids: string[]): Promise<{ approved: number; failed: number }> => {
+  let approved = 0;
+  let failed = 0;
+  for (const id of ids) {
+    const success = await approveWorkLog(id);
+    if (success) approved++;
+    else failed++;
+  }
+  return { approved, failed };
+};
+
+export const bulkRejectWorkLogs = async (ids: string[], reason: string): Promise<{ rejected: number; failed: number }> => {
+  let rejected = 0;
+  let failed = 0;
+  for (const id of ids) {
+    const success = await rejectWorkLog(id, reason);
+    if (success) rejected++;
+    else failed++;
+  }
+  return { rejected, failed };
+};
+
+export const bulkDeleteWorkLogs = async (ids: string[]): Promise<{ deleted: number; failed: number }> => {
+  let deleted = 0;
+  let failed = 0;
+  for (const id of ids) {
+    const success = await deleteWorkLog(id);
+    if (success) deleted++;
+    else failed++;
+  }
+  return { deleted, failed };
 };

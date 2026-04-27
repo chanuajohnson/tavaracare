@@ -6,14 +6,19 @@ import { WorkLogsTable } from './payroll/WorkLogsTable';
 import { PayrollEntriesTable } from './payroll/PayrollEntriesTable';
 import { RejectWorkLogDialog } from './payroll/RejectWorkLogDialog';
 import { ProcessPaymentDialog } from './payroll/ProcessPaymentDialog';
+import { NISReportsSection } from './payroll/NISReportsSection';
+import { BankTransferDialog } from './payroll/BankTransferDialog';
+import { EmployerSettingsForm } from './settings/EmployerSettingsForm';
 import { usePayrollData } from '@/hooks/payroll/usePayrollData';
 import { usePayrollFilters } from '@/hooks/payroll/usePayrollFilters';
 
 interface PayrollTabProps {
   carePlanId: string;
+  familyId?: string;
+  isProfessionalView?: boolean;
 }
 
-export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
+export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId, familyId, isProfessionalView = false }) => {
   const [currentTab, setCurrentTab] = useState<string>("worklogs");
   
   // Dialog states
@@ -23,6 +28,8 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [payrollToProcess, setPayrollToProcess] = useState<string | null>(null);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
+  const [bankTransferDialogOpen, setBankTransferDialogOpen] = useState(false);
+  const [bankTransferPayrollIds, setBankTransferPayrollIds] = useState<string[]>([]);
 
   const {
     workLogs,
@@ -31,6 +38,13 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
     handleApproveWorkLog,
     handleRejectWorkLog,
     handleProcessPayment,
+    handleDeletePayrollEntries,
+    handleDeleteWorkLog,
+    handleUndoPayment,
+    handleRecalculateNIS,
+    handleBulkApproveWorkLogs,
+    handleBulkRejectWorkLogs,
+    handleBulkDeleteWorkLogs,
     careTeamMembers
   } = usePayrollData(carePlanId);
 
@@ -52,17 +66,14 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
     return entry.created_at ? new Date(entry.created_at) >= startDate : false;
   });
 
-  // Updated to return a Promise<boolean> to match the expected type
   const openRejectDialog = async (workLogId: string, reason: string): Promise<boolean> => {
     setWorkLogToReject(workLogId);
     setRejectDialogOpen(true);
-    return true; // Return true to indicate success in opening the dialog
+    return true;
   };
 
-  // Updated to return a Promise<boolean> to match the expected type in RejectWorkLogDialog
   const handleRejectWorkLogSubmit = async (reason: string): Promise<boolean> => {
     if (!workLogToReject) return false;
-    
     const success = await handleRejectWorkLog(workLogToReject, reason);
     if (success) {
       setRejectDialogOpen(false);
@@ -80,12 +91,18 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
 
   const handleProcessPaymentSubmit = async () => {
     if (!payrollToProcess) return;
-    
     const success = await handleProcessPayment(payrollToProcess, paymentDate);
     if (success) {
       setPaymentDialogOpen(false);
       setPayrollToProcess(null);
     }
+  };
+
+  const openBankTransferDialog = (payrollIdOrIds: string) => {
+    // Accepts comma-separated IDs from monthly bulk transfer
+    const ids = payrollIdOrIds.split(',').filter(Boolean);
+    setBankTransferPayrollIds(ids);
+    setBankTransferDialogOpen(true);
   };
 
   const filteredWorkLogs = filterWorkLogs(workLogs);
@@ -97,7 +114,8 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <TabsList>
             <TabsTrigger value="worklogs">Work Logs</TabsTrigger>
-            <TabsTrigger value="payroll">Payroll Entries</TabsTrigger>
+            <TabsTrigger value="payroll">Care Payments</TabsTrigger>
+            {familyId && <TabsTrigger value="nis-reports">NIS Reports</TabsTrigger>}
           </TabsList>
           
           {currentTab === "worklogs" ? (
@@ -112,7 +130,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
               onCaregiverChange={workLogSetFilters.setCaregiverFilter}
               careTeamMembers={careTeamMembers}
             />
-          ) : (
+          ) : currentTab === "payroll" ? (
             <PayrollFilters
               searchTerm={payrollFilters.searchTerm}
               onSearchChange={payrollSetFilters.setSearchTerm}
@@ -125,7 +143,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
               careTeamMembers={careTeamMembers}
               showPayrollStatuses
             />
-          )}
+          ) : null}
         </div>
 
         <TabsContent value="worklogs">
@@ -143,6 +161,11 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
                   workLogs={filteredWorkLogs}
                   onApprove={handleApproveWorkLog}
                   onReject={openRejectDialog}
+                  onDelete={handleDeleteWorkLog}
+                  onBulkApprove={handleBulkApproveWorkLogs}
+                  onBulkReject={handleBulkRejectWorkLogs}
+                  onBulkDelete={handleBulkDeleteWorkLogs}
+                  isProfessionalView={isProfessionalView}
                 />
               )}
             </CardContent>
@@ -152,7 +175,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
         <TabsContent value="payroll">
           <Card>
             <CardHeader>
-              <CardTitle>Payroll Entries</CardTitle>
+              <CardTitle>Care Payments</CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -163,11 +186,22 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
                 <PayrollEntriesTable
                   entries={filteredPayrollEntries}
                   onProcessPayment={openPaymentDialog}
+                  onDeleteEntries={handleDeletePayrollEntries}
+                  onUndoPayment={handleUndoPayment}
+                  onRecalculateNIS={handleRecalculateNIS}
+                  onRecordBankTransfer={openBankTransferDialog}
                 />
               )}
             </CardContent>
           </Card>
         </TabsContent>
+
+        {familyId && (
+          <TabsContent value="nis-reports" className="space-y-6">
+            <EmployerSettingsForm familyId={familyId} />
+            <NISReportsSection carePlanId={carePlanId} familyId={familyId} />
+          </TabsContent>
+        )}
       </Tabs>
 
       <RejectWorkLogDialog
@@ -184,6 +218,13 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
         onProcess={handleProcessPaymentSubmit}
         paymentDate={paymentDate}
         onDateChange={setPaymentDate}
+        payrollId={payrollToProcess}
+      />
+
+      <BankTransferDialog
+        open={bankTransferDialogOpen}
+        onOpenChange={setBankTransferDialogOpen}
+        payrollIds={bankTransferPayrollIds}
       />
     </div>
   );

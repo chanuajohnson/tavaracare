@@ -12,10 +12,12 @@ import { ScheduleVisitDialog } from './ScheduleVisitDialog';
 interface PendingSchedulingRequest {
   id: string;
   full_name: string;
-  preferred_visit_type: 'virtual' | 'in_person';
+  preferred_visit_type: 'virtual' | 'in_person' | 'trial_day' | 'direct_hire';
   admin_scheduling_requested_at: string;
   visit_scheduling_status: string;
   phone_number?: string;
+  visit_notes?: string;
+  care_urgency?: string;
 }
 
 interface AdminSchedulingQueueProps {
@@ -36,7 +38,7 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, preferred_visit_type, admin_scheduling_requested_at, visit_scheduling_status, phone_number')
+        .select('id, full_name, preferred_visit_type, admin_scheduling_requested_at, visit_scheduling_status, phone_number, visit_notes, care_urgency')
         .eq('ready_for_admin_scheduling', true)
         .eq('visit_scheduling_status', 'ready_to_schedule')
         .order('admin_scheduling_requested_at', { ascending: true });
@@ -49,15 +51,18 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
       console.log('Pending requests fetched:', data?.length || 0);
       
       // Transform and validate the data with proper type casting
+      const validTypes = ['virtual', 'in_person', 'trial_day', 'direct_hire'] as const;
       const transformedRequests: PendingSchedulingRequest[] = (data || []).map(request => ({
         id: request.id,
         full_name: request.full_name || 'Unknown',
-        preferred_visit_type: (request.preferred_visit_type === 'virtual' || request.preferred_visit_type === 'in_person') 
-          ? request.preferred_visit_type as 'virtual' | 'in_person'
-          : 'virtual' as 'virtual' | 'in_person',
+        preferred_visit_type: validTypes.includes(request.preferred_visit_type as any)
+          ? request.preferred_visit_type as PendingSchedulingRequest['preferred_visit_type']
+          : 'virtual' as const,
         admin_scheduling_requested_at: request.admin_scheduling_requested_at || new Date().toISOString(),
         visit_scheduling_status: request.visit_scheduling_status || 'ready_to_schedule',
-        phone_number: request.phone_number || undefined
+        phone_number: request.phone_number || undefined,
+        visit_notes: request.visit_notes || undefined,
+        care_urgency: request.care_urgency || undefined
       }));
       
       setPendingRequests(transformedRequests);
@@ -89,10 +94,37 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
     fetchPendingRequests();
   }, []);
 
-  const getVisitTypeBadge = (type: 'virtual' | 'in_person') => {
-    return type === 'virtual' 
-      ? <Badge variant="secondary" className="flex items-center gap-1"><Video className="h-3 w-3" />Virtual</Badge>
-      : <Badge variant="outline" className="flex items-center gap-1"><Home className="h-3 w-3" />In-Person</Badge>;
+  const getVisitTypeBadge = (type: PendingSchedulingRequest['preferred_visit_type']) => {
+    switch (type) {
+      case 'trial_day':
+        return <Badge className="flex items-center gap-1 bg-blue-100 text-blue-800"><Calendar className="h-3 w-3" />Trial Day $320</Badge>;
+      case 'direct_hire':
+        return <Badge className="flex items-center gap-1 bg-green-100 text-green-800"><Home className="h-3 w-3" />Hire Immediately</Badge>;
+      case 'in_person':
+        return <Badge variant="outline" className="flex items-center gap-1"><Home className="h-3 w-3" />In-Person</Badge>;
+      default:
+        return <Badge variant="secondary" className="flex items-center gap-1"><Video className="h-3 w-3" />Virtual</Badge>;
+    }
+  };
+
+  const parseVisitNotes = (notes?: string) => {
+    if (!notes) return null;
+    try { return JSON.parse(notes); } catch { return null; }
+  };
+
+  const getUrgencyBadge = (urgency?: string) => {
+    switch (urgency) {
+      case 'immediate':
+        return <Badge className="bg-red-100 text-red-800 border-red-200">🚨 Immediate</Badge>;
+      case 'within_week':
+        return <Badge className="bg-amber-100 text-amber-800 border-amber-200">📅 Within a week</Badge>;
+      case 'within_month':
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">🗓️ Within a month</Badge>;
+      case 'flexible':
+        return <Badge variant="outline" className="text-muted-foreground">⏳ Flexible</Badge>;
+      default:
+        return <Badge variant="outline" className="text-muted-foreground">Not set</Badge>;
+    }
   };
 
   if (loading) {
@@ -181,6 +213,7 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
                     <TableRow>
                       <TableHead>Family</TableHead>
                       <TableHead>Contact</TableHead>
+                      <TableHead>Urgency</TableHead>
                       <TableHead>Visit Type</TableHead>
                       <TableHead>Requested</TableHead>
                       <TableHead>Actions</TableHead>
@@ -196,6 +229,7 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
                             </div>
                             <div>
                               <div className="font-medium">{request.full_name}</div>
+                              <div className="text-xs text-muted-foreground font-mono">ID: {request.id.substring(0, 8)}</div>
                             </div>
                           </div>
                         </TableCell>
@@ -209,10 +243,17 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
                           </div>
                         </TableCell>
                         <TableCell>
+                          {getUrgencyBadge(request.care_urgency)}
+                        </TableCell>
+                        <TableCell>
                           {getVisitTypeBadge(request.preferred_visit_type)}
-                          {request.preferred_visit_type === 'in_person' && (
-                            <div className="text-xs text-green-600 mt-1">$300 TTD</div>
-                          )}
+                          {(() => {
+                            const notes = parseVisitNotes(request.visit_notes);
+                            if (notes?.preferred_start_date) {
+                              return <div className="text-xs text-muted-foreground mt-1">Preferred: {new Date(notes.preferred_start_date + 'T00:00:00').toLocaleDateString()}</div>;
+                            }
+                            return null;
+                          })()}
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">

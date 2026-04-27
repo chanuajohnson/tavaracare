@@ -152,31 +152,44 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
           
           // Check completion based on step number and user role
           if (userRole === 'family') {
-            const { profile, careAssessment, careRecipient, medications, mealPlans } = completionData as any;
+            const { profile, careAssessment, careRecipient, medications, mealPlans, carePlans } = completionData as any;
             
+            // Step numbers match journey_steps table: 1, 2, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15
             switch (step.step_number) {
-              case 1:
+              case 1: // Create your account
                 completed = !!(profile?.full_name);
                 break;
-              case 2:
+              case 2: // Complete your registration
+                completed = !!(profile?.full_name && profile?.phone_number && profile?.address && profile?.care_recipient_name && profile?.relationship);
+                break;
+              case 5: // Complete Initial Care Assessment
                 completed = !!careAssessment;
                 break;
-              case 3:
+              case 6: // Complete Your Loved One's Legacy Story
                 completed = !!(careRecipient?.full_name);
                 break;
-              case 4:
-                completed = !!careRecipient;
+              case 7: // See Your Instant Caregiver Matches
+                completed = !!(profile?.full_name && profile?.phone_number && profile?.address && profile?.care_recipient_name && profile?.relationship) && !!careAssessment;
                 break;
-              case 5:
+              case 8: // Set Up Medication Management
                 completed = (medications?.length || 0) > 0;
                 break;
-              case 6:
+              case 9: // Set Up Meal Management
                 completed = (mealPlans?.length || 0) > 0;
                 break;
-              case 7:
+              case 10: // Schedule Your Tavara.Care Visit
                 completed = profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed';
                 break;
-              case 8:
+              case 12: // Schedule Trial Day
+                completed = false; // Future: check trial scheduling
+                break;
+              case 13: // Pay for Trial Day
+                completed = false; // Future: check payment_transactions
+                break;
+              case 14: // Begin Your Trial
+                completed = false; // Future: check trial status
+                break;
+              case 15: // Rate & Choose Your Path
                 completed = profile?.visit_scheduling_status === 'completed';
                 break;
               default:

@@ -1,6 +1,7 @@
 
 import { format } from "date-fns";
 import { TableCell, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PayRateSelector } from "../PayRateSelector";
 import { PayrollStatusBadge } from "../PayrollStatusBadge";
 import { WorkLogExpenses } from "../WorkLogExpenses";
@@ -13,21 +14,45 @@ interface WorkLogTableRowProps {
   onApprove: (id: string) => void;
   onReject: (id: string, reason: string) => Promise<boolean>;
   onGenerateReceipt: (workLog: WorkLog) => void;
+  onGenerateRangeReceipt?: (workLog: WorkLog, mode: 'week' | 'month' | 'custom') => void;
+  onDelete?: (id: string) => Promise<boolean>;
+  isProfessionalView?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
 export const WorkLogTableRow = ({
   workLog,
   onApprove,
   onReject,
-  onGenerateReceipt
+  onGenerateReceipt,
+  onGenerateRangeReceipt,
+  onDelete,
+  isProfessionalView = false,
+  isSelected = false,
+  onToggleSelect
 }: WorkLogTableRowProps) => {
   const startTime = new Date(workLog.start_time);
   const endTime = new Date(workLog.end_time);
   const hoursDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
   const totalExpenses = workLog.expenses?.reduce((sum, expense) => sum + Number(expense.amount), 0) || 0;
+  const isPending = workLog.status === 'pending';
 
   return (
     <TableRow key={workLog.id}>
+      {!isProfessionalView && (
+        <TableCell className="w-10">
+          {isPending ? (
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => onToggleSelect?.(workLog.id)}
+              aria-label={`Select work log for ${workLog.caregiver_name}`}
+            />
+          ) : (
+            <span />
+          )}
+        </TableCell>
+      )}
       <TableCell className="font-medium">
         {workLog.caregiver_name || 'Unknown'}
       </TableCell>
@@ -72,6 +97,9 @@ export const WorkLogTableRow = ({
           onApprove={onApprove}
           onReject={onReject}
           onGenerateReceipt={onGenerateReceipt}
+          onGenerateRangeReceipt={onGenerateRangeReceipt}
+          onDelete={onDelete}
+          isProfessionalView={isProfessionalView}
         />
       </TableCell>
     </TableRow>

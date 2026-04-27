@@ -398,6 +398,54 @@ export type Database = {
           },
         ]
       }
+      billable_service_items: {
+        Row: {
+          billing_type: string
+          category: string
+          created_at: string | null
+          default_quantity: number | null
+          description: string
+          id: string
+          is_active: boolean | null
+          label: string
+          sort_order: number | null
+          unit_price: number | null
+          visible_in_invoice: boolean | null
+          visible_in_quote: boolean | null
+          visible_in_unit_economics: boolean | null
+        }
+        Insert: {
+          billing_type: string
+          category: string
+          created_at?: string | null
+          default_quantity?: number | null
+          description: string
+          id?: string
+          is_active?: boolean | null
+          label: string
+          sort_order?: number | null
+          unit_price?: number | null
+          visible_in_invoice?: boolean | null
+          visible_in_quote?: boolean | null
+          visible_in_unit_economics?: boolean | null
+        }
+        Update: {
+          billing_type?: string
+          category?: string
+          created_at?: string | null
+          default_quantity?: number | null
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          sort_order?: number | null
+          unit_price?: number | null
+          visible_in_invoice?: boolean | null
+          visible_in_quote?: boolean | null
+          visible_in_unit_economics?: boolean | null
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           calendar_id: string
@@ -612,6 +660,98 @@ export type Database = {
           },
         ]
       }
+      care_plan_edit_log: {
+        Row: {
+          care_plan_id: string
+          created_at: string | null
+          edit_summary: string
+          edit_type: string
+          edited_by: string
+          editor_role: string
+          id: string
+        }
+        Insert: {
+          care_plan_id: string
+          created_at?: string | null
+          edit_summary: string
+          edit_type: string
+          edited_by: string
+          editor_role: string
+          id?: string
+        }
+        Update: {
+          care_plan_id?: string
+          created_at?: string | null
+          edit_summary?: string
+          edit_type?: string
+          edited_by?: string
+          editor_role?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_plan_edit_log_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_plan_service_selections: {
+        Row: {
+          approved_by_family: boolean | null
+          care_plan_id: string
+          created_at: string | null
+          id: string
+          notes: string | null
+          override_price: number | null
+          quantity: number | null
+          selected: boolean | null
+          service_item_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          approved_by_family?: boolean | null
+          care_plan_id: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          override_price?: number | null
+          quantity?: number | null
+          selected?: boolean | null
+          service_item_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          approved_by_family?: boolean | null
+          care_plan_id?: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          override_price?: number | null
+          quantity?: number | null
+          selected?: boolean | null
+          service_item_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_plan_service_selections_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_plan_service_selections_service_item_id_fkey"
+            columns: ["service_item_id"]
+            isOneToOne: false
+            referencedRelation: "billable_service_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       care_plans: {
         Row: {
           created_at: string | null
@@ -798,6 +938,248 @@ export type Database = {
           },
         ]
       }
+      care_supply_bundle_items: {
+        Row: {
+          bundle_id: string
+          created_at: string
+          default_quantity: number
+          id: string
+          item_id: string
+        }
+        Insert: {
+          bundle_id: string
+          created_at?: string
+          default_quantity?: number
+          id?: string
+          item_id: string
+        }
+        Update: {
+          bundle_id?: string
+          created_at?: string
+          default_quantity?: number
+          id?: string
+          item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_supply_bundle_items_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "care_supply_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_supply_bundle_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "care_supply_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_supply_bundles: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          emoji: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      care_supply_deliveries: {
+        Row: {
+          created_at: string
+          delivered_at: string
+          id: string
+          marked_by: string | null
+          notes: string | null
+          subscription_id: string
+          total_ttd: number
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string
+          id?: string
+          marked_by?: string | null
+          notes?: string | null
+          subscription_id: string
+          total_ttd?: number
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string
+          id?: string
+          marked_by?: string | null
+          notes?: string | null
+          subscription_id?: string
+          total_ttd?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_supply_deliveries_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "care_supply_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_supply_items: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          needs_pricing_review: boolean
+          sort_order: number
+          supplier_note: string | null
+          unit_label: string
+          unit_price_ttd: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          needs_pricing_review?: boolean
+          sort_order?: number
+          supplier_note?: string | null
+          unit_label?: string
+          unit_price_ttd?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          needs_pricing_review?: boolean
+          sort_order?: number
+          supplier_note?: string | null
+          unit_label?: string
+          unit_price_ttd?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      care_supply_subscription_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          price_snapshot_ttd: number
+          quantity: number
+          subscription_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          price_snapshot_ttd?: number
+          quantity?: number
+          subscription_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          price_snapshot_ttd?: number
+          quantity?: number
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_supply_subscription_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "care_supply_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_supply_subscription_items_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "care_supply_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_supply_subscriptions: {
+        Row: {
+          cadence: Database["public"]["Enums"]["care_supply_cadence"]
+          created_at: string
+          created_by_admin: string | null
+          delivery_day: string
+          family_user_id: string
+          id: string
+          next_delivery_at: string | null
+          notes: string | null
+          status: Database["public"]["Enums"]["care_supply_subscription_status"]
+          updated_at: string
+        }
+        Insert: {
+          cadence?: Database["public"]["Enums"]["care_supply_cadence"]
+          created_at?: string
+          created_by_admin?: string | null
+          delivery_day?: string
+          family_user_id: string
+          id?: string
+          next_delivery_at?: string | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["care_supply_subscription_status"]
+          updated_at?: string
+        }
+        Update: {
+          cadence?: Database["public"]["Enums"]["care_supply_cadence"]
+          created_at?: string
+          created_by_admin?: string | null
+          delivery_day?: string
+          family_user_id?: string
+          id?: string
+          next_delivery_at?: string | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["care_supply_subscription_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       care_tasks: {
         Row: {
           assigned_to: string | null
@@ -854,9 +1236,13 @@ export type Database = {
           care_plan_id: string | null
           caregiver_id: string
           created_at: string | null
+          date_employed: string | null
+          date_of_birth: string | null
           display_name: string | null
           family_id: string
           id: string
+          is_nis_registered: boolean
+          nis_number: string | null
           notes: string | null
           overtime_rate: number | null
           regular_rate: number | null
@@ -868,9 +1254,13 @@ export type Database = {
           care_plan_id?: string | null
           caregiver_id: string
           created_at?: string | null
+          date_employed?: string | null
+          date_of_birth?: string | null
           display_name?: string | null
           family_id: string
           id?: string
+          is_nis_registered?: boolean
+          nis_number?: string | null
           notes?: string | null
           overtime_rate?: number | null
           regular_rate?: number | null
@@ -882,9 +1272,13 @@ export type Database = {
           care_plan_id?: string | null
           caregiver_id?: string
           created_at?: string | null
+          date_employed?: string | null
+          date_of_birth?: string | null
           display_name?: string | null
           family_id?: string
           id?: string
+          is_nis_registered?: boolean
+          nis_number?: string | null
           notes?: string | null
           overtime_rate?: number | null
           regular_rate?: number | null
@@ -1591,6 +1985,167 @@ export type Database = {
           {
             foreignKeyName: "customer_health_scores_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_care_log_feedback: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          author_role: string
+          comment: string
+          created_at: string | null
+          family_id: string
+          id: string
+          log_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          author_role?: string
+          comment: string
+          created_at?: string | null
+          family_id: string
+          id?: string
+          log_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          author_role?: string
+          comment?: string
+          created_at?: string | null
+          family_id?: string
+          id?: string
+          log_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_care_log_feedback_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_care_log_feedback_log_id_fkey"
+            columns: ["log_id"]
+            isOneToOne: false
+            referencedRelation: "daily_care_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_care_logs: {
+        Row: {
+          care_plan_id: string | null
+          checklist_data: Json
+          client_name: string | null
+          created_at: string | null
+          family_id: string | null
+          id: string
+          last_activity_at: string | null
+          notes: string | null
+          professional_id: string
+          shift_date: string
+          shift_type: string | null
+          started_at: string | null
+          time_in: string | null
+          time_out: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          care_plan_id?: string | null
+          checklist_data?: Json
+          client_name?: string | null
+          created_at?: string | null
+          family_id?: string | null
+          id?: string
+          last_activity_at?: string | null
+          notes?: string | null
+          professional_id: string
+          shift_date?: string
+          shift_type?: string | null
+          started_at?: string | null
+          time_in?: string | null
+          time_out?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          care_plan_id?: string | null
+          checklist_data?: Json
+          client_name?: string | null
+          created_at?: string | null
+          family_id?: string | null
+          id?: string
+          last_activity_at?: string | null
+          notes?: string | null
+          professional_id?: string
+          shift_date?: string
+          shift_type?: string | null
+          started_at?: string | null
+          time_in?: string | null
+          time_out?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_care_logs_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_care_logs_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employer_settings: {
+        Row: {
+          address: string | null
+          created_at: string
+          employer_registration_number: string | null
+          family_id: string
+          id: string
+          phone: string | null
+          service_centre_code: string | null
+          trade_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          employer_registration_number?: string | null
+          family_id: string
+          id?: string
+          phone?: string | null
+          service_centre_code?: string | null
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          employer_registration_number?: string | null
+          family_id?: string
+          id?: string
+          phone?: string | null
+          service_centre_code?: string | null
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employer_settings_family_id_fkey"
+            columns: ["family_id"]
             isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -2917,6 +3472,41 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_checklists: {
+        Row: {
+          checked_items: Json | null
+          family_id: string
+          id: string
+          notes: Json | null
+          started_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          checked_items?: Json | null
+          family_id: string
+          id?: string
+          notes?: Json | null
+          started_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          checked_items?: Json | null
+          family_id?: string
+          id?: string
+          notes?: Json | null
+          started_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_checklists_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_transactions: {
         Row: {
           amount: number
@@ -2979,14 +3569,24 @@ export type Database = {
       }
       payroll_entries: {
         Row: {
+          bank_transfer_date: string | null
+          bank_transfer_notes: string | null
+          bank_transfer_ref: string | null
           care_plan_id: string
           care_team_member_id: string
           created_at: string | null
+          employee_contribution: number | null
+          employer_contribution: number | null
           entered_at: string | null
           expense_total: number | null
+          gross_pay: number | null
           holiday_hours: number | null
           holiday_rate: number | null
           id: string
+          net_pay_after_nis: number | null
+          nis_applicable: boolean | null
+          nis_class: string | null
+          nis_response: Json | null
           overtime_hours: number | null
           overtime_rate: number | null
           pay_period_end: string | null
@@ -3000,14 +3600,24 @@ export type Database = {
           work_log_id: string
         }
         Insert: {
+          bank_transfer_date?: string | null
+          bank_transfer_notes?: string | null
+          bank_transfer_ref?: string | null
           care_plan_id: string
           care_team_member_id: string
           created_at?: string | null
+          employee_contribution?: number | null
+          employer_contribution?: number | null
           entered_at?: string | null
           expense_total?: number | null
+          gross_pay?: number | null
           holiday_hours?: number | null
           holiday_rate?: number | null
           id?: string
+          net_pay_after_nis?: number | null
+          nis_applicable?: boolean | null
+          nis_class?: string | null
+          nis_response?: Json | null
           overtime_hours?: number | null
           overtime_rate?: number | null
           pay_period_end?: string | null
@@ -3021,14 +3631,24 @@ export type Database = {
           work_log_id: string
         }
         Update: {
+          bank_transfer_date?: string | null
+          bank_transfer_notes?: string | null
+          bank_transfer_ref?: string | null
           care_plan_id?: string
           care_team_member_id?: string
           created_at?: string | null
+          employee_contribution?: number | null
+          employer_contribution?: number | null
           entered_at?: string | null
           expense_total?: number | null
+          gross_pay?: number | null
           holiday_hours?: number | null
           holiday_rate?: number | null
           id?: string
+          net_pay_after_nis?: number | null
+          nis_applicable?: boolean | null
+          nis_class?: string | null
+          nis_response?: Json | null
           overtime_hours?: number | null
           overtime_rate?: number | null
           pay_period_end?: string | null
@@ -3187,6 +3807,147 @@ export type Database = {
         }
         Relationships: []
       }
+      professional_onboarding_checklists: {
+        Row: {
+          checked_items: Json | null
+          family_id: string | null
+          id: string
+          notes: Json | null
+          professional_id: string
+          started_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          checked_items?: Json | null
+          family_id?: string | null
+          id?: string
+          notes?: Json | null
+          professional_id: string
+          started_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          checked_items?: Json | null
+          family_id?: string | null
+          id?: string
+          notes?: Json | null
+          professional_id?: string
+          started_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_onboarding_checklists_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_onboarding_checklists_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professional_references: {
+        Row: {
+          created_at: string
+          id: string
+          professional_id: string
+          reference_email: string | null
+          reference_name: string
+          reference_notes: string | null
+          reference_phone: string | null
+          reference_relationship: string
+          status: string
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+          years_known: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          professional_id: string
+          reference_email?: string | null
+          reference_name: string
+          reference_notes?: string | null
+          reference_phone?: string | null
+          reference_relationship: string
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          years_known?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          professional_id?: string
+          reference_email?: string | null
+          reference_name?: string
+          reference_notes?: string | null
+          reference_phone?: string | null
+          reference_relationship?: string
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          years_known?: string | null
+        }
+        Relationships: []
+      }
+      professional_screening: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          interviewer_name: string | null
+          notes: string | null
+          professional_id: string
+          rating: number | null
+          recommendation: string | null
+          scheduled_at: string | null
+          screening_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          interviewer_name?: string | null
+          notes?: string | null
+          professional_id: string
+          rating?: number | null
+          recommendation?: string | null
+          scheduled_at?: string | null
+          screening_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          interviewer_name?: string | null
+          notes?: string | null
+          professional_id?: string
+          rating?: number | null
+          recommendation?: string | null
+          scheduled_at?: string | null
+          screening_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           additional_notes: string | null
@@ -3206,12 +3967,16 @@ export type Database = {
           care_schedule: string | null
           care_services: string[] | null
           care_types: string[] | null
+          care_urgency: Database["public"]["Enums"]["care_urgency"] | null
           caregiver_preferences: string | null
           caregiver_type: string | null
           caregiving_areas: string[] | null
           caregiving_experience: string | null
           certification_proof_url: string | null
           certifications: string[] | null
+          client_stage: number | null
+          client_stage_assessed_at: string | null
+          client_stage_quiz_responses: Json | null
           communication_channels: string[] | null
           community_motivation: string | null
           community_roles: string[] | null
@@ -3220,6 +3985,7 @@ export type Database = {
           created_at: string | null
           custom_availability_alerts: string | null
           custom_schedule: string | null
+          drivers_license: boolean | null
           email_verification_sent_at: string | null
           email_verified: boolean | null
           emergency_contact: string | null
@@ -3246,11 +4012,14 @@ export type Database = {
           list_in_directory: boolean | null
           location: string | null
           manual_match_assigned: boolean | null
+          matching_requirements: string | null
           medical_conditions_experience: string[] | null
           onboarding_progress: Json | null
+          onboarding_stage: string | null
           other_certification: string | null
           other_medical_condition: string | null
           other_special_needs: string | null
+          own_transportation: boolean | null
           payment_methods: string[] | null
           phone_number: string | null
           preferred_contact_method: string | null
@@ -3263,6 +4032,7 @@ export type Database = {
           registration_skipped: boolean | null
           relationship: string | null
           role: Database["public"]["Enums"]["user_role"]
+          screening_cleared: boolean | null
           special_needs: string[] | null
           specialized_care: string[] | null
           tech_interests: string[] | null
@@ -3300,12 +4070,16 @@ export type Database = {
           care_schedule?: string | null
           care_services?: string[] | null
           care_types?: string[] | null
+          care_urgency?: Database["public"]["Enums"]["care_urgency"] | null
           caregiver_preferences?: string | null
           caregiver_type?: string | null
           caregiving_areas?: string[] | null
           caregiving_experience?: string | null
           certification_proof_url?: string | null
           certifications?: string[] | null
+          client_stage?: number | null
+          client_stage_assessed_at?: string | null
+          client_stage_quiz_responses?: Json | null
           communication_channels?: string[] | null
           community_motivation?: string | null
           community_roles?: string[] | null
@@ -3314,6 +4088,7 @@ export type Database = {
           created_at?: string | null
           custom_availability_alerts?: string | null
           custom_schedule?: string | null
+          drivers_license?: boolean | null
           email_verification_sent_at?: string | null
           email_verified?: boolean | null
           emergency_contact?: string | null
@@ -3340,11 +4115,14 @@ export type Database = {
           list_in_directory?: boolean | null
           location?: string | null
           manual_match_assigned?: boolean | null
+          matching_requirements?: string | null
           medical_conditions_experience?: string[] | null
           onboarding_progress?: Json | null
+          onboarding_stage?: string | null
           other_certification?: string | null
           other_medical_condition?: string | null
           other_special_needs?: string | null
+          own_transportation?: boolean | null
           payment_methods?: string[] | null
           phone_number?: string | null
           preferred_contact_method?: string | null
@@ -3357,6 +4135,7 @@ export type Database = {
           registration_skipped?: boolean | null
           relationship?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          screening_cleared?: boolean | null
           special_needs?: string[] | null
           specialized_care?: string[] | null
           tech_interests?: string[] | null
@@ -3394,12 +4173,16 @@ export type Database = {
           care_schedule?: string | null
           care_services?: string[] | null
           care_types?: string[] | null
+          care_urgency?: Database["public"]["Enums"]["care_urgency"] | null
           caregiver_preferences?: string | null
           caregiver_type?: string | null
           caregiving_areas?: string[] | null
           caregiving_experience?: string | null
           certification_proof_url?: string | null
           certifications?: string[] | null
+          client_stage?: number | null
+          client_stage_assessed_at?: string | null
+          client_stage_quiz_responses?: Json | null
           communication_channels?: string[] | null
           community_motivation?: string | null
           community_roles?: string[] | null
@@ -3408,6 +4191,7 @@ export type Database = {
           created_at?: string | null
           custom_availability_alerts?: string | null
           custom_schedule?: string | null
+          drivers_license?: boolean | null
           email_verification_sent_at?: string | null
           email_verified?: boolean | null
           emergency_contact?: string | null
@@ -3434,11 +4218,14 @@ export type Database = {
           list_in_directory?: boolean | null
           location?: string | null
           manual_match_assigned?: boolean | null
+          matching_requirements?: string | null
           medical_conditions_experience?: string[] | null
           onboarding_progress?: Json | null
+          onboarding_stage?: string | null
           other_certification?: string | null
           other_medical_condition?: string | null
           other_special_needs?: string | null
+          own_transportation?: boolean | null
           payment_methods?: string[] | null
           phone_number?: string | null
           preferred_contact_method?: string | null
@@ -3451,6 +4238,7 @@ export type Database = {
           registration_skipped?: boolean | null
           relationship?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          screening_cleared?: boolean | null
           special_needs?: string[] | null
           specialized_care?: string[] | null
           tech_interests?: string[] | null
@@ -3471,6 +4259,113 @@ export type Database = {
           years_of_experience?: string | null
         }
         Relationships: []
+      }
+      quarterly_action_items: {
+        Row: {
+          category: string
+          completed_at: string | null
+          completion_notes: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          owner: string | null
+          quarter: string
+          sort_order: number
+          status: string
+          target_date: string | null
+          title: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          category?: string
+          completed_at?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          owner?: string | null
+          quarter: string
+          sort_order?: number
+          status?: string
+          target_date?: string | null
+          title: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          category?: string
+          completed_at?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          owner?: string | null
+          quarter?: string
+          sort_order?: number
+          status?: string
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      quiz_leads: {
+        Row: {
+          client_stage: number
+          contact_method: string
+          converted_user_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          quiz_responses: Json
+          reflection: string | null
+          source_path: string | null
+          updated_at: string
+          whatsapp_number: string | null
+        }
+        Insert: {
+          client_stage: number
+          contact_method: string
+          converted_user_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          quiz_responses?: Json
+          reflection?: string | null
+          source_path?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Update: {
+          client_stage?: number
+          contact_method?: string
+          converted_user_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          quiz_responses?: Json
+          reflection?: string | null
+          source_path?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_leads_converted_user_id_fkey"
+            columns: ["converted_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recipes: {
         Row: {
@@ -3570,6 +4465,103 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      screening_question_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          questions: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          questions?: Json
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          questions?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      screening_sessions: {
+        Row: {
+          access_token: string
+          ai_recommendation: string | null
+          ai_summary: string | null
+          assigned_to: string | null
+          candidate_name: string
+          created_at: string
+          id: string
+          professional_id: string
+          responses: Json
+          status: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string
+          ai_recommendation?: string | null
+          ai_summary?: string | null
+          assigned_to?: string | null
+          candidate_name: string
+          created_at?: string
+          id?: string
+          professional_id: string
+          responses?: Json
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          ai_recommendation?: string | null
+          ai_summary?: string | null
+          assigned_to?: string | null
+          candidate_name?: string
+          created_at?: string
+          id?: string
+          professional_id?: string
+          responses?: Json
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "screening_sessions_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "screening_sessions_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "screening_sessions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "screening_question_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       session_analytics: {
         Row: {
@@ -3824,31 +4816,61 @@ export type Database = {
       }
       subscription_plans: {
         Row: {
+          audience: string
+          button_text: string
           created_at: string | null
           description: string | null
           duration_days: number
           features: Json | null
           id: string
+          is_active: boolean
+          is_popular: boolean
           name: string
+          period_monthly: string
+          period_weekly: string
           price: number
+          price_monthly: number | null
+          price_weekly: number | null
+          slug: string | null
+          sort_order: number
         }
         Insert: {
+          audience?: string
+          button_text?: string
           created_at?: string | null
           description?: string | null
           duration_days: number
           features?: Json | null
           id?: string
+          is_active?: boolean
+          is_popular?: boolean
           name: string
+          period_monthly?: string
+          period_weekly?: string
           price: number
+          price_monthly?: number | null
+          price_weekly?: number | null
+          slug?: string | null
+          sort_order?: number
         }
         Update: {
+          audience?: string
+          button_text?: string
           created_at?: string | null
           description?: string | null
           duration_days?: number
           features?: Json | null
           id?: string
+          is_active?: boolean
+          is_popular?: boolean
           name?: string
+          period_monthly?: string
+          period_weekly?: string
           price?: number
+          price_monthly?: number | null
+          price_weekly?: number | null
+          slug?: string | null
+          sort_order?: number
         }
         Relationships: []
       }
@@ -5132,6 +6154,8 @@ export type Database = {
           shift_id: string | null
           start_time: string
           status: string | null
+          submitted_by_role: string | null
+          submitted_by_user_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -5147,6 +6171,8 @@ export type Database = {
           shift_id?: string | null
           start_time: string
           status?: string | null
+          submitted_by_role?: string | null
+          submitted_by_user_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -5162,6 +6188,8 @@ export type Database = {
           shift_id?: string | null
           start_time?: string
           status?: string | null
+          submitted_by_role?: string | null
+          submitted_by_user_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -5221,6 +6249,7 @@ export type Database = {
           available_for_matching: boolean
           avatar_url: string
           care_types: string[]
+          care_urgency: Database["public"]["Enums"]["care_urgency"]
           created_at: string
           email: string
           full_name: string
@@ -5351,6 +6380,33 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
         }[]
       }
+      get_professional_care_plan_team_members: {
+        Args: { plan_id: string }
+        Returns: {
+          avatar_url: string
+          care_plan_id: string
+          caregiver_id: string
+          full_name: string
+          id: string
+          phone_number: string
+          professional_type: string
+          role: string
+          status: string
+        }[]
+      }
+      get_public_family_profiles: {
+        Args: never
+        Returns: {
+          care_schedule: string
+          care_types: string[]
+          care_urgency: Database["public"]["Enums"]["care_urgency"]
+          chronic_illness_type: string
+          diagnosed_conditions: string
+          full_name: string
+          id: string
+          location: string
+        }[]
+      }
       get_public_professional_profiles: {
         Args: { ids: string[] }
         Returns: {
@@ -5366,6 +6422,7 @@ export type Database = {
           years_of_experience: string
         }[]
       }
+      get_unmatched_family_count: { Args: never; Returns: number }
       get_user_profile_secure: {
         Args: { target_user_id: string }
         Returns: {
@@ -5490,6 +6547,8 @@ export type Database = {
         | "completed"
         | "locked"
       app_role: "admin" | "moderator" | "user"
+      care_supply_cadence: "weekly" | "biweekly" | "monthly" | "one_time"
+      care_supply_subscription_status: "active" | "paused" | "cancelled"
       care_urgency:
         | "immediate"
         | "within_week"
@@ -5668,6 +6727,8 @@ export const Constants = {
         "locked",
       ],
       app_role: ["admin", "moderator", "user"],
+      care_supply_cadence: ["weekly", "biweekly", "monthly", "one_time"],
+      care_supply_subscription_status: ["active", "paused", "cancelled"],
       care_urgency: [
         "immediate",
         "within_week",

@@ -21,12 +21,14 @@ import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionF
 interface Caregiver {
   id: string;
   full_name?: string | null;
+  first_name?: string | null;
   avatar_url?: string | null;
   location?: string | null;
   care_types?: string[] | null;
   years_of_experience?: string | null;
   match_score: number;
   is_premium?: boolean;
+  professional_type?: string;
 }
 
 interface MatchDetailModalProps {
@@ -68,7 +70,9 @@ export const MatchDetailModal = ({
                     <Avatar className="h-20 w-20 border-4 border-primary/20">
                       <AvatarImage src={caregiver.avatar_url || undefined} />
                       <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                        <Users className="h-8 w-8" />
+                        {caregiver.full_name
+                          ? caregiver.full_name.split(' ').filter(Boolean).map(p => p[0]).join('').substring(0, 2).toUpperCase()
+                          : <Users className="h-8 w-8" />}
                       </AvatarFallback>
                     </Avatar>
                     
@@ -84,7 +88,12 @@ export const MatchDetailModal = ({
                   
                   <div className="flex-1 space-y-4">
                     <div>
-                      <h3 className="text-2xl font-bold mb-2">Professional Caregiver</h3>
+                      <h3 className="text-2xl font-bold mb-1">
+                        {caregiver.first_name || caregiver.full_name?.split(' ')[0] || 'Professional Caregiver'}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {caregiver.professional_type || 'Professional Caregiver'}
+                      </p>
                       <div className="flex items-center gap-4 text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <MapPin className="h-4 w-4" />

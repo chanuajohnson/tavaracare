@@ -9,6 +9,8 @@ import {
   WorkLog,
   PayrollEntry 
 } from "@/services/care-plans/workLogService";
+import { deletePayrollEntries, undoPayrollPayment, recalculateWeeklyNIS } from "@/services/care-plans/work-logs/payrollService";
+import { deleteWorkLog, bulkApproveWorkLogs, bulkRejectWorkLogs, bulkDeleteWorkLogs } from "@/services/care-plans/work-logs/approvalService";
 import { fetchCareTeamMembers } from "@/services/care-plans/careTeamService";
 import { CareTeamMemberWithProfile } from "@/types/careTypes";
 
@@ -78,6 +80,80 @@ export const usePayrollData = (carePlanId: string) => {
     return false;
   };
 
+  const handleDeletePayrollEntries = async (ids: string[]) => {
+    const result = await deletePayrollEntries(ids);
+    if (result.deleted > 0) {
+      await loadData();
+      toast.success(`${result.deleted} payroll ${result.deleted === 1 ? 'entry' : 'entries'} deleted and work logs reset to pending`);
+    }
+    if (result.failed > 0) {
+      toast.error(`${result.failed} ${result.failed === 1 ? 'entry' : 'entries'} could not be deleted`);
+    }
+    return result;
+  };
+
+  const handleDeleteWorkLog = async (workLogId: string) => {
+    const success = await deleteWorkLog(workLogId);
+    if (success) {
+      await loadData();
+    }
+    return success;
+  };
+
+  const handleUndoPayment = async (payrollId: string) => {
+    const success = await undoPayrollPayment(payrollId);
+    if (success) {
+      const updatedEntries = await fetchPayrollEntries(carePlanId);
+      setPayrollEntries(updatedEntries);
+      return true;
+    }
+    return false;
+  };
+
+  const handleRecalculateNIS = async (entryId: string) => {
+    const success = await recalculateWeeklyNIS(entryId);
+    if (success) {
+      await loadData();
+    }
+    return success;
+  };
+
+  const handleBulkApproveWorkLogs = async (ids: string[]) => {
+    const result = await bulkApproveWorkLogs(ids);
+    await loadData();
+    if (result.approved > 0) {
+      toast.success(`Approved ${result.approved} of ${ids.length} work logs`);
+    }
+    if (result.failed > 0) {
+      toast.error(`${result.failed} work log(s) failed to approve`);
+    }
+    return result;
+  };
+
+  const handleBulkRejectWorkLogs = async (ids: string[], reason: string) => {
+    const result = await bulkRejectWorkLogs(ids, reason);
+    await loadData();
+    if (result.rejected > 0) {
+      toast.success(`Rejected ${result.rejected} of ${ids.length} work logs`);
+    }
+    if (result.failed > 0) {
+      toast.error(`${result.failed} work log(s) failed to reject`);
+    }
+    return result;
+  };
+
+  const handleBulkDeleteWorkLogs = async (ids: string[]) => {
+    const result = await bulkDeleteWorkLogs(ids);
+    await loadData();
+    if (result.deleted > 0) {
+      toast.success(`Deleted ${result.deleted} of ${ids.length} work logs`);
+    }
+    if (result.failed > 0) {
+      toast.error(`${result.failed} work log(s) failed to delete`);
+    }
+    return result;
+  };
+
   return {
     workLogs,
     payrollEntries,
@@ -85,6 +161,13 @@ export const usePayrollData = (carePlanId: string) => {
     loading,
     handleApproveWorkLog,
     handleRejectWorkLog,
-    handleProcessPayment
+    handleProcessPayment,
+    handleDeletePayrollEntries,
+    handleDeleteWorkLog,
+    handleUndoPayment,
+    handleRecalculateNIS,
+    handleBulkApproveWorkLogs,
+    handleBulkRejectWorkLogs,
+    handleBulkDeleteWorkLogs
   };
 };

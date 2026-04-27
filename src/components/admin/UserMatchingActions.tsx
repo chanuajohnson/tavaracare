@@ -1,13 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
+import { PRODUCTION_BASE_URL } from '@/utils/urlConstants';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Users, Eye, Calendar, UserCheck, RotateCcw, AlertTriangle, Settings, Database } from 'lucide-react';
+import { Users, Calendar, UserCheck, RotateCcw, AlertTriangle } from 'lucide-react';
 import { AdminMatchingInterface } from './AdminMatchingInterface';
 import { EnhancedAdminMatchingInterface } from './enhanced/EnhancedAdminMatchingInterface';
 
@@ -46,6 +50,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
   user,
   onUserUpdate
 }) => {
+  const navigate = useNavigate();
   const [manualAssignments, setManualAssignments] = useState<any[]>([]);
   const [interventions, setInterventions] = useState<any[]>([]);
   const [automaticAssignments, setAutomaticAssignments] = useState<any[]>([]);
@@ -54,6 +59,10 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
   const [showMatchingInterface, setShowMatchingInterface] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showStaleDialog, setShowStaleDialog] = useState(false);
+  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
+  const [deactivatingAssignment, setDeactivatingAssignment] = useState<AssignmentData | null>(null);
+  const [suggestNextMatch, setSuggestNextMatch] = useState(true);
+  const [sendUnavailabilityNudge, setSendUnavailabilityNudge] = useState(true);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -64,7 +73,6 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
 
   const fetchMatchingData = async () => {
     try {
-      // Fetch unified caregiver assignments (replaces multiple legacy queries)
       const { data: unifiedAssignments, error: unifiedError } = await supabase
         .from('caregiver_assignments')
         .select('*')
@@ -74,7 +82,6 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
 
       if (unifiedError) throw unifiedError;
 
-      // Fetch caregiver and admin profiles separately for the assignments
       let caregiverProfiles: any[] = [];
       let adminProfiles: any[] = [];
       
@@ -91,14 +98,12 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         adminProfiles = adminResult.data || [];
       }
 
-      // Add profile data to assignments
       const enrichedAssignments = unifiedAssignments?.map(assignment => ({
         ...assignment,
         caregiver: caregiverProfiles.find(p => p.id === assignment.caregiver_id),
         admin: adminProfiles.find(p => p.id === assignment.assigned_by_admin_id)
       })) || [];
 
-      // Separate assignments by type for display
       const automaticData = enrichedAssignments.filter(a => a.assignment_type === 'automatic');
       const manualData = enrichedAssignments.filter(a => a.assignment_type === 'manual');
       const teamData = enrichedAssignments.filter(a => a.assignment_type === 'care_team');
@@ -107,7 +112,6 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
       setManualAssignments(manualData);
       setCareTeamMembers(teamData);
 
-      // Legacy interventions table (kept for compatibility)
       const { data: interventionData, error: interventionError } = await supabase
         .from('admin_match_interventions')
         .select(`
@@ -125,7 +129,6 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         setInterventions(interventionData || []);
       }
 
-      // Fetch stale assignments
       const { data: staleData, error: staleError } = await supabase
         .rpc('detect_stale_assignments');
 
@@ -149,15 +152,14 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
     }
   };
 
-  const handleScheduleVisit = async (assignmentId: string) => {
-    try {
-      // This would integrate with the visit scheduling system
-      toast.info('Redirecting to visit scheduling...');
-      // TODO: Navigate to visit scheduling with this assignment pre-selected
-    } catch (error) {
-      console.error('Error scheduling visit:', error);
-      toast.error('Failed to schedule visit');
-    }
+  const handleScheduleVisit = (assignmentId: string) => {
+    navigate('/admin/visit-schedule', {
+      state: {
+        preselectedFamilyUserId: user.id,
+        preselectedFamilyName: user.full_name || user.email,
+        fromAssignment: assignmentId
+      }
+    });
   };
 
   const handleResetAssignments = async () => {
@@ -202,19 +204,46 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
     }
   };
 
-  const handleDeactivateAssignment = async (assignmentId: string) => {
+  const openDeactivateDialog = (assignment: AssignmentData) => {
+    setDeactivatingAssignment(assignment);
+    setSuggestNextMatch(true);
+    setSendUnavailabilityNudge(true);
+    setShowDeactivateDialog(true);
+  };
+
+  const handleConfirmDeactivation = async () => {
+    if (!deactivatingAssignment) return;
+
     try {
       setLoading(true);
       const { error } = await supabase
         .from('caregiver_assignments')
         .update({ is_active: false })
-        .eq('id', assignmentId);
+        .eq('id', deactivatingAssignment.id);
 
       if (error) throw error;
       
-      toast.success('Assignment deactivated');
+      toast.success(`Assignment for ${deactivatingAssignment.caregiver_name} deactivated`);
+
+      if (sendUnavailabilityNudge) {
+        const familyName = user.full_name || 'there';
+        const caregiverName = deactivatingAssignment.caregiver_name;
+        const message = `Hi ${familyName}! 💙 Chan from Tavara Care.\n\nWe wanted to let you know that ${caregiverName} is temporarily unavailable. Don't worry — we've already identified your next best match and are working to get them assigned.\n\nOur admin team will be in touch shortly with your updated care team details.\n\n🔗 View your matches: ${PRODUCTION_BASE_URL}/family/matching\n\nNeed to talk? Just reply here and we'll help right away!\n- Chan, Tavara Care 💙`;
+        
+        const phone = user.phone_number?.replace(/[^0-9]/g, '') || '18687865357';
+        const url = `https://api.whatsapp.com/send/?phone=${phone}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
+        window.open(url, '_blank');
+      }
+
+      setShowDeactivateDialog(false);
+      setDeactivatingAssignment(null);
+      
       fetchMatchingData();
       onUserUpdate();
+
+      if (suggestNextMatch) {
+        setTimeout(() => setShowMatchingInterface(true), 500);
+      }
     } catch (error) {
       console.error('Error deactivating assignment:', error);
       toast.error('Failed to deactivate assignment');
@@ -223,11 +252,9 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
     }
   };
 
-  // Combine all assignments for comprehensive view
   const getAllAssignments = (): AssignmentData[] => {
     const allAssignments: AssignmentData[] = [];
 
-    // Add automatic assignments
     automaticAssignments.forEach(assignment => {
       allAssignments.push({
         id: assignment.id,
@@ -241,7 +268,6 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
       });
     });
 
-    // Add manual assignments
     manualAssignments.forEach(assignment => {
       allAssignments.push({
         id: assignment.id,
@@ -256,7 +282,6 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
       });
     });
 
-    // Add interventions
     interventions.forEach(intervention => {
       allAssignments.push({
         id: intervention.id,
@@ -272,14 +297,13 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
       });
     });
 
-    // Add care team members
     careTeamMembers.forEach(member => {
       allAssignments.push({
         id: member.id,
         type: 'team_member',
         caregiver_name: member.caregiver?.full_name || 'Unknown',
         caregiver_email: '',
-        match_score: 100, // Team members are considered perfect matches
+        match_score: 100,
         status: member.status || 'active',
         created_at: member.created_at,
         role: member.role,
@@ -288,7 +312,6 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
       });
     });
 
-    // Sort by creation date (newest first)
     return allAssignments.sort((a, b) => 
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
@@ -340,7 +363,6 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         </div>
       </div>
 
-      {/* Comprehensive Assignment View */}
       {hasAnyAssignments ? (
         <Card>
           <CardHeader>
@@ -363,7 +385,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
                     </Badge>
                   </div>
                   {assignment.caregiver_email && (
-                    <p className="text-sm text-gray-600">{assignment.caregiver_email}</p>
+                    <p className="text-sm text-muted-foreground">{assignment.caregiver_email}</p>
                   )}
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline">
@@ -377,26 +399,26 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
                     )}
                   </div>
                   {assignment.match_explanation && (
-                    <p className="text-xs text-gray-500 mt-1">{assignment.match_explanation}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{assignment.match_explanation}</p>
                   )}
                   {assignment.admin_name && (
-                    <p className="text-xs text-gray-500 mt-1">By: {assignment.admin_name}</p>
+                    <p className="text-xs text-muted-foreground mt-1">By: {assignment.admin_name}</p>
                   )}
                   {assignment.reason && (
-                    <p className="text-xs text-gray-500 mt-1">{assignment.reason}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{assignment.reason}</p>
                   )}
                   {assignment.role && (
-                    <p className="text-xs text-gray-500 mt-1">Role: {assignment.role}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Role: {assignment.role}</p>
                   )}
                   {assignment.regular_rate && (
-                    <p className="text-xs text-gray-500 mt-1">Rate: ${assignment.regular_rate}/hr</p>
+                    <p className="text-xs text-muted-foreground mt-1">Rate: ${assignment.regular_rate}/hr</p>
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {new Date(assignment.created_at).toLocaleDateString()}
                   </p>
-                  {assignment.type === 'manual' && !assignment.visit_scheduled && (
+                  {!assignment.visit_scheduled && (
                     <Button 
                       size="sm" 
                       variant="outline"
@@ -406,16 +428,14 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
                       Schedule
                     </Button>
                   )}
-                  {assignment.type === 'manual' && (
-                    <Button 
-                      size="sm" 
-                      variant="destructive"
-                      onClick={() => handleDeactivateAssignment(assignment.id)}
-                      disabled={loading}
-                    >
-                      Deactivate
-                    </Button>
-                  )}
+                  <Button 
+                    size="sm" 
+                    variant="destructive"
+                    onClick={() => openDeactivateDialog(assignment)}
+                    disabled={loading}
+                  >
+                    Deactivate
+                  </Button>
                 </div>
               </div>
             ))}
@@ -424,9 +444,9 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
       ) : (
         <Card>
           <CardContent className="py-6 text-center">
-            <UserCheck className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-            <p className="text-gray-600">No caregiver assignments yet</p>
-            <p className="text-sm text-gray-500">Use manual matching to assign a caregiver</p>
+            <UserCheck className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-muted-foreground">No caregiver assignments yet</p>
+            <p className="text-sm text-muted-foreground">Use manual matching to assign a caregiver</p>
           </CardContent>
         </Card>
       )}
@@ -448,6 +468,58 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
           />
         </DialogContent>
       </Dialog>
+
+      {/* Deactivation Confirmation Dialog */}
+      <AlertDialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deactivate Caregiver Assignment</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <p>
+                  You are about to deactivate <strong>{deactivatingAssignment?.caregiver_name}</strong> from {user.full_name || user.email}'s care team.
+                </p>
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-start space-x-2">
+                    <Checkbox
+                      id="suggest-next-match"
+                      checked={suggestNextMatch}
+                      onCheckedChange={(checked) => setSuggestNextMatch(checked === true)}
+                    />
+                    <Label htmlFor="suggest-next-match" className="text-sm font-normal leading-tight">
+                      <strong>Suggest next best available match</strong>
+                      <br />
+                      <span className="text-muted-foreground">Opens the Manual Match interface after deactivation</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <Checkbox
+                      id="send-nudge"
+                      checked={sendUnavailabilityNudge}
+                      onCheckedChange={(checked) => setSendUnavailabilityNudge(checked === true)}
+                    />
+                    <Label htmlFor="send-nudge" className="text-sm font-normal leading-tight">
+                      <strong>Send unavailability nudge to family</strong>
+                      <br />
+                      <span className="text-muted-foreground">Opens WhatsApp with a pre-filled message about the caregiver change</span>
+                    </Label>
+                  </div>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDeactivation}
+              disabled={loading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {loading ? 'Deactivating...' : 'Deactivate & Continue'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Reset Assignments Dialog */}
       <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>

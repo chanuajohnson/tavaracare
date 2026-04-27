@@ -26,43 +26,7 @@ interface ProfessionalScheduleData {
   care_types?: string[] | null;
 }
 
-const MOCK_FAMILIES: Family[] = [{
-  id: "1",
-  full_name: "Garcia Family",
-  avatar_url: null,
-  location: "Port of Spain",
-  care_types: ["Elderly Care", "Companionship"],
-  special_needs: ["Alzheimer's", "Mobility Assistance"],
-  care_schedule: "mon_fri_8am_4pm,weekday_evening_6pm_8am",
-  match_score: 95,
-  is_premium: false,
-  distance: 3.2,
-  budget_preferences: "$15-25/hr"
-}, {
-  id: "2",
-  full_name: "Wilson Family",
-  avatar_url: null,
-  location: "San Fernando",
-  care_types: ["Special Needs", "Medical Support"],
-  special_needs: ["Autism Care", "Medication Management"],
-  care_schedule: "24_7_care,live_in_care",
-  match_score: 89,
-  is_premium: true,
-  distance: 15.7,
-  budget_preferences: "$25-35/hr"
-}, {
-  id: "3",
-  full_name: "Thomas Family",
-  avatar_url: null,
-  location: "Arima",
-  care_types: ["Child Care", "Housekeeping"],
-  special_needs: ["Early Childhood Development", "Meal Preparation"],
-  care_schedule: "sat_sun_6am_6pm,flexible",
-  match_score: 82,
-  is_premium: false,
-  distance: 8.5,
-  budget_preferences: "$20-30/hr"
-}];
+// No mock families — only real data from the database
 
 // Shift compatibility scoring algorithm (mirrored from useCaregiverMatches)
 const calculateShiftCompatibility = (professionalSchedule: string[], familySchedule: string[]): number => {
@@ -215,14 +179,10 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
       const professionalCareSchedule = parseCareSchedule(professionalScheduleData.care_schedule);
       console.log('Professional care schedule:', professionalCareSchedule);
 
-      // Fetch both family users and admin manual matches for this professional
+      // Fetch both family users (via RPC to bypass RLS) and admin manual matches
       const [familyUsersResult, adminMatchesResult] = await Promise.all([
-        // General family users
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('role', 'family')
-          .limit(showOnlyBestMatch ? 3 : 10),
+        // Use security definer RPC to get available family profiles (bypasses RLS)
+        supabase.rpc('get_public_family_profiles'),
         
         // Admin manual matches where this professional is assigned
         supabase
@@ -246,69 +206,25 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
       
       if (familyError) {
         console.warn("Error fetching family users:", familyError);
-        // Fall back to mock data with enhanced compatibility scoring
-        const enhancedMockFamilies = MOCK_FAMILIES.map(family => {
-          const familySchedule = parseCareSchedule(family.care_schedule);
-          const shiftCompatibility = calculateShiftCompatibility(professionalCareSchedule, familySchedule);
-          const matchExplanation = generateMatchExplanation(shiftCompatibility, professionalCareSchedule, familySchedule);
-          const scheduleOverlapDetails = generateScheduleOverlapDetails(professionalCareSchedule, familySchedule);
-          
-          return {
-            ...family,
-            shift_compatibility_score: shiftCompatibility,
-            match_explanation: matchExplanation,
-            schedule_overlap_details: scheduleOverlapDetails,
-            match_score: Math.round((family.match_score + shiftCompatibility) / 2)
-          };
-        });
-
-        // Sort by combined match score
-        enhancedMockFamilies.sort((a, b) => b.match_score - a.match_score);
-        
-        const fallbackFamilies = showOnlyBestMatch 
-          ? enhancedMockFamilies.slice(0, 1) 
-          : enhancedMockFamilies;
-        processedFamiliesRef.current = enhancedMockFamilies;
-        setFamilies(fallbackFamilies);
+        processedFamiliesRef.current = [];
+        setFamilies([]);
         await trackEngagement('family_matches_view', { 
-          data_source: 'mock_data_fallback',
-          family_count: fallbackFamilies.length,
+          data_source: 'error_empty',
+          family_count: 0,
           view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
-          error: familyError.message,
-          shift_compatibility_enabled: true
+          error: familyError.message
         });
         return;
       }
 
       if (!familyUsers || familyUsers.length === 0) {
-        console.log("No family users found, using enhanced mock data");
-        const enhancedMockFamilies = MOCK_FAMILIES.map(family => {
-          const familySchedule = parseCareSchedule(family.care_schedule);
-          const shiftCompatibility = calculateShiftCompatibility(professionalCareSchedule, familySchedule);
-          const matchExplanation = generateMatchExplanation(shiftCompatibility, professionalCareSchedule, familySchedule);
-          const scheduleOverlapDetails = generateScheduleOverlapDetails(professionalCareSchedule, familySchedule);
-          
-          return {
-            ...family,
-            shift_compatibility_score: shiftCompatibility,
-            match_explanation: matchExplanation,
-            schedule_overlap_details: scheduleOverlapDetails,
-            match_score: Math.round((family.match_score + shiftCompatibility) / 2)
-          };
-        });
-
-        enhancedMockFamilies.sort((a, b) => b.match_score - a.match_score);
-        
-        const fallbackFamilies = showOnlyBestMatch 
-          ? enhancedMockFamilies.slice(0, 1) 
-          : enhancedMockFamilies;
-        processedFamiliesRef.current = enhancedMockFamilies;
-        setFamilies(fallbackFamilies);
+        console.log("No available family users found");
+        processedFamiliesRef.current = [];
+        setFamilies([]);
         await trackEngagement('family_matches_view', { 
-          data_source: 'mock_data',
-          family_count: fallbackFamilies.length,
-          view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
-          shift_compatibility_enabled: true
+          data_source: 'no_available_families',
+          family_count: 0,
+          view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page'
         });
         return;
       }
@@ -406,16 +322,16 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
         
         return {
           id: family.id,
-          full_name: family.full_name || `${family.care_recipient_name || ''} Family`,
-          avatar_url: family.avatar_url,
+          full_name: family.full_name || 'Family',
+          avatar_url: null,
           location: family.location || 'Trinidad and Tobago',
           care_types: careTypes,
-          special_needs: family.special_needs || [],
+          special_needs: [],
           care_schedule: family.care_schedule || 'Weekdays',
           match_score: finalMatchScore,
           is_premium: isPremium,
           distance: parseFloat((Math.random() * 19 + 1).toFixed(1)),
-          budget_preferences: family.budget_preferences || '$15-30/hr',
+          budget_preferences: '$15-30/hr',
           shift_compatibility_score: shiftCompatibility,
           match_explanation: matchExplanation,
           schedule_overlap_details: scheduleOverlapDetails
@@ -461,33 +377,15 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
       console.error("Error loading families:", error);
       setError(error instanceof Error ? error.message : "Unknown error");
       
-      // Use fallback data on error with compatibility scoring
-      const enhancedMockFamilies = MOCK_FAMILIES.map(family => {
-        const familySchedule = parseCareSchedule(family.care_schedule);
-        const shiftCompatibility = calculateShiftCompatibility([], familySchedule);
-        const matchExplanation = generateMatchExplanation(shiftCompatibility, [], familySchedule);
-        const scheduleOverlapDetails = generateScheduleOverlapDetails([], familySchedule);
-        
-        return {
-          ...family,
-          shift_compatibility_score: shiftCompatibility,
-          match_explanation: matchExplanation,
-          schedule_overlap_details: scheduleOverlapDetails
-        };
-      });
-      
-      const fallbackFamilies = showOnlyBestMatch 
-        ? enhancedMockFamilies.slice(0, 1) 
-        : enhancedMockFamilies;
-      processedFamiliesRef.current = enhancedMockFamilies;
-      setFamilies(fallbackFamilies);
+      // No mock fallback — show empty state
+      processedFamiliesRef.current = [];
+      setFamilies([]);
       
       await trackEngagement('family_matches_view', {
-        data_source: 'mock_data_error_fallback',
-        family_count: fallbackFamilies.length,
+        data_source: 'error_empty',
+        family_count: 0,
         view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
-        error: error instanceof Error ? error.message : "Unknown error",
-        shift_compatibility_enabled: true
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     } finally {
       setIsLoading(false);

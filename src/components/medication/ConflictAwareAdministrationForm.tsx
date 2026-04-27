@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +10,7 @@ import { medicationService } from "@/services/medicationService";
 import { ConflictResolutionDialog } from "./ConflictResolutionDialog";
 import { MedicationConflict, ConflictResolution } from "@/services/medicationConflictService";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 interface ConflictAwareAdministrationFormProps {
   medicationId: string;
@@ -32,6 +33,25 @@ export function ConflictAwareAdministrationForm({
   } | null>(null);
   const [conflicts, setConflicts] = useState<MedicationConflict[]>([]);
   const [timeWindow, setTimeWindow] = useState(2);
+  const [userRole, setUserRole] = useState<'family' | 'professional'>('family');
+
+  // Look up the actual role from the user's profile
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      if (data?.role === 'professional' || data?.role === 'admin') {
+        setUserRole('professional');
+      } else {
+        setUserRole('family');
+      }
+    };
+    fetchUserRole();
+  }, [user?.id]);
 
   const handleQuickAdminister = async () => {
     if (!user) {
@@ -48,7 +68,7 @@ export function ConflictAwareAdministrationForm({
         medicationId,
         administeredAt,
         user.id,
-        'family', // This component is for family users
+        userRole,
         notes.trim() || undefined
       );
 
@@ -88,7 +108,7 @@ export function ConflictAwareAdministrationForm({
         medicationId,
         pendingAdministration.administeredAt,
         user.id,
-        'family',
+        userRole,
         pendingAdministration.notes || undefined,
         resolution
       );

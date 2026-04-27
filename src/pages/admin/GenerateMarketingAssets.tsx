@@ -9,6 +9,7 @@ import {
   generateInstagramTemplates
 } from '@/utils/marketing/generateMarketingAssets';
 import { CaregivingFlyerTemplate } from '@/components/marketing/CaregivingFlyerTemplate';
+import { CaregiverShareCardGenerator } from '@/components/marketing/CaregiverShareCardGenerator';
 import html2canvas from 'html2canvas';
 
 const GenerateMarketingAssets = () => {
@@ -198,6 +199,9 @@ const GenerateMarketingAssets = () => {
           Create professional marketing materials for Tavara.care and Errands service
         </p>
       </div>
+
+      {/* Caregiver Share Cards Section */}
+      <CaregiverShareCardGenerator />
 
       <Card className="mb-6">
         <CardHeader>

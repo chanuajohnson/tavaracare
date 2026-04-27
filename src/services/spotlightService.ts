@@ -11,11 +11,13 @@ export interface SpotlightCaregiver {
   profile: {
     id: string;
     fullName: string;
+    firstName: string;
     avatarUrl?: string;
     address?: string;
     location?: string;
     phoneNumber?: string;
     caregiverSpecialties?: string[];
+    yearsOfExperience?: string;
   };
 }
 
@@ -48,11 +50,14 @@ export const spotlightService = {
         profiles:caregiver_id (
           id,
           full_name,
+          first_name,
           avatar_url,
           address,
           location,
           phone_number,
-          care_services
+          care_services,
+          years_of_experience,
+          available_for_matching
         )
       `)
       .eq("is_active", true)
@@ -63,7 +68,10 @@ export const spotlightService = {
       throw error;
     }
 
-    return (data || []).map((item: any) => ({
+    // Filter to only include caregivers marked as available for matching in admin
+    const filtered = (data || []).filter((item: any) => item.profiles?.available_for_matching === true);
+
+    return filtered.map((item: any) => ({
       id: item.id,
       caregiverId: item.caregiver_id,
       headline: item.headline,
@@ -74,11 +82,13 @@ export const spotlightService = {
       profile: {
         id: item.profiles?.id || item.caregiver_id,
         fullName: item.profiles?.full_name || "Unknown",
+        firstName: item.profiles?.first_name || item.profiles?.full_name?.split(' ')[0] || "Caregiver",
         avatarUrl: item.profiles?.avatar_url,
         address: item.profiles?.address,
         location: item.profiles?.location,
         phoneNumber: item.profiles?.phone_number,
         caregiverSpecialties: item.profiles?.care_services || [],
+        yearsOfExperience: item.profiles?.years_of_experience,
       },
     }));
   },

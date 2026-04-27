@@ -38,6 +38,8 @@ if (action === 'verification-pending') {
   setActiveTab("signup");
 } else if (tab === 'login') {
   setActiveTab("login");
+} else if (urlParams.get('role')) {
+  setActiveTab("signup");
 }
 
   }, [user, navigate]);

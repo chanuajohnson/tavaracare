@@ -5,6 +5,9 @@ TAVARA.CARE ERRANDS - WHATSAPP TEMPLATES
 📌 Use these templates to communicate with customers via WhatsApp
 📱 Official WhatsApp: +1 (868) 712-7677
 
+⚠️ POSITIONING NOTE — include in every billing/booking confirmation:
+"Tavara is a Care Coordination & Management Platform. Families engage caregivers directly. Tavara is not an employment or placement agency."
+
 -------------------------------------------
 1. STANDARD BOOKING CONFIRMATION
 -------------------------------------------
@@ -25,6 +28,8 @@ Thank you for booking Tavara.care Errands!
 Remaining 50% due upon completion.
 
 We'll confirm once your deposit is received!
+
+ℹ️ Tavara is a Care Coordination & Management Platform — not an agency.
 
 Questions? Reply to this message anytime. 😊
 
@@ -61,6 +66,8 @@ Your TT$[Amount] deposit has been confirmed.
 
 You'll receive updates as we complete each task.
 
+ℹ️ Tavara is a Care Coordination & Management Platform — not an agency.
+
 Track your order: tavara.care/track/[ORDER-ID]
 
 -------------------------------------------
@@ -79,6 +86,8 @@ All done! Your items have been [delivered/completed].
 PayPal: [PayPal Link]
 
 Please confirm receipt and we'll close out your order.
+
+ℹ️ Tavara is a Care Coordination & Management Platform — not an agency.
 
 Thanks for using Tavara.care Errands! 🙌
 
@@ -171,3 +180,4 @@ END OF TEMPLATES
 💡 TIP: Personalize each message with customer name and specific details!
 💡 Always respond within 15 minutes during business hours for best results
 💡 Use emojis to maintain friendly, approachable tone consistent with Tavara brand
+💡 Always include the positioning line in any billing/payment-related message — Tavara is a coordination platform, not an agency.

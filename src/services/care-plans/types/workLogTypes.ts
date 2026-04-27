@@ -16,6 +16,8 @@ export interface WorkLog {
   rate_type?: RateType;
   base_rate?: number;
   rate_multiplier?: number;
+  submitted_by_user_id?: string;
+  submitted_by_role?: string;
 }
 
 export interface WorkLogExpense {
@@ -49,6 +51,18 @@ export interface PayrollEntry {
   caregiver_name?: string;
   pay_period_start?: string;
   pay_period_end?: string;
+  // NIS fields
+  nis_applicable?: boolean;
+  nis_class?: string | null;
+  employee_contribution?: number;
+  employer_contribution?: number;
+  gross_pay?: number;
+  net_pay_after_nis?: number;
+  nis_response?: any;
+  // Bank transfer fields
+  bank_transfer_ref?: string | null;
+  bank_transfer_date?: string | null;
+  bank_transfer_notes?: string | null;
 }
 
 export interface WorkLogInput {
@@ -61,6 +75,8 @@ export interface WorkLogInput {
   rate_type?: RateType;
   base_rate?: number;
   rate_multiplier?: number;
+  submitted_by_user_id?: string;
+  submitted_by_role?: string;
 }
 
 export interface WorkLogExpenseInput {

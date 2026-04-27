@@ -1,6 +1,7 @@
 import React from 'react';
 import { ErrandsHero } from '@/components/errands/ErrandsHero';
 import { PricingBanner } from '@/components/errands/PricingBanner';
+import { CareSupplyPackages } from '@/components/errands/CareSupplyPackages';
 import { ErrandsForm } from '@/components/errands/ErrandsForm';
 import { useTracking } from '@/hooks/useTracking';
 import { useEffect } from 'react';
@@ -17,6 +18,9 @@ const ErrandsPage: React.FC = () => {
       <div className="w-full mobile-container mobile-viewport-fix">
         <ErrandsHero />
         <PricingBanner />
+        <section id="supplies" className="scroll-mt-24">
+          <CareSupplyPackages />
+        </section>
         <ErrandsForm />
       </div>
     </div>

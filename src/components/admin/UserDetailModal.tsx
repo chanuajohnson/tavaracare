@@ -9,7 +9,8 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle, FileText, Download, Share, Shield, Eye, Trash2 } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle, FileText, Download, Share, Shield, Eye, Trash2, Pill, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { UserMatchingActions } from './UserMatchingActions';
 import { MatchingStatusToggle } from './MatchingStatusToggle';
 import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
@@ -18,6 +19,9 @@ import { useUserSpecificProgress } from '@/hooks/useUserSpecificProgress';
 import { useComprehensiveUserData } from '@/hooks/admin/useComprehensiveUserData';
 import { downloadUserReport, type ReportOptions } from '@/services/admin/userReportGenerator';
 import type { UserRole } from '@/types/userRoles';
+import { UserNudgeTab } from './UserNudgeTab';
+import { AdminCareLogsTab } from './AdminCareLogsTab';
+import { ProfessionalActivityTab } from './ProfessionalActivityTab';
 
 // Import formatting functions from the PDF generator to ensure UI consistency
 const formatCareSchedule = (careSchedule: string | null): string => {
@@ -71,11 +75,14 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   onClose,
   onUserUpdate
 }) => {
+  const navigate = useNavigate();
   const [careNeeds, setCareNeeds] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
   const [anonymousReport, setAnonymousReport] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [userMedications, setUserMedications] = useState<Array<{ id: string; name: string; dosage?: string; medication_type?: string }>>([]);
+  const [userCarePlans, setUserCarePlans] = useState<Array<{ id: string; title: string; status: string | null }>>([]);
 
   // Only call hooks when user and role are valid
   const shouldCallFamilyHook = user?.role === 'family' && user?.id;
@@ -149,6 +156,56 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
     if (user && isOpen) {
       fetchUserDetails();
     }
+  }, [user, isOpen]);
+
+  // Fetch medications for family users
+  useEffect(() => {
+    if (!user || !isOpen || user.role !== 'family') {
+      setUserMedications([]);
+      return;
+    }
+    const loadMeds = async () => {
+      try {
+        const { data: carePlans } = await supabase
+          .from("care_plans")
+          .select("id")
+          .eq("family_id", user.id);
+        if (!carePlans || carePlans.length === 0) {
+          setUserMedications([]);
+          return;
+        }
+        const { data: meds } = await supabase
+          .from("medications")
+          .select("id, name, dosage, medication_type")
+          .in("care_plan_id", carePlans.map(cp => cp.id))
+          .order("name");
+        setUserMedications(meds || []);
+      } catch {
+        setUserMedications([]);
+      }
+    };
+    loadMeds();
+  }, [user, isOpen]);
+
+  // Fetch care plans for family users
+  useEffect(() => {
+    if (!user || !isOpen || user.role !== 'family') {
+      setUserCarePlans([]);
+      return;
+    }
+    const loadCarePlans = async () => {
+      try {
+        const { data } = await supabase
+          .from('care_plans')
+          .select('id, title, status')
+          .eq('family_id', user.id)
+          .order('created_at', { ascending: false });
+        setUserCarePlans(data || []);
+      } catch {
+        setUserCarePlans([]);
+      }
+    };
+    loadCarePlans();
   }, [user, isOpen]);
 
   const fetchUserDetails = async () => {
@@ -324,13 +381,17 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
         </DialogHeader>
 
         <Tabs defaultValue="profile" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className={`grid w-full ${user.role === 'family' ? 'grid-cols-7' : 'grid-cols-6'}`}>
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="journey">Journey</TabsTrigger>
             {user.role === 'family' && (
               <TabsTrigger value="matching">Matching</TabsTrigger>
             )}
+            {user.role === 'family' && (
+              <TabsTrigger value="carelogs">Care Logs</TabsTrigger>
+            )}
             <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="nudge">Nudge</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
 
@@ -340,9 +401,23 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>Profile Information</span>
-                  <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'professional' ? 'default' : 'secondary'}>
-                    {user.role}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {user.role === 'family' && (() => {
+                      const urgency = comprehensiveData?.profile?.care_urgency || (user as any).care_urgency;
+                      if (!urgency) return null;
+                      const urgencyConfig: Record<string, { className: string; label: string }> = {
+                        immediate: { className: 'bg-red-100 text-red-800 border-red-200', label: '🚨 Immediate' },
+                        within_week: { className: 'bg-amber-100 text-amber-800 border-amber-200', label: '📅 Within a week' },
+                        within_month: { className: 'bg-blue-100 text-blue-800 border-blue-200', label: '🗓️ Within a month' },
+                        flexible: { className: 'text-muted-foreground', label: '⏳ Flexible' },
+                      };
+                      const config = urgencyConfig[urgency];
+                      return config ? <Badge className={config.className}>{config.label}</Badge> : null;
+                    })()}
+                    <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'professional' ? 'default' : 'secondary'}>
+                      {user.role}
+                    </Badge>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -425,6 +500,46 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 userFullName={user.full_name || 'Unknown User'}
                 onStatusChange={onUserUpdate}
               />
+            )}
+
+            {/* Manage Care Plans for Family Users */}
+            {user.role === 'family' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Manage Care Plans
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {userCarePlans.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No care plans found for this family.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {userCarePlans.map(plan => (
+                        <div key={plan.id} className="flex items-center justify-between p-3 border rounded-md">
+                          <div>
+                            <p className="font-medium text-sm">{plan.title}</p>
+                            <Badge variant="outline" className="mt-1">{plan.status || 'active'}</Badge>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              onClose();
+                              navigate(`/family/care-management/${plan.id}`);
+                            }}
+                            className="gap-1"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Manage
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             )}
 
             {/* Admin Actions */}
@@ -584,6 +699,12 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
             </TabsContent>
           )}
 
+          {user.role === 'family' && (
+            <TabsContent value="carelogs" className="space-y-4">
+              <AdminCareLogsTab userId={user.id} />
+            </TabsContent>
+          )}
+
           <TabsContent value="reports" className="space-y-4">
             <Card>
               <CardHeader>
@@ -600,7 +721,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 ) : comprehensiveData ? (
                   <>
                     {/* Report Summary */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className={`grid grid-cols-1 ${comprehensiveData.profile.role === 'family' ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4`}>
                       <Card className="p-4">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className={`h-4 w-4 ${comprehensiveData.registrationComplete ? 'text-green-600' : 'text-gray-400'}`} />
@@ -620,6 +741,18 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                           {comprehensiveData.assessmentComplete ? 'Complete' : 'Incomplete'}
                         </p>
                       </Card>
+
+                      {comprehensiveData.profile.role === 'family' && (
+                        <Card className="p-4">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className={`h-4 w-4 ${comprehensiveData.legacyStoryComplete ? 'text-green-600' : 'text-gray-400'}`} />
+                            <span className="text-sm font-medium">Legacy Story</span>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {comprehensiveData.legacyStoryComplete ? 'Complete' : 'Not Started'}
+                          </p>
+                        </Card>
+                      )}
                       
                       <Card className="p-4">
                         <div className="flex items-center gap-2">
@@ -650,6 +783,17 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             <>
                               <div><strong>Care Recipient:</strong> {comprehensiveData.profile.care_recipient_name || 'Not provided'}</div>
                               <div><strong>Relationship:</strong> {comprehensiveData.profile.relationship || 'Not provided'}</div>
+                              <div><strong>Care Urgency:</strong> {
+                                comprehensiveData.profile.care_urgency 
+                                  ? {
+                                      immediate: '🔴 Immediate',
+                                      within_week: '🟠 Within a Week',
+                                      within_month: '🔵 Within a Month',
+                                      planning_ahead: '⚪ Planning Ahead',
+                                      flexible: '⚪ Flexible'
+                                    }[comprehensiveData.profile.care_urgency as string] || comprehensiveData.profile.care_urgency
+                                  : 'Not specified'
+                              }</div>
                             </>
                           )}
                           {comprehensiveData.profile.role === 'professional' && (
@@ -657,6 +801,12 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                               <div><strong>Experience:</strong> {comprehensiveData.profile.years_of_experience || 'Not provided'} years</div>
                               <div><strong>Available for Matching:</strong> {comprehensiveData.profile.available_for_matching ? 'Yes' : 'No'}</div>
                             </>
+                          )}
+                          {comprehensiveData.profile.matching_requirements && (
+                            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded">
+                              <strong>⚠️ Matching Requirements / Deal Breakers:</strong>
+                              <pre className="whitespace-pre-wrap text-sm mt-1 font-sans">{comprehensiveData.profile.matching_requirements}</pre>
+                            </div>
                           )}
                         </div>
                       </Card>
@@ -674,6 +824,30 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             <div><strong>Custom Care Schedule:</strong> {comprehensiveData.profile.custom_schedule || 'Not specified'}</div>
                             <div><strong>Additional Notes:</strong> {comprehensiveData.profile.additional_notes || 'None provided'}</div>
                           </div>
+                        </Card>
+                      )}
+
+                      {/* Family Medications Summary */}
+                      {comprehensiveData.profile.role === 'family' && (
+                        <Card className="p-4">
+                          <h5 className="font-medium mb-2 flex items-center gap-2">
+                            <Pill className="h-4 w-4" />
+                            Medications ({userMedications.length})
+                          </h5>
+                          {userMedications.length > 0 ? (
+                            <div className="text-sm space-y-1">
+                              {userMedications.map(med => (
+                                <div key={med.id} className="flex items-center gap-2">
+                                  <span className="text-primary">•</span>
+                                  <span className="font-medium">{med.name}</span>
+                                  {med.dosage && <span className="text-muted-foreground">— {med.dosage}</span>}
+                                  {med.medication_type && <Badge variant="outline" className="text-xs ml-1">{med.medication_type}</Badge>}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No medications on file</p>
+                          )}
                         </Card>
                       )}
 
@@ -721,17 +895,50 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                         </div>
                       </Card>
 
-                      {/* Care Recipient Profile (Family only) */}
+                      {/* Legacy Story / Care Recipient Profile (Family only) */}
                       {comprehensiveData.profile.role === 'family' && comprehensiveData.careRecipient && (
                         <Card className="p-4">
-                          <h5 className="font-medium mb-2">Care Recipient Profile</h5>
-                          <div className="text-sm space-y-1">
+                          <h5 className="font-medium mb-2">📖 Legacy Story / Care Recipient Profile</h5>
+                          <div className="text-sm space-y-2">
+                            <div><strong>Full Name:</strong> {comprehensiveData.careRecipient.full_name || 'Not provided'}</div>
                             <div><strong>Birth Year:</strong> {comprehensiveData.careRecipient.birth_year || 'Not provided'}</div>
                             <div><strong>Personality:</strong> {formatArray(comprehensiveData.careRecipient.personality_traits)}</div>
-                            <div><strong>Interests:</strong> {formatArray(comprehensiveData.careRecipient.hobbies_interests)}</div>
-                            <div><strong>Career:</strong> {formatArray(comprehensiveData.careRecipient.career_fields)}</div>
+                            <div><strong>Hobbies & Interests:</strong> {formatArray(comprehensiveData.careRecipient.hobbies_interests)}</div>
+                            <div><strong>Career Fields:</strong> {formatArray(comprehensiveData.careRecipient.career_fields)}</div>
                             <div><strong>Challenges:</strong> {formatArray(comprehensiveData.careRecipient.challenges)}</div>
                             <div><strong>Cultural Preferences:</strong> {comprehensiveData.careRecipient.cultural_preferences || 'Not specified'}</div>
+
+                            {/* Legacy Story Narrative Fields */}
+                            {comprehensiveData.careRecipient.life_story && (
+                              <div className="mt-3 p-3 bg-muted/50 rounded-md border">
+                                <strong>📝 Life Story:</strong>
+                                <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{comprehensiveData.careRecipient.life_story}</p>
+                              </div>
+                            )}
+                            {comprehensiveData.careRecipient.joyful_things && (
+                              <div><strong>😊 Things That Bring Joy:</strong> {comprehensiveData.careRecipient.joyful_things}</div>
+                            )}
+                            {comprehensiveData.careRecipient.unique_facts && (
+                              <div><strong>⭐ Unique Facts:</strong> {comprehensiveData.careRecipient.unique_facts}</div>
+                            )}
+                            {comprehensiveData.careRecipient.daily_routines && (
+                              <div><strong>🕐 Daily Routines:</strong> {comprehensiveData.careRecipient.daily_routines}</div>
+                            )}
+                            {comprehensiveData.careRecipient.family_social_info && (
+                              <div><strong>👨‍👩‍👧 Family & Social Life:</strong> {comprehensiveData.careRecipient.family_social_info}</div>
+                            )}
+                            {comprehensiveData.careRecipient.notable_events && (
+                              <div><strong>📌 Notable Events:</strong> {comprehensiveData.careRecipient.notable_events}</div>
+                            )}
+                            {comprehensiveData.careRecipient.sensitivities && (
+                              <div><strong>⚠️ Sensitivities:</strong> {comprehensiveData.careRecipient.sensitivities}</div>
+                            )}
+                            {comprehensiveData.careRecipient.specific_requests && (
+                              <div><strong>📋 Specific Requests:</strong> {comprehensiveData.careRecipient.specific_requests}</div>
+                            )}
+                            {comprehensiveData.careRecipient.caregiver_personality && (
+                              <div><strong>🤝 Preferred Caregiver Personality:</strong> {formatArray(comprehensiveData.careRecipient.caregiver_personality)}</div>
+                            )}
                           </div>
                         </Card>
                       )}
@@ -789,15 +996,42 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
             </Card>
           </TabsContent>
 
+          <TabsContent value="nudge" className="space-y-4">
+            <UserNudgeTab
+              user={{
+                id: user.id,
+                full_name: user.full_name || '',
+                role: user.role || 'family',
+                phone_number: user.phone_number,
+              }}
+              journeyProgress={{
+                completionPercentage: journeyProgress.completionPercentage || 0,
+                currentStep: journeyProgress.steps?.filter((s: any) => s.completed).length + 1 || 1,
+                steps: journeyProgress.steps || [],
+              }}
+              comprehensiveData={comprehensiveData}
+            />
+          </TabsContent>
+
           <TabsContent value="activity" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">Activity tracking coming soon...</p>
-              </CardContent>
-            </Card>
+            {/* v2: ProfessionalActivityTab — shifts, feed, compliance */}
+            {user.role === 'professional' ? (
+              <ProfessionalActivityTab
+                professionalId={user.id}
+                professionalName={user.full_name}
+              />
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Activity</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">
+                    Activity tracking is available for professional accounts.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>

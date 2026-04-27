@@ -9,6 +9,7 @@ export interface ComprehensiveUserData {
   chatbotResponses: any[];
   registrationComplete: boolean;
   assessmentComplete: boolean;
+  legacyStoryComplete: boolean;
   lastUpdated: string;
 }
 
@@ -61,10 +62,13 @@ export const useComprehensiveUserData = (userId: string, userRole?: string) => {
           .maybeSingle();
 
         if (careNeedsError && careNeedsError.code !== 'PGRST116') {
-          console.warn('Could not fetch care needs:', careNeedsError);
+          console.warn('⚠️ Could not fetch care needs (possible RLS restriction):', careNeedsError);
         } else {
           careNeeds = careNeedsData;
           assessmentComplete = !!careNeedsData;
+          if (!careNeedsData && profile.role === 'family') {
+            console.warn('⚠️ care_needs_family returned null for family user - may be RLS blocked. User:', userId);
+          }
         }
 
         // Get care recipient profile
@@ -108,6 +112,15 @@ export const useComprehensiveUserData = (userId: string, userRole?: string) => {
         );
       }
 
+      // Legacy story is complete if care recipient profile has life_story content
+      const legacyStoryComplete = !!(
+        careRecipient && (
+          careRecipient.life_story ||
+          careRecipient.joyful_things ||
+          careRecipient.unique_facts
+        )
+      );
+
       const comprehensiveData: ComprehensiveUserData = {
         profile,
         careNeeds,
@@ -115,6 +128,7 @@ export const useComprehensiveUserData = (userId: string, userRole?: string) => {
         chatbotResponses: chatbotResponses || [],
         registrationComplete,
         assessmentComplete,
+        legacyStoryComplete,
         lastUpdated: new Date().toISOString()
       };
 

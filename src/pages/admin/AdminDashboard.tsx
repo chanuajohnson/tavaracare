@@ -4,8 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings, UserCheck, MapPin } from "lucide-react";
+import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings, UserCheck, MapPin, Link2, Shield, HeartHandshake, ClipboardCheck, DollarSign } from "lucide-react";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
+import { QuizLeadsPanel } from "@/components/admin/QuizLeadsPanel";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 import { UnifiedMatchingInterface } from "@/components/admin/UnifiedMatchingInterface";
@@ -103,6 +104,26 @@ export default function AdminDashboard() {
 
   const handleFlyerLocationsClick = () => {
     navigate('/admin/flyer-locations');
+  };
+
+  const handleCampaignLinksClick = () => {
+    navigate('/admin/campaign-links');
+  };
+
+  const handleScreeningClick = () => {
+    navigate('/admin/caregiver-screening');
+  };
+
+  const handleFamilyCarePlansClick = () => {
+    navigate('/admin/family-care-plans');
+  };
+
+  const handleOnboardingChecklistClick = () => {
+    navigate('/admin/onboarding-checklist');
+  };
+
+  const handleUnitEconomicsClick = () => {
+    navigate('/admin/unit-economics');
   };
 
   return (
@@ -205,6 +226,51 @@ export default function AdminDashboard() {
           <MapPin className="h-6 w-6" />
           <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Flyer Locations</span>
         </Button>
+
+        <Button
+          onClick={handleCampaignLinksClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <Link2 className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Campaign Links</span>
+        </Button>
+
+        <Button
+          onClick={handleScreeningClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <Shield className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Caregiver Screening</span>
+        </Button>
+
+        <Button
+          onClick={handleFamilyCarePlansClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <HeartHandshake className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Family Care Plans</span>
+        </Button>
+
+        <Button
+          onClick={handleOnboardingChecklistClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <ClipboardCheck className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Onboarding Checklist</span>
+        </Button>
+
+        <Button
+          onClick={handleUnitEconomicsClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <DollarSign className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Unit Economics</span>
+        </Button>
       </div>
 
       {/* Pending Scheduling Requests Alert */}
@@ -237,6 +303,9 @@ export default function AdminDashboard() {
       <div className="grid gap-8">
         {/* User Management */}
         <AdminUserManagement />
+
+        {/* Quiz Leads (anonymous Care Readiness Check completers) */}
+        <QuizLeadsPanel />
 
         {/* Feature Interest Tracking */}
         <Card>

@@ -22,6 +22,8 @@ import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
 import { CompleteRegistrationButton } from '@/components/demo/CompleteRegistrationButton';
 import { useRealTimeFormSync } from '../../hooks/useRealTimeFormSync';
 import { useTavaraState } from '@/components/tav/hooks/TavaraStateContext';
+import { getStoredUTMData, clearUTMData } from '@/utils/utmTracking';
+import { useTracking } from '@/hooks/useTracking';
 
 interface FamilyRegistrationProps {
   isDemo?: boolean;
@@ -31,6 +33,7 @@ interface FamilyRegistrationProps {
 
 const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realTimeDataCallback }: FamilyRegistrationProps = {}) => {
   const { user } = useAuth();
+  const { trackEngagement } = useTracking();
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
   const isDemo = isExternalDemo || searchParams.get('demo') === 'true';
@@ -65,6 +68,9 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
   const [caregiverPreferences, setCaregiverPreferences] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [preferredContactMethod, setPreferredContactMethod] = useState('');
+  const [careUrgency, setCareUrgency] = useState('');
+  const [matchingRequirements, setMatchingRequirements] = useState('');
+  const [matchingCheckboxes, setMatchingCheckboxes] = useState<string[]>([]);
   
   const [prefillApplied, setPrefillApplied] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
@@ -151,6 +157,24 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
         setCaregiverPreferences(profile.caregiver_preferences || '');
         setAdditionalNotes(profile.additional_notes || '');
         setPreferredContactMethod(profile.preferred_contact_method || '');
+        setCareUrgency((profile as any).care_urgency || '');
+        
+        // Populate matching requirements
+        if ((profile as any).matching_requirements) {
+          const storedReqs = (profile as any).matching_requirements;
+          const checkboxOptions = [
+            'Caregiver must have own transportation',
+            'Caregiver must be in my area',
+            'I prefer a female caregiver',
+            'I prefer a male caregiver',
+            'Caregiver must have specific certifications'
+          ];
+          const foundCheckboxes = checkboxOptions.filter(opt => storedReqs.includes(opt));
+          setMatchingCheckboxes(foundCheckboxes);
+          let freeText = storedReqs;
+          foundCheckboxes.forEach(cb => { freeText = freeText.replace(`• ${cb}\n`, '').replace(`• ${cb}`, ''); });
+          setMatchingRequirements(freeText.trim());
+        }
         
         console.log('✅ Form populated with profile data');
         
@@ -281,6 +305,9 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
         break;
       case 'additional_notes':
         setAdditionalNotes(value);
+        break;
+      case 'matching_requirements':
+        setMatchingRequirements(value);
         break;
       default:
         if (field === 'care_types' && Array.isArray(value)) {
@@ -548,7 +575,12 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
         caregiver_type: caregiverType || '',
         caregiver_preferences: caregiverPreferences || '',
         additional_notes: additionalNotes || '',
-        preferred_contact_method: preferredContactMethod || ''
+        preferred_contact_method: preferredContactMethod || '',
+        care_urgency: careUrgency || null,
+        matching_requirements: [
+          ...matchingCheckboxes.map(cb => `• ${cb}`),
+          matchingRequirements
+        ].filter(Boolean).join('\n').trim() || ''
       };
 
       console.log('Updating family profile with data:', profileData);
@@ -571,6 +603,23 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
           localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
           localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
         }
+      }
+
+      // Track registration completion with UTM data (only for new registrations)
+      if (!isEditMode) {
+        const utmData = getStoredUTMData();
+        await trackEngagement('family_registration_complete', {
+          user_id: user?.id,
+          ...(utmData && {
+            utm_source: utmData.utm_source,
+            utm_medium: utmData.utm_medium,
+            utm_campaign: utmData.utm_campaign,
+            utm_content: utmData.utm_content
+          })
+        });
+        
+        // Clear UTM data after successful registration
+        clearUTMData();
       }
 
       const successMessage = isEditMode 
@@ -1111,6 +1160,33 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
                   <p className="text-sm text-red-600 mt-1">Please select at least one care schedule option</p>
                 )}
               </div>
+
+              {/* Care Urgency */}
+              <div className="space-y-4 pt-4 border-t">
+                <Label className="text-base font-medium">⏰ How soon do you need care to begin?</Label>
+                <p className="text-sm text-muted-foreground">This helps our team prioritize matching you with the right caregiver.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { value: 'immediate', label: '🚨 Immediately', description: 'I need care as soon as possible' },
+                    { value: 'within_week', label: '📅 Within a week', description: 'Care is needed in the next 7 days' },
+                    { value: 'within_month', label: '🗓️ Within a month', description: 'I have some time to plan' },
+                    { value: 'flexible', label: '⏳ I\'m flexible', description: 'No rush, exploring options' },
+                  ].map((option) => (
+                    <div
+                      key={option.value}
+                      onClick={() => setCareUrgency(option.value)}
+                      className={`cursor-pointer rounded-lg border-2 p-4 transition-all ${
+                        careUrgency === option.value
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          : 'border-border hover:border-primary/40'
+                      }`}
+                    >
+                      <div className="font-medium text-sm">{option.label}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{option.description}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -1133,12 +1209,9 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
                     <SelectValue placeholder="Select your budget range" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">
-                    <SelectItem value="under_15">Under $15/hour</SelectItem>
-                    <SelectItem value="15_20">$15-$20/hour</SelectItem>
-                    <SelectItem value="20_25">$20-$25/hour</SelectItem>
-                    <SelectItem value="25_30">$25-$30/hour</SelectItem>
-                    <SelectItem value="30_plus">$30+/hour</SelectItem>
-                    <SelectItem value="not_sure">Not sure yet</SelectItem>
+                    <SelectItem value="35_hour">$35/hour — Standard (GAPP-certified personal care, medication admin, vitals, daily documentation, specialized care)</SelectItem>
+                    <SelectItem value="40_hour">$40/hour — Full Service ⭐ Recommended (Standard + specialist meal prep, complex medical, overnight/live-in)</SelectItem>
+                    <SelectItem value="45_plus">$45+/hour — Premium (Full Service + care plan management, disease progression, 24/7 on-call)</SelectItem>
                   </SelectContent>
                 </Select>
                 {validationErrors.some(e => e.includes('Budget')) && (
@@ -1172,6 +1245,57 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
                   placeholder="Any preferences regarding language, experience, etc." 
                   value={caregiverPreferences} 
                   onChange={(e) => setCaregiverPreferences(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Caregiver Requirements & Deal Breakers */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>🎯 Caregiver Requirements & Deal Breakers</CardTitle>
+              <CardDescription>
+                Let us know if you have any hard requirements for your caregiver. This helps us avoid non-viable matches.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Common Requirements (select all that apply)</Label>
+                <div className="space-y-3">
+                  {[
+                    { id: 'fam_transport', label: 'Caregiver must have own transportation' },
+                    { id: 'fam_area', label: 'Caregiver must be in my area' },
+                    { id: 'fam_female', label: 'I prefer a female caregiver' },
+                    { id: 'fam_male', label: 'I prefer a male caregiver' },
+                    { id: 'fam_certs', label: 'Caregiver must have specific certifications' }
+                  ].map((item) => (
+                    <div key={item.id} className="flex items-start space-x-2">
+                      <Checkbox 
+                        id={item.id} 
+                        checked={matchingCheckboxes.includes(item.label)}
+                        onCheckedChange={(checked) => {
+                          setMatchingCheckboxes(prev => 
+                            checked 
+                              ? [...prev, item.label]
+                              : prev.filter(cb => cb !== item.label)
+                          );
+                        }}
+                        className="mt-1"
+                      />
+                      <Label htmlFor={item.id} className="font-normal">{item.label}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="matchingRequirements">Any other deal breakers or hard requirements?</Label>
+                <Textarea 
+                  id="matchingRequirements" 
+                  placeholder="E.g., Must be experienced with dementia patients, must speak Spanish, must be available on weekends, etc." 
+                  value={matchingRequirements} 
+                  onChange={(e) => setMatchingRequirements(e.target.value)}
                   rows={3}
                 />
               </div>

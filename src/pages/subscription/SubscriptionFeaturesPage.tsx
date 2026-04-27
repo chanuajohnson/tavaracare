@@ -466,44 +466,39 @@ export default function SubscriptionFeaturesPage() {
               <CardContent className="space-y-4">
                 {planType === 'family' ? (
                   <>
-                    <div className="p-4 border-2 border-primary rounded-lg bg-gradient-to-r from-primary/5 to-primary/10">
-                      <div className="text-center mb-3">
-                        <h3 className="font-semibold text-primary text-lg">
-                          {isVideoCallFeature ? 'Video Call Access' : 'Caregiver Access'}
-                        </h3>
-                        <div className="text-3xl font-bold text-primary">$14.99</div>
-                        <div className="text-sm text-muted-foreground">Monthly subscription</div>
-                      </div>
-                      <ul className="space-y-2 text-sm mb-4">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          Unlimited caregiver chat (free)
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          {isVideoCallFeature ? 'Instant video calls' : 'Full profile access'}
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          {isVideoCallFeature ? '30-minute sessions' : 'Advanced search & filters'}
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          {isVideoCallFeature ? 'TAV-moderated meetings' : 'Priority matching'}
-                        </li>
+                    <div className="p-3 border rounded-md mb-2">
+                      <h3 className="font-medium">Family Basic</h3>
+                      <p className="text-sm font-semibold text-primary">Free</p>
+                      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        <li>✔ Profile & care preferences</li>
+                        <li>✔ Care needs assessment</li>
+                        <li>✔ Legacy Story</li>
+                        <li>✔ Auto-matched caregivers</li>
+                        <li>✔ Medication documentation</li>
+                        <li>✔ Meal documentation</li>
+                        <li>✔ Grocery list documentation</li>
+                        <li>✔ Unlimited chat</li>
                       </ul>
-                      <Button 
-                        className="w-full" 
-                        onClick={handleSubscribeClick}
-                      >
-                        {isVideoCallFeature ? 'Get Video Access' : 'Get Access Now'}
-                      </Button>
                     </div>
-                    
-                    <div className="text-center p-3 text-sm text-muted-foreground">
-                      <p>💬 <strong>Free:</strong> Unlimited chat with all caregivers</p>
-                      <p>📹 <strong>Premium:</strong> {isVideoCallFeature ? 'Skip chat, meet instantly' : 'Enhanced matching & profiles'}</p>
+
+                    <div className="p-3 border-2 border-primary rounded-md bg-primary/5 mb-2">
+                      <h3 className="font-medium text-primary">Active Care Management</h3>
+                      <p className="text-sm text-muted-foreground">$499/week · $1,799/month</p>
+                      <div className="mt-2 text-xs text-muted-foreground">All Basic features + dedicated care coordinator, structured coordination, billing support</div>
                     </div>
+
+                    <div className="p-3 border rounded-md mb-3">
+                      <h3 className="font-medium">Premium Care Management</h3>
+                      <p className="text-sm text-muted-foreground">$899/week · $3,299/month</p>
+                      <div className="mt-2 text-xs text-muted-foreground">All Active Care features + concierge coordination, 24/7 on-call, complex care management</div>
+                    </div>
+
+                    <Button 
+                      className="w-full" 
+                      onClick={() => navigate('/subscription')}
+                    >
+                      View All Plans
+                    </Button>
                   </>
                 ) : (
                   <>

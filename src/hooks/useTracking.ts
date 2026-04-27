@@ -3,6 +3,32 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { getDeviceInfo, DeviceInfo } from "@/utils/deviceDetection";
+
+export interface GeoData {
+  country: string;
+  countryCode: string;
+  region: string;
+  city: string;
+  timezone: string;
+}
+
+/**
+ * Fetch geographic location from edge function
+ */
+export const fetchGeoLocation = async (): Promise<GeoData | null> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('get-geo-location');
+    if (error) {
+      console.error('[fetchGeoLocation] Edge function error:', error);
+      return null;
+    }
+    return data as GeoData;
+  } catch (err) {
+    console.error('[fetchGeoLocation] Failed to fetch geo location:', err);
+    return null;
+  }
+};
 
 /**
  * Safely get or create a session ID with fallbacks for restrictive browsers
@@ -204,11 +230,41 @@ export function useTracking(options: TrackingOptions = {}) {
       const sessionId = getOrCreateSessionId();
       console.log('[trackEngagement] Using session ID:', sessionId);
       
-      // Add user role to additional data if user is logged in
+      // Get device info
+      const deviceInfo = getDeviceInfo();
+      console.log('[trackEngagement] Device info:', deviceInfo);
+      
+      // Fetch geo location for flyer scans (inside tracking to avoid race condition)
+      let geoData: GeoData | null = null;
+      if (additionalData?.utm_source === 'flyer') {
+        console.log('[trackEngagement] Flyer scan detected, fetching geo location...');
+        try {
+          geoData = await fetchGeoLocation();
+          console.log('[trackEngagement] Geo data received:', geoData);
+        } catch (geoError) {
+          console.error('[trackEngagement] Geo fetch failed:', geoError);
+        }
+      }
+      
+      // Add user role, device info, and geo data to additional data
       const enhancedData = {
         ...additionalData,
         user_role: userRole || 'anonymous',
         user_profile_complete: isProfileComplete || false,
+        // Device info
+        device_type: deviceInfo.deviceType,
+        browser: deviceInfo.browser,
+        os: deviceInfo.os,
+        screen_width: deviceInfo.screenWidth,
+        screen_height: deviceInfo.screenHeight,
+        // Geo info (for flyer scans)
+        ...(geoData && {
+          country: geoData.country,
+          city: geoData.city,
+          region: geoData.region,
+          country_code: geoData.countryCode,
+          timezone: geoData.timezone
+        })
       };
       
       // Debug: Log the payload being sent
@@ -232,6 +288,7 @@ export function useTracking(options: TrackingOptions = {}) {
         // Retry once for critical flyer scan tracking with simplified payload
         if (isCriticalTracking) {
           console.log('[trackEngagement] Retrying critical flyer scan tracking...');
+          const deviceInfo = getDeviceInfo();
           const simplifiedPayload = {
             user_id: null,
             action_type: actionType,
@@ -240,6 +297,15 @@ export function useTracking(options: TrackingOptions = {}) {
               utm_source: additionalData.utm_source,
               utm_content: additionalData.utm_content,
               utm_location: additionalData.utm_location,
+              // Include device info in retry payload
+              device_type: deviceInfo.deviceType,
+              browser: deviceInfo.browser,
+              os: deviceInfo.os,
+              // Include geo data if available in enhanced data
+              country: enhancedData?.country,
+              city: enhancedData?.city,
+              region: enhancedData?.region,
+              country_code: enhancedData?.country_code,
               retry: true,
               original_error: error.message
             }

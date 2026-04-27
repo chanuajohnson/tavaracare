@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { EnvironmentInfo } from "@/components/debug/EnvironmentInfo";
 import { SupabaseDebugger } from "@/components/debug/SupabaseDebugger";
 import { supabase } from '@/integrations/supabase/client';
+import { captureUTMParams } from '@/utils/utmTracking';
 
 const roles = [
   {
@@ -63,6 +64,14 @@ const Index = () => {
   const comparisonRef = useRef<HTMLDivElement>(null);
   const primaryVideoRef = useRef<HTMLVideoElement>(null);
   const secondaryVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Capture UTM parameters on page load
+  useEffect(() => {
+    const utmData = captureUTMParams();
+    if (utmData) {
+      console.log('[Index] UTM parameters captured:', utmData);
+    }
+  }, []);
 
   // Load active videos from admin settings on component mount
   useEffect(() => {
@@ -479,11 +488,29 @@ const Index = () => {
             </Button>
           </motion.div>
 
-          {/* Urgent Caregivers CTA Bubble */}
+          {/* Soft readiness-quiz CTA — non-destructive, additive */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+            className="mb-16 -mt-8"
+          >
+            <Link
+              to="/family/readiness-quiz"
+              className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm sm:text-base px-5 py-2.5 rounded-full transition-colors"
+            >
+              <HelpCircle className="h-4 w-4" />
+              New here? Take our 60-second readiness check
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </motion.div>
+
+          {/* Urgent CTAs */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.8 }}
+            className="flex flex-col sm:flex-row gap-3"
           >
             <Button
               onClick={() => navigate("/urgent-caregivers")}
@@ -492,8 +519,28 @@ const Index = () => {
               className="bg-primary/20 border-primary/40 text-white hover:bg-primary/30 hover:text-white font-medium px-6 py-3 rounded-full flex items-center gap-2 animate-pulse"
               aria-label="View caregivers available to be matched now"
             >
-              <Heart className="h-5 w-5 text-primary" />
+              <UserCog className="h-5 w-5" />
               Caregivers Available Now
+            </Button>
+            <Button
+              onClick={() => navigate("/urgent-families")}
+              size="lg"
+              variant="outline"
+              className="bg-destructive/20 border-destructive/40 text-white hover:bg-destructive/30 hover:text-white font-medium px-6 py-3 rounded-full flex items-center gap-2 animate-pulse"
+              aria-label="View families needing care now"
+            >
+              <Heart className="h-5 w-5" />
+              Families Available Now
+            </Button>
+            <Button
+              onClick={() => navigate("/join-as-caregiver")}
+              size="lg"
+              variant="outline"
+              className="bg-white/15 border-white/30 text-white hover:bg-white/25 hover:text-white font-medium px-6 py-3 rounded-full flex items-center gap-2"
+              aria-label="Join as a caregiver"
+            >
+              <Users className="h-5 w-5" />
+              Join as Caregiver
             </Button>
           </motion.div>
 

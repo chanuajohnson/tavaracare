@@ -15,6 +15,9 @@ import { ProfessionalShortcutMenuBar } from "@/components/professional/Professio
 import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
 import { ChatRequestsSection } from "@/components/professional/ChatRequestsSection";
 import { ProfessionalReadinessChecker } from "@/components/professional/ProfessionalReadinessChecker";
+import { ProfessionalFamilyAwarenessBanner } from "@/components/professional/ProfessionalFamilyAwarenessBanner";
+import { ProfessionalMatchingReadinessBanner } from "@/components/professional/ProfessionalMatchingReadinessBanner";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { LeadCaptureModal } from "@/components/family/LeadCaptureModal";
 
 const ProfessionalDashboard = () => {
@@ -83,6 +86,18 @@ const ProfessionalDashboard = () => {
 
         {/* Quick Access Menu Bar - Only show when user is logged in */}
         {user && <ProfessionalShortcutMenuBar />}
+
+        {/* Family Awareness & Matching Readiness Banners */}
+        {user && (
+          <div className="mt-6 space-y-4">
+            <ErrorBoundary level="component" name="FamilyAwarenessBanner">
+              <ProfessionalFamilyAwarenessBanner />
+            </ErrorBoundary>
+            <ErrorBoundary level="component" name="MatchingReadinessBanner">
+              <ProfessionalMatchingReadinessBanner />
+            </ErrorBoundary>
+          </div>
+        )}
 
         {/* Add Chat Requests Section - Only for logged-in users */}
         {user && (
@@ -273,7 +288,9 @@ const ProfessionalDashboard = () => {
 
         {/* Professional Readiness-Gated Family Matches Section */}
         <div id="family-matches" className="mt-8">
-          <ProfessionalReadinessChecker />
+          <ErrorBoundary level="component" name="ProfessionalReadinessChecker">
+            <ProfessionalReadinessChecker />
+          </ErrorBoundary>
         </div>
 
         {/* Professional Agency */}

@@ -4,13 +4,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, AlertCircle, ArrowLeft, Crown, XCircle, Clock, Video, MessageCircle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTracking } from "@/hooks/useTracking";
 import { supabase } from "@/integrations/supabase/client";
-import { PayPalSubscribeButton } from "@/components/subscription/PayPalSubscribeButton";
+import { useSubscriptionPlans, formatPlanPrice, SubscriptionPlan } from "@/hooks/useSubscriptionPlans";
+import { PlanManagerDrawer } from "@/components/admin/subscription/PlanManagerDrawer";
+
 
 const SubscriptionPage = () => {
   const navigate = useNavigate();
@@ -21,7 +24,14 @@ const SubscriptionPage = () => {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [userSubscription, setUserSubscription] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [billingCycle, setBillingCycle] = useState<"weekly" | "monthly">("weekly");
+  const isAdmin = userRole === "admin";
+  const {
+    familyPlans: dbFamilyPlans,
+    professionalPlans: dbProfessionalPlans,
+    isLoading: plansLoading,
+    refetch: refetchPlans,
+  } = useSubscriptionPlans();
   const returnPath = location.state?.returnPath || (userRole === 'professional' ? "/dashboard/professional" : "/dashboard/family");
   const featureType = location.state?.featureType || "premium feature";
   const referringPagePath = location.state?.referringPagePath || returnPath;
@@ -84,6 +94,31 @@ const SubscriptionPage = () => {
     fetchUserSubscription();
   }, [user, userRole, navigate, referringPagePath, referringPageLabel]);
   
+  // Map a DB-backed SubscriptionPlan to the shape the existing render loop expects
+  const mapPlan = (p: SubscriptionPlan) => ({
+    id: p.slug || p.id,
+    dbId: p.id,
+    name: p.name,
+    priceWeekly: formatPlanPrice(p.price_weekly),
+    priceMonthly: formatPlanPrice(p.price_monthly),
+    periodWeekly: p.period_weekly,
+    periodMonthly: p.period_monthly,
+    description: p.description ?? "",
+    features: p.features.map((f) => ({
+      name: f.is_addon && !f.name.startsWith("Add-on:") ? `Add-on: ${f.name}` : f.name,
+      included: f.included,
+    })),
+    popular: p.is_popular,
+    buttonColor:
+      p.price_weekly === null && p.price_monthly === null
+        ? "bg-muted text-muted-foreground hover:bg-muted/90"
+        : "bg-primary hover:bg-primary/90",
+    buttonText: p.button_text,
+  });
+
+  const familyPlans = dbFamilyPlans.map(mapPlan);
+  const professionalPlans = dbProfessionalPlans.map(mapPlan);
+
   const getUserSpecificPlans = () => {
     if (userRole === 'professional' || referringPagePath.includes('professional') || location.state?.fromProfessionalFeatures) {
       return professionalPlans;
@@ -93,214 +128,16 @@ const SubscriptionPage = () => {
     }
     return referringPagePath.includes('professional') ? professionalPlans : familyPlans;
   };
-  
-  const familyPlans = [{
-    id: "basic",
-    name: "Family Basic",
-    price: "Free",
-    period: "",
-    description: "Unlimited chat with all matched caregivers",
-    features: [{
-      name: "Unlimited caregiver chat",
-      included: true
-    }, {
-      name: "View matched caregiver profiles",
-      included: true
-    }, {
-      name: "Basic care need posting",
-      included: true
-    }, {
-      name: "Email support",
-      included: true
-    }, {
-      name: "Instant video calls with caregivers",
-      included: false
-    }, {
-      name: "Skip chat phase entirely",
-      included: false
-    }, {
-      name: "30-minute video sessions",
-      included: false
-    }, {
-      name: "Priority caregiver matching",
-      included: false
-    }],
-    popular: false,
-    buttonColor: "bg-muted text-muted-foreground hover:bg-muted/90",
-    buttonText: "Current Plan"
-  }, {
-    id: "care",
-    name: "Family Care",
-    price: "$14.99",
-    period: "monthly",
-    description: "Enhanced features plus instant video calls with caregivers",
-    features: [{
-      name: "Unlimited caregiver chat",
-      included: true
-    }, {
-      name: "View matched caregiver profiles",
-      included: true
-    }, {
-      name: "Basic care need posting",
-      included: true
-    }, {
-      name: "Email support",
-      included: true
-    }, {
-      name: "Instant video calls with caregivers",
-      included: true
-    }, {
-      name: "Skip chat phase entirely",
-      included: true
-    }, {
-      name: "30-minute video sessions",
-      included: true
-    }, {
-      name: "Priority caregiver matching",
-      included: false
-    }],
-    popular: true,
-    buttonColor: "bg-primary hover:bg-primary/90",
-    buttonText: "Upgrade to Care"
-  }, {
-    id: "premium",
-    name: "Family Premium",
-    price: "$29.99",
-    period: "monthly",
-    description: "Complete access with priority matching and extended video sessions",
-    features: [{
-      name: "Unlimited caregiver chat",
-      included: true
-    }, {
-      name: "View matched caregiver profiles",
-      included: true
-    }, {
-      name: "Basic care need posting",
-      included: true
-    }, {
-      name: "Email support",
-      included: true
-    }, {
-      name: "Instant video calls with caregivers",
-      included: true
-    }, {
-      name: "Skip chat phase entirely",
-      included: true
-    }, {
-      name: "30-minute video sessions",
-      included: true
-    }, {
-      name: "Priority caregiver matching",
-      included: true
-    }],
-    popular: false,
-    buttonColor: "bg-primary hover:bg-primary/90",
-    buttonText: "Upgrade to Premium"
-  }];
-  
-  const professionalPlans = [{
-    id: "basic",
-    name: "Professional Basic",
-    price: "Free",
-    period: "",
-    description: "Limited access for casual professionals",
-    features: [{
-      name: "Apply for 3 jobs per week",
-      included: true
-    }, {
-      name: "Basic profile listing",
-      included: true
-    }, {
-      name: "Limited training resources",
-      included: true
-    }, {
-      name: "Email support",
-      included: true
-    }, {
-      name: "Featured profile placement",
-      included: false
-    }, {
-      name: "Unlimited job applications",
-      included: false
-    }, {
-      name: "Advanced training resources",
-      included: false
-    }, {
-      name: "Priority job matching",
-      included: false
-    }],
-    popular: false,
-    buttonColor: "bg-muted text-muted-foreground hover:bg-muted/90",
-    buttonText: "Current Plan"
-  }, {
-    id: "pro",
-    name: "Professional Pro",
-    price: "$19.99",
-    period: "monthly",
-    description: "Enhanced features for active professionals",
-    features: [{
-      name: "Apply for 3 jobs per week",
-      included: true
-    }, {
-      name: "Basic profile listing",
-      included: true
-    }, {
-      name: "Limited training resources",
-      included: true
-    }, {
-      name: "Email support",
-      included: true
-    }, {
-      name: "Featured profile placement",
-      included: true
-    }, {
-      name: "Unlimited job applications",
-      included: true
-    }, {
-      name: "Advanced training resources",
-      included: false
-    }, {
-      name: "Priority job matching",
-      included: false
-    }],
-    popular: true,
-    buttonColor: "bg-primary hover:bg-primary/90",
-    buttonText: "Upgrade to Pro"
-  }, {
-    id: "expert",
-    name: "Professional Expert",
-    price: "$34.99",
-    period: "monthly",
-    description: "Complete access for dedicated care professionals",
-    features: [{
-      name: "Apply for 3 jobs per week",
-      included: true
-    }, {
-      name: "Basic profile listing",
-      included: true
-    }, {
-      name: "Limited training resources",
-      included: true
-    }, {
-      name: "Email support",
-      included: true
-    }, {
-      name: "Featured profile placement",
-      included: true
-    }, {
-      name: "Unlimited job applications",
-      included: true
-    }, {
-      name: "Advanced training resources",
-      included: true
-    }, {
-      name: "Priority job matching",
-      included: true
-    }],
-    popular: false,
-    buttonColor: "bg-primary hover:bg-primary/90",
-    buttonText: "Upgrade to Expert"
-  }];
+
+  const getPlanPrice = (plan: { priceWeekly: string; priceMonthly: string }) => {
+    return billingCycle === "weekly" ? plan.priceWeekly : plan.priceMonthly;
+  };
+
+  const getPlanPeriod = (plan: { periodWeekly: string; periodMonthly: string }) => {
+    return billingCycle === "weekly" ? plan.periodWeekly : plan.periodMonthly;
+  };
+
+  // (legacy hardcoded professionalPlans array removed — now sourced from DB)
   
   const plans = getUserSpecificPlans();
   
@@ -326,11 +163,13 @@ const SubscriptionPage = () => {
   
   const getButtonText = (plan: any) => {
     if (isCurrentPlan(plan.id)) {
-      return "Current Plan";
+      return plan.id === "basic" ? "Get Started Free" : "Current Plan";
     }
     const action = getPlanAction(plan.id);
     if (action === "upgrade") {
-      return `Upgrade to ${plan.name.split(' ').pop()}`;
+      if (plan.id === "care") return "Start Care Coordination";
+      if (plan.id === "premium") return "Choose Premium";
+      return plan.buttonText;
     } else if (action === "downgrade") {
       return `Downgrade to ${plan.name.split(' ').pop()}`;
     }
@@ -398,7 +237,7 @@ const SubscriptionPage = () => {
         plan_id: planId,
         plan_name: planName,
         feature_accessed: featureType,
-        price: plans.find(p => p.id === planId)?.price,
+        price: getPlanPrice(plans.find(p => p.id === planId) as any),
         previous_plan: userSubscription,
         action: action
       });
@@ -453,16 +292,6 @@ const SubscriptionPage = () => {
     navigate(-1);
   };
   
-  const ComingSoonBanner = () => <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-      <Clock className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-      <div>
-        <h3 className="font-medium text-blue-800">PayPal Subscriptions Coming Soon</h3>
-        <p className="text-blue-700 text-sm mt-1">
-          Our PayPal subscription service is currently in development and will be available soon. 
-          In the meantime, you can explore our subscription plans.
-        </p>
-      </div>
-    </div>;
   
   if (!user) {
     return <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -515,45 +344,61 @@ const SubscriptionPage = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-3xl font-bold">
-                  {isVideoCallFeature 
-                    ? 'Unlock Instant Video Calls' 
-                    : 'Subscribe to Access Premium Features'}
+                  Choose Your Care Coordination Plan
                 </h1>
-                {featureType && <p className="text-lg text-primary mt-2">
-                    <span className="font-medium">Feature: {featureType}</span>
-                  </p>}
+                <p className="text-lg text-muted-foreground mt-2">
+                  Structure, coordination, and peace of mind — so you can focus on what matters most.
+                </p>
               </div>
-              <Button variant="outline" size="sm" onClick={handleGoBack} className="flex items-center gap-1">
-                <ArrowLeft className="h-4 w-4" />
-                Go Back
-              </Button>
+              <div className="flex items-center gap-2">
+                {isAdmin && <PlanManagerDrawer onPlansChanged={refetchPlans} />}
+                <Button variant="outline" size="sm" onClick={handleGoBack} className="flex items-center gap-1">
+                  <ArrowLeft className="h-4 w-4" />
+                  Go Back
+                </Button>
+              </div>
             </div>
             
-            <ComingSoonBanner />
+            
             
             <div className="bg-muted/30 border p-4 rounded-lg">
               <div className="flex items-start gap-2">
-                {isVideoCallFeature ? (
-                  <Video className="h-5 w-5 text-purple-500 mt-1 flex-shrink-0" />
-                ) : (
-                  <Crown className="h-5 w-5 text-yellow-500 mt-1 flex-shrink-0" />
-                )}
+                <Crown className="h-5 w-5 text-yellow-500 mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold text-lg">
-                    {isVideoCallFeature 
-                      ? 'Upgrade to Skip Chat & Meet Face-to-Face'
-                      : `Upgrade to Unlock ${featureType}`}
+                    Find the right level of care coordination for your family
                   </h3>
                   <p className="text-muted-foreground">
-                    {isVideoCallFeature 
-                      ? 'Chat is free and unlimited. Upgrade to book instant video calls and meet your caregivers face-to-face without the text conversation phase.'
-                      : 'Choose the plan that best fits your needs to access this premium feature and more.'}
+                    Every plan gives your family tools, guidance, and hands-on support to coordinate care with confidence.
                   </p>
                   {userSubscription && <p className="mt-2 text-sm">
                       <span className="font-medium">Your Current Plan:</span> {plans.find(p => p.id === userSubscription)?.name || "Basic"}
                     </p>}
                 </div>
               </div>
+            </div>
+            
+            {/* Billing Cycle Toggle */}
+            {plans === familyPlans && familyPlans.length > 0 && (
+              <div className="flex items-center justify-center gap-3 pt-4">
+                <span className={`text-sm font-medium ${billingCycle === 'weekly' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  Weekly
+                </span>
+                <Switch
+                  checked={billingCycle === 'monthly'}
+                  onCheckedChange={(checked) => setBillingCycle(checked ? 'monthly' : 'weekly')}
+                />
+                <span className={`text-sm font-medium ${billingCycle === 'monthly' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  Monthly
+                </span>
+              </div>
+            )}
+            
+            {/* Clarity Block */}
+            <div className="bg-accent/30 border border-accent rounded-lg p-4 text-center">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Caregiver compensation is arranged directly between your family and your care team. Your Tavara subscription covers care coordination, management tools, and ongoing support to ensure care is delivered consistently and effectively.
+              </p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
@@ -570,51 +415,49 @@ const SubscriptionPage = () => {
                         {plan.id !== 'basic' && <Video className="h-4 w-4 text-purple-500" />}
                       </CardTitle>
                       <div className="flex items-end gap-1">
-                        <span className="text-3xl font-bold">{plan.price}</span>
-                        {plan.period && <span className="text-gray-500">/{plan.period}</span>}
+                        <span className="text-3xl font-bold">{getPlanPrice(plan)}</span>
+                        {getPlanPeriod(plan) && <span className="text-muted-foreground">/{getPlanPeriod(plan)}</span>}
                       </div>
                       <CardDescription>{plan.description}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-2">
-                        {plan.features.map((feature, index) => <div key={index} className="flex items-start gap-2">
-                            {feature.included ? <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" /> : <XCircle className="h-5 w-5 text-gray-300 flex-shrink-0" />}
-                            <span className={feature.included ? "text-gray-700" : "text-gray-400"}>
-                              {feature.name}
-                            </span>
-                          </div>)}
+                        {plan.features.map((feature, index) => {
+                          const isAddOn = feature.name.startsWith("Add-on:");
+                          const displayName = isAddOn ? feature.name.replace(/^Add-on:\s*/, "") : feature.name;
+                          return (
+                            <div key={index} className="flex items-start gap-2">
+                              {feature.included ? <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" /> : <XCircle className="h-5 w-5 text-gray-300 flex-shrink-0" />}
+                              <span className={`flex flex-wrap items-center gap-1.5 ${feature.included ? "text-gray-700" : "text-gray-400"}`}>
+                                <span>{displayName}</span>
+                                {isAddOn && (
+                                  <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-xs font-medium">
+                                    Add-on
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </CardContent>
                     <CardFooter className="flex flex-col gap-2">
-                      {!isCurrentUserPlan && plan.id !== "basic" && <PayPalSubscribeButton planId={plan.id} planName={plan.name} price={plan.price.toString()} className="w-full" variant={plan.popular ? "default" : "outline"} isComingSoon={true} onSuccess={subscriptionId => {
-                    toast({
-                      title: "Subscription Activated",
-                      description: `Successfully subscribed to ${plan.name}!`,
-                      variant: "default"
-                    });
-                    trackEngagement('subscription_completed', {
-                      plan_id: plan.id,
-                      plan_name: plan.name,
-                      feature_accessed: featureType,
-                      price: plan.price,
-                      previous_plan: userSubscription,
-                      action: planAction,
-                      payment_method: 'paypal'
-                    });
-                    setUserSubscription(plan.id);
-                  }} onError={error => {
-                    toast({
-                      title: "Subscription Failed",
-                      description: "There was an error processing your subscription.",
-                      variant: "destructive"
-                    });
-                    trackEngagement('subscription_failed', {
-                      plan_id: plan.id,
-                      plan_name: plan.name,
-                      error: error.message,
-                      payment_method: 'paypal'
-                    });
-                  }} />}
+                      {!isCurrentUserPlan && plan.id !== "basic" && (
+                        <Button
+                          className={`w-full ${getButtonColor(plan)}`}
+                          disabled={processingPayment}
+                          onClick={() => handleSubscribe(plan.id)}
+                        >
+                          {processingPayment && selectedPlan === plan.id ? (
+                            <>
+                              <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                              Selecting...
+                            </>
+                          ) : (
+                            getButtonText(plan)
+                          )}
+                        </Button>
+                      )}
                       
                       
                     </CardFooter>

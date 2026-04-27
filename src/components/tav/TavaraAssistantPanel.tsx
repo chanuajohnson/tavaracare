@@ -91,16 +91,7 @@ export const TavaraAssistantPanel: React.FC = () => {
   // Create progress context only for guest/default roles (removed family processing)
   const getProgressContext = (): ProgressContext => {
     if (state.currentRole === 'professional') {
-      const { overallProgress, nextStep, currentStage, completedSteps, totalSteps } = professionalProgress;
-      
-      console.log('TAV: Creating professional progress context:', {
-        overallProgress,
-        nextStep: nextStep?.title,
-        currentStage,
-        completedSteps,
-        totalSteps,
-        professionalProgressLoading: professionalProgress.loading
-      });
+      const { overallProgress, nextStep, currentStage, completedSteps, totalSteps, agreedRate, weeklyHours, projectedWeeklyEarnings } = professionalProgress;
       
       return {
         role: 'professional',
@@ -109,11 +100,29 @@ export const TavaraAssistantPanel: React.FC = () => {
         nextAction: nextStep?.description || 'Add your experience and certifications',
         journeyStage: currentStage || 'foundation',
         completedSteps: completedSteps || 0,
-        totalSteps: totalSteps || 6
+        totalSteps: totalSteps || 6,
+        agreedRate,
+        weeklyHours,
+        projectedWeeklyEarnings,
+        paymentSchedule: agreedRate ? 'Weekly (every Friday)' : undefined
       };
     }
     
-    // Default fallback for guest or other roles (removed family processing)
+    if (state.currentRole === 'family') {
+      const { completionPercentage, nextStep, steps, journeyStage } = familyJourneyProgress as any;
+      return {
+        role: 'family',
+        completionPercentage: completionPercentage || 0,
+        currentStep: nextStep?.title || 'Continue your care journey',
+        nextAction: nextStep?.description || 'Complete your next step',
+        journeyStage: journeyStage || 'foundation',
+        completedSteps: steps?.filter((s: any) => s.completed).length || 0,
+        totalSteps: steps?.length || 17,
+        agreedRate: (familyJourneyProgress as any)?.agreedRate,
+        weeklyHours: (familyJourneyProgress as any)?.weeklyHours,
+      };
+    }
+    
     return {
       role: state.currentRole || 'guest',
       completionPercentage: 0,

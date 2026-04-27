@@ -6,7 +6,7 @@ import Index from "@/pages/Index";
 import AuthPage from "@/pages/auth/AuthPage";
 import ResetPassword from "@/pages/auth/ResetPassword";
 import ResetPasswordConfirm from "@/pages/auth/reset-password/ResetPasswordConfirm";
-import FamilyDashboard from "@/components/family/FamilyDashboard";
+import FamilyDashboardPage from "@/pages/dashboard/family";
 import ProfessionalDashboard from "@/pages/dashboards/ProfessionalDashboard";
 import CommunityDashboard from "@/pages/dashboards/CommunityDashboard";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -17,6 +17,11 @@ import FeedbackManagementPage from "@/pages/admin/FeedbackManagementPage";
 import WhatsAppNudgePage from "@/pages/admin/WhatsAppNudgePage";
 import PlatformAnalyticsPage from "@/pages/admin/PlatformAnalyticsPage";
 import ShiftManagementPage from "@/pages/admin/ShiftManagementPage";
+import ProfessionalScreeningPage from "@/pages/admin/ProfessionalScreeningPage";
+import AdminOnboardingChecklistPage from "@/pages/admin/AdminOnboardingChecklistPage";
+import UnitEconomicsPage from "@/pages/admin/UnitEconomicsPage";
+import LifecycleCostPage from "@/pages/admin/LifecycleCostPage";
+import MobileScreeningPage from "@/pages/screening/MobileScreeningPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
 import FAQPage from "@/pages/support/FAQPage";
@@ -38,6 +43,8 @@ import ProfessionalAssignmentPage from "@/pages/professional/ProfessionalAssignm
 import TrainingResourcesPage from "@/pages/professional/TrainingResourcesPage";
 import ModuleViewerPage from "@/pages/professional/ModuleViewerPage";
 import MessageBoardPage from "@/pages/professional/MessageBoardPage";
+import ProfessionalScreeningLandingPage from "@/pages/professional/ProfessionalScreeningLandingPage";
+import ProfessionalOnboardingChecklistPage from "@/pages/professional/ProfessionalOnboardingChecklistPage";
 
 // Family Pages
 import FamilyFeaturesOverview from "@/pages/family/FamilyFeaturesOverview";
@@ -50,6 +57,9 @@ import CareManagementPage from "@/pages/family/care-management/CareManagementPag
 import CarePlanDetailPage from "@/pages/family/care-management/CarePlanDetailPage";
 import CreateCarePlanPage from "@/pages/family/care-management/CreateCarePlanPage";
 import CareJourneyProgressPage from "@/pages/family/CareJourneyProgressPage";
+import FamilyOnboardingChecklistPage from "@/pages/family/FamilyOnboardingChecklistPage";
+import CareLogUpgradePage from "@/pages/family/CareLogUpgradePage";
+import FamilyReadinessQuizPage from "@/pages/family/FamilyReadinessQuizPage";
 
 // Profile Pages
 import ProfileEditPage from "@/pages/profile/ProfileEditPage";
@@ -73,6 +83,9 @@ import TavDemo from "@/pages/TavDemo";
 import TavDashboard from "@/pages/TavDashboard";
 import ImplementationGuide from "@/pages/ImplementationGuide";
 
+// Public Pages
+import OnboardingGuidePage from "@/pages/public/OnboardingGuidePage";
+
 // Demo Pages
 import DemoFamilyRegistration from "@/pages/demo/DemoFamilyRegistration";
 import DemoCareAssessment from "@/pages/demo/DemoCareAssessment";
@@ -83,7 +96,11 @@ import MarketingKit from "@/pages/marketing/MarketingKit";
 import GenerateMarketingAssets from "@/pages/admin/GenerateMarketingAssets";
 import FlyerLocations from "@/pages/admin/FlyerLocations";
 import UrgentCaregiversPage from "@/pages/UrgentCaregiversPage";
+import UrgentFamiliesPage from "@/pages/UrgentFamiliesPage";
 import TestimonialManagementPage from "@/pages/admin/TestimonialManagementPage";
+import CampaignLinksPage from "@/pages/admin/CampaignLinksPage";
+import AdminFamilyCarePlansPage from "@/pages/admin/AdminFamilyCarePlansPage";
+import JoinAsCaregiver from "@/pages/JoinAsCaregiver";
 
 export const AppRoutes = () => {
   const { user } = useAuth();
@@ -100,8 +117,12 @@ export const AppRoutes = () => {
       <Route path="/about" element={<AboutPage />} />
       <Route path="/errands" element={<ErrandsPage />} />
       <Route path="/faq" element={<FAQPage />} />
+      <Route path="/support/faq" element={<FAQPage />} />
       <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
       <Route path="/urgent-caregivers" element={<UrgentCaregiversPage />} />
+      <Route path="/urgent-families" element={<UrgentFamiliesPage />} />
+      <Route path="/join-as-caregiver" element={<JoinAsCaregiver />} />
+      <Route path="/onboarding-guide" element={<OnboardingGuidePage />} />
       
       {/* Registration Routes */}
       <Route path="/registration/family" element={<FamilyRegistration />} />
@@ -109,7 +130,7 @@ export const AppRoutes = () => {
       <Route path="/registration/community" element={<CommunityRegistration />} />
       
       {/* Dashboard Routes */}
-      <Route path="/dashboard/family" element={<FamilyDashboard />} />
+      <Route path="/dashboard/family" element={<FamilyDashboardPage />} />
       <Route path="/dashboard/professional" element={<ProfessionalDashboard />} />
       <Route path="/dashboard/community" element={<CommunityDashboard />} />
       <Route path="/dashboard/admin" element={<AdminDashboard />} />
@@ -125,6 +146,8 @@ export const AppRoutes = () => {
       <Route path="/professional/training" element={<TrainingResourcesPage />} />
       <Route path="/professional/training/module/:moduleId" element={<ModuleViewerPage />} />
       <Route path="/professional/message-board" element={<MessageBoardPage />} />
+      <Route path="/professional/screening" element={<ProfessionalScreeningLandingPage />} />
+      <Route path="/professional/onboarding-checklist" element={<ProfessionalOnboardingChecklistPage />} />
       
       {/* Family Routes */}
       <Route path="/family" element={<FamilyFeaturesOverview />} />
@@ -138,7 +161,11 @@ export const AppRoutes = () => {
       <Route path="/family/care-management/:carePlanId/medications" element={<MedicationManagementPage />} />
       <Route path="/family/care-management/:carePlanId/meals" element={<MealManagementPage />} />
       <Route path="/family/care-management/create" element={<CreateCarePlanPage />} />
+      <Route path="/family/care-management/create/:id" element={<CreateCarePlanPage />} />
       <Route path="/family/care-journey-progress" element={<CareJourneyProgressPage />} />
+      <Route path="/family/onboarding-checklist" element={<FamilyOnboardingChecklistPage />} />
+      <Route path="/family/upgrade/care-log-access" element={<CareLogUpgradePage />} />
+      <Route path="/family/readiness-quiz" element={<FamilyReadinessQuizPage />} />
       
       {/* Community Routes */}
       <Route path="/community" element={<CommunityFeaturesOverview />} />
@@ -149,7 +176,9 @@ export const AppRoutes = () => {
       
       {/* Subscription Routes */}
       <Route path="/subscription" element={<SubscriptionPage />} />
+      <Route path="/subscriptions" element={<SubscriptionPage />} />
       <Route path="/subscription/features" element={<SubscriptionFeaturesPage />} />
+      <Route path="/subscriptions/features" element={<SubscriptionFeaturesPage />} />
       
       {/* Admin Routes */}
       <Route path="/admin/visit-schedule" element={<AdminVisitSchedulePage />} />
@@ -160,9 +189,18 @@ export const AppRoutes = () => {
       <Route path="/admin/platform-analytics" element={<PlatformAnalyticsPage />} />
       <Route path="/admin/shift-management" element={<ShiftManagementPage />} />
       <Route path="/admin/testimonials" element={<TestimonialManagementPage />} />
+      <Route path="/admin/caregiver-screening" element={<ProfessionalScreeningPage />} />
+      <Route path="/admin/campaign-links" element={<CampaignLinksPage />} />
+      <Route path="/admin/family-care-plans" element={<AdminFamilyCarePlansPage />} />
+      <Route path="/admin/onboarding-checklist" element={<AdminOnboardingChecklistPage />} />
+      <Route path="/admin/unit-economics" element={<UnitEconomicsPage />} />
+      <Route path="/admin/lifecycle-cost" element={<LifecycleCostPage />} />
       
       {/* Legacy Routes */}
-      <Route path="/legacy/stories" element={<LegacyStoriesPage />} />
+      <Route path="/legacy-stories" element={<LegacyStoriesPage />} />
+      
+      {/* Public Screening Route (token-based, no auth required) */}
+      <Route path="/screening/:token" element={<MobileScreeningPage />} />
       
       {/* TAV Core Routes */}
       <Route path="/tav-demo" element={<TavDemo />} />

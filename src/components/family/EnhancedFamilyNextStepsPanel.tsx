@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { List, ArrowRight, Eye, Sparkles } from "lucide-react";
+import { List, ArrowRight, Eye, Sparkles, CheckCircle2, Users, ClipboardList, DollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ScheduleVisitModal } from "./ScheduleVisitModal";
 import { InternalSchedulingModal } from "./InternalSchedulingModal";
@@ -12,7 +12,29 @@ import { JourneyPathVisualization } from "./JourneyPathVisualization";
 import { JourneyStageCard } from "./JourneyStageCard";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 import { useIsMobile, useIsSmallMobile } from "@/hooks/use-mobile";
+import { useFamilyStage } from "@/hooks/useFamilyStage";
 import { useState } from "react";
+
+// Stage-aware tone overrides for the panel headline area.
+// Stage is invisible to the user — only the copy shifts.
+const STAGE_TONE: Record<1 | 2 | 3 | 4, { headline: string; subhead: string }> = {
+  1: {
+    headline: "Let's keep this simple.",
+    subhead: "One thing at a time. We'll start with what matters most today.",
+  },
+  2: {
+    headline: "Building your rhythm.",
+    subhead: "You're settling in — focus on consistency, not big changes.",
+  },
+  3: {
+    headline: "Ready to expand.",
+    subhead: "Now's a good time to add support that takes pressure off you.",
+  },
+  4: {
+    headline: "Optimizing your care.",
+    subhead: "Let's hand over more of the day-to-day so you can breathe.",
+  },
+};
 
 interface EnhancedFamilyNextStepsPanelProps {
   showAllSteps?: boolean;
@@ -24,6 +46,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isSmallMobile = useIsSmallMobile();
+  const { stage: familyStage, hasStage: familyHasStage } = useFamilyStage();
   const { 
     steps, 
     paths,
@@ -44,11 +67,18 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
     visitDetails,
     trackStepAction,
     isAnonymous,
-    onVisitCancelled
+    onVisitCancelled,
+    agreedRate,
+    weeklyHours,
+    projectedWeeklyCost
   } = useEnhancedJourneyProgress();
 
   // Enhanced lead capture state management
   const [leadCaptureSource, setLeadCaptureSource] = useState('');
+
+  // Stage-aware tone — only applies to signed-in families who've completed
+  // the readiness quiz, so we never override copy for anonymous demo viewers.
+  const stageTone = !isAnonymous && familyHasStage ? STAGE_TONE[familyStage] : null;
 
   // Family-specific step to source mapping for lead capture
   const getLeadCaptureSource = (stepTitle: string, stepCategory: string): string => {
@@ -106,6 +136,28 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         })),
         subscriptionCTA: null
       },
+      care_coordination: {
+        name: "Care Team Setup",
+        key: "care_coordination",
+        description: "Your care team is confirmed and care begins",
+        color: "teal",
+        steps: steps.filter(step => step.category === 'care_coordination').map(step => ({
+          ...step,
+          cancelAction: undefined
+        })),
+        subscriptionCTA: null
+      },
+      care_environment: {
+        name: "Care Environment Readiness",
+        key: "care_environment",
+        description: "Preparing your home for sustainable, safe caregiving",
+        color: "emerald",
+        steps: steps.filter(step => step.category === 'care_environment').map(step => ({
+          ...step,
+          cancelAction: undefined
+        })),
+        subscriptionCTA: null
+      },
       trial: {
         name: "Trial Experience",
         key: "trial", 
@@ -139,7 +191,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
       stages.foundation.subscriptionCTA = {
         show: true,
         title: "Start Your Care Journey",
-        description: "Get matched with qualified caregivers for $7.99 one-time.",
+        description: "Complete your foundation steps to get matched with qualified caregivers.",
         buttonText: "Start Care Journey",
         action: "upgrade",
         featureType: "teaser_unlock",
@@ -149,9 +201,9 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
       if (foundationCompleted && !schedulingCompleted) {
         stages.foundation.subscriptionCTA = {
           show: true,
-          title: "Unlock Premium Match Features",
-          description: "Get unlimited caregiver matches and advanced filtering for $7.99 one-time.",
-          buttonText: "Unlock Matches",
+          title: "Upgrade Your Care Plan",
+          description: "Access dedicated care coordination starting at $699/week or $2,499/month.",
+          buttonText: "View Plans",
           action: "upgrade",
           featureType: "teaser_unlock",
           navigateTo: "/subscription/features"
@@ -225,8 +277,8 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
 
   const stageGroups = groupStepsByStage();
   const stagesToDisplay = showAllSteps 
-    ? Object.values(stageGroups) 
-    : [stageGroups.foundation, stageGroups.scheduling].filter(stage => stage.steps.length > 0);
+    ? Object.values(stageGroups).filter(stage => stage.steps.length > 0)
+    : [stageGroups.foundation, stageGroups.scheduling, stageGroups.care_coordination, stageGroups.care_environment].filter(stage => stage.steps.length > 0);
 
   return (
     <>
@@ -250,12 +302,12 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         {/* Professional Journey Overview Header */}
         <Card className={`border-l-4 border-l-primary bg-white shadow-md hover:shadow-lg transition-shadow duration-300 ${isAnonymous ? 'bg-gradient-to-r from-blue-50/40 to-purple-50/40' : ''}`}>
           <CardHeader className="pb-6">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <CardTitle className="flex items-start gap-3 mb-3">
-                  <List className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
+                  <List className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0 mt-1" />
                   <div className="flex flex-col gap-2 min-w-0">
-                    <span className="text-xl lg:text-2xl font-semibold text-gray-900 leading-tight">
+                    <span className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 leading-tight">
                       {showAllSteps ? "🌿 Complete Care Journey" : "Your Care Journey Progress"}
                     </span>
                     {isAnonymous && (
@@ -273,8 +325,15 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                   </div>
                 </CardTitle>
                 
-                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                  {showAllSteps 
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4 leading-relaxed">
+                  {stageTone ? (
+                    <>
+                      <span className="block font-medium text-foreground mb-1">
+                        {stageTone.headline}
+                      </span>
+                      {stageTone.subhead}
+                    </>
+                  ) : showAllSteps 
                     ? isAnonymous
                       ? "✨ Experience how families complete their personalized care journey with Tavara's comprehensive support system"
                       : "Complete these thoughtfully designed stages to connect with qualified caregivers and begin your personalized care experience"
@@ -284,33 +343,32 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                   }
                 </p>
                 
-                <div className="flex flex-wrap items-center gap-3 text-sm">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm">
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">Current stage:</span>
-                    <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full font-medium capitalize">
+                    <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-2 sm:px-3 py-1 rounded-full font-medium capitalize text-xs sm:text-sm">
                       {currentStage}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <span>•</span>
-                    <span>{steps.filter(s => s.completed).length} of {steps.length} steps completed</span>
+                    <span>{steps.filter(s => s.completed && !s.is_optional).length} of {steps.filter(s => !s.is_optional).length} steps completed</span>
                   </div>
                 </div>
               </div>
               
-              {/* Enhanced Progress Display */}
-              <div className="flex-shrink-0 text-right">
-                <div className="relative mb-2">
-                  <div className="text-3xl font-bold text-primary mb-1">
+              {/* Progress Display - horizontal row on mobile */}
+              <div className="flex items-center gap-3 sm:flex-col sm:items-end sm:gap-2 flex-shrink-0">
+                <div className="sm:text-right">
+                  <div className="text-xl sm:text-3xl font-bold text-primary">
                     {completionPercentage}%
                   </div>
-                  <div className="text-xs text-muted-foreground font-medium">
+                  <div className="text-xs text-muted-foreground font-medium hidden sm:block">
                     {showAllSteps ? "Journey Complete" : "Foundation Progress"}
                   </div>
                 </div>
                 
-                {/* Circular Progress Indicator */}
-                <div className="relative w-20 h-20 mx-auto">
+                <div className="relative w-12 h-12 sm:w-20 sm:h-20">
                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                     <path
                       className="text-gray-200"
@@ -330,7 +388,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-xs font-semibold text-primary">
+                    <div className="text-[10px] sm:text-xs font-semibold text-primary">
                       {Math.round(completionPercentage)}%
                     </div>
                   </div>
@@ -339,6 +397,37 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
             </div>
           </CardHeader>
         </Card>
+
+        {/* Care Plan Billing Summary — shown when agreed rate is set */}
+        {agreedRate && !isAnonymous && (
+          <Card className="border border-green-200 bg-green-50/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <DollarSign className="h-5 w-5 text-green-700" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-green-900 text-sm">Your Care Plan Summary</h4>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                    <span className="text-sm text-green-700">
+                      <span className="font-medium">Rate:</span> {agreedRate}
+                    </span>
+                    {weeklyHours && (
+                      <span className="text-sm text-green-700">
+                        <span className="font-medium">Hours:</span> {weeklyHours} hrs/wk
+                      </span>
+                    )}
+                    {projectedWeeklyCost && (
+                      <span className="text-sm text-green-700">
+                        <span className="font-medium">Est. Weekly:</span> ${projectedWeeklyCost.toLocaleString()}/wk
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Enhanced Stage Cards */}
         <div className="space-y-6">
@@ -362,6 +451,49 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
               </div>
             )
           ))}
+
+          {/* Care Plan Active Card - shows when all non-optional steps are complete */}
+          {currentStage === 'active' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <Card className="border-2 border-green-500/30 bg-green-50/50 dark:bg-green-950/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                    <CheckCircle2 className="h-6 w-6" />
+                    Care Plan Active
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Your care team is set up and actively supporting your family. You can manage your care plan, view your care team, and track daily care logs from your care management dashboard.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => navigate('/family/care-management')}
+                      className="gap-2"
+                    >
+                      <ClipboardList className="h-4 w-4" />
+                      Care Management
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate('/family/care-management')}
+                      className="gap-2"
+                    >
+                      <Users className="h-4 w-4" />
+                      View Care Team
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
         </div>
             
         {/* Enhanced Action Section */}

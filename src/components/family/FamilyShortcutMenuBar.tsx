@@ -2,21 +2,23 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { Clipboard, ArrowRight, ClipboardEdit, FileCheck, Calendar, Users, Star, Heart } from "lucide-react";
+import { Clipboard, ArrowRight, ClipboardEdit, FileCheck, Calendar, Users, Star, Heart, FileText, ClipboardCheck } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTracking } from "@/hooks/useTracking";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 
 interface FamilyShortcutMenuBarProps {
   onCaregiverMatchesClick?: () => void;
+  onScheduleCareClick?: () => void;
 }
 
-export function FamilyShortcutMenuBar({ onCaregiverMatchesClick }: FamilyShortcutMenuBarProps) {
+export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareClick }: FamilyShortcutMenuBarProps) {
   const { isProfileComplete } = useAuth();
   const { trackEngagement } = useTracking();
   const { 
     steps, 
     visitDetails, 
+    careRecipient,
     loading
   } = useEnhancedJourneyProgress();
 
@@ -39,17 +41,26 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick }: FamilyShortcu
     );
   }
 
-  // Find key journey steps
-  const registrationStep = steps.find(step => step.step_number === 2);
-  const careAssessmentStep = steps.find(step => step.step_number === 5);
-  const storyStep = steps.find(step => step.step_number === 6);
-  const caregiverMatchesStep = steps.find(step => step.step_number === 7);
+  // Find key journey steps using step IDs:
+  // 1=Profile, 2=Assessment, 3=Legacy Story, 4=Matches, 7=Scheduling, 9=Caregiver Assigned
+  const registrationStep = steps.find(step => step.step_number === 1);
+  const careAssessmentStep = steps.find(step => step.step_number === 2);
+  const storyStep = steps.find(step => step.step_number === 3);
+  const caregiverMatchesStep = steps.find(step => step.step_number === 4);
+  const caregiverAssignedStep = steps.find(step => step.step_number === 9);
 
   // Determine which buttons to show based on journey progress
   const showMilestoneButton = caregiverMatchesStep?.accessible && !caregiverMatchesStep?.completed;
-  const showStoryButton = storyStep?.accessible && !storyStep?.completed;
+  const showStoryButton = !careRecipient?.id || !careRecipient?.full_name;
+  console.log("[FamilyShortcutMenuBar] Story button check:", { careRecipient, showStoryButton, loading });
   const showRegistrationEdit = registrationStep?.completed;
   const showAssessmentEdit = careAssessmentStep?.completed;
+  
+  // Check if caregiver has been assigned
+  const hasCaregiverAssigned = caregiverAssignedStep?.completed;
+  
+  // Show schedule button when matches exist but visit not yet scheduled AND no caregiver assigned
+  const showScheduleButton = caregiverMatchesStep?.completed && !isVisitScheduled && !hasCaregiverAssigned;
 
   const handleCaregiverMatchesClick = () => {
     handleTrackButtonClick('milestone_achievement', 'view_caregiver_matches');
@@ -64,7 +75,24 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick }: FamilyShortcu
         <div className="flex items-center overflow-x-auto whitespace-nowrap py-1 gap-2">
           <span className="text-sm font-medium text-muted-foreground mr-2">Quick Access:</span>
           
-          {/* Milestone: View Caregiver Matches - Primary Achievement Button */}
+
+          {/* Schedule Care - prominent amber button when in scheduling stage (hidden if caregiver assigned) */}
+          {showScheduleButton && onScheduleCareClick && (
+            <Button 
+              onClick={() => {
+                handleTrackButtonClick('schedule_care_click', 'schedule_care');
+                onScheduleCareClick();
+              }}
+              className="flex items-center gap-1 bg-amber-600 hover:bg-amber-700 text-white shadow-lg font-semibold"
+              size="sm"
+            >
+              <Calendar className="h-4 w-4" />
+              <span>📅 Schedule Care</span>
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          )}
+
+          {/* Milestone: View Caregiver Matches */}
           {showMilestoneButton && (
             <Button 
               onClick={handleCaregiverMatchesClick}
@@ -77,7 +105,7 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick }: FamilyShortcu
             </Button>
           )}
 
-          {/* Next Step: Share Loved One's Story */}
+          {/* Next Step: Share Loved One's Story - prominent when incomplete */}
           {showStoryButton && (
             <Link 
               to="/family/story"
@@ -91,6 +119,30 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick }: FamilyShortcu
             </Link>
           )}
           
+          {/* Onboarding Checklist */}
+          <Link 
+            to="/family/onboarding-checklist"
+            onClick={() => handleTrackButtonClick('navigation_click', 'onboarding_checklist')}
+          >
+            <Button variant="outline" size="sm" className="flex items-center gap-1">
+              <ClipboardCheck className="h-4 w-4" />
+              <span>Onboarding Progress</span>
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </Link>
+
+          {/* Care Plans - always visible for authenticated families */}
+          <Link 
+            to="/family/care-management"
+            onClick={() => handleTrackButtonClick('navigation_click', 'care_plans')}
+          >
+            <Button variant="outline" size="sm" className="flex items-center gap-1">
+              <FileText className="h-4 w-4" />
+              <span>Care Plans</span>
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </Link>
+
           {/* Edit buttons for completed steps */}
           {showRegistrationEdit && (
             <Link 
@@ -118,15 +170,18 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick }: FamilyShortcu
             </Link>
           )}
           
-          <Link to="/family/care-management">
-            <Button variant="outline" size="sm" className="flex items-center gap-1">
-              <Clipboard className="h-4 w-4" />
-              <span>Care Management</span>
-              <ArrowRight className="h-3 w-3" />
-            </Button>
-          </Link>
+          {/* Care Management - only after visit is scheduled */}
+          {isVisitScheduled && (
+            <Link to="/family/care-management">
+              <Button variant="outline" size="sm" className="flex items-center gap-1">
+                <Clipboard className="h-4 w-4" />
+                <span>Care Management</span>
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          )}
 
-          {/* Conditional Visit Scheduled button - distinctive styling */}
+          {/* Visit Scheduled confirmation */}
           {isVisitScheduled && (
             <Link 
               to="/family/care-journey-progress#scheduling"

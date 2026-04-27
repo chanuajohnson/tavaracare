@@ -13,7 +13,7 @@ import { Slider } from "@/components/ui/slider";
 import { useTracking } from "@/hooks/useTracking";
 import { toast } from "sonner";
 import { useFamilyMatches } from "@/hooks/useFamilyMatches";
-import { ProfessionalFamilyChatModal } from "./ProfessionalFamilyChatModal";
+import { openFamilyWhatsApp } from '@/utils/whatsapp/openFamilyWhatsApp';
 import { VideoAvailabilityToggle } from "./VideoAvailabilityToggle";
 import { ProfessionalFamilyMatchModal } from "./ProfessionalFamilyMatchModal";
 
@@ -34,7 +34,7 @@ export const DashboardFamilyMatches = () => {
   const [specialNeeds, setSpecialNeeds] = useState<string[]>([]);
   const [scheduleType, setScheduleType] = useState<string>("all");
   const [maxDistance, setMaxDistance] = useState<number>(30);
-  const [budgetRange, setBudgetRange] = useState<[number, number]>([15, 50]);
+  const [budgetRange, setBudgetRange] = useState<[number, number]>([35, 60]);
   const [minCompatibility, setMinCompatibility] = useState<number>(0);
 
   const careTypeOptions = ["Elderly Care", "Child Care", "Special Needs", "Medical Support", "Overnight Care", "Companionship", "Housekeeping"];
@@ -137,8 +137,7 @@ export const DashboardFamilyMatches = () => {
       family_id: family.id,
       source: 'dashboard_widget'
     });
-    setSelectedFamily(family);
-    setShowChatModal(true);
+    openFamilyWhatsApp(family.full_name, family.match_score, family.location);
   };
 
   const getCompatibilityColor = (score: number) => {
@@ -224,8 +223,8 @@ export const DashboardFamilyMatches = () => {
                   </Label>
                   <Slider 
                     value={budgetRange} 
-                    min={15} 
-                    max={50} 
+                    min={35} 
+                    max={60} 
                     step={5} 
                     onValueChange={(value) => setBudgetRange(value as [number, number])} 
                   />
@@ -267,14 +266,16 @@ export const DashboardFamilyMatches = () => {
                       <Avatar className="h-16 w-16 border-2 border-primary/20">
                         <AvatarImage src={family.avatar_url || undefined} />
                         <AvatarFallback className="bg-primary-100 text-primary-800 text-xl">
-                          FU
+                          {family.full_name
+                            ? family.full_name.split(' ').filter(Boolean).map((p: string) => p[0]).join('').substring(0, 2).toUpperCase()
+                            : 'FM'}
                         </AvatarFallback>
                       </Avatar>
                       
                       <div className="mt-2 text-center sm:text-left">
-                        <h3 className="font-semibold">Family User</h3>
-                        <div className="text-xs text-blue-600 mt-1">
-                          * Name protected until connected
+                        <h3 className="font-semibold">{family.full_name?.split(' ')[0] || 'Family'}</h3>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Family seeking care
                         </div>
                         <div className="text-xs text-gray-500 font-mono mt-1">
                           ID: {family.id?.substring(0, 8) || 'N/A'}
@@ -396,23 +397,21 @@ export const DashboardFamilyMatches = () => {
             </div>
           ) : (
             <div className="text-center py-6">
-              <p className="text-gray-500 mb-4">No family matches found</p>
-              <Button onClick={() => setShowFilters(true)} variant="outline">
-                Adjust Filters
+              <Sparkles className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground mb-2 font-medium">No families available right now</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Check back soon or browse urgent family requests.
+              </p>
+              <Button onClick={() => navigate('/urgent-families')} variant="outline">
+                Browse Urgent Families
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Professional Family Chat Modal */}
-      {selectedFamily && (
-        <ProfessionalFamilyChatModal
-          open={showChatModal}
-          onOpenChange={setShowChatModal}
-          family={selectedFamily}
-        />
-      )}
+      {/* Chat now routes directly to WhatsApp via openFamilyWhatsApp */}
 
       {/* Professional Family Match Modal */}
       <ProfessionalFamilyMatchModal

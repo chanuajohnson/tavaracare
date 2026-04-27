@@ -21,6 +21,7 @@ export interface UnifiedMatch {
   match_score: number;
   avatar_url?: string | null;
   full_name?: string | null;            // not displayed (privacy), still useful
+  first_name?: string | null;           // displayed on match cards for personability
   location?: string | null;
 
   // 🔽 used by DashboardCaregiverMatches
@@ -247,6 +248,7 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
             .from('profiles')
             .select(`
               id,
+              first_name,
               full_name,
               avatar_url,
               location,
@@ -272,7 +274,8 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               other_certification,
               phone_number,
               address,
-              role
+              role,
+              available_for_matching
             `)
             .in('id', caregiverIds)
             .eq('role', 'professional');
@@ -307,6 +310,10 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               (publicProfiles || []).forEach((p: any) => caregiverProfileMap.set(p.id, p));
             }
           }
+
+          // Show all active assignments — available_for_matching only controls the discovery pool,
+          // not whether an already-assigned caregiver appears for their family
+          console.log('useUnifiedMatches: Using all active assignments:', assignmentData.length);
 
           // Transform assignments into matches with enhanced caregiver data
           const processedMatches = assignmentData.map((assignment: any) => {
@@ -378,7 +385,17 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
                 case 'nurse': return 'Registered Nurse';
                 case 'cna': return 'Certified Nursing Assistant';
                 case 'aide': return 'Professional Care Aide';
-                default: return type;
+                case 'hha': return 'Home Health Aide';
+                case 'elderly': return 'Elderly Care Specialist';
+                case 'special_needs': return 'Special Needs Caregiver';
+                case 'companion': return 'Companion Caregiver';
+                case 'live_in': return 'Live-in Caregiver';
+                case 'other': return 'Professional Caregiver';
+                default: {
+                  // Title-case the value: some_type → Some Type
+                  const formatted = type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                  return formatted || 'Professional Caregiver';
+                }
               }
             };
             const getPrimaryCareServices = (services: string[] | null | undefined, types: string[] | null | undefined) => {
@@ -389,6 +406,7 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
             
             return {
               id: caregiver.id,
+              first_name: caregiver.first_name,
               full_name: caregiver.full_name,
               avatar_url: caregiver.avatar_url,
               location: caregiver?.location ?? null,
@@ -551,6 +569,30 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
 
   useEffect(() => {
     loadMatches();
+  }, [loadMatches]);
+
+  // Real-time subscription: refresh when caregiver availability changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('caregiver-availability-sync')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: 'role=eq.professional'
+        },
+        () => {
+          console.log('useUnifiedMatches: Caregiver availability changed, refreshing matches');
+          loadMatches();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [loadMatches]);
 
   return {

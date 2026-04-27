@@ -1,9 +1,9 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { EyeIcon, EyeOffIcon, Loader2 } from "lucide-react";
+import { EyeIcon, EyeOffIcon, Loader2, ShieldCheck, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface LoginFormProps {
@@ -12,11 +12,32 @@ interface LoginFormProps {
   onForgotPassword: (email: string) => void;
 }
 
+const PERSISTENCE_BANNER_KEY = 'tavara_persistence_banner_dismissed';
+
 export function LoginForm({ onSubmit, isLoading, onForgotPassword }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [localLoading, setLocalLoading] = useState(false);
+  const [showPersistenceBanner, setShowPersistenceBanner] = useState(false);
+
+  useEffect(() => {
+    try {
+      const dismissed = localStorage.getItem(PERSISTENCE_BANNER_KEY);
+      if (!dismissed) setShowPersistenceBanner(true);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const dismissPersistenceBanner = () => {
+    setShowPersistenceBanner(false);
+    try {
+      localStorage.setItem(PERSISTENCE_BANNER_KEY, '1');
+    } catch {
+      // ignore
+    }
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +73,26 @@ export function LoginForm({ onSubmit, isLoading, onForgotPassword }: LoginFormPr
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {showPersistenceBanner && (
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 flex items-start gap-2">
+          <ShieldCheck className="h-4 w-4 text-emerald-700 mt-0.5 shrink-0" />
+          <div className="flex-1 text-xs text-emerald-900">
+            <p className="font-medium">Stay signed in on this device</p>
+            <p className="mt-0.5 text-emerald-800">
+              Tavara keeps you signed in for ~30 days. Avoid private/incognito mode and
+              don't clear cookies for tavara.care if you want to stay logged in.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={dismissPersistenceBanner}
+            aria-label="Dismiss"
+            className="text-emerald-700 hover:text-emerald-900 shrink-0"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input

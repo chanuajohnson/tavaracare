@@ -6,11 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sparkles, MessageCircle, Video, MapPin, Clock, DollarSign, Star } from 'lucide-react';
 import { useFamilyMatches } from '@/hooks/useFamilyMatches';
+import { openFamilyWhatsApp } from '@/utils/whatsapp/openFamilyWhatsApp';
 
 interface ProfessionalFamilyMatchModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onChatWithFamily?: (family: any) => void;
+  onChatWithFamily?: (family: any) => void; // preserved for future use
 }
 
 export const ProfessionalFamilyMatchModal = ({ 
@@ -94,13 +95,15 @@ export const ProfessionalFamilyMatchModal = ({
                     <Avatar className="h-16 w-16 border-2 border-primary/20">
                       <AvatarImage src={bestMatch.avatar_url || undefined} />
                       <AvatarFallback className="bg-primary-100 text-primary-800 text-xl">
-                        F
+                        {bestMatch.full_name
+                          ? bestMatch.full_name.split(' ').filter(Boolean).map((p: string) => p[0]).join('').substring(0, 2).toUpperCase()
+                          : 'FM'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-lg">Family Member</h3>
-                      <div className="text-xs text-blue-600 mt-1">
-                        * Name protected until connected
+                      <h3 className="font-semibold text-lg">{bestMatch.full_name?.split(' ')[0] || 'Family'}</h3>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Family seeking care
                       </div>
                       <div className="text-xs text-gray-500 font-mono mt-1">
                         ID: {bestMatch.id?.substring(0, 8) || 'N/A'}
@@ -190,14 +193,12 @@ export const ProfessionalFamilyMatchModal = ({
                   variant="default" 
                   className="w-full flex items-center gap-2"
                   onClick={() => {
-                    if (onChatWithFamily) {
-                      onChatWithFamily(bestMatch);
-                    }
+                    openFamilyWhatsApp(bestMatch.full_name, bestMatch.match_score, bestMatch.location);
                     onOpenChange(false);
                   }}
                 >
                   <MessageCircle className="h-4 w-4" />
-                  Start Conversation
+                  Chat on WhatsApp
                 </Button>
                 
                 <Button 
@@ -219,11 +220,21 @@ export const ProfessionalFamilyMatchModal = ({
             </div>
           ) : (
             <div className="text-center py-8">
-              <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-medium text-gray-600">No Family Matches Found</h3>
-              <p className="text-gray-500 mt-2">
-                Complete your professional profile to get matched with families.
+              <Sparkles className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-medium text-foreground">No Family Matches Right Now</h3>
+              <p className="text-muted-foreground mt-2">
+                There are no families currently available for matching. Browse urgent family requests to find opportunities.
               </p>
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => {
+                  onOpenChange(false);
+                  window.location.href = '/urgent-families';
+                }}
+              >
+                Browse Urgent Families
+              </Button>
             </div>
           )}
         </div>

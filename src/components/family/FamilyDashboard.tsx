@@ -3,17 +3,129 @@ import { useEffect, useState } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, FileText, UserCog, Building, Users, ChevronDown, ChevronUp, Heart, Calendar, User, MessageCircle } from "lucide-react";
+import { ArrowRight, FileText, UserCog, Building, Users, ChevronDown, ChevronUp, Heart, Calendar, User, MessageCircle, DollarSign, X } from "lucide-react";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { EnhancedFamilyNextStepsPanel } from "@/components/family/EnhancedFamilyNextStepsPanel";
+import { useFamilyStage } from "@/hooks/useFamilyStage";
+import { FamilyReadinessQuickAccess } from "@/components/family/FamilyReadinessQuickAccess";
+import { readQuizProgress, countAnswered } from "@/data/familyReadinessQuiz";
+import { CaregiverReadinessCard } from "@/components/family/CaregiverReadinessCard";
 import { FamilyReadinessChecker } from "@/components/family/FamilyReadinessChecker";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
+import { DailyCareQuickView } from "@/components/family/DailyCareQuickView";
+import { SchedulingStatusBanner } from "@/components/family/SchedulingStatusBanner";
+import { ScheduleVisitModal } from "@/components/family/ScheduleVisitModal";
 import { ProfessionalChatRequestsSection } from "@/components/family/ProfessionalChatRequestsSection";
+import { FamilyMatchNotification } from "@/components/family/FamilyMatchNotification";
 import { LeadCaptureModal } from "@/components/family/LeadCaptureModal";
 import { CaregiverMatchingModal } from "@/components/family/CaregiverMatchingModal";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 import { toast } from "sonner";
+
+/**
+ * Soft banner inviting families who haven't taken the readiness quiz to do so.
+ * Hidden once `client_stage` is set in their profile or localStorage.
+ * Becomes progress-aware when in-progress quiz data exists.
+ */
+const ReadinessQuizBanner = () => {
+  const { hasStage, isLoading } = useFamilyStage();
+  const [progressInfo, setProgressInfo] = useState<{ answered: number; total: number } | null>(null);
+
+  useEffect(() => {
+    const p = readQuizProgress();
+    if (p) {
+      const answered = countAnswered(p.answers);
+      if (answered > 0 && answered < p.answers.length) {
+        setProgressInfo({ answered, total: p.answers.length });
+      }
+    }
+  }, []);
+
+  if (isLoading || hasStage) return null;
+
+  const hasProgress = !!progressInfo;
+  return (
+    <Link
+      to="/family/readiness-quiz"
+      className="block mt-6 rounded-lg border-l-4 border-l-primary bg-primary/5 hover:bg-primary/10 transition-colors px-4 py-3"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">
+            {hasProgress
+              ? `Finish your readiness check (${progressInfo!.answered} of ${progressInfo!.total} answered)`
+              : "How are you doing today?"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {hasProgress
+              ? "Pick up where you left off — about 30 seconds to finish."
+              : "Take a 60-second emotional check-in so we can meet you where you actually are — not where the platform assumes."}
+          </p>
+        </div>
+        <ArrowRight className="h-4 w-4 text-primary shrink-0" />
+      </div>
+    </Link>
+  );
+};
+
+/**
+ * Stage-4-only nudge: families past the basics often just need someone to
+ * keep the house stocked. Dismissible, persisted in localStorage.
+ */
+const STAGE4_SUPPLY_NUDGE_KEY = "tavara_stage4_supply_nudge_dismissed";
+const Stage4SupplyNudge = () => {
+  const { stage, hasStage, isLoading } = useFamilyStage();
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return localStorage.getItem(STAGE4_SUPPLY_NUDGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  if (isLoading || !hasStage || stage !== 4 || dismissed) return null;
+
+  const handleDismiss = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      localStorage.setItem(STAGE4_SUPPLY_NUDGE_KEY, "true");
+    } catch {
+      // ignore
+    }
+    setDismissed(true);
+  };
+
+  return (
+    <Link
+      to="/errands#supplies"
+      className="block mt-4 rounded-lg border-l-4 border-l-rose-500 bg-rose-50/70 hover:bg-rose-100/70 transition-colors px-4 py-3"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">
+            📦 Tired of holding the list?
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Set up recurring delivery for groceries, meds, and household consumables. We deliver on your schedule.
+          </p>
+          <p className="text-xs font-medium text-rose-700 mt-1.5 inline-flex items-center gap-1">
+            Set it up <ArrowRight className="h-3 w-3" />
+          </p>
+        </div>
+        <button
+          onClick={handleDismiss}
+          aria-label="Dismiss"
+          className="text-muted-foreground hover:text-foreground shrink-0 -mt-1 -mr-1 p-1"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </Link>
+  );
+};
 
 const FamilyDashboard = () => {
   const { user } = useAuth();
@@ -26,8 +138,23 @@ const FamilyDashboard = () => {
   // Dashboard-level caregiver matching modal state
   const [showDashboardCaregiverModal, setShowDashboardCaregiverModal] = useState(false);
   
-  // Get modal state from the hook instead of managing locally
-  const { setShowCaregiverMatchingModal } = useEnhancedJourneyProgress();
+  // Get modal state and journey data from the hook
+  const { setShowCaregiverMatchingModal, visitDetails, steps, agreedRate, weeklyHours, projectedWeeklyCost } = useEnhancedJourneyProgress();
+  
+  // Schedule modal state
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showRateInfo, setShowRateInfo] = useState(() => {
+    return localStorage.getItem('tavara_rate_info_dismissed') !== 'true';
+  });
+  
+  // Check if user has caregiver matches (step 7 completed)
+  const caregiverMatchesStep = steps.find(s => s.step_number === 7);
+  const hasMatches = !!caregiverMatchesStep?.completed;
+  
+  // Check if caregiver is already assigned (step 9) or care model chosen (step 15)
+  const caregiverAssignedStep = steps.find(s => s.step_number === 9);
+  const careModelStep = steps.find(s => s.step_number === 15);
+  const hasCaregiverAssigned = !!caregiverAssignedStep?.completed || !!careModelStep?.completed;
   
   useEffect(() => {
     const scrollToTop = () => {
@@ -95,7 +222,103 @@ const FamilyDashboard = () => {
         </motion.div>
 
         {/* Quick Access Menu Bar - Pass the dashboard caregiver matches handler */}
-        {user && <FamilyShortcutMenuBar onCaregiverMatchesClick={handleQuickAccessCaregiverMatches} />}
+        {user && (
+          <FamilyShortcutMenuBar 
+            onCaregiverMatchesClick={handleQuickAccessCaregiverMatches} 
+            onScheduleCareClick={() => setShowScheduleModal(true)}
+          />
+        )}
+
+        {/* Readiness check — emotional check-in. Positioned high so families
+            see it before scrolling. Only one of ReadinessQuizBanner /
+            FamilyReadinessQuickAccess renders at a time (gated on hasStage),
+            and Stage4SupplyNudge only appears at stage 4. */}
+        {user && <ReadinessQuizBanner />}
+
+        {/* Daily Care Quick View — today's meds & nurse logs */}
+        <DailyCareQuickView />
+
+        {user && <FamilyReadinessQuickAccess />}
+        {user && <Stage4SupplyNudge />}
+
+        {/* Rate Information Blurb */}
+        {showRateInfo && (
+          <div className="mt-4">
+            <Collapsible defaultOpen={false}>
+              <Card className="bg-blue-50 border-blue-200 relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-2 right-2 h-6 w-6 p-0 text-muted-foreground hover:text-foreground z-10"
+                  onClick={() => {
+                    setShowRateInfo(false);
+                    localStorage.setItem('tavara_rate_info_dismissed', 'true');
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <CollapsibleTrigger asChild>
+                  <button className="w-full text-left">
+                    <CardContent className="p-4 pr-10">
+                      <div className="flex items-center gap-3">
+                        <div className="p-1.5 bg-blue-100 rounded-lg shrink-0">
+                          <DollarSign className="h-5 w-5 text-blue-700" />
+                        </div>
+                        <div className="flex-1">
+                        <h4 className="font-semibold text-blue-900">
+                          {agreedRate ? 'Your Agreed Care Rate' : 'Tavara Care Rates'}
+                        </h4>
+                        <p className="text-sm text-blue-600">
+                          {agreedRate 
+                            ? `${agreedRate}${weeklyHours ? ` · ${weeklyHours} hrs/wk` : ''}${projectedWeeklyCost ? ` · ~$${projectedWeeklyCost.toLocaleString()}/wk` : ''}`
+                            : '$40–$50+/hr · Click to view tier details'
+                          }
+                        </p>
+                        </div>
+                        <ChevronDown className="h-4 w-4 text-blue-600 shrink-0 transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
+                      </div>
+                    </CardContent>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-0 px-4 pb-4">
+                    <div className="space-y-1 text-sm border-t border-blue-200 pt-3 ml-10">
+                      <p><span className="font-medium text-blue-800">$40/hr — Standard:</span> <span className="text-blue-700">GAPP-certified personal care, medication admin &amp; logging, vitals monitoring, basic daily dietary meal prep, daily care documentation, specialized care (dementia, palliative, post-surgical)</span></p>
+                      <p><span className="font-medium text-blue-800">$45/hr — Full Service (Recommended):</span> <span className="text-blue-700">Everything in Standard + specialist-directed meal prep (holidays &amp; special occasions), complex medical needs (wound/catheter/oxygen care), overnight/live-in shifts, advanced certifications (RN, LPN)</span></p>
+                      <p><span className="font-medium text-blue-800">$50+/hr — Premium:</span> <span className="text-blue-700">Everything in Full Service + care plan change management, disease progression support, multi-specialist coordination, 24/7 on-call, advanced palliative/end-of-life care, family training &amp; transition planning</span></p>
+                      <p className="text-xs text-blue-600 pt-1">These rates reflect the professional standards of certified caregivers in Trinidad &amp; Tobago.</p>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          </div>
+        )}
+
+        {user && (
+          <div className="mt-4">
+            <FamilyMatchNotification />
+          </div>
+        )}
+
+        {/* Scheduling status banner — amber CTA or green confirmation */}
+        {user && (
+          <div className="mt-4">
+            <SchedulingStatusBanner
+              hasMatches={hasMatches}
+              visitDetails={visitDetails}
+              onScheduleClick={() => setShowScheduleModal(true)}
+              hasCaregiverAssigned={hasCaregiverAssigned}
+            />
+          </div>
+        )}
+
+        {/* Caregiver Readiness Card — shows onboarding progress of assigned professional */}
+        {user && (
+          <div className="mt-4">
+            <CaregiverReadinessCard />
+          </div>
+        )}
 
         {user && (
           <motion.div
@@ -149,6 +372,8 @@ const FamilyDashboard = () => {
             </Card>
           </motion.div>
         ) : null}
+
+        {/* Readiness elements moved up — see directly after DailyCareQuickView */}
 
         <div className="mt-8">
           <EnhancedFamilyNextStepsPanel />
@@ -290,7 +515,7 @@ const FamilyDashboard = () => {
           </Card>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-8" id="family-caregiver-matches">
           <FamilyReadinessChecker />
         </div>
 
@@ -364,6 +589,12 @@ const FamilyDashboard = () => {
           onOpenChange={setShowDashboardCaregiverModal}
           referringPagePath="/dashboard/family"
           referringPageLabel="Family Dashboard"
+        />
+
+        {/* Schedule Visit Modal */}
+        <ScheduleVisitModal
+          open={showScheduleModal}
+          onOpenChange={setShowScheduleModal}
         />
       </div>
     </div>

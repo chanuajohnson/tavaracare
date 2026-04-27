@@ -25,6 +25,8 @@ export const ProfessionalJourneyStageCard: React.FC<ProfessionalJourneyStageCard
         return <Target className={iconClass} />;
       case 'qualification':
         return <FileCheck className={iconClass} />;
+      case 'vetting':
+        return <FileCheck className={iconClass} />;
       case 'matching':
         return <Calendar className={iconClass} />;
       case 'active':

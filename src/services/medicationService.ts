@@ -201,7 +201,7 @@ export class MedicationService {
 
       toast.success("Medication deleted successfully");
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error("[MedicationService] Exception in deleteMedication:", error);
       toast.error("Failed to delete medication");
       return false;
@@ -260,6 +260,30 @@ export class MedicationService {
       console.error("[MedicationService] Exception in recordAdministration:", error);
       toast.error("Failed to record administration");
       return null;
+    }
+  }
+
+  /**
+   * Delete (undo) a medication administration record
+   */
+  async deleteAdministration(administrationId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('medication_administrations')
+        .delete()
+        .eq('id', administrationId);
+
+      if (error) {
+        console.error("[MedicationService] Error deleting administration:", error);
+        throw error;
+      }
+
+      toast.success("Administration record removed");
+      return true;
+    } catch (error) {
+      console.error("[MedicationService] Exception in deleteAdministration:", error);
+      toast.error("Failed to remove administration record");
+      return false;
     }
   }
 

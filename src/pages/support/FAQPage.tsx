@@ -16,9 +16,27 @@ interface FAQ {
 
 const faqs: FAQ[] = [
   {
+    id: "faq-model-1",
+    question: "Is Tavara a care agency?",
+    answer: "No. Tavara is a Care Coordination & Management Platform. Families engage caregivers directly. Tavara coordinates matching, scheduling, training oversight, payroll calculation, and quality oversight — but is not an employment agency, placement agency, or employer of caregivers.",
+    category: "About Tavara's Model"
+  },
+  {
+    id: "faq-model-2",
+    question: "Who employs the caregiver?",
+    answer: "The family is the employer of record for NIS (National Insurance) purposes. Tavara handles NIS calculations, government form generation (NI 184, NI 187), and payroll coordination as a service — but the employment relationship is between the family and the caregiver.",
+    category: "About Tavara's Model"
+  },
+  {
+    id: "faq-model-3",
+    question: "What does Tavara's coordination fee cover?",
+    answer: "Caregiver matching, schedule coordination, payroll calculation, training oversight, dispute resolution, NIS form generation, daily care log oversight, and platform infrastructure. It does not cover caregiver compensation — that flows directly as a transparent pass-through from the family to the caregiver.",
+    category: "About Tavara's Model"
+  },
+  {
     id: "faq-1",
     question: "What is Tavara.care?",
-    answer: "Tavara.care is a care coordination platform designed to help families, care professionals, and communities connect for better caregiving solutions. We provide tools for care matching, task management, messaging, and professional networking, ensuring quality care experiences.",
+    answer: "Tavara.care is a Care Coordination & Management Platform designed to help families, care professionals, and communities connect for better caregiving solutions. We provide tools for care matching, task management, messaging, and professional networking, ensuring quality care experiences. Tavara is not an employment or placement agency — families engage caregivers directly.",
     category: "General"
   },
   {
@@ -78,7 +96,7 @@ const faqs: FAQ[] = [
   {
     id: "faq-11",
     question: "What are the subscription plans and pricing?",
-    answer: "Plan Name | Features Included | Price\n\n---|---|---\nFamily Basic | Limited access to caregiver search and messaging | Free\nFamily Care | Unlimited profile views, direct messaging, and posting care needs | $14.99/month\nFamily Premium | All 'Family Care' features + personalized matching and priority support | $29.99/month\nProfessional Pro | Enhanced profile visibility and unlimited job applications | $19.99/month\nProfessional Expert | Complete feature access, priority matching, and advanced analytics | $34.99/month",
+    answer: "Family Plans:\n\n✔ Family Basic (Free) — Complete profile & care preferences, initial care needs assessment, Legacy Story for your loved one, instant caregiver matching, medication management & scheduling, meal planning & grocery lists, unlimited caregiver chat, email & community support.\n\n🚀 Active Care Management ($699/week or $2,499/month) — All Basic features plus dedicated care coordinator, structured weekly care coordination, oversight, billing support, and managed care.\n\n🚀 Premium Care Management ($899/week or $3,299/month) — All Active Care features plus concierge-level coordination, 24/7 on-call support, priority matching, and complex family care management.\n\nProfessional Plans:\n\n✔ Professional Basic (Free) — Limited access to essential features.\n🚀 Professional Pro ($19.99/month) — Enhanced profile visibility and unlimited job applications.\n🚀 Professional Expert ($34.99/month) — Complete feature access, priority matching, and advanced analytics.",
     category: "Subscription & Pricing"
   },
   {
@@ -128,6 +146,24 @@ const faqs: FAQ[] = [
     question: "Still have questions?",
     answer: "If you couldn't find what you're looking for, feel free to:\n\n✔ Visit our Help Center\n✔ Reach out via WhatsApp Support\n✔ Submit a Support Ticket",
     category: "Support"
+  },
+  {
+    id: "faq-20",
+    question: "What are the caregiver hourly rates?",
+    answer: "Tavara Care uses a standardized three-tier pricing structure for caregiver rates:\n\n💙 Standard Care — $40/hr\nFor families using Tavara's care coordination platform with their own scheduling and management.\n\n💙 Full Service Care — $45/hr\nFor families on an Active or Premium Care Management plan, where Tavara handles scheduling, coordination, and oversight.\n\n💙 Premium/Specialized Care — $50+/hr\nFor specialized care needs such as dementia care, post-surgical recovery, or palliative support.\n\nRates are set transparently and apply consistently across all families. Legacy families who joined before rate updates may retain their original rates as a loyalty benefit.",
+    category: "Care Matching & Services"
+  },
+  {
+    id: "faq-21",
+    question: "How does care plan pricing work?",
+    answer: "Tavara offers two managed care coordination plans:\n\n🚀 Active Care Management — $699/week ($2,499/month)\nIncludes a dedicated care coordinator, structured weekly care coordination, caregiver oversight, billing support, and managed care.\n\n🚀 Premium Care Management — $899/week ($3,299/month)\nIncludes all Active Care features plus concierge-level coordination, 24/7 on-call support, priority matching, and complex family care management.\n\nAdditional one-time services:\n✔ Caregiver Matching & Placement — $299\n✔ Care Assessment & Setup — $499\n\nThese may be waived for early adopters or as part of promotional offers.",
+    category: "Care Management"
+  },
+  {
+    id: "faq-22",
+    question: "Are there discounts for early adopters or legacy families?",
+    answer: "Yes! Tavara honors legacy pricing for families who joined during our early growth phase. This means:\n\n✔ Your original care management rate is preserved (e.g., $499/week instead of $699/week)\n✔ Your caregiver hourly rate remains at the rate agreed upon at the time of hire\n✔ One-time fees such as Caregiver Matching & Placement or Care Assessment & Setup may have been waived\n\nAll legacy pricing is clearly displayed in your billing summary with 'Discounted' or 'Waived' labels for full transparency. We believe in rewarding trust — if you were with us early, you keep your rate.",
+    category: "Subscription & Pricing"
   }
 ];
 

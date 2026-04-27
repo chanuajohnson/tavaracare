@@ -1,6 +1,10 @@
 import { motion } from "framer-motion";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { EnhancedProfessionalNextStepsPanel } from "@/components/professional/EnhancedProfessionalNextStepsPanel";
+import { ProfessionalFamilyAwarenessBanner } from "@/components/professional/ProfessionalFamilyAwarenessBanner";
+import { ProfessionalFamilyMatchNotification } from "@/components/professional/ProfessionalFamilyMatchNotification";
+import { ProfessionalMatchingReadinessBanner } from "@/components/professional/ProfessionalMatchingReadinessBanner";
 import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
 import { TrainingProgressTracker } from "@/components/professional/TrainingProgressTracker";
 import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
@@ -14,6 +18,7 @@ import { Link } from "react-router-dom";
 import { Users, Briefcase, ChevronDown, ChevronUp, TrendingUp, Target, AlertCircle } from "lucide-react";
 import { UserJourneyTracker } from "@/components/tracking/UserJourneyTracker";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
+import { PlatformPositioningDisclaimer } from "@/components/shared/PlatformPositioningDisclaimer";
 import { useState, useEffect } from "react";
 
 const ProfessionalDashboard = () => {
@@ -139,6 +144,11 @@ const ProfessionalDashboard = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
+            {/* Family Match Notification + Awareness & Readiness Banners */}
+            <ProfessionalFamilyMatchNotification />
+            <ProfessionalFamilyAwarenessBanner />
+            <ProfessionalMatchingReadinessBanner />
+
             {/* Manual Match Notifications */}
             <ManualMatchNotification />
             
@@ -290,6 +300,9 @@ const ProfessionalDashboard = () => {
                 </CardContent>
               </Card>
             </motion.div>
+          </div>
+          <div className="container mx-auto px-4 mt-6">
+            <PlatformPositioningDisclaimer variant="compact" />
           </div>
         </div>
       </div>

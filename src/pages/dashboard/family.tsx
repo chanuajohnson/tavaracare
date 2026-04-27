@@ -6,9 +6,10 @@ import { ScheduleVisitModal } from "@/components/family/ScheduleVisitModal";
 import { CancelVisitModal } from "@/components/family/CancelVisitModal";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 import FamilyDashboard from "@/components/family/FamilyDashboard";
+import { PlatformPositioningDisclaimer } from "@/components/shared/PlatformPositioningDisclaimer";
 
 export default function FamilyDashboardPage() {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const {
     loading,
     showScheduleModal,
@@ -26,8 +27,19 @@ export default function FamilyDashboardPage() {
     if (!user) {
       console.log('No user found, redirecting to auth');
       navigate('/auth');
+      return;
     }
-  }, [user, navigate]);
+    // Role guard: redirect non-family users to their correct dashboard
+    if (userRole && userRole !== 'family') {
+      console.log(`User role is "${userRole}", redirecting to correct dashboard`);
+      const roleRoutes: Record<string, string> = {
+        professional: '/dashboard/professional',
+        community: '/dashboard/community',
+        admin: '/dashboard/admin',
+      };
+      navigate(roleRoutes[userRole] || '/');
+    }
+  }, [user, userRole, navigate]);
 
   // Add debugging for journey progress
   useEffect(() => {
@@ -61,6 +73,7 @@ export default function FamilyDashboardPage() {
 
       <main className="container mx-auto px-4 pb-8">
         <FamilyDashboard />
+        <PlatformPositioningDisclaimer variant="compact" />
       </main>
 
       <ScheduleVisitModal

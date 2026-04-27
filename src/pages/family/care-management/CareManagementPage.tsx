@@ -6,8 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
-import { FileText, Plus, Users, Calendar, ArrowLeft, Clock, Pill, PenSquare, ActivitySquare, ChefHat, Eye } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FileText, Plus, Users, Calendar, ArrowLeft, Clock, Pill, PenSquare, ActivitySquare, ChefHat, Eye, Bell } from "lucide-react";
 import { fetchCarePlans, CarePlan } from "@/services/care-plans";
+import { fetchRecentAdminEditsForFamily, CarePlanEditLogEntry } from "@/services/care-plans/carePlanEditLog";
 import { toast } from "sonner";
 
 const CareManagementPage = () => {
@@ -15,6 +17,7 @@ const CareManagementPage = () => {
   const navigate = useNavigate();
   const [carePlans, setCarePlans] = useState<CarePlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adminEdits, setAdminEdits] = useState<CarePlanEditLogEntry[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -29,6 +32,10 @@ const CareManagementPage = () => {
       setLoading(true);
       const plans = await fetchCarePlans(userId);
       setCarePlans(plans);
+      
+      // Load recent admin edits
+      const edits = await fetchRecentAdminEditsForFamily(userId);
+      setAdminEdits(edits);
     } catch (error) {
       console.error("Error fetching care plans:", error);
       toast.error("Failed to load care plans");
@@ -108,6 +115,23 @@ const CareManagementPage = () => {
           </div>
         </div>
 
+        {/* Admin Edit Notifications */}
+        {adminEdits.length > 0 && (
+          <Alert className="mb-6 border-blue-200 bg-blue-50">
+            <Bell className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              <strong>Recent updates by your care coordinator:</strong>
+              <ul className="mt-1 space-y-1">
+                {adminEdits.slice(0, 3).map((edit) => (
+                  <li key={edit.id} className="text-sm">
+                    • {edit.edit_summary} — {edit.editor_name} ({new Date(edit.created_at).toLocaleDateString()})
+                  </li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -185,11 +209,11 @@ const CareManagementPage = () => {
                     <FileText className="h-5 w-5 text-primary" />
                     Care Plans
                   </CardTitle>
-                  <CardDescription>View and edit care plan details, schedule, team, and payroll</CardDescription>
+                  <CardDescription>View and edit care plan details, schedule, team, and care payments</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Access comprehensive care plan management including scheduling, team coordination, and payroll tracking.
+                    Access comprehensive care plan management including scheduling, team coordination, and care payment tracking.
                   </p>
                   {carePlans.length > 0 ? (
                     <div className="space-y-2">

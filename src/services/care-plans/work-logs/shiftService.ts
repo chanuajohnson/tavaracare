@@ -39,6 +39,33 @@ const checkDuplicateWorkLog = async (
   }
 };
 
+export const bulkCreateWorkLogsForShifts = async (
+  shifts: CareShift[],
+  notes: string = '',
+  options: CreateWorkLogOptions = {},
+  onProgress?: (current: number, total: number) => void
+): Promise<{ created: number; skipped: number; failed: number }> => {
+  let created = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  for (let i = 0; i < shifts.length; i++) {
+    const shift = shifts[i];
+    onProgress?.(i + 1, shifts.length);
+
+    const result = await createWorkLogFromShift(shift, notes, options);
+    if (result.success) {
+      created++;
+    } else if (result.error?.includes('already exists')) {
+      skipped++;
+    } else {
+      failed++;
+    }
+  }
+
+  return { created, skipped, failed };
+};
+
 export const createWorkLogFromShift = async (
   shift: CareShift, 
   notes: string = '',
@@ -70,7 +97,6 @@ export const createWorkLogFromShift = async (
     );
 
     if (isDuplicate) {
-      toast.error("These hours have already been submitted for this shift");
       return { 
         success: false, 
         error: "A work log already exists for this shift and caregiver" 
@@ -92,7 +118,6 @@ export const createWorkLogFromShift = async (
     return await createWorkLog(workLogInput);
   } catch (error: any) {
     console.error("Error creating work log from shift:", error);
-    toast.error("Failed to create work log");
     return { success: false, error: error.message };
   }
 };

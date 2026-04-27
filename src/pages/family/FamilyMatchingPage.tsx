@@ -1,92 +1,60 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Eye } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { MatchingTracker } from "@/components/tracking/MatchingTracker";
 import { useUnifiedMatches } from "@/hooks/useUnifiedMatches";
-import { SimpleMatchCard } from "@/components/family/SimpleMatchCard";
-import { CaregiverChatModal } from "@/components/family/CaregiverChatModal";
-import { FamilyCaregiverLiveChatModal } from "@/components/family/FamilyCaregiverLiveChatModal";
 import { MatchBrowserModal } from "@/components/family/MatchBrowserModal";
 import { MatchDetailModal } from "@/components/family/MatchDetailModal";
 import { MatchLoadingState } from "@/components/ui/match-loading-state";
 import { FamilyMatchGrid } from "@/components/family/FamilyMatchGrid";
-import { checkChatEligibilityForFamily, shouldUseLiveChatForCaregiver } from "@/services/chat/chatEligibility";
-import { toast } from "sonner";
+import { openCaregiverWhatsApp } from "@/utils/whatsapp/openCaregiverWhatsApp";
 
 const FamilyMatchingPage = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [showChatModal, setShowChatModal] = useState(false);
-  const [showLiveChatModal, setShowLiveChatModal] = useState(false);
   const [showBrowserModal, setShowBrowserModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCaregiver, setSelectedCaregiver] = useState<any>(null);
-  const { matches } = useUnifiedMatches('family', false); // Show all matches
+  const { matches } = useUnifiedMatches('family', false);
 
   const breadcrumbItems = [
     { label: "Family Dashboard", path: "/dashboard/family" },
     { label: "Caregiver Matching", path: "/family/matching" },
   ];
 
-  const bestMatch = matches[0];
+  const getDisplayLabel = (cg: any) => {
+    const typeMap: Record<string, string> = {
+      gapp: "GAPP Certified",
+      nurse: "Registered Nurse",
+      cna: "Certified Nursing Assistant",
+      aide: "Professional Care Aide",
+      hha: "Home Health Aide",
+      elderly: "Elderly Care Specialist",
+      special_needs: "Special Needs Caregiver",
+      companion: "Companion Caregiver",
+      live_in: "Live-in Caregiver",
+      other: "Professional Caregiver",
+    };
+    const type = cg?.professional_type?.toLowerCase();
+    if (type && typeMap[type]) return typeMap[type];
+    if (type) return type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+    return "Professional Caregiver";
+  };
 
-  const handleStartChat = async (caregiverId?: string) => {
-    console.log('[FamilyMatchingPage] DEBUG - handleStartChat called:', {
-      caregiverId,
-      totalMatches: matches.length,
-      matchesData: matches.map(m => ({ id: m.id, name: m.full_name, hasData: !!(m.id && m.full_name) })),
-      component: 'FamilyMatchingPage',
-      timestamp: new Date().toISOString()
-    });
+  const handleChatWhatsApp = (caregiverId?: string) => {
+    const caregiver = caregiverId
+      ? matches.find(m => m.id === caregiverId) || matches[0]
+      : matches[0];
+    
+    if (!caregiver) return;
 
-    const caregiver = caregiverId 
-      ? matches.find(m => m.id === caregiverId) || bestMatch
-      : bestMatch;
-    
-    if (!caregiver) {
-      console.error('[FamilyMatchingPage] ERROR - No caregiver found:', {
-        searchedId: caregiverId,
-        hasBestMatch: !!bestMatch,
-        totalMatches: matches.length,
-        availableIds: matches.map(m => m.id)
-      });
-      return;
-    }
-
-    console.log('[FamilyMatchingPage] DEBUG - Found caregiver:', {
-      caregiver,
-      hasId: !!caregiver.id,
-      hasName: !!caregiver.full_name,
-      hasLocation: !!caregiver.location,
-      hasCareTypes: !!(caregiver.care_types?.length),
-      component: 'FamilyMatchingPage'
-    });
-    
-    setSelectedCaregiver(caregiver);
-    
-    // Use unified chat eligibility logic - same as dashboard
-    const canChat = await checkChatEligibilityForFamily();
-    if (!canChat) {
-      toast.error('Complete your profile and care assessment to start chatting');
-      return;
-    }
-
-    // CONSISTENCY FIX: Force TAV-guided chat for all users
-    const useLiveChat = await shouldUseLiveChatForCaregiver(caregiver.id);
-    console.debug('[FamilyMatchingPage] BEFORE consistency override:', { 
-      caregiverId: caregiver.id, 
-      useLiveChat,
-      timestamp: new Date().toISOString(),
-      component: 'FamilyMatchingPage'
-    });
-    
-    // FORCE TAV-guided chat for consistency
-    console.debug('[FamilyMatchingPage] FORCING TAV-guided chat for consistency');
-    setShowChatModal(true); // Always use structured chat
+    const label = getDisplayLabel(caregiver);
+    const matchScore = caregiver.match_score ?? 90;
+    openCaregiverWhatsApp(label, matchScore, caregiver.location);
   };
 
   const handleViewDetails = (caregiverId: string) => {
@@ -150,7 +118,7 @@ const FamilyMatchingPage = () => {
                 <h3 className="text-lg font-semibold text-blue-900">Premium Matching Service 💬</h3>
               </div>
               <p className="text-blue-800 mb-4">
-                Start a TAV-moderated conversation with your match! Get 3 messages per day to learn about their 
+                Chat with us on WhatsApp about your match! Get to know their 
                 experience and approach. Upgrade for unlimited messaging and direct contact information.
               </p>
               <SubscriptionFeatureLink
@@ -169,12 +137,12 @@ const FamilyMatchingPage = () => {
           {/* Caregiver Matches Grid */}
           <FamilyMatchGrid
             matches={matches}
-            onChatClick={handleStartChat}
+            onChatClick={handleChatWhatsApp}
             onViewDetails={handleViewDetails}
             onViewAll={() => setShowBrowserModal(true)}
           />
 
-          {/* Why Only One Match Notice */}
+          {/* Why start with chat? */}
           <Card className="bg-amber-50 border-amber-200">
             <CardContent className="p-4">
               <div className="flex items-start space-x-3">
@@ -182,7 +150,7 @@ const FamilyMatchingPage = () => {
                 <div>
                   <h4 className="font-medium text-amber-900 mb-1">Why start with chat?</h4>
                   <p className="text-sm text-amber-800">
-                    TAV moderates your conversation to keep it professional and safe. Get to know your caregiver's 
+                    Chat with us on WhatsApp to discuss your caregiver's 
                     experience and approach before upgrading to full contact information and unlimited matches.
                   </p>
                 </div>
@@ -192,28 +160,12 @@ const FamilyMatchingPage = () => {
         </motion.div>
       </div>
 
-      {/* Chat Modals - Unified System */}
-      {selectedCaregiver && (
-        <>
-          <CaregiverChatModal
-            open={showChatModal}
-            onOpenChange={setShowChatModal}
-            caregiver={selectedCaregiver}
-          />
-          <FamilyCaregiverLiveChatModal
-            open={showLiveChatModal}
-            onOpenChange={setShowLiveChatModal}
-            caregiver={selectedCaregiver}
-          />
-        </>
-      )}
-
       {/* Browse All Matches Modal */}
       <MatchBrowserModal
         open={showBrowserModal}
         onOpenChange={setShowBrowserModal}
         onSelectMatch={handleViewDetails}
-        onStartChat={handleStartChat}
+        onStartChat={handleChatWhatsApp}
       />
 
       {/* Match Detail Modal */}
@@ -224,23 +176,7 @@ const FamilyMatchingPage = () => {
         onStartChat={async () => {
           setShowDetailModal(false);
           if (selectedCaregiver) {
-            // Use unified chat eligibility logic - same as dashboard
-            const canChat = await checkChatEligibilityForFamily();
-            if (!canChat) {
-              toast.error('Complete your profile and care assessment to start chatting');
-              return;
-            }
-
-            // CONSISTENCY FIX: Force TAV-guided chat for all users
-            const useLiveChat = await shouldUseLiveChatForCaregiver(selectedCaregiver.id);
-            console.debug('[FamilyMatchingPage] Detail modal chat routing BEFORE override:', { 
-              caregiverId: selectedCaregiver.id, 
-              useLiveChat,
-              component: 'FamilyMatchingPage-DetailModal'
-            });
-            
-            // FORCE TAV-guided chat for consistency
-            setShowChatModal(true); // Always use structured chat
+            handleChatWhatsApp(selectedCaregiver.id);
           }
         }}
       />

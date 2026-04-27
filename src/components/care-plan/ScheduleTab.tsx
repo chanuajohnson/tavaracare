@@ -9,12 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { CalendarRange, Calendar, ChevronDown, Plus, Users, AlertTriangle, MessageSquare } from "lucide-react";
+import { CalendarRange, Calendar, ChevronDown, Plus, Users, AlertTriangle, MessageSquare, ClipboardList } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { ShiftCalendar } from "./ShiftCalendar";
 import { CareShift, CareShiftInput, CareTeamMemberWithProfile } from "@/types/careTypes";
 import { createCareShift, updateCareShift } from "@/services/care-plans";
 import { WorkLogForm } from './WorkLogForm';
+import { BulkWorkLogForm } from './work-logs/BulkWorkLogForm';
 import { EmergencyShiftWhatsAppModal } from './EmergencyShiftWhatsAppModal';
 import { ShareScheduleModal } from './ShareScheduleModal';
 import { toast } from "sonner";
@@ -64,6 +65,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
   const [workLogFormOpen, setWorkLogFormOpen] = useState(false);
   const [selectedShift, setSelectedShift] = useState<CareShift | null>(null);
   const [emergencyWhatsAppModalOpen, setEmergencyWhatsAppModalOpen] = useState(false);
+  const [bulkLogDialogOpen, setBulkLogDialogOpen] = useState(false);
   const [emergencyShiftData, setEmergencyShiftData] = useState<{
     shift: CareShift | null;
     reason: string;
@@ -248,7 +250,16 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                   className="flex items-center gap-2"
                 >
                   <MessageSquare className="h-4 w-4" />
-                  Share via WhatsApp
+                  <span className="hidden sm:inline">Share via WhatsApp</span>
+                </Button>
+
+                <Button
+                  onClick={() => setBulkLogDialogOpen(true)}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <ClipboardList className="h-4 w-4" />
+                  <span className="hidden sm:inline">Bulk Log Hours</span>
                 </Button>
                 
                 <Dialog open={shiftDialogOpen} onOpenChange={setShiftDialogOpen}>
@@ -315,7 +326,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                             </Label>
                             <Textarea
                               id="emergency-reason"
-                              placeholder="e.g., Assigned nurse called in sick, family emergency, etc."
+                              placeholder="e.g., Care team member called in sick, family emergency, etc."
                               value={newShift.emergencyReason}
                               onChange={(e) => setNewShift({...newShift, emergencyReason: e.target.value})}
                               className="border-orange-300 focus:border-orange-500"
@@ -506,7 +517,22 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
               </DialogContent>
             </Dialog>
 
-            {/* Emergency WhatsApp Modal - Only render when we have valid shift data */}
+            {/* Bulk Work Log Dialog */}
+            <Dialog open={bulkLogDialogOpen} onOpenChange={setBulkLogDialogOpen}>
+              <DialogContent className="sm:max-w-lg">
+                <BulkWorkLogForm
+                  carePlanId={carePlanId}
+                  careShifts={careShifts}
+                  careTeamMembers={careTeamMembers}
+                  onSuccess={() => {
+                    setBulkLogDialogOpen(false);
+                    onShiftUpdated();
+                  }}
+                  onCancel={() => setBulkLogDialogOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
+
             {emergencyShiftData.shift && (
               <EmergencyShiftWhatsAppModal
                 open={emergencyWhatsAppModalOpen}

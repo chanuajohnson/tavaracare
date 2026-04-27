@@ -5,9 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, CheckCircle2, Circle, FileText, User, ArrowRight, Unlock, Shield, Award, CreditCard, X } from 'lucide-react';
-import { fetchProfileData, fetchDocuments } from '@/hooks/professional/dataFetchers';
-import { isProfileComplete, getMissingDocumentTypes, hasAllRequiredDocuments, REQUIRED_DOCUMENT_TYPES } from '@/hooks/professional/completionCheckers';
+import { Sparkles, CheckCircle2, Circle, FileText, User, ArrowRight, Unlock, Shield, Award, CreditCard, Users, X } from 'lucide-react';
+import { fetchProfileData, fetchDocuments, fetchReferences, fetchScreenings } from '@/hooks/professional/dataFetchers';
+import { isProfileComplete, getMissingDocumentTypes, hasAllRequiredDocuments, REQUIRED_DOCUMENT_TYPES, hasRequiredReferences, hasPassedScreening } from '@/hooks/professional/completionCheckers';
 import { getProfessionalRegistrationLink, getDocumentNavigationLink } from '@/hooks/professional/stepDefinitions';
 
 interface ProfessionalReadinessModalProps {
@@ -28,7 +28,9 @@ export const ProfessionalReadinessModal = ({
     profileComplete: false,
     hasIdentification: false,
     hasCertificate: false,
-    hasBackgroundCheck: false
+    hasBackgroundCheck: false,
+    hasReferences: false,
+    hasScreeningPassed: false
   });
 
   console.log('[ProfessionalReadinessModal] Render with props:', {
@@ -50,9 +52,11 @@ export const ProfessionalReadinessModal = ({
       setIsLoading(true);
       console.log('[ProfessionalReadinessModal] Starting status check for user:', user.id);
       
-      const [profile, documents] = await Promise.all([
+      const [profile, documents, references, screenings] = await Promise.all([
         fetchProfileData(user.id),
-        fetchDocuments(user.id)
+        fetchDocuments(user.id),
+        fetchReferences(user.id),
+        fetchScreenings(user.id)
       ]);
 
       console.log('[ProfessionalReadinessModal] Fetched data:', {
@@ -61,30 +65,34 @@ export const ProfessionalReadinessModal = ({
           years_of_experience: profile.years_of_experience
         } : null,
         documentsCount: documents.length,
-        documentTypes: documents.map(d => d.document_type)
+        documentTypes: documents.map(d => d.document_type),
+        referencesCount: references.length,
+        screeningsCount: screenings.length
       });
 
       const profileComplete = isProfileComplete(profile);
       
-      // Check individual document types with correct names
       const documentTypes = documents.map(doc => doc.document_type);
       const hasIdentification = documentTypes.includes('identification');
       const hasCertificate = documentTypes.includes('certificate');
       const hasBackgroundCheck = documentTypes.includes('background_check');
+      const refsComplete = hasRequiredReferences(references);
+      const screeningPassed = hasPassedScreening(screenings);
       
       const newReadinessChecks = {
         profileComplete,
         hasIdentification,
         hasCertificate,
-        hasBackgroundCheck
+        hasBackgroundCheck,
+        hasReferences: refsComplete,
+        hasScreeningPassed: screeningPassed
       };
 
       console.log('[ProfessionalReadinessModal] Readiness checks:', newReadinessChecks);
       
       setReadinessChecks(newReadinessChecks);
 
-      // If all are complete, notify parent and close modal
-      const allComplete = profileComplete && hasIdentification && hasCertificate && hasBackgroundCheck;
+      const allComplete = profileComplete && hasIdentification && hasCertificate && hasBackgroundCheck && refsComplete && screeningPassed;
       if (allComplete) {
         console.log('[ProfessionalReadinessModal] All requirements complete, notifying parent');
         setTimeout(() => {
@@ -94,7 +102,6 @@ export const ProfessionalReadinessModal = ({
     } catch (error) {
       console.error('[ProfessionalReadinessModal] Error checking readiness status:', error);
     } finally {
-      // Remove artificial delay - show modal content immediately
       setIsLoading(false);
       console.log('[ProfessionalReadinessModal] Loading complete, modal should be visible');
     }
@@ -119,38 +126,17 @@ export const ProfessionalReadinessModal = ({
     navigate(`${link}&type=${documentType}`);
   };
 
+  const handleReferencesAction = () => {
+    console.log('[ProfessionalReadinessModal] References action clicked');
+    navigate('/professional/profile?tab=references');
+  };
+
   const allReady = readinessChecks.profileComplete && 
                    readinessChecks.hasIdentification && 
                    readinessChecks.hasCertificate && 
-                   readinessChecks.hasBackgroundCheck;
-
-  // Debug: Log when modal should be visible
-  useEffect(() => {
-    if (open) {
-      console.log('[ProfessionalReadinessModal] Modal is now open with state:', {
-        isLoading,
-        readinessChecks,
-        allReady
-      });
-      
-      // Debug modal dimensions
-      setTimeout(() => {
-        const modal = document.querySelector('[role="dialog"]');
-        if (modal) {
-          const rect = modal.getBoundingClientRect();
-          console.log('[ProfessionalReadinessModal] Modal dimensions:', {
-            width: rect.width,
-            height: rect.height,
-            top: rect.top,
-            left: rect.left,
-            visible: rect.width > 0 && rect.height > 0
-          });
-        } else {
-          console.log('[ProfessionalReadinessModal] Modal element not found in DOM');
-        }
-      }, 100);
-    }
-  }, [open, isLoading, readinessChecks, allReady]);
+                   readinessChecks.hasBackgroundCheck &&
+                   readinessChecks.hasReferences &&
+                   readinessChecks.hasScreeningPassed;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -316,6 +302,64 @@ export const ProfessionalReadinessModal = ({
                     <span>{readinessChecks.hasBackgroundCheck ? 'Manage' : 'Upload'}</span>
                     <ArrowRight className="h-3 w-3" />
                   </Button>
+                </div>
+              </div>
+
+              {/* Submit References */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                  {readinessChecks.hasReferences ? (
+                    <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                  ) : (
+                    <Circle className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-800 text-base">Submit 2 References</p>
+                    <p className="text-sm text-gray-600">Professional or employer references</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 flex-shrink-0">
+                  {readinessChecks.hasReferences && (
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
+                      Submitted
+                    </Badge>
+                  )}
+                  <Button
+                    variant={readinessChecks.hasReferences ? "outline" : "default"}
+                    size="sm"
+                    onClick={handleReferencesAction}
+                    className="flex items-center space-x-1"
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>{readinessChecks.hasReferences ? 'View' : 'Add'}</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Head Nurse Screening */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                  {readinessChecks.hasScreeningPassed ? (
+                    <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                  ) : (
+                    <Circle className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-800 text-base">Head Nurse Screening</p>
+                    <p className="text-sm text-gray-600">Interview with our Head Nurse</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 flex-shrink-0">
+                  {readinessChecks.hasScreeningPassed ? (
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
+                      Passed
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
+                      Awaiting
+                    </Badge>
+                  )}
                 </div>
               </div>
 

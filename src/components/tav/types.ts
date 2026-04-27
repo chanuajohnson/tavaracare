@@ -34,4 +34,9 @@ export interface ProgressContext {
   completedSteps?: number;
   careModel?: string;
   trialCompleted?: boolean;
+  // Financial context
+  agreedRate?: string;
+  weeklyHours?: number;
+  projectedWeeklyEarnings?: number;
+  paymentSchedule?: string;
 }

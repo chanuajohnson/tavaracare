@@ -20,6 +20,10 @@ interface User {
   role: string;
 }
 
+interface ProgressMap {
+  [userId: string]: number;
+}
+
 interface SendNudgeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -31,10 +35,21 @@ interface SendNudgeModalProps {
   };
 }
 
+const populateTemplate = (message: string, user: User, progressPercent: number): string => {
+  const firstName = user.full_name?.split(' ')[0] || 'there';
+  return message
+    .replace(/\[Name\]/gi, firstName)
+    .replace(/\{\{family_name\}\}/gi, firstName)
+    .replace(/\{\{caregiver_name\}\}/gi, firstName)
+    .replace(/\[X\]/gi, String(progressPercent))
+    .replace(/\[Role\]/gi, user.role || 'member');
+};
+
 export const SendNudgeModal = ({ open, onOpenChange, template }: SendNudgeModalProps) => {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [progressMap, setProgressMap] = useState<ProgressMap>({});
 
   // Load users when modal opens
   React.useEffect(() => {
@@ -51,7 +66,6 @@ export const SendNudgeModal = ({ open, onOpenChange, template }: SendNudgeModalP
         .select('id, full_name, phone_number, role')
         .not('phone_number', 'is', null);
 
-      // Filter by target audience with proper type casting
       if (template.target_audience && template.target_audience !== 'all') {
         query = query.eq('role', template.target_audience as UserRole);
       }
@@ -59,7 +73,27 @@ export const SendNudgeModal = ({ open, onOpenChange, template }: SendNudgeModalP
       const { data, error } = await query;
       if (error) throw error;
 
-      setUsers(data || []);
+      const fetchedUsers = data || [];
+      setUsers(fetchedUsers);
+
+      // Fetch journey progress for all users
+      if (fetchedUsers.length > 0) {
+        const userIds = fetchedUsers.map(u => u.id);
+        const { data: progressData } = await supabase
+          .from('user_journey_progress')
+          .select('user_id, completion_percentage')
+          .in('user_id', userIds);
+
+        const map: ProgressMap = {};
+        (progressData || []).forEach(p => {
+          map[p.user_id] = p.completion_percentage ?? 100;
+        });
+        // Default to 100% for users without progress records (completed registration)
+        fetchedUsers.forEach(u => {
+          if (!(u.id in map)) map[u.id] = 100;
+        });
+        setProgressMap(map);
+      }
     } catch (error) {
       console.error('Error loading users:', error);
       toast.error('Failed to load users');
@@ -94,15 +128,15 @@ export const SendNudgeModal = ({ open, onOpenChange, template }: SendNudgeModalP
     );
   };
 
-  const sendWhatsAppToUser = (userName: string, phoneNumber?: string | null) => {
-    if (!phoneNumber) {
-      toast.error(`Phone number not available for ${userName}. Please add a phone number first.`);
+  const sendWhatsAppToUser = (user: User) => {
+    if (!user.phone_number) {
+      toast.error(`Phone number not available for ${user.full_name}. Please add a phone number first.`);
       return;
     }
     
-    // Clean phone number (remove any non-digits except +)
-    const cleanPhone = phoneNumber.replace(/[^\d+]/g, '');
-    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(template.message)}`;
+    const personalizedMessage = populateTemplate(template.message, user, progressMap[user.id] ?? 100);
+    const cleanPhone = user.phone_number.replace(/[^\d+]/g, '');
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(personalizedMessage)}`;
     window.open(whatsappUrl, '_blank');
   };
 
@@ -116,11 +150,10 @@ export const SendNudgeModal = ({ open, onOpenChange, template }: SendNudgeModalP
       return;
     }
 
-    // Open WhatsApp for each selected user with a slight delay to prevent browser blocking
     selectedUsersWithPhones.forEach((user, index) => {
       setTimeout(() => {
-        sendWhatsAppToUser(user.full_name || 'User', user.phone_number);
-      }, index * 500); // 500ms delay between each
+        sendWhatsAppToUser(user);
+      }, index * 500);
     });
 
     toast.success(`Opening WhatsApp for ${selectedUsersWithPhones.length} users`);
@@ -129,6 +162,20 @@ export const SendNudgeModal = ({ open, onOpenChange, template }: SendNudgeModalP
   const selectedCount = selectedUsers.length;
   const totalCount = users.length;
   const usersWithPhones = users.filter(user => user.phone_number);
+
+  // Generate preview message
+  const getPreviewMessage = () => {
+    if (selectedCount === 1) {
+      const selectedUser = users.find(u => u.id === selectedUsers[0]);
+      if (selectedUser) {
+        return populateTemplate(template.message, selectedUser, progressMap[selectedUser.id] ?? 100);
+      }
+    }
+    return template.message;
+  };
+
+  const previewMessage = getPreviewMessage();
+  const showingPersonalized = selectedCount === 1;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -146,11 +193,21 @@ export const SendNudgeModal = ({ open, onOpenChange, template }: SendNudgeModalP
             <CardContent className="pt-4">
               <div className="flex items-center gap-2 mb-3">
                 <MessageSquare className="h-4 w-4 text-blue-600" />
-                <span className="font-medium text-blue-800">WhatsApp Message Preview</span>
+                <span className="font-medium text-blue-800">
+                  WhatsApp Message Preview
+                  {showingPersonalized && (
+                    <Badge variant="secondary" className="ml-2 text-xs">Personalized</Badge>
+                  )}
+                </span>
               </div>
               <div className="bg-white p-3 rounded border text-sm whitespace-pre-wrap font-mono text-gray-700">
-                {template.message}
+                {previewMessage}
               </div>
+              {!showingPersonalized && selectedCount !== 1 && (
+                <p className="text-xs text-blue-600 mt-2">
+                  💡 Select a single user to preview their personalized message. Variables like [Name] and [X]% will be auto-filled per user when sent.
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -206,9 +263,14 @@ export const SendNudgeModal = ({ open, onOpenChange, template }: SendNudgeModalP
                                   <Label htmlFor={user.id} className="font-medium cursor-pointer">
                                     {user.full_name || 'Unnamed User'}
                                   </Label>
-                                  <Badge variant="secondary" className="text-xs">
-                                    {user.role}
-                                  </Badge>
+                                  <div className="flex items-center gap-1">
+                                    <Badge variant="secondary" className="text-xs">
+                                      {user.role}
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                      {progressMap[user.id] ?? 100}%
+                                    </Badge>
+                                  </div>
                                 </div>
                                 <div className="mt-1">
                                   <InlinePhoneEditor
@@ -221,10 +283,7 @@ export const SendNudgeModal = ({ open, onOpenChange, template }: SendNudgeModalP
                               </div>
                             </div>
                             <Button
-                              onClick={() => sendWhatsAppToUser(
-                                user.full_name || 'User',
-                                user.phone_number
-                              )}
+                              onClick={() => sendWhatsAppToUser(user)}
                               variant="outline"
                               size="sm"
                               className="border-green-300 text-green-700 hover:bg-green-50"
@@ -263,9 +322,9 @@ export const SendNudgeModal = ({ open, onOpenChange, template }: SendNudgeModalP
               <div className="text-sm text-blue-800">
                 <p className="font-medium mb-2">📱 How this works:</p>
                 <ul className="space-y-1 text-blue-700">
-                  <li>• Add/edit phone numbers for users using the edit buttons</li>
-                  <li>• Select users you want to send the message to</li>
-                  <li>• Click "Send WhatsApp" to open WhatsApp with the pre-written message</li>
+                  <li>• Variables like <code>[Name]</code> and <code>[X]%</code> are auto-filled with each user's real data</li>
+                  <li>• Select a single user to preview their personalized message above</li>
+                  <li>• Click "Send WhatsApp" to open WhatsApp with the personalized message</li>
                   <li>• Use "Send WhatsApp to X Selected Users" to open WhatsApp for all selected users</li>
                   <li>• Each WhatsApp window opens with a 500ms delay to prevent browser blocking</li>
                 </ul>

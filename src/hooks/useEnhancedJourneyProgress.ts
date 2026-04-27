@@ -27,6 +27,7 @@ export const useEnhancedJourneyProgress = () => {
   const [careRecipient, setCareRecipient] = useState<any>(null);
   const [visitDetails, setVisitDetails] = useState<any>(null);
   const [trialPayments, setTrialPayments] = useState<any[]>([]);
+  const [financialData, setFinancialData] = useState<{ agreedRate?: string; weeklyHours?: number; projectedWeeklyCost?: number }>({});
   const [journeyProgress, setJourneyProgress] = useState<any>(null);
   
   // Modal states
@@ -36,189 +37,26 @@ export const useEnhancedJourneyProgress = () => {
   const [showCaregiverMatchingModal, setShowCaregiverMatchingModal] = useState(false);
   const [showLeadCaptureModal, setShowLeadCaptureModal] = useState(false);
 
-  // Generate mock steps for anonymous users (now includes all 12 steps)
+  // Generate mock steps for anonymous users (now includes all 15 steps)
   const generateMockStepsForAnonymous = () => {
     return [
-      {
-        id: "1",
-        step_number: 1,
-        title: "Complete Your Profile",
-        description: "Add your contact information and care preferences",
-        completed: true,
-        accessible: true,
-        category: 'foundation',
-        icon_name: 'User',
-        tooltip_content: 'Complete your family registration form',
-        detailed_explanation: 'Fill out care needs, schedule, and preferences',
-        time_estimate_minutes: 15,
-        is_optional: false,
-        action: () => {}
-      },
-      {
-        id: "2",
-        step_number: 2,
-        title: "Complete Initial Care Assessment",
-        description: "Help us understand your care needs better",
-        completed: false,
-        accessible: true,
-        category: 'foundation',
-        icon_name: 'FileCheck',
-        tooltip_content: 'Complete detailed care assessment',
-        detailed_explanation: 'Provide detailed information about care needs',
-        time_estimate_minutes: 20,
-        is_optional: false,
-        action: () => {}
-      },
-      {
-        id: "3",
-        step_number: 3,
-        title: "Complete Your Loved One's Legacy Story",
-        description: "Honor the voices, memories, and wisdom of those we care for",
-        completed: false,
-        accessible: true,
-        category: 'foundation',
-        icon_name: 'Heart',
-        tooltip_content: 'Share your loved one\'s story',
-        detailed_explanation: 'Add personal details about your care recipient',
-        time_estimate_minutes: 10,
-        is_optional: true,
-        action: () => {}
-      },
-      {
-        id: "4",
-        step_number: 4,
-        title: "See Your Instant Caregiver Matches",
-        description: "Unlock personalized caregiver recommendations",
-        completed: false,
-        accessible: false,
-        category: 'foundation',
-        icon_name: 'Users',
-        tooltip_content: 'Browse matched caregivers',
-        detailed_explanation: 'View and connect with potential caregivers',
-        time_estimate_minutes: 30,
-        is_optional: false,
-        action: () => {}
-      },
-      {
-        id: "5",
-        step_number: 5,
-        title: "Set Up Medication Management",
-        description: "Add medications and set up schedules",
-        completed: false,
-        accessible: true,
-        category: 'foundation',
-        icon_name: 'Pill',
-        tooltip_content: 'Manage medications for your care plan',
-        detailed_explanation: 'Set up medication schedules and tracking',
-        time_estimate_minutes: 15,
-        is_optional: false,
-        action: () => {}
-      },
-      {
-        id: "6",
-        step_number: 6,
-        title: "Set Up Meal Management",
-        description: "Plan meals and create grocery lists",
-        completed: false,
-        accessible: true,
-        category: 'foundation',
-        icon_name: 'Utensils',
-        tooltip_content: 'Plan meals for your care plan',
-        detailed_explanation: 'Set up meal planning and grocery management',
-        time_estimate_minutes: 15,
-        is_optional: false,
-        action: () => {}
-      },
-      {
-        id: "7",
-        step_number: 7,
-        title: "Schedule Your Tavara.Care Visit",
-        description: "Meet your match and care coordinator virtually or in person",
-        completed: false,
-        accessible: true,
-        category: 'scheduling',
-        icon_name: 'Calendar',
-        tooltip_content: 'Schedule your care assessment visit',
-        detailed_explanation: 'Book a visit from our care coordinators',
-        time_estimate_minutes: 10,
-        is_optional: false,
-        action: () => {}
-      },
-      {
-        id: "8",
-        step_number: 8,
-        title: "Confirm Your Visit",
-        description: "Your visit has been scheduled and confirmed",
-        completed: false,
-        accessible: false,
-        category: 'scheduling',
-        icon_name: 'CheckCircle',
-        tooltip_content: 'Visit confirmation completed',
-        detailed_explanation: 'Your care coordinator visit is confirmed',
-        time_estimate_minutes: 0,
-        is_optional: false,
-        action: () => {}
-      },
-      {
-        id: "9",
-        step_number: 9,
-        title: "Schedule Trial Day (Optional)",
-        description: "Choose a trial date with your matched caregiver",
-        completed: false,
-        accessible: false,
-        category: 'trial',
-        icon_name: 'Calendar',
-        tooltip_content: 'Schedule optional trial with caregiver',
-        detailed_explanation: 'Optional step before choosing your care model',
-        time_estimate_minutes: 15,
-        is_optional: true,
-        action: () => {}
-      },
-      {
-        id: "10",
-        step_number: 10,
-        title: "Pay for Trial Day (Optional)",
-        description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience",
-        completed: false,
-        accessible: false,
-        category: 'trial',
-        icon_name: 'CreditCard',
-        tooltip_content: 'Complete trial payment',
-        detailed_explanation: 'Pay for your optional trial day',
-        time_estimate_minutes: 5,
-        is_optional: true,
-        action: () => {}
-      },
-      {
-        id: "11",
-        step_number: 11,
-        title: "Begin Your Trial (Optional)",
-        description: "Your caregiver begins the scheduled trial session",
-        completed: false,
-        accessible: false,
-        category: 'trial',
-        icon_name: 'Play',
-        tooltip_content: 'Start your trial experience',
-        detailed_explanation: 'Begin your trial with the matched caregiver',
-        time_estimate_minutes: 480,
-        is_optional: true,
-        action: () => {}
-      },
-      {
-        id: "12",
-        step_number: 12,
-        title: "Rate & Choose Your Path",
-        description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr)",
-        completed: false,
-        accessible: false,
-        category: 'conversion',
-        icon_name: 'Star',
-        tooltip_content: 'Choose your care model',
-        detailed_explanation: 'Select your preferred care arrangement',
-        time_estimate_minutes: 10,
-        is_optional: false,
-        action: () => {}
-      }
+      { id: "1", step_number: 1, title: "Complete Your Profile", description: "Add your contact information and care preferences", completed: true, accessible: true, category: 'foundation', icon_name: 'User', tooltip_content: 'Complete your family registration form', detailed_explanation: 'Fill out care needs, schedule, and preferences', time_estimate_minutes: 15, is_optional: false, action: () => {} },
+      { id: "2", step_number: 2, title: "Complete Initial Care Assessment", description: "Help us understand your care needs better", completed: false, accessible: true, category: 'foundation', icon_name: 'FileCheck', tooltip_content: 'Complete detailed care assessment', detailed_explanation: 'Provide detailed information about care needs', time_estimate_minutes: 20, is_optional: false, action: () => {} },
+      { id: "3", step_number: 3, title: "Complete Your Loved One's Legacy Story", description: "Honor the voices, memories, and wisdom of those we care for", completed: false, accessible: true, category: 'foundation', icon_name: 'Heart', tooltip_content: "Share your loved one's story", detailed_explanation: 'Add personal details about your care recipient', time_estimate_minutes: 10, is_optional: true, action: () => {} },
+      { id: "4", step_number: 4, title: "See Your Instant Caregiver Matches", description: "Unlock personalized caregiver recommendations", completed: false, accessible: false, category: 'foundation', icon_name: 'Users', tooltip_content: 'Browse matched caregivers', detailed_explanation: 'View and connect with potential caregivers', time_estimate_minutes: 30, is_optional: false, action: () => {} },
+      { id: "5", step_number: 5, title: "Set Up Medication Management", description: "Add medications and set up schedules", completed: false, accessible: true, category: 'foundation', icon_name: 'Pill', tooltip_content: 'Manage medications for your care plan', detailed_explanation: 'Set up medication schedules and tracking', time_estimate_minutes: 15, is_optional: false, action: () => {} },
+      { id: "6", step_number: 6, title: "Set Up Meal Management", description: "Plan meals and create grocery lists", completed: false, accessible: true, category: 'foundation', icon_name: 'Utensils', tooltip_content: 'Plan meals for your care plan', detailed_explanation: 'Set up meal planning and grocery management', time_estimate_minutes: 15, is_optional: false, action: () => {} },
+      { id: "7", step_number: 7, title: "Get Started with Care", description: "Begin your care journey with a scheduled visit from our care coordinators", completed: false, accessible: true, category: 'foundation', icon_name: 'Calendar', tooltip_content: 'Schedule your care assessment visit', detailed_explanation: 'Book a visit from our care coordinators', time_estimate_minutes: 10, is_optional: false, action: () => {} },
+      { id: "8", step_number: 8, title: "Confirm Your Visit", description: "Your visit has been scheduled and confirmed", completed: false, accessible: false, category: 'scheduling', icon_name: 'CheckCircle', tooltip_content: 'Visit confirmation completed', detailed_explanation: 'Your care coordinator visit is confirmed', time_estimate_minutes: 0, is_optional: false, action: () => {} },
+      { id: "9", step_number: 9, title: "Care Team Confirmed", description: "A care team member has been selected and coordinated for your family", completed: false, accessible: false, category: 'scheduling', icon_name: 'UserCheck', tooltip_content: 'View your care team member', detailed_explanation: 'Your care team member has been confirmed. View your care team.', time_estimate_minutes: 0, is_optional: false, action: () => {} },
+      { id: "10", step_number: 10, title: "Initial Family Meeting", description: "Meet and greet with your care team member at your home", completed: false, accessible: false, category: 'scheduling', icon_name: 'Home', tooltip_content: 'Family meeting scheduled', detailed_explanation: 'Introduction visit at your home', time_estimate_minutes: 60, is_optional: false, action: () => {} },
+      { id: "11", step_number: 11, title: "Care Begins", description: "Your care team begins providing support", completed: false, accessible: false, category: 'scheduling', icon_name: 'Play', tooltip_content: 'Care has started', detailed_explanation: 'View your care plan for schedules and details', time_estimate_minutes: 0, is_optional: false, action: () => {} },
+      { id: "12", step_number: 12, title: "Care Readiness Assessment", description: "A home walkthrough completed by your care team during their first week", completed: false, accessible: false, category: 'care_environment', icon_name: 'Home', tooltip_content: 'Care environment assessment', detailed_explanation: 'Your care team assesses your home for sustainable caregiving', time_estimate_minutes: 0, is_optional: false, action: () => {} },
+      { id: "13", step_number: 13, title: "Home Environment Optimization", description: "Guided or full care environment coordination", completed: false, accessible: false, category: 'care_environment', icon_name: 'Sparkles', tooltip_content: 'Optimize home for care', detailed_explanation: 'Prepare your home for safe, comfortable caregiving', time_estimate_minutes: 0, is_optional: true, action: () => {} },
+      { id: "14", step_number: 14, title: "Schedule Trial Day (Optional)", description: "Choose a trial date with your matched caregiver", completed: false, accessible: false, category: 'trial', icon_name: 'Calendar', tooltip_content: 'Schedule optional trial with caregiver', detailed_explanation: 'Optional step before choosing your care model', time_estimate_minutes: 15, is_optional: true, action: () => {} },
+      { id: "15", step_number: 15, title: "Pay for Trial Day (Optional)", description: "Complete payment for an optional 8-hour caregiver trial experience", completed: false, accessible: false, category: 'trial', icon_name: 'CreditCard', tooltip_content: 'Complete trial payment', detailed_explanation: 'Pay for your optional trial day', time_estimate_minutes: 5, is_optional: true, action: () => {} },
+      { id: "16", step_number: 16, title: "Begin Your Trial (Optional)", description: "Your caregiver begins the scheduled trial session", completed: false, accessible: false, category: 'trial', icon_name: 'Play', tooltip_content: 'Start your trial experience', detailed_explanation: 'Begin your trial with the matched caregiver', time_estimate_minutes: 480, is_optional: true, action: () => {} },
+      { id: "17", step_number: 17, title: "Rate & Choose Your Path", description: "Choose your care model — view subscription plans or hire directly", completed: false, accessible: false, category: 'conversion', icon_name: 'Star', tooltip_content: 'Choose your care model', detailed_explanation: 'Select your preferred care arrangement', time_estimate_minutes: 10, is_optional: false, action: () => {} }
     ];
   };
 
@@ -343,6 +181,26 @@ export const useEnhancedJourneyProgress = () => {
         setTrialPayments(trialPaymentsData || []);
       }
 
+      // Fetch financial/billing data from onboarding checklist
+      const { data: checklistData } = await supabase
+        .from('onboarding_checklists' as any)
+        .select('checked_items')
+        .eq('user_id', user.id)
+        .eq('user_type', 'family')
+        .maybeSingle();
+      
+      const items = (checklistData as any)?.checked_items;
+      if (items?.care_rate) {
+        const cr = items.care_rate;
+        const rate = cr.rate || cr.hourlyRate;
+        const hours = cr.weeklyHours || cr.hours || 40;
+        setFinancialData({
+          agreedRate: cr.label || cr.tierName || (rate ? `$${rate}/hr` : undefined),
+          weeklyHours: hours,
+          projectedWeeklyCost: rate && hours ? rate * hours : undefined
+        });
+      }
+
     } catch (error) {
       console.error('Error in fetchUserData:', error);
     } finally {
@@ -361,8 +219,8 @@ export const useEnhancedJourneyProgress = () => {
       const mockSteps = generateMockStepsForAnonymous();
       return {
         steps: mockSteps,
-        completionPercentage: 8, // 1 completed step out of 12
-        totalSteps: 12,
+        completionPercentage: 7,
+        totalSteps: 15,
         completedSteps: 1,
         nextStep: mockSteps.find(step => !step.completed && step.accessible) || mockSteps[1],
         currentStage: 'foundation',
@@ -388,7 +246,8 @@ export const useEnhancedJourneyProgress = () => {
           storedCompletionMap.set(index + 1, step.completed);
         });
         
-        // Merge rich step definitions with stored completion status
+        // Merge rich step definitions — real data-driven completion takes priority
+        // over stored progress to prevent stale data from hiding CTAs
         const mergedSteps = richSteps.map(step => ({
           ...step,
           id: String(step.id),
@@ -399,7 +258,8 @@ export const useEnhancedJourneyProgress = () => {
           time_estimate_minutes: 15,
           is_optional: step.optional || false,
           accessible: step.accessible || false,
-          completed: storedCompletionMap.get(step.id) || step.completed,
+          // Use real data-driven completion (from sharedJourneyData) as source of truth
+          completed: step.completed,
             action: () => {
               const isCompleted = storedCompletionMap.get(step.id) || step.completed;
               console.log(`🔘 Action triggered for step ${step.id}, completed: ${isCompleted}`);
@@ -424,8 +284,42 @@ export const useEnhancedJourneyProgress = () => {
                     console.log(`🚀 Navigating to: /family/story${storyEditParam}`);
                     navigate(`/family/story${storyEditParam}`);
                     break;
+                  case 4:
+                    console.log('🚀 Navigating to: /family/matching');
+                    navigate('/family/matching');
+                    break;
+                  case 5:
+                    console.log('🚀 Navigating to: /family/care-management (medications)');
+                    navigate('/family/care-management');
+                    break;
+                  case 6:
+                    console.log('🚀 Navigating to: /family/care-management (meals)');
+                    navigate('/family/care-management');
+                    break;
+                  case 7:
+                    console.log('🚀 Opening Schedule Visit modal');
+                    setShowScheduleModal(true);
+                    break;
+                  case 8:
+                    console.log('🚀 Navigating to family dashboard for visit status');
+                    navigate('/dashboard/family');
+                    toast.info('Check your visit status below.');
+                    break;
+                  case 9:
+                    console.log('🚀 Navigating to care management for care team');
+                    navigate('/family/care-management');
+                    break;
+                  case 10:
+                    console.log('ℹ️ Step 10 - Initial Family Meeting awaiting admin confirmation');
+                    toast.info('This step is confirmed by your care coordinator after the initial meeting takes place.');
+                    break;
+                  case 11:
+                    console.log('🚀 Navigating to care management');
+                    navigate('/family/care-management');
+                    break;
                   default:
                     console.log(`No navigation defined for step ${step.id}`);
+                    break;
                 }
               } catch (error) {
                 console.error(`❌ Navigation error for step ${step.id}:`, error);
@@ -434,11 +328,18 @@ export const useEnhancedJourneyProgress = () => {
             }
         }));
         
+        // Use shared journey data completion (dynamically calculated) as primary source
+        const nonOptionalMerged = mergedSteps.filter(step => !step.is_optional);
+        const completedNonOptional = nonOptionalMerged.filter(step => step.completed).length;
+        const dynamicPercentage = nonOptionalMerged.length > 0 
+          ? Math.round((completedNonOptional / nonOptionalMerged.length) * 100) 
+          : sharedJourneyData.completionPercentage;
+        
         return {
           steps: mergedSteps,
-          completionPercentage: storedProgress.completionPercentage,
-          totalSteps: richSteps.length,
-          completedSteps: storedProgress.completedSteps,
+          completionPercentage: dynamicPercentage,
+          totalSteps: nonOptionalMerged.length,
+          completedSteps: completedNonOptional,
           nextStep: mergedSteps.find(step => !step.completed && step.accessible),
           currentStage: sharedJourneyData.journeyStage,
           loading: false
@@ -485,8 +386,47 @@ export const useEnhancedJourneyProgress = () => {
                 console.log(`🚀 Navigating to: /family/story${storyEditParam}`);
                 navigate(`/family/story${storyEditParam}`);
                 break;
-              default:
-                console.log(`No navigation defined for step ${step.id}`);
+              case 4:
+                console.log('🚀 Navigating to: /family/matching');
+                navigate('/family/matching');
+                break;
+              case 5:
+                console.log('🚀 Navigating to: /family/care-management (medications)');
+                navigate('/family/care-management');
+                break;
+              case 6:
+                console.log('🚀 Navigating to: /family/care-management (meals)');
+                navigate('/family/care-management');
+                break;
+              case 7:
+                console.log('🚀 Opening Schedule Visit modal');
+                setShowScheduleModal(true);
+                break;
+              case 8:
+                console.log('🚀 Navigating to family dashboard for visit status');
+                navigate('/dashboard/family');
+                toast.info('Check your visit status below.');
+                break;
+              case 9:
+                console.log('🚀 Navigating to care management for care team');
+                navigate('/family/care-management');
+                break;
+              case 10:
+                console.log('ℹ️ Step 10 - Initial Family Meeting awaiting admin confirmation');
+                toast.info('This step is confirmed by your care coordinator after the initial meeting takes place.');
+                break;
+              case 11:
+                console.log('🚀 Navigating to care management');
+                navigate('/family/care-management');
+                break;
+              case 12:
+                console.log('🚀 Navigating to care management (care environment)');
+                navigate('/family/care-management');
+                break;
+              case 13:
+                console.log('🚀 Navigating to care management (home optimization)');
+                navigate('/family/care-management');
+                break;
             }
           } catch (error) {
             console.error(`❌ Navigation error for step ${step.id}:`, error);
@@ -635,6 +575,9 @@ export const useEnhancedJourneyProgress = () => {
     const isTrialAccessible = calculateTrialAccessible();
     const isVisitScheduled = !!visitDetails?.id;
     const isVisitConfirmed = visitDetails?.status === 'confirmed';
+    
+    // Check if caregiver is assigned via shared journey data (steps 9-11 are updated from sharedJourneyData)
+    const hasCaregiverAssigned = sharedJourneyData.steps.find(s => s.id === 9)?.completed || false;
 
     const steps = [
       {
@@ -761,11 +704,11 @@ export const useEnhancedJourneyProgress = () => {
       {
         id: "7",
         step_number: 7,
-        title: "Schedule Your Tavara.Care Visit",
-        description: "Meet your match and care coordinator virtually or in person",
-        completed: isVisitScheduled,
+        title: "Get Started with Care",
+        description: isVisitConfirmed ? "Your care team is set up and active" : "Begin your care journey with a scheduled visit from our care coordinators",
+        completed: isVisitScheduled || isVisitConfirmed || hasCaregiverAssigned,
         accessible: true,
-        category: 'scheduling',
+        category: 'foundation',
         icon_name: 'Calendar',
         tooltip_content: 'Schedule your care assessment visit',
         detailed_explanation: 'Book a visit from our care coordinators',
@@ -784,8 +727,8 @@ export const useEnhancedJourneyProgress = () => {
         step_number: 8,
         title: "Confirm Your Visit",
         description: "Your visit has been scheduled and confirmed",
-        completed: isVisitConfirmed,
-        accessible: isVisitScheduled,
+        completed: isVisitConfirmed || hasCaregiverAssigned,
+        accessible: isVisitScheduled || hasCaregiverAssigned,
         category: 'scheduling',
         icon_name: 'CheckCircle',
         tooltip_content: 'Visit confirmation completed',
@@ -799,6 +742,81 @@ export const useEnhancedJourneyProgress = () => {
       {
         id: "9",
         step_number: 9,
+        title: "Care Team Confirmed",
+        description: "A care team member has been selected and coordinated for your family",
+        completed: false, // Will be updated via sharedJourneyData
+        accessible: isVisitConfirmed,
+        category: 'scheduling',
+        icon_name: 'UserCheck',
+        tooltip_content: 'View your care team member',
+        detailed_explanation: 'Your care team member has been confirmed. View your care team.',
+        time_estimate_minutes: 0,
+        is_optional: false,
+        action: () => navigate('/family/care-management')
+      },
+      {
+        id: "10",
+        step_number: 10,
+        title: "Initial Family Meeting",
+        description: "Meet and greet with your care team member at your home",
+        completed: false, // Will be updated via sharedJourneyData
+        accessible: false,
+        category: 'scheduling',
+        icon_name: 'Home',
+        tooltip_content: 'Family meeting scheduled',
+        detailed_explanation: 'Introduction visit at your home',
+        time_estimate_minutes: 60,
+        is_optional: false,
+        action: () => navigate('/family/care-management')
+      },
+      {
+        id: "11",
+        step_number: 11,
+        title: "Care Begins",
+        description: "Your care team begins providing support",
+        completed: false, // Will be updated via sharedJourneyData
+        accessible: false,
+        category: 'scheduling',
+        icon_name: 'Play',
+        tooltip_content: 'Care has started',
+        detailed_explanation: 'View your care plan for schedules and details',
+        time_estimate_minutes: 0,
+        is_optional: false,
+        action: () => navigate('/family/care-management')
+      },
+      {
+        id: "12",
+        step_number: 12,
+        title: "Care Readiness Assessment",
+        description: "A home walkthrough completed by your care team during their first week to assess readiness for sustainable caregiving",
+        completed: !!(carePlans && carePlans.length > 0 && hasCaregiverAssigned), // Auto-complete when care has started
+        accessible: hasCaregiverAssigned || !!(carePlans && carePlans.length > 0),
+        category: 'care_environment',
+        icon_name: 'Home',
+        tooltip_content: 'Care environment assessment',
+        detailed_explanation: 'Your care team assesses your home for sustainable caregiving during their first week',
+        time_estimate_minutes: 0,
+        is_optional: false,
+        action: () => navigate('/family/care-management')
+      },
+      {
+        id: "13",
+        step_number: 13,
+        title: "Home Environment Optimization",
+        description: "Guided or full care environment coordination to prepare your home for safe, comfortable caregiving",
+        completed: false, // Marked via care_plan_service_selections
+        accessible: hasCaregiverAssigned || !!(carePlans && carePlans.length > 0),
+        category: 'care_environment',
+        icon_name: 'Sparkles',
+        tooltip_content: 'Optimize home for care',
+        detailed_explanation: 'Choose from our care environment readiness services to prepare your home',
+        time_estimate_minutes: 0,
+        is_optional: true,
+        action: () => navigate('/family/care-management')
+      },
+      {
+        id: "14",
+        step_number: 14,
         title: "Schedule Trial Day (Optional)",
         description: "Choose a trial date with your matched caregiver",
         completed: hasTrialPayment,
@@ -814,10 +832,10 @@ export const useEnhancedJourneyProgress = () => {
         }
       },
       {
-        id: "10",
-        step_number: 10,
+        id: "15",
+        step_number: 15,
         title: "Pay for Trial Day (Optional)",
-        description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience",
+        description: "Complete payment for an optional 8-hour caregiver trial experience",
         completed: hasTrialPayment,
         accessible: isVisitConfirmed,
         category: 'trial',
@@ -831,8 +849,8 @@ export const useEnhancedJourneyProgress = () => {
         }
       },
       {
-        id: "11",
-        step_number: 11,
+        id: "16",
+        step_number: 16,
         title: "Begin Your Trial (Optional)",
         description: "Your caregiver begins the scheduled trial session",
         completed: hasTrialPayment,
@@ -848,12 +866,12 @@ export const useEnhancedJourneyProgress = () => {
         }
       },
       {
-        id: "12",
-        step_number: 12,
+        id: "17",
+        step_number: 17,
         title: "Rate & Choose Your Path",
-        description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr)",
-        completed: !!visitNotes?.care_model,
-        accessible: isVisitConfirmed || hasTrialPayment,
+        description: "Choose your care model — view subscription plans or hire directly",
+        completed: !!visitNotes?.care_model || !!visitNotes?.care_option || (hasCaregiverAssigned && carePlans.length > 0),
+        accessible: isVisitConfirmed || hasTrialPayment || (hasCaregiverAssigned && carePlans.length > 0),
         category: 'conversion',
         icon_name: 'Star',
         tooltip_content: 'Choose your care model',
@@ -870,33 +888,27 @@ export const useEnhancedJourneyProgress = () => {
   };
 
   const steps_calculated = calculateSteps();
-  const completedSteps = steps_calculated.filter(step => step.completed).length;
-  const totalSteps = steps_calculated.length;
+  const nonOptionalSteps = steps_calculated.filter(step => !step.is_optional);
+  const completedSteps = nonOptionalSteps.filter(step => step.completed).length;
+  const totalSteps = nonOptionalSteps.length;
   
   // Log detailed step completion info
   console.log('📊 Step Completion Analysis:', {
     totalSteps,
     completedSteps,
+    optionalStepsExcluded: steps_calculated.length - nonOptionalSteps.length,
     completedStepIds: steps_calculated.filter(step => step.completed).map(step => ({ id: step.id, title: step.title })),
-    incompleteSteps: steps_calculated.filter(step => !step.completed).map(step => ({ id: step.id, title: step.title }))
+    incompleteSteps: steps_calculated.filter(step => !step.completed).map(step => ({ id: step.id, title: step.title, optional: step.is_optional }))
   });
   
-  // Use stored progress as primary source (like admin dashboard)
+  // Use dynamically calculated percentage as the primary source of truth
   const calculatedPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
-  
-  // Primary source: stored progress (matches admin dashboard logic)
-  const finalCompletionPercentage = storedProgress.loading 
-    ? 0 
-    : storedProgress.completionPercentage > 0 
-      ? storedProgress.completionPercentage 
-      : calculatedPercentage;
+  const finalCompletionPercentage = calculatedPercentage;
     
   console.log('📈 Family Dashboard Progress Calculation:', {
-    storedProgressLoading: storedProgress.loading,
-    storedCompletionPercentage: storedProgress.completionPercentage,
     calculatedPercentage,
     finalCompletionPercentage,
-    usingStoredProgress: !storedProgress.loading && storedProgress.completionPercentage > 0
+    storedCompletionPercentage: storedProgress.completionPercentage
   });
     
   // Use stored current step if available
@@ -904,7 +916,7 @@ export const useEnhancedJourneyProgress = () => {
     ? steps_calculated.find(step => step.step_number === journeyProgress.current_step && !step.completed)
     : steps_calculated.find(step => !step.completed && step.accessible);
     
-  const currentStage = journeyProgress?.role === 'family' ? 'foundation' : 'foundation'; // Default stage
+  const currentStage = sharedJourneyData.journeyStage || 'foundation';
 
   // Create paths with proper JourneyPath interface properties
   const paths = [
@@ -927,6 +939,16 @@ export const useEnhancedJourneyProgress = () => {
       path_color: 'green',
       is_recommended: false,
       steps: steps_calculated.filter(s => s.category === 'scheduling') 
+    },
+    { 
+      id: 'care_environment', 
+      name: 'Care Environment', 
+      path_name: 'Care Environment Readiness',
+      path_description: 'Preparing your home for sustainable, safe caregiving',
+      step_ids: steps_calculated.filter(s => s.category === 'care_environment').map(s => parseInt(s.id)),
+      path_color: 'emerald',
+      is_recommended: false,
+      steps: steps_calculated.filter(s => s.category === 'care_environment') 
     },
     { 
       id: 'trial', 
@@ -977,6 +999,26 @@ export const useEnhancedJourneyProgress = () => {
   // Get the final steps data using prioritized logic
   const stepsData = getStepsData();
 
+  // Sync calculated progress back to user_journey_progress table for admin/TAV consistency
+  const syncedPercentageRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (isAnonymous || !user?.id || stepsData.loading) return;
+    const currentPercentage = stepsData.completionPercentage;
+    // Only sync when percentage actually changes and differs from last synced value
+    if (currentPercentage === syncedPercentageRef.current) return;
+    syncedPercentageRef.current = currentPercentage;
+    
+    console.log('🔄 Syncing journey progress to DB:', { userId: user.id, percentage: currentPercentage });
+    supabase
+      .rpc('calculate_and_update_journey_progress', { target_user_id: user.id })
+      .then(({ error }) => {
+        if (error) {
+          console.error('❌ Failed to sync journey progress:', error.message);
+        } else {
+          console.log('✅ Journey progress synced to DB successfully');
+        }
+      });
+  }, [isAnonymous, user?.id, stepsData.completionPercentage, stepsData.loading]);
   return {
     loading: isAnonymous ? false : (stepsData.loading || loading || sharedJourneyData.loading),
     steps: stepsData.steps,
@@ -1005,6 +1047,9 @@ export const useEnhancedJourneyProgress = () => {
     onVisitCancelled,
     trackStepAction,
     isAnonymous,
-    refreshData: fetchUserData
+    refreshData: fetchUserData,
+    agreedRate: financialData.agreedRate,
+    weeklyHours: financialData.weeklyHours,
+    projectedWeeklyCost: financialData.projectedWeeklyCost
   };
 };

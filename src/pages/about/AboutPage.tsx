@@ -7,6 +7,7 @@ import { StoryCard } from '@/components/about/StoryCard';
 import { PodcastCard } from '@/components/about/PodcastCard';
 import { MissionCard } from '@/components/about/MissionCard';
 import { VisionSection } from '@/components/about/VisionSection';
+import { HowMatchingWorksCard } from '@/components/about/HowMatchingWorksCard';
 import { Heart, Users, Lightbulb, Globe, Award, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -80,6 +81,8 @@ const AboutPage = () => {
               </div>
             </div>
           </motion.div>
+
+          <HowMatchingWorksCard />
 
           <div className="grid md:grid-cols-2 gap-8 mt-12">
             <StoryCard isActive={activeCard === 'story'} onClick={() => handleCardClick('story')} />

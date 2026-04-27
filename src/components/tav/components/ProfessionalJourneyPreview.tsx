@@ -13,12 +13,13 @@ interface ProfessionalJourneyPreviewProps {
 
 export const ProfessionalJourneyPreview: React.FC<ProfessionalJourneyPreviewProps> = ({ onBack }) => {
   const navigate = useNavigate();
-  const { steps, stages, currentStage, overallProgress, nextStep, completedSteps, totalSteps, loading } = useEnhancedProfessionalProgress();
+  const { steps, stages, currentStage, overallProgress, nextStep, completedSteps, totalSteps, loading, agreedRate, weeklyHours, projectedWeeklyEarnings } = useEnhancedProfessionalProgress();
 
   const getStageIcon = (stage: string) => {
     switch (stage) {
       case 'foundation': return <Target className="h-4 w-4" />;
       case 'qualification': return <FileCheck className="h-4 w-4" />;
+      case 'vetting': return <FileCheck className="h-4 w-4" />;
       case 'matching': return <Calendar className="h-4 w-4" />;
       case 'active': return <Briefcase className="h-4 w-4" />;
       default: return <Target className="h-4 w-4" />;
@@ -29,6 +30,7 @@ export const ProfessionalJourneyPreview: React.FC<ProfessionalJourneyPreviewProp
     switch (stage) {
       case 'foundation': return 'from-blue-500 to-indigo-500';
       case 'qualification': return 'from-indigo-500 to-purple-500';
+      case 'vetting': return 'from-purple-500 to-violet-500';
       case 'matching': return 'from-purple-500 to-pink-500';
       case 'active': return 'from-green-500 to-emerald-500';
       default: return 'from-blue-500 to-indigo-500';
@@ -110,6 +112,17 @@ export const ProfessionalJourneyPreview: React.FC<ProfessionalJourneyPreviewProp
         </div>
 
         <Progress value={overallProgress} className="h-2 bg-gray-100 mb-2" />
+        
+        {/* Earnings summary when available */}
+        {agreedRate && (
+          <div className="flex items-center gap-2 text-xs text-primary mb-1 bg-primary/10 rounded px-2 py-1">
+            <span className="font-medium">Earnings: {agreedRate}</span>
+            {projectedWeeklyEarnings && (
+              <span>• ~${projectedWeeklyEarnings.toLocaleString()}/wk</span>
+            )}
+          </div>
+        )}
+        
         <p className="text-xs text-gray-700 leading-relaxed">
           {stageData.description}
         </p>

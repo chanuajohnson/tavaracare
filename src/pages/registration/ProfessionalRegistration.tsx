@@ -19,12 +19,15 @@ import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
 import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
+import { getStoredUTMData, clearUTMData } from '@/utils/utmTracking';
+import { useTracking } from '@/hooks/useTracking';
 
 // Import standardized shift options from chat registration flows
 import { STANDARDIZED_SHIFT_OPTIONS } from '../../data/chatRegistrationFlows';
 
 const ProfessionalRegistration = () => {
   const { user, isLoading: authLoading } = useAuth();
+  const { trackEngagement } = useTracking();
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
   
@@ -68,6 +71,8 @@ const ProfessionalRegistration = () => {
   const [emergencyContact, setEmergencyContact] = useState('');
   const [backgroundCheck, setBackgroundCheck] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState(''); // Changed from additionalInfo to additionalNotes
+  const [matchingRequirements, setMatchingRequirements] = useState('');
+  const [matchingCheckboxes, setMatchingCheckboxes] = useState<string[]>([]);
   
   const [prefillApplied, setPrefillApplied] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
@@ -180,6 +185,9 @@ const ProfessionalRegistration = () => {
         break;
       case 'custom_schedule': // Added mapping for custom_schedule
         setCustomAvailability(value);
+        break;
+      case 'matching_requirements':
+        setMatchingRequirements(value);
         break;
       default:
         // Handle array fields - Updated to handle both specialties and care_services mapping
@@ -296,6 +304,25 @@ const ProfessionalRegistration = () => {
         setBackgroundCheck(profileData.background_check ? 'yes' : '');
         setAdditionalNotes(profileData.additional_notes || '');
         setAvatarUrl(profileData.avatar_url || null);
+        
+        // Populate matching requirements
+        if ((profileData as any).matching_requirements) {
+          setMatchingRequirements((profileData as any).matching_requirements);
+          // Parse checkboxes from stored requirements
+          const storedReqs = (profileData as any).matching_requirements;
+          const checkboxOptions = [
+            'Only match me with families in my preferred location area',
+            'I prefer female care recipients only',
+            'I prefer male care recipients only',
+            'I require families with reliable transportation/parking'
+          ];
+          const foundCheckboxes = checkboxOptions.filter(opt => storedReqs.includes(opt));
+          setMatchingCheckboxes(foundCheckboxes);
+          // Extract free text (everything after the checkbox lines)
+          let freeText = storedReqs;
+          foundCheckboxes.forEach(cb => { freeText = freeText.replace(`• ${cb}\n`, '').replace(`• ${cb}`, ''); });
+          setMatchingRequirements(freeText.trim());
+        }
         
         console.log('✅ Successfully populated all form fields from database');
         toast.success('Your profile has been loaded for editing');
@@ -467,7 +494,11 @@ const ProfessionalRegistration = () => {
         languages: languages || [],
         emergency_contact: emergencyContact || '',
         background_check: backgroundCheck ? backgroundCheck === 'yes' || backgroundCheck === 'true' : null,
-        additional_notes: additionalNotes || '' // Changed from additional_info to additional_notes
+        additional_notes: additionalNotes || '',
+        matching_requirements: [
+          ...matchingCheckboxes.map(cb => `• ${cb}`),
+          matchingRequirements
+        ].filter(Boolean).join('\n').trim() || ''
       };
 
       console.log('Updating professional profile with data:', profileData);
@@ -486,10 +517,30 @@ const ProfessionalRegistration = () => {
       // Clear chat session data including auto-redirect flag  
       clearChatSessionData(sessionId || undefined);
       
-      // Also clear the auto-redirect flag specifically
-      if (sessionId) {
-        localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
-        localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
+      // Track registration completion with UTM data
+      const utmData = getStoredUTMData();
+      await trackEngagement('professional_registration_complete', {
+        user_id: user.id,
+        professional_type: finalProfessionalType,
+        ...(utmData && {
+          utm_source: utmData.utm_source,
+          utm_medium: utmData.utm_medium,
+          utm_campaign: utmData.utm_campaign,
+          utm_content: utmData.utm_content
+        })
+      });
+      
+      // Clear UTM data after successful registration
+      clearUTMData();
+
+      // Sync journey progress so TAV widget reflects actual completion
+      try {
+        await supabase.rpc('calculate_and_update_journey_progress', {
+          target_user_id: user.id
+        });
+        console.log('Journey progress synced after professional registration save');
+      } catch (progressErr) {
+        console.warn('Failed to sync journey progress:', progressErr);
       }
 
       toast.success('Registration Complete! Your professional caregiver registration has been updated.');
@@ -980,6 +1031,56 @@ const ProfessionalRegistration = () => {
                     <SelectItem value="Need assistance">Need assistance with transportation</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Matching Preferences & Requirements */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>🎯 Matching Preferences & Requirements</CardTitle>
+              <CardDescription>
+                Let us know if you have any deal breakers or hard requirements for matching with families. This helps us avoid non-viable matches.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Common Requirements (select all that apply)</Label>
+                <div className="space-y-3">
+                  {[
+                    { id: 'pref_location', label: 'Only match me with families in my preferred location area' },
+                    { id: 'pref_female', label: 'I prefer female care recipients only' },
+                    { id: 'pref_male', label: 'I prefer male care recipients only' },
+                    { id: 'pref_transport', label: 'I require families with reliable transportation/parking' }
+                  ].map((item) => (
+                    <div key={item.id} className="flex items-start space-x-2">
+                      <Checkbox 
+                        id={item.id} 
+                        checked={matchingCheckboxes.includes(item.label)}
+                        onCheckedChange={(checked) => {
+                          setMatchingCheckboxes(prev => 
+                            checked 
+                              ? [...prev, item.label]
+                              : prev.filter(cb => cb !== item.label)
+                          );
+                        }}
+                        className="mt-1"
+                      />
+                      <Label htmlFor={item.id} className="font-normal">{item.label}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="matchingRequirements">Any other deal breakers or hard requirements for matching?</Label>
+                <Textarea 
+                  id="matchingRequirements" 
+                  placeholder="E.g., I only want to work with families in the San Fernando area, I need families that can accommodate my schedule, etc." 
+                  value={matchingRequirements} 
+                  onChange={(e) => setMatchingRequirements(e.target.value)}
+                  rows={3}
+                />
               </div>
             </CardContent>
           </Card>
