@@ -66,15 +66,15 @@ export function useUserAccountStatus() {
       }
 
       // Log the action
-      const { error: logErr } = await supabase.from('admin_user_actions').insert({
+      const { error: logErr } = await supabase.from('admin_user_actions').insert([{
         admin_id: adminId,
         target_user_id: targetUserId,
         action_type: actionType,
         previous_status: previousStatus ?? null,
         new_status: newStatus,
         reason,
-        metadata: metadata ?? {},
-      });
+        metadata: (metadata ?? {}) as any,
+      }]);
       if (logErr) throw logErr;
 
       toast.success(`Action recorded: ${actionType.replace(/_/g, ' ')}`);
