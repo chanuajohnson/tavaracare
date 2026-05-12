@@ -230,6 +230,9 @@ if (action === 'verification-pending') {
     return null;
   }
 
+  const suspendedKind = urlParams.get('suspended');
+  const suspendedReason = urlParams.get('reason');
+
   return (
     <div className="container flex items-center justify-center py-20">
       <Card className="w-full max-w-md">
@@ -242,6 +245,24 @@ if (action === 'verification-pending') {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {suspendedKind && (
+            <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
+              <p className="font-semibold text-destructive">
+                {suspendedKind === 'deleted' ? 'Account removed' : 'Account suspended'}
+              </p>
+              <p className="text-muted-foreground mt-1">
+                {suspendedReason || 'Your access has been paused. Please contact support to resolve this.'}
+              </p>
+              <a
+                href="https://wa.me/18687865357"
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary underline mt-2 inline-block"
+              >
+                Contact Tavara support on WhatsApp
+              </a>
+            </div>
+          )}
           {showResetForm ? (
             <ResetPasswordForm 
               onSubmit={handleResetPassword} 
