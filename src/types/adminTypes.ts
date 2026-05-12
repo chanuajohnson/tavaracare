@@ -34,6 +34,9 @@ export interface UserWithProgress {
   care_types?: string[];
   specialized_care?: string[];
   available_for_matching?: boolean;
+  account_status?: 'active' | 'free_only' | 'limited' | 'banned' | 'deleted';
+  account_status_reason?: string | null;
+  account_status_changed_at?: string | null;
 }
 
 // Alias for compatibility with BulkActionPanel

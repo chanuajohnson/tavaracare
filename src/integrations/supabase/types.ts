@@ -239,6 +239,42 @@ export type Database = {
           },
         ]
       }
+      admin_user_actions: {
+        Row: {
+          action_type: string
+          admin_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          new_status: string | null
+          previous_status: string | null
+          reason: string | null
+          target_user_id: string
+        }
+        Insert: {
+          action_type: string
+          admin_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          new_status?: string | null
+          previous_status?: string | null
+          reason?: string | null
+          target_user_id: string
+        }
+        Update: {
+          action_type?: string
+          admin_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          new_status?: string | null
+          previous_status?: string | null
+          reason?: string | null
+          target_user_id?: string
+        }
+        Relationships: []
+      }
       admin_visit_config: {
         Row: {
           advance_booking_days: number
@@ -3950,6 +3986,10 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: string
+          account_status_changed_at: string | null
+          account_status_changed_by: string | null
+          account_status_reason: string | null
           additional_notes: string | null
           additional_professional_notes: string | null
           address: string | null
@@ -4053,6 +4093,10 @@ export type Database = {
           years_of_experience: string | null
         }
         Insert: {
+          account_status?: string
+          account_status_changed_at?: string | null
+          account_status_changed_by?: string | null
+          account_status_reason?: string | null
           additional_notes?: string | null
           additional_professional_notes?: string | null
           address?: string | null
@@ -4156,6 +4200,10 @@ export type Database = {
           years_of_experience?: string | null
         }
         Update: {
+          account_status?: string
+          account_status_changed_at?: string | null
+          account_status_changed_by?: string | null
+          account_status_reason?: string | null
           additional_notes?: string | null
           additional_professional_notes?: string | null
           address?: string | null
