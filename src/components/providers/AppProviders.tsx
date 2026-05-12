@@ -54,11 +54,13 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
                     <RedirectHandler />
                     <ProviderErrorBoundary providerName="AuthProvider">
                       <AuthProvider>
-                        <ProviderErrorBoundary providerName="TavaraStateProvider">
-                          <TavaraStateProvider>
-                            {children}
-                          </TavaraStateProvider>
-                        </ProviderErrorBoundary>
+                        <AccountStatusGate>
+                          <ProviderErrorBoundary providerName="TavaraStateProvider">
+                            <TavaraStateProvider>
+                              {children}
+                            </TavaraStateProvider>
+                          </ProviderErrorBoundary>
+                        </AccountStatusGate>
                       </AuthProvider>
                     </ProviderErrorBoundary>
                   </BrowserRouter>
