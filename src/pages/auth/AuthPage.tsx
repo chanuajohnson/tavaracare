@@ -230,8 +230,9 @@ if (action === 'verification-pending') {
     return null;
   }
 
-  const suspendedKind = urlParams.get('suspended');
-  const suspendedReason = urlParams.get('reason');
+  const _params = new URLSearchParams(window.location.search);
+  const suspendedKind = _params.get('suspended');
+  const suspendedReason = _params.get('reason');
 
   return (
     <div className="container flex items-center justify-center py-20">
