@@ -136,23 +136,30 @@ export function RoleBasedUserGrid({ users, selectedUsers, onUserSelect, onRefres
               />
             )}
             
-            {/* Delete Button */}
-            {onDeleteUser && (
-              <Button
+            {/* Account status badge */}
+            {user.account_status && user.account_status !== 'active' && (
+              <Badge
                 variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteUser(user.id, user);
-                }}
-                className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
-                disabled={user.role === 'admin'}
-                title={user.role === 'admin' ? 'Cannot delete admin users' : `Delete ${user.full_name || 'user'}`}
+                className={`text-xs whitespace-normal ${STATUS_BADGE[user.account_status]?.className ?? ''}`}
+                title={user.account_status_reason || undefined}
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete User
-              </Button>
+                {STATUS_BADGE[user.account_status]?.label ?? user.account_status}
+              </Badge>
             )}
+
+            {/* Manage menu (Move to Free / Limit / Ban / Restore / Delete) */}
+            <div onClick={(e) => e.stopPropagation()}>
+              <ManageUserMenu
+                userId={user.id}
+                userFullName={user.full_name || 'Unnamed User'}
+                userRole={user.role}
+                currentStatus={user.account_status}
+                onAfterChange={onRefresh}
+                onDeleteUser={
+                  onDeleteUser ? () => onDeleteUser(user.id, user) : undefined
+                }
+              />
+            </div>
           </div>
         </div>
       </div>
