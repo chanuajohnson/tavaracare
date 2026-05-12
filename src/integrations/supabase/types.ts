@@ -6293,6 +6293,9 @@ export type Database = {
       admin_get_all_profiles_secure: {
         Args: never
         Returns: {
+          account_status: string
+          account_status_changed_at: string
+          account_status_reason: string
           address: string
           available_for_matching: boolean
           avatar_url: string
