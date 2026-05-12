@@ -74,6 +74,7 @@ export default function FamilyDashboardPage() {
       </header>
 
       <main className="container mx-auto px-4 pb-8">
+        <LimitedAccessBanner />
         <FreePlanReturnBanner />
         <FamilyDashboard />
         <PlatformPositioningDisclaimer variant="compact" />
