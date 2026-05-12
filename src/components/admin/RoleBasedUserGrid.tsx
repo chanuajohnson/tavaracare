@@ -6,10 +6,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { MiniJourneyProgress } from './MiniJourneyProgress';
 import { UserDetailModal } from './UserDetailModal';
 import { UserWithProgress } from '@/types/adminTypes';
-import { Users, User, Building, Shield, Mail, Phone, MapPin, UserCheck, UserX, Trash2 } from 'lucide-react';
+import { Users, User, Building, Shield, Mail, Phone, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MatchingStatusToggle } from './MatchingStatusToggle';
 import { Button } from "@/components/ui/button";
+import { ManageUserMenu } from './user-actions/ManageUserMenu';
+
+const STATUS_BADGE: Record<string, { label: string; className: string }> = {
+  active: { label: 'Active', className: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+  free_only: { label: 'Free Plan — Subscription Cancelled', className: 'bg-amber-100 text-amber-800 border-amber-200' },
+  limited: { label: 'Limited Access', className: 'bg-orange-100 text-orange-800 border-orange-200' },
+  banned: { label: 'Banned', className: 'bg-red-100 text-red-800 border-red-200' },
+  deleted: { label: 'Deleted', className: 'bg-gray-200 text-gray-700 border-gray-300' },
+};
 
 interface RoleBasedUserGridProps {
   users: UserWithProgress[];
