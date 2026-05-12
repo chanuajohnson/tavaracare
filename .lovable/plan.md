@@ -1,74 +1,130 @@
-## Where the artifacts live
+## Goal
 
-All in `/mnt/documents/`:
-- `tavara-lifecycle-cost.pdf` — Apr 24 (original, pre-changes) — **stale**
-- `tavara-lifecycle-cost.pptx` — Apr 24 (original, pre-changes) — **stale**
-- `tavara-lifecycle-cost_v2.pdf` — Apr 25 12:47 (before today's repricing/terminology/accordion work) — **stale**
+Three connected admin actions:
+1. Revert Ana Maria Aimey to the Free plan and log why (trust break after nurse incident).
+2. Raise the price of "Caregiver Matching & Placement" to $1,399.00 one-time.
+3. Add reusable admin controls (Ban, Limit Access, Move to Free) next to Delete User on every user card, plus a welcoming "return" state on Ana's dashboard.
 
-The in-app "1-page PDF" button on `/admin/lifecycle-cost` currently links to the original (v1), not even v2.
+---
 
-## What needs to flow into v3
+## Part 1 — Ana's status today (verified from DB)
 
-1. **Secondary support repricing**
-   - Light Secondary: **$350/wk** (was $150)
-   - Standard Secondary: **Custom quote** (was $250/wk) — note: caregiver consultation, possible doubled care payments
-   - High-Need Secondary: **Custom quote** (was $400/wk) — note: re-assessment or additional caregiver recommended
-2. **Terminology**: "Wages" → "Care payments", "Payroll" → "Care payment records"
-3. **Day 5 billing copy**: "Day 5 (Friday of week 1) = first **full** week of care payments + first week of subscription fees. Weeks 2–13 settle into the stable weekly rhythm."
-4. **"Before Day 0" free-plan value section** — anonymous "one of our families recently registered, completed care assessment, captured Legacy Story, drafted a care plan, reviewed auto-matches — all before paying a cent."
-5. **Optional services notes** — NIS coordination scope, SOP activation real-time visibility, Guided Home Reset = coordination of contractors
-6. **Custom-quote badging** for Standard/High-Need secondary (no auto-price in scenario totals)
-7. **Updated disclaimer** — Tavara as Care Coordination & Management Platform, never an agency; TTD primary, USD bracketed at 6.78
+- Profile: `Ana Maria Aimey` · id `9874b53e-…` · role `family` · onboarding_stage `registration` · `available_for_matching = false`.
+- `user_subscriptions`: **no active row** — she is not on any paid plan in the database right now. The "Scheduling 50% Complete" badge on her card reflects onboarding progress, not billing.
+- So "reverting to Free" is really: explicitly attach her to the **Family Basic (Free)** plan so the system, her dashboard, and admin views all reflect that intentionally — and lock her out of paid-only features (matching, active care management) until she resubscribes.
 
-## Files to create
+### What Free / Basic gives her (kept)
+- Profile, care recipient info, care plan viewing
+- TAV chat support, community resources, educational tools
+- Ability to log back in, view legacy story, view past care logs
+- Access to repurchase Caregiver Matching & Placement one-time when ready
 
-| File | Purpose |
-|---|---|
-| `/mnt/documents/tavara-lifecycle-cost_v3.pdf` | 1-page A4 landscape PDF — full lifecycle on one page (Before Day 0 strip → Day 0 bundle → 3 scenarios table → Optional services row → Disclaimer) |
-| `/mnt/documents/tavara-lifecycle-cost_v3.pptx` | ~6-slide deck mirroring the on-screen accordion sections, suitable for prospect calls |
+### What she loses (removed on revert)
+- Active caregiver matching pool visibility (`available_for_matching` stays false)
+- Care team assignment / shift coverage workflows
+- Payroll, NIS, daily care SOP monitoring
+- Premium scheduling banner CTAs
+- Any auto-nudges tied to active subscription
 
-## Generation approach
+---
 
-- **PDF**: ReportLab (Python), landscape A4, single page. Use Tavara primary color palette (existing brand blue), Arial/Calibri stack, smart quotes, no Unicode subs/sups. Pull live pricing constants from `src/utils/lifecycleScenarios.ts` so the artifact matches what prospects see in-app.
-- **PPTX**: pptxgenjs (Node), 6 slides:
-  1. Title — "Care Lifecycle Cost — Day 0 → Month 3"
-  2. Before Day 0 — free-plan value (anonymous family story + 6 free capabilities)
-  3. Day 0 — mandatory setup bundle (3 items + total in TTD/USD)
-  4. Three scenarios — Conservative / Typical / Premium side-by-side, weeks 1-13 stable rhythm
-  5. Optional services — opt-in menu with custom-quote badges where applicable
-  6. Disclaimer + bank/legal positioning
-  
-  Embed any images as base64. Use a content-informed palette (Tavara brand blues + warm neutrals), header font with personality, body font clean. Visual motif: rounded cards with thin colored top border. No accent lines under titles.
+## Part 2 — Pricing update
 
-## Mandatory QA pass (per skill instructions)
+Update `billable_service_items` row `Caregiver Matching & Placement` (id `13e84679-a950-4ef3-9658-71ac41a5a3ec`):
+- `unit_price`: 299.00 → **1399.00**
+- Description stays: "Caregiver matching, vetting, and introduction coordination."
 
-For both artifacts:
-1. Generate → convert each page/slide to JPEG at 150 DPI via LibreOffice + pdftoppm
-2. Inspect every page using read tool — look for: overlapping text, clipped content, edge bleeding, low contrast, misaligned columns, leftover placeholders, font glyph issues (black boxes), uneven spacing
-3. List issues found explicitly (assume issues exist on first pass)
-4. Fix script → re-render → re-verify affected pages only
-5. Repeat until a full pass is clean
-6. Final textual verification: `python -m markitdown` on PPTX, `pdftotext` on PDF, grep for "wages", "payroll", "Anna", "Lorem", placeholder strings — must all return zero hits
-7. Summarize QA findings + fixes in the final reply
+This flows automatically into:
+- Lifecycle Cost dashboard (`useLifecycleCost`)
+- Admin onboarding checklist service components
+- Family-facing pricing references
 
-Temporary QA images stay in `/tmp/`, not `/mnt/documents/`.
+---
 
-## In-app link update (small code change)
+## Part 3 — Admin user-card controls (replace the lone Delete button)
 
-Update `src/pages/admin/LifecycleCostPage.tsx` header button:
-- Change `href="/mnt/documents/tavara-lifecycle-cost.pdf"` → `href="/mnt/documents/tavara-lifecycle-cost_v3.pdf"`
-- Add a second link/button for the PPTX (`tavara-lifecycle-cost_v3.pptx`) so prospects can grab both formats
+On `RoleBasedUserGrid` family/professional cards, change the single "Delete User" button into an action menu:
 
-That is the only code edit. No component, logic, or pricing changes.
+```text
+[ Manage ▾ ]
+  • Move to Free Plan
+  • Limit Access (read-only)
+  • Ban User
+  • ─────────
+  • Delete User  (destructive, confirm)
+```
 
-## Deliverables in final reply
+Each action writes to a new `admin_user_actions` log table and updates a new `account_status` field on `profiles`:
 
-- Two `<lov-artifact>` tags (v3 PDF + v3 PPTX)
-- QA summary listing what was checked and any issues found + fixed
-- Confirmation that in-app download button now points at v3
+- `account_status` enum: `active` | `free_only` | `limited` | `banned` | `deleted`
+- `account_status_reason` text
+- `account_status_changed_at` timestamp
+- `account_status_changed_by` uuid (admin)
 
-## What does NOT change
+Effects:
+- `free_only` → forces subscription to Family Basic, hides paid CTAs, shows "Welcome back" return banner.
+- `limited` → read-only dashboard, no new bookings, no chat send.
+- `banned` → blocks login via RLS + auth check, shows "Account suspended — contact support".
+- `deleted` → existing soft-delete flow.
 
-- No database changes
-- No logic changes in `lifecycleScenarios.ts`, `OptionalServicesRow`, `LifecycleCostBuilder`, `ScenarioComparisonGrid`, `FreePlanValueCard`
-- v1 and v2 artifacts stay in place as version history
+---
+
+## Part 4 — Ana-specific logging & "return" experience
+
+### Admin side (onboarding card + user detail modal)
+Add a **Status & History** block on Ana's card showing:
+- Badge: "Free Plan — Subscription Cancelled (12 May 2026)"
+- Reason: "Trust concern after nurse early-departure incident on Fri 8 May. Family forfeited matching and cancelled active plan."
+- Action By: admin name
+- Note thread (extends existing onboarding note system)
+
+Stored as one row in `admin_user_actions` + one row in onboarding notes tagged `cancellation`.
+
+### Family side (Ana's dashboard)
+When `account_status = 'free_only'` and previously had matching:
+- Replace the Scheduling/amber CTA banner with a warm welcome card:
+  - Title: "We're still here for you, Ana 💙"
+  - Body: "Your active subscription is paused. Whenever you're ready, you can restart with a one-time Caregiver Matching & Placement ($1,399) and reactivate your weekly care management plan. We'd love to walk this next step with you."
+  - Buttons: `Restart Matching` (links to billable services checkout) · `Talk to TAV` · `Message Coordinator`
+- Keep her care recipient profile, legacy story, and chat available.
+- Hide payroll, shift coverage, and team assignment tabs.
+
+---
+
+## Part 5 — Walkthrough: how you (admin) will do this
+
+1. Open `/dashboard/admin` → find Ana's family card → click new **Manage ▾** → **Move to Free Plan**.
+2. Modal asks for reason → paste the trust/nurse-incident summary → confirm.
+3. System: cancels any active subscription rows, sets `account_status='free_only'`, writes `admin_user_actions` log, posts onboarding note, flips dashboard banner.
+4. Separately, go to **Admin → Pricing / Billable Services** → edit *Caregiver Matching & Placement* → set $1,399 → save (one DB update, no code change beyond the existing editor).
+5. Verify on Ana's family dashboard preview that the welcome-back card shows and paid features are hidden.
+
+---
+
+## Technical Section
+
+**Migrations needed**
+- `ALTER TABLE profiles ADD COLUMN account_status text DEFAULT 'active'`, plus reason / changed_at / changed_by columns.
+- New table `admin_user_actions` (admin_id, target_user_id, action_type, reason, metadata jsonb, created_at) with RLS allowing only `has_role(auth.uid(),'admin')`.
+- Update `unit_price` for `13e84679-a950-4ef3-9658-71ac41a5a3ec` to 1399.00 (data update, separate from schema migration).
+- Optional: insert Ana's free-plan row into `user_subscriptions` referencing `8170faf7-…` (Family Basic) with status `active`.
+
+**Frontend changes**
+- `src/components/admin/RoleBasedUserGrid.tsx` — replace Delete button with DropdownMenu of 4 actions; add status badge.
+- New `src/components/admin/user-actions/ManageUserMenu.tsx` housing the 4 action dialogs.
+- New `src/hooks/admin/useUserAccountStatus.ts` for mutations + log writes.
+- `src/components/admin/UserDetailModal.tsx` — show Status & History section, render `admin_user_actions` log.
+- New `src/components/family/dashboard/FreePlanReturnBanner.tsx` — shown when `account_status='free_only'`.
+- Family dashboard layout: gate paid tabs on `account_status === 'active'`.
+- Auth guard: block login for `banned`; show read-only mode for `limited`.
+
+**Guardrails respected**
+- No edits to `App.tsx`, routing, AuthProvider, or `FamilyRegistration.tsx`.
+- Chat flow engine and registration flows untouched.
+- All new colors/styles use semantic tokens.
+
+---
+
+## Confirm before I build
+
+Want me to (a) include all four actions (Move to Free, Limit, Ban, Delete) in this build, or start with just **Move to Free + cancellation logging for Ana**, then add Ban/Limit in a second pass?
