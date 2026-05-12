@@ -77,6 +77,21 @@ export function useUserAccountStatus() {
       }]);
       if (logErr) throw logErr;
 
+      // For ban/restore, also flip the underlying Supabase auth ban so the user
+      // truly cannot obtain a session (in addition to the in-app gate).
+      if (actionType === 'ban_user' || actionType === 'restore_active') {
+        try {
+          await supabase.functions.invoke('admin-ban-user', {
+            body: {
+              target_user_id: targetUserId,
+              action: actionType === 'ban_user' ? 'ban' : 'unban',
+            },
+          });
+        } catch (e) {
+          console.warn('[useUserAccountStatus] auth-level ban toggle failed (in-app gate still applies):', e);
+        }
+      }
+
       toast.success(`Action recorded: ${actionType.replace(/_/g, ' ')}`);
       return true;
     } catch (err: any) {
