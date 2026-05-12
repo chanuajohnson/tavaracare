@@ -20,6 +20,9 @@ export interface AdminProfile {
   email: string | null;
   care_urgency: 'immediate' | 'within_week' | 'within_month' | 'planning_ahead' | null;
   matching_requirements?: string | null;
+  account_status?: 'active' | 'free_only' | 'limited' | 'banned' | 'deleted' | null;
+  account_status_reason?: string | null;
+  account_status_changed_at?: string | null;
 }
 
 export const useAdminProfiles = () => {
@@ -46,7 +49,7 @@ export const useAdminProfiles = () => {
         throw error;
       }
 
-      setProfiles(data || []);
+      setProfiles((data || []) as unknown as AdminProfile[]);
     } catch (error) {
       console.error('Error fetching admin profiles:', error);
       setError('Failed to load user profiles');

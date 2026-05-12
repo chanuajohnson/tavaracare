@@ -55,7 +55,10 @@ export const AdminUserManagement = () => {
     years_of_experience: profile.years_of_experience,
     care_types: profile.care_types || [],
     specialized_care: profile.specialized_care || [],
-    available_for_matching: profile.available_for_matching
+    available_for_matching: profile.available_for_matching,
+    account_status: profile.account_status ?? 'active',
+    account_status_reason: profile.account_status_reason,
+    account_status_changed_at: profile.account_status_changed_at,
   }));
 
   // Also create users array in old format for compatibility

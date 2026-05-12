@@ -7,6 +7,7 @@ import { CancelVisitModal } from "@/components/family/CancelVisitModal";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 import FamilyDashboard from "@/components/family/FamilyDashboard";
 import { PlatformPositioningDisclaimer } from "@/components/shared/PlatformPositioningDisclaimer";
+import { FreePlanReturnBanner } from "@/components/family/dashboard/FreePlanReturnBanner";
 
 export default function FamilyDashboardPage() {
   const { user, userRole } = useAuth();
@@ -72,6 +73,7 @@ export default function FamilyDashboardPage() {
       </header>
 
       <main className="container mx-auto px-4 pb-8">
+        <FreePlanReturnBanner />
         <FamilyDashboard />
         <PlatformPositioningDisclaimer variant="compact" />
       </main>
