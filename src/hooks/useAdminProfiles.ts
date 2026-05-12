@@ -49,7 +49,7 @@ export const useAdminProfiles = () => {
         throw error;
       }
 
-      setProfiles(data || []);
+      setProfiles((data || []) as unknown as AdminProfile[]);
     } catch (error) {
       console.error('Error fetching admin profiles:', error);
       setError('Failed to load user profiles');
