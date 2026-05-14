@@ -84,6 +84,14 @@ const DocumentGenerationMenu = ({
   const [approvedLineItems, setApprovedLineItems] = useState<ApprovedLineItemWithMeta[]>([]);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
 
+  // Receipt-details dialog state
+  const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
+  const [receiptPaymentDate, setReceiptPaymentDate] = useState<string>(
+    format(new Date(), 'yyyy-MM-dd')
+  );
+  const [receiptPaymentMethod, setReceiptPaymentMethod] = useState<string>('Bank Transfer');
+  const [receiptAmountPaid, setReceiptAmountPaid] = useState<string>('');
+
   // Fetch approved service selections dynamically
   useEffect(() => {
     if (!carePlanId) return;
