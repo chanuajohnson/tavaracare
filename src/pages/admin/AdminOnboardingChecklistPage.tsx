@@ -1564,18 +1564,20 @@ export default function AdminOnboardingChecklistPage() {
       try {
         const { data: carePlans } = await supabase
           .from("care_plans")
-          .select("id, status")
+          .select("id, status, title")
           .eq("family_id", selectedFamilyId)
           .in("status", ["active", "draft", "pending"]);
         if (!carePlans || carePlans.length === 0) {
           setFamilyMedications([]);
           setFamilyCarePlanId(null);
+          setFamilyCarePlanTitle(null);
           return;
         }
         // Prefer active plans, fall back to draft/pending
         const activePlan = carePlans.find(cp => cp.status === 'active');
         const bestPlan = activePlan || carePlans[0];
         setFamilyCarePlanId(bestPlan.id);
+        setFamilyCarePlanTitle((bestPlan as any).title || null);
         const carePlanIds = carePlans.map(cp => cp.id);
         const { data: meds, error } = await supabase
           .from("medications")
