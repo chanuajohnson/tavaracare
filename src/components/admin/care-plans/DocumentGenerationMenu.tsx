@@ -9,8 +9,26 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { FileText, Receipt, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import {
   generateQuotePDF,
