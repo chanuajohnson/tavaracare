@@ -227,7 +227,15 @@ const DocumentGenerationMenu = ({
     });
   };
 
-  const handleGenerate = async (type: 'quote' | 'invoice' | 'receipt') => {
+  const computedTotal = useMemo(
+    () => filteredSelectedItems.reduce((sum, i) => sum + (i.amount || 0), 0),
+    [filteredSelectedItems]
+  );
+
+  const handleGenerate = async (
+    type: 'quote' | 'invoice' | 'receipt',
+    receiptOverrides?: { paymentDate?: Date; paymentMethod?: string; amountPaid?: number }
+  ) => {
     setGenerating(type);
     const label = type.charAt(0).toUpperCase() + type.slice(1);
     toast.info(`Generating ${label}...`);
@@ -242,7 +250,12 @@ const DocumentGenerationMenu = ({
           await generateInvoicePDF(data);
           break;
         case 'receipt':
-          await generateReceiptPDF(data);
+          await generateReceiptPDF({
+            ...data,
+            paymentDate: receiptOverrides?.paymentDate ?? data.paymentDate,
+            paymentMethod: receiptOverrides?.paymentMethod ?? data.paymentMethod,
+            amountPaid: receiptOverrides?.amountPaid ?? data.amountPaid,
+          });
           break;
       }
       toast.success(`${label} downloaded successfully`);
@@ -252,6 +265,28 @@ const DocumentGenerationMenu = ({
     } finally {
       setGenerating(null);
     }
+  };
+
+  const openReceiptDialog = () => {
+    setReceiptPaymentDate(format(new Date(), 'yyyy-MM-dd'));
+    setReceiptPaymentMethod('Bank Transfer');
+    setReceiptAmountPaid('');
+    setReceiptDialogOpen(true);
+  };
+
+  const handleConfirmReceipt = async () => {
+    // Parse YYYY-MM-DD as a local date (avoid TZ shifting to previous day)
+    const [y, m, d] = receiptPaymentDate.split('-').map(Number);
+    const paymentDate =
+      y && m && d ? new Date(y, m - 1, d) : new Date();
+    const parsedAmount = parseFloat(receiptAmountPaid);
+    const amountPaid = !isNaN(parsedAmount) && parsedAmount > 0 ? parsedAmount : undefined;
+    setReceiptDialogOpen(false);
+    await handleGenerate('receipt', {
+      paymentDate,
+      paymentMethod: receiptPaymentMethod,
+      amountPaid,
+    });
   };
 
   const totalCount = combinedLineItems.length;
