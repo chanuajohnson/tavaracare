@@ -1921,7 +1921,7 @@ export default function AdminOnboardingChecklistPage() {
                   <DocumentGenerationMenu
                     familyName={families.find(f => f.id === selectedFamilyId)?.full_name || 'Family'}
                     carePlanId={familyCarePlanId || undefined}
-                    carePlanTitle="Care Services"
+                    carePlanTitle={familyCarePlanTitle || 'Care Plan'}
                     careRate={(familyCheckedItems["care_rate"] as string) || undefined}
                     weeklyHours={getWeeklyHoursFromSchedule(
                       families.find(f => f.id === selectedFamilyId)?.care_schedule || undefined
