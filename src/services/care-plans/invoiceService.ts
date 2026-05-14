@@ -391,7 +391,7 @@ export async function generateReceiptPDF(data: CareBillingData): Promise<void> {
             <div style="font-size: 12px; font-weight: 600;">${docNumber}</div>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-            <div style="font-size: 12px; color: #555;">Amount Paid</div>
+            <div style="font-size: 12px; color: #555;">Amount Paid${isPartial ? ' <span style="color:#B7791F; font-style:italic;">(partial payment)</span>' : ''}</div>
             <div style="font-size: 16px; font-weight: 700; color: ${TAVARA_BLUE};">TTD $${amountPaid.toFixed(2)}</div>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
@@ -414,6 +414,12 @@ export async function generateReceiptPDF(data: CareBillingData): Promise<void> {
           ` : ''}
         </div>
       </div>
+      ${data.lineItems && data.lineItems.length > 0 ? `
+        <div style="padding: 0 32px 4px;">
+          <div style="font-size: 11px; font-weight: 700; color: #333; text-transform: uppercase; letter-spacing: 0.5px;">Services Covered by This Payment</div>
+        </div>
+        ${buildLineItemsTable(data)}
+      ` : ''}
       ${data.subscriptionTier ? buildSubscriptionSection(data) : ''}
       <div style="padding: 30px 32px;">
         <div style="display: flex; justify-content: flex-end;">
