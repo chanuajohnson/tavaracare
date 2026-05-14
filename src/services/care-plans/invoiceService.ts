@@ -372,8 +372,10 @@ export async function generateReceiptPDF(data: CareBillingData): Promise<void> {
   const docNumber = await getNextDocumentNumber('RECEIPT');
   const docDate = format(new Date(), 'MMMM d, yyyy');
   const amountPaid = data.amountPaid ?? data.total;
+  // Use provided paymentDate (the actual day the payment was made), NOT today.
   const paymentDate = data.paymentDate ? format(data.paymentDate, 'MMMM d, yyyy') : docDate;
   const amountInWords = numberToWords(amountPaid);
+  const isPartial = data.amountPaid !== undefined && Math.abs(data.amountPaid - data.total) > 0.005;
 
   const html = `
     <div style="position: relative; min-height: ${PAGE_HEIGHT}px;">
