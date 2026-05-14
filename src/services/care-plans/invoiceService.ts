@@ -421,14 +421,6 @@ export async function generateReceiptPDF(data: CareBillingData): Promise<void> {
         ${buildLineItemsTable(data)}
       ` : ''}
       ${data.subscriptionTier ? buildSubscriptionSection(data) : ''}
-      <div style="padding: 30px 32px;">
-        <div style="display: flex; justify-content: flex-end;">
-          <div style="text-align: center;">
-            <div style="border-top: 1px solid #333; width: 200px; margin-bottom: 4px;"></div>
-            <div style="font-size: 10px; color: #888;">Authorized Signature</div>
-          </div>
-        </div>
-      </div>
       ${buildFooter('Thank you for your payment!')}
     </div>
   `;
