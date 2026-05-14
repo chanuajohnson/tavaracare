@@ -293,83 +293,152 @@ const DocumentGenerationMenu = ({
   const selectedCount = filteredSelectedItems.length;
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant={variant} size={size} disabled={!!generating}>
-          {generating ? (
-            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-          ) : (
-            <FileText className="mr-1 h-3 w-3" />
-          )}
-          {generating ? 'Generating...' : 'Documents'}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72">
-        <DropdownMenuLabel>Generate Document</DropdownMenuLabel>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant={variant} size={size} disabled={!!generating}>
+            {generating ? (
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <FileText className="mr-1 h-3 w-3" />
+            )}
+            {generating ? 'Generating...' : 'Documents'}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-72">
+          <DropdownMenuLabel>Generate Document</DropdownMenuLabel>
 
-        {totalCount > 0 && (
-          <>
-            <div className="flex items-center justify-between px-2 py-1">
-              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-                Include on document
-              </span>
-              <div className="flex items-center gap-1 text-[10px]">
-                <button
-                  type="button"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); selectAll(); }}
-                  className="text-primary hover:underline px-1"
-                >
-                  All
-                </button>
-                <span className="text-muted-foreground">|</span>
-                <button
-                  type="button"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); clearAll(); }}
-                  className="text-primary hover:underline px-1"
-                >
-                  None
-                </button>
+          {totalCount > 0 && (
+            <>
+              <div className="flex items-center justify-between px-2 py-1">
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                  Include on document
+                </span>
+                <div className="flex items-center gap-1 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); selectAll(); }}
+                    className="text-primary hover:underline px-1"
+                  >
+                    All
+                  </button>
+                  <span className="text-muted-foreground">|</span>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); clearAll(); }}
+                    className="text-primary hover:underline px-1"
+                  >
+                    None
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="max-h-56 overflow-y-auto">
-              {combinedLineItems.map(item => (
-                <DropdownMenuCheckboxItem
-                  key={item.id}
-                  checked={selectedItemIds.has(item.id)}
-                  onCheckedChange={() => toggleItem(item.id)}
-                  onSelect={(e) => e.preventDefault()}
-                  className="text-xs"
-                >
-                  <div className="flex items-center justify-between gap-2 w-full pr-1">
-                    <span className="truncate">{item.shortLabel}</span>
-                    <span className="text-muted-foreground whitespace-nowrap text-[10px]">
-                      {item.priceLabel}
-                    </span>
-                  </div>
-                </DropdownMenuCheckboxItem>
-              ))}
-            </div>
-            <div className="px-2 py-1 text-[10px] text-muted-foreground italic">
-              {selectedCount} of {totalCount} services included
-            </div>
-            <DropdownMenuSeparator />
-          </>
-        )}
+              <div className="max-h-56 overflow-y-auto">
+                {combinedLineItems.map(item => (
+                  <DropdownMenuCheckboxItem
+                    key={item.id}
+                    checked={selectedItemIds.has(item.id)}
+                    onCheckedChange={() => toggleItem(item.id)}
+                    onSelect={(e) => e.preventDefault()}
+                    className="text-xs"
+                  >
+                    <div className="flex items-center justify-between gap-2 w-full pr-1">
+                      <span className="truncate">{item.shortLabel}</span>
+                      <span className="text-muted-foreground whitespace-nowrap text-[10px]">
+                        {item.priceLabel}
+                      </span>
+                    </div>
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </div>
+              <div className="px-2 py-1 text-[10px] text-muted-foreground italic">
+                {selectedCount} of {totalCount} services included
+              </div>
+              <DropdownMenuSeparator />
+            </>
+          )}
 
-        <DropdownMenuItem onClick={() => handleGenerate('quote')} disabled={!!generating}>
-          <FileSpreadsheet className="mr-2 h-4 w-4 text-blue-600" />
-          Generate Quote
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleGenerate('invoice')} disabled={!!generating}>
-          <FileText className="mr-2 h-4 w-4 text-amber-600" />
-          Generate Invoice
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleGenerate('receipt')} disabled={!!generating}>
-          <Receipt className="mr-2 h-4 w-4 text-green-600" />
-          Generate Receipt
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <DropdownMenuItem onClick={() => handleGenerate('quote')} disabled={!!generating}>
+            <FileSpreadsheet className="mr-2 h-4 w-4 text-blue-600" />
+            Generate Quote
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleGenerate('invoice')} disabled={!!generating}>
+            <FileText className="mr-2 h-4 w-4 text-amber-600" />
+            Generate Invoice
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={openReceiptDialog} disabled={!!generating}>
+            <Receipt className="mr-2 h-4 w-4 text-green-600" />
+            Generate Receipt…
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={receiptDialogOpen} onOpenChange={setReceiptDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Receipt Details</DialogTitle>
+            <DialogDescription>
+              Confirm the actual payment date and method. Defaults reflect today and the
+              full selected total — change them for back-dated or partial payments.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="receipt-payment-date">Payment Date</Label>
+              <Input
+                id="receipt-payment-date"
+                type="date"
+                value={receiptPaymentDate}
+                onChange={(e) => setReceiptPaymentDate(e.target.value)}
+                max={format(new Date(), 'yyyy-MM-dd')}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="receipt-payment-method">Payment Method</Label>
+              <Select
+                value={receiptPaymentMethod}
+                onValueChange={setReceiptPaymentMethod}
+              >
+                <SelectTrigger id="receipt-payment-method">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="Cash">Cash</SelectItem>
+                  <SelectItem value="Cheque">Cheque</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="receipt-amount-paid">
+                Amount Paid (TTD){' '}
+                <span className="text-muted-foreground text-xs font-normal">
+                  optional — defaults to ${computedTotal.toFixed(2)}
+                </span>
+              </Label>
+              <Input
+                id="receipt-amount-paid"
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                placeholder={computedTotal.toFixed(2)}
+                value={receiptAmountPaid}
+                onChange={(e) => setReceiptAmountPaid(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReceiptDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmReceipt} disabled={!receiptPaymentDate}>
+              Generate Receipt
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
