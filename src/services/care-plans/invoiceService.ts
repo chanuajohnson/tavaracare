@@ -73,7 +73,7 @@ const COMPANY_INFO = {
   name: 'Tavara.Care',
   tagline: 'It takes a village to care',
   address: 'Trinidad & Tobago',
-  phone: '+1 (868) 123-4567',
+  phone: '(868) 786-5357',
   email: 'support@tavara.care',
   website: 'https://tavara.care',
 };
