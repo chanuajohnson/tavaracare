@@ -73,7 +73,7 @@ const COMPANY_INFO = {
   name: 'Tavara.Care',
   tagline: 'It takes a village to care',
   address: 'Trinidad & Tobago',
-  phone: '+1 (868) 123-4567',
+  phone: '(868) 786-5357',
   email: 'support@tavara.care',
   website: 'https://tavara.care',
 };
@@ -241,7 +241,7 @@ function buildFooter(message: string): string {
   return `
     <div style="position: absolute; bottom: 0; left: 0; right: 0; background: #F8F8F8; padding: 14px 32px; border-top: 1px solid #EEE; display: flex; justify-content: space-between; align-items: center;">
       <div style="font-size: 10px; color: #888;">
-        ${COMPANY_INFO.name} · ${COMPANY_INFO.email} · ${COMPANY_INFO.phone}
+        ${COMPANY_INFO.name} · ${COMPANY_INFO.phone}
       </div>
       <div style="font-size: 10px; color: ${TAVARA_BLUE}; font-weight: 600;">
         ${message}

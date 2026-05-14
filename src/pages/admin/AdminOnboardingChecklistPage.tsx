@@ -1467,6 +1467,7 @@ export default function AdminOnboardingChecklistPage() {
   const [familyOpenSections, setFamilyOpenSections] = useState<Record<string, boolean>>({});
   const [familyMedications, setFamilyMedications] = useState<Array<{ id: string; name: string; dosage?: string; medication_type?: string; instructions?: string; schedule?: any }>>([]);
   const [familyCarePlanId, setFamilyCarePlanId] = useState<string | null>(null);
+  const [familyCarePlanTitle, setFamilyCarePlanTitle] = useState<string | null>(null);
   const [selectedCaregiverWeeklyHours, setSelectedCaregiverWeeklyHours] = useState<number>(40);
   const familySaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -1563,18 +1564,20 @@ export default function AdminOnboardingChecklistPage() {
       try {
         const { data: carePlans } = await supabase
           .from("care_plans")
-          .select("id, status")
+          .select("id, status, title")
           .eq("family_id", selectedFamilyId)
           .in("status", ["active", "draft", "pending"]);
         if (!carePlans || carePlans.length === 0) {
           setFamilyMedications([]);
           setFamilyCarePlanId(null);
+          setFamilyCarePlanTitle(null);
           return;
         }
         // Prefer active plans, fall back to draft/pending
         const activePlan = carePlans.find(cp => cp.status === 'active');
         const bestPlan = activePlan || carePlans[0];
         setFamilyCarePlanId(bestPlan.id);
+        setFamilyCarePlanTitle((bestPlan as any).title || null);
         const carePlanIds = carePlans.map(cp => cp.id);
         const { data: meds, error } = await supabase
           .from("medications")
@@ -1918,7 +1921,7 @@ export default function AdminOnboardingChecklistPage() {
                   <DocumentGenerationMenu
                     familyName={families.find(f => f.id === selectedFamilyId)?.full_name || 'Family'}
                     carePlanId={familyCarePlanId || undefined}
-                    carePlanTitle="Care Services"
+                    carePlanTitle={familyCarePlanTitle || 'Care Plan'}
                     careRate={(familyCheckedItems["care_rate"] as string) || undefined}
                     weeklyHours={getWeeklyHoursFromSchedule(
                       families.find(f => f.id === selectedFamilyId)?.care_schedule || undefined
