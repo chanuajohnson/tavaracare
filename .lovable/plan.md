@@ -1,64 +1,59 @@
-# Lock down Ana Maria Aimey (and any "limited" family) to true read-only
+# Plan & End Date — admin checklist + family/professional dashboards
 
-## Problem
-Today, setting a family to `account_status='limited'` only:
-- Shows a yellow `LimitedAccessBanner` on the family dashboard
-- Sets `available_for_matching=false`
+## What changes
 
-It does **not** stop her from editing or deleting anything. `useAccountStatus().isReadOnly` is read in exactly one file (the banner). Every form, button, and Supabase mutation still works because RLS policies don't check account status.
+### 1. Add the new "removed from assignment" milestone (admin + professional checklists)
+Both `onboardingSections.ts` (family) and `professionalOnboardingSections.ts` get a new item inserted **right after** the existing "commences work" line, mirroring its shape:
 
-She can still: edit her care plan, edit/delete care shifts, edit/delete medications + admin logs, edit meal plans + grocery lists, send chat messages to professionals, edit her own profile, claim/request shift coverage, edit care team members.
+> "Care team member removed from assignment at client residence (end date confirms billing period)"
 
-## Fix — two layers
+with `dateFields[4] = "End Date"`. Because the array grows by one, every following entry's index shifts by +1 — the `links` map keys in both files (and the helper-text reference in `AdminOnboardingChecklistPage.tsx` at `post_onboarding_3`) get re-indexed.
 
-### Layer 1 — Database (the real guarantee)
-Add a security-definer helper and **RESTRICTIVE** RLS policies on every table a family can write to. Restrictive policies AND with existing permissive ones, so we add a single "deny if limited" rule per table without touching existing policies. SELECT stays unaffected — only INSERT / UPDATE / DELETE are blocked.
+The end date is stored in the existing `onboarding_checklists` / `professional_onboarding_checklists` tables under the key `post_onboarding_4_date`. No DB migration needed.
 
+### 2. Admin & professional onboarding "Care Summary" headers
+Both `CareSummaryHeader` blocks (in `AdminOnboardingChecklistPage.tsx` and `ProfessionalOnboardingChecklistPage.tsx`) get a new "End Date" cell that shows the formatted `post_onboarding_4_date` when set, or "Active — no end date" when not.
+
+### 3. Family dashboard — payment records card shows plan dates
+`PaymentRecordsBanner` already wraps `PaymentMilestoneTicker` in family mode. We extend it to also fetch the family's `onboarding_checklists` row and pull `post_onboarding_3_date` (start) + `post_onboarding_4_date` (end). The ticker gets a new optional `milestoneDates` prop and renders two date pills above the payment chips — "Plan Start: Apr 13, 2026" and "Plan End: May 8, 2026" (end pill hidden if not set).
+
+### 4. Professional dashboard — new payment-records card
+New component `src/components/professional/ProfessionalPaymentRecordsCard.tsx`. Mounted in `ProfessionalDashboard.tsx` immediately under `ProfessionalMatchingReadinessBanner` (which already sits under the status banners), before `CurrentAssignmentsSection`.
+
+It:
+- Reads active assignments via `useUnifiedMatches('professional')`
+- Picks the most recent active assignment's `family_user_id` + `care_plan_id`
+- Reuses `PaymentMilestoneTicker` in family (read-only) mode with the same `milestoneDates` prop, so the professional sees the same plan-start / plan-end pills plus the chronological payment chips
+- Heading: "Family payment records — {family name}"
+- Returns `null` if no active assignment
+
+This requires no schema change. RLS already allows assigned care-team members to read the family's `onboarding_checklists` row (verified — care_team_members can read their family's records). For `family_payment_records`, the existing policy is admin + the family. **One small migration adds a SELECT policy** so active care-team members can read their assigned family's payment records.
+
+### 5. Migration (one new SELECT policy)
 ```sql
-create or replace function public.is_account_limited(_uid uuid)
-returns boolean language sql stable security definer set search_path = public as $$
-  select exists (
-    select 1 from public.profiles
-    where id = _uid and account_status in ('limited','free_only','banned','deleted')
-  )
-$$;
+CREATE POLICY "Active care team can view family payment records"
+  ON public.family_payment_records FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.care_team_members ctm
+      WHERE ctm.family_id = family_payment_records.family_user_id
+        AND ctm.caregiver_id = auth.uid()
+        AND ctm.status = 'active'
+    )
+  );
 ```
+Same for `onboarding_checklists` if not already covered (verify before policy add — skip if existing policy covers care-team read).
 
-Tables receiving a restrictive `FOR INSERT/UPDATE/DELETE` policy `(NOT public.is_account_limited(auth.uid()))`:
-- `profiles` (she can't edit her own profile)
-- `care_plans`, `care_plan_edit_log`
-- `care_shifts`, `shift_coverage_requests`, `shift_coverage_claims`, `shift_notifications`
-- `care_team_members`, `employer_settings`
-- `medications`, `medication_administrations`
-- `meal_plans`, `meal_plan_items`, `grocery_lists`, `grocery_items`, `recipes`
-- `family_chat_messages`, `family_chat_requests`, `family_chat_sessions`
-- `work_logs`, `work_log_expenses`, `payroll_entries` (families shouldn't write these anyway, but defense-in-depth)
-
-Admin actions are unaffected because admins act through their own `auth.uid()` (status='active').
-
-`family_payment_records` is admin-managed, no change needed.
-
-### Layer 2 — UI (clarity, never let user feel stuck)
-Add a small `useReadOnlyGuard()` hook + `<ReadOnlyOverlay>` that:
-- Disables and dims action buttons (Edit / Delete / Save / Send / Add) inside family dashboard pages when `isReadOnly` is true
-- Shows a tooltip: "Read-only mode — contact your coordinator to make changes"
-- Wraps form submit handlers so they short-circuit with a toast instead of hitting Supabase
-
-Apply guard in the family-mutating components: care plan editor, shifts editor, medications page, meal plans page, professional chat composer, profile edit, care team management. Leaves all read views fully visible (in line with "never let the user feel stuck" — she can still see everything, just not change it).
-
-The existing `LimitedAccessBanner` stays as the top-of-page explanation.
+## Files touched
+- `src/components/admin/onboarding/onboardingSections.ts` — insert item + dateField, re-key links
+- `src/components/admin/onboarding/professionalOnboardingSections.ts` — same shape change
+- `src/pages/admin/AdminOnboardingChecklistPage.tsx` — `CareSummaryHeader` adds End Date cell; bump `post_onboarding_3` label key reference
+- `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx` — header adds End Date cell
+- `src/components/admin/care-plans/PaymentMilestoneTicker.tsx` — add optional `milestoneDates?: { startDate?: string; endDate?: string }` prop, render pills row
+- `src/components/family/dashboard/PaymentRecordsBanner.tsx` — fetch checklist row, pass milestoneDates
+- `src/components/professional/ProfessionalPaymentRecordsCard.tsx` — new
+- `src/pages/dashboard/ProfessionalDashboard.tsx` — mount the new card under readiness banner
+- One migration adding the SELECT policy on `family_payment_records` for active care-team members.
 
 ## Out of scope
-- No changes to admin tools, payment ledger, routing, or registration files.
-- No change to `free_only` UX (already handled separately) — but the DB function does include it as a safety net.
-
-## Verification
-1. Sign in as Ana → confirm Edit/Delete buttons are disabled with tooltip across her dashboard.
-2. Try a direct Supabase call from console as Ana → expect `new row violates row-level security policy`.
-3. Sign in as admin → confirm full edit/delete still works on Ana's records.
-4. Restore Ana to `active` → confirm full write access returns.
-
-## Technical notes
-- One migration: helper function + ~20 restrictive policies (idempotent `drop policy if exists` first).
-- One new file `src/hooks/useReadOnlyGuard.ts`.
-- Touch ~8 family components to wire the guard around mutation buttons / submit handlers.
+No changes to routing, registration, the chat flow, or the family-side write enforcement landed in the previous turn. PaymentMilestoneTicker admin write logic is untouched.
