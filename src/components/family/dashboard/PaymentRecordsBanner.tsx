@@ -3,17 +3,19 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { PaymentMilestoneTicker } from '@/components/admin/care-plans/PaymentMilestoneTicker';
 
+type PlanRow = { id: string; title: string | null; status: string | null };
+
 /**
  * Read-only payment records strip for the family dashboard.
- * Sits directly under <LimitedAccessBanner /> as a milestone history.
  *
- * Also surfaces the Plan Start / Plan End dates pulled from the
- * onboarding_checklists row (post_onboarding_3_date / post_onboarding_4_date)
- * so families see all key billing-period milestones at a glance.
+ * A family can have more than one care plan, so we render one ticker per
+ * care plan, each clearly labeled with the plan title. Plan-period milestone
+ * dates from `onboarding_checklists` are family-wide (not plan-specific yet)
+ * and are shown on every ticker as today.
  */
 export const PaymentRecordsBanner: React.FC = () => {
   const { user } = useAuth();
-  const [carePlanId, setCarePlanId] = useState<string | null>(null);
+  const [plans, setPlans] = useState<PlanRow[]>([]);
   const [milestoneDates, setMilestoneDates] = useState<{ startDate?: string | null; endDate?: string | null }>({});
   const [resolved, setResolved] = useState(false);
 
@@ -25,10 +27,9 @@ export const PaymentRecordsBanner: React.FC = () => {
       const [planRes, checklistRes] = await Promise.all([
         supabase
           .from('care_plans')
-          .select('id, status')
+          .select('id, title, status')
           .eq('family_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1),
+          .order('created_at', { ascending: false }),
         supabase
           .from('onboarding_checklists')
           .select('checked_items')
@@ -38,7 +39,7 @@ export const PaymentRecordsBanner: React.FC = () => {
 
       if (cancelled) return;
 
-      setCarePlanId(planRes.data?.[0]?.id || null);
+      setPlans((planRes.data as PlanRow[] | null) || []);
 
       const items = (checklistRes.data?.checked_items as Record<string, unknown> | null) || {};
       setMilestoneDates({
@@ -52,14 +53,33 @@ export const PaymentRecordsBanner: React.FC = () => {
   }, [user?.id]);
 
   if (!user?.id || !resolved) return null;
+
+  // No care plans — preserve previous behavior with a single fallback ticker.
+  if (plans.length === 0) {
+    return (
+      <PaymentMilestoneTicker
+        familyUserId={user.id}
+        carePlanId={null}
+        mode="family"
+        title="Your payment records"
+        milestoneDates={milestoneDates}
+      />
+    );
+  }
+
   return (
-    <PaymentMilestoneTicker
-      familyUserId={user.id}
-      carePlanId={carePlanId}
-      mode="family"
-      title="Your payment records"
-      milestoneDates={milestoneDates}
-    />
+    <div className="space-y-3">
+      {plans.map((plan) => (
+        <PaymentMilestoneTicker
+          key={plan.id}
+          familyUserId={user.id}
+          carePlanId={plan.id}
+          mode="family"
+          title={`Your payment records — ${plan.title || 'Untitled care plan'}`}
+          milestoneDates={milestoneDates}
+        />
+      ))}
+    </div>
   );
 };
 
