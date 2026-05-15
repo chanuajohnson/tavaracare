@@ -196,7 +196,8 @@ export const AppRoutes = () => {
       <Route path="/admin/onboarding-checklist" element={<AdminOnboardingChecklistPage />} />
       <Route path="/admin/unit-economics" element={<UnitEconomicsPage />} />
       <Route path="/admin/lifecycle-cost" element={<LifecycleCostPage />} />
-      
+      <Route path="/admin/pricing-catalog" element={<AdminPricingCatalogPage />} />
+
       {/* Legacy Routes */}
       <Route path="/legacy-stories" element={<LegacyStoriesPage />} />
       
