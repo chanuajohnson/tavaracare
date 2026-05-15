@@ -151,6 +151,12 @@ function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, bool
           </span>
         </div>
         <div className="text-sm">
+          <span className="text-muted-foreground">End Date:</span>{" "}
+          <span className="font-medium">
+            {endDateStr ? format(parseLocalDate(endDateStr), "PPP") : "Active — no end date"}
+          </span>
+        </div>
+        <div className="text-sm">
           <span className="text-muted-foreground">Payment:</span>{" "}
           <span className="font-medium">Weekly (every Friday)</span>
         </div>
