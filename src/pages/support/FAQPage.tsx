@@ -156,7 +156,7 @@ const faqs: FAQ[] = [
   {
     id: "faq-21",
     question: "How does care plan pricing work?",
-    answer: "Tavara offers two managed care coordination plans:\n\n🚀 Active Care Management — $699/week ($2,499/month)\nIncludes a dedicated care coordinator, structured weekly care coordination, caregiver oversight, billing support, and managed care.\n\n🚀 Premium Care Management — $899/week ($3,299/month)\nIncludes all Active Care features plus concierge-level coordination, 24/7 on-call support, priority matching, and complex family care management.\n\nAdditional one-time services:\n✔ Caregiver Matching & Placement — $299\n✔ Care Assessment & Setup — $499\n\nThese may be waived for early adopters or as part of promotional offers.",
+    answer: "Tavara offers two managed care coordination plans:\n\n🚀 Active Care Management — $699/week ($2,499/month)\nIncludes a dedicated care coordinator, structured weekly care coordination, caregiver oversight, billing support, and managed care.\n\n🚀 Premium Care Management — $899/week ($3,299/month)\nIncludes all Active Care features plus concierge-level coordination, 24/7 on-call support, priority matching, and complex family care management.\n\nAdditional one-time services:\n✔ Caregiver Matching & Placement — $1,399\n✔ Care Assessment & Setup — $499\n\nThese may be waived for early adopters or as part of promotional offers.",
     category: "Care Management"
   },
   {

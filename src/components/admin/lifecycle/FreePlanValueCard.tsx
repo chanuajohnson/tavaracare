@@ -61,7 +61,7 @@ export const FreePlanValueCard: React.FC = () => {
           <p className="text-xs text-muted-foreground leading-relaxed">
             Auto-matching is <strong className="text-foreground">free and automatic</strong> —
             similar to how a dating app surfaces compatible profiles. The Day 0
-            <strong className="text-foreground"> Caregiver Matching & Placement</strong> ($299) and
+            <strong className="text-foreground"> Caregiver Matching &amp; Placement</strong> ($1,399) and
             <strong className="text-foreground"> Care Assessment & Setup</strong> ($499) fees pay
             for the human Care Administrator who:
           </p>

@@ -3821,6 +3821,54 @@ export type Database = {
           },
         ]
       }
+      pricing_catalog: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          description: string | null
+          display_name: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          price_max: number | null
+          price_min: number | null
+          sort_order: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string
+          description?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          price_max?: number | null
+          price_min?: number | null
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          price_max?: number | null
+          price_min?: number | null
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       professional_documents: {
         Row: {
           created_at: string

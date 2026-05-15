@@ -21,6 +21,7 @@ import ProfessionalScreeningPage from "@/pages/admin/ProfessionalScreeningPage";
 import AdminOnboardingChecklistPage from "@/pages/admin/AdminOnboardingChecklistPage";
 import UnitEconomicsPage from "@/pages/admin/UnitEconomicsPage";
 import LifecycleCostPage from "@/pages/admin/LifecycleCostPage";
+import AdminPricingCatalogPage from "@/pages/admin/AdminPricingCatalogPage";
 import MobileScreeningPage from "@/pages/screening/MobileScreeningPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
@@ -195,7 +196,8 @@ export const AppRoutes = () => {
       <Route path="/admin/onboarding-checklist" element={<AdminOnboardingChecklistPage />} />
       <Route path="/admin/unit-economics" element={<UnitEconomicsPage />} />
       <Route path="/admin/lifecycle-cost" element={<LifecycleCostPage />} />
-      
+      <Route path="/admin/pricing-catalog" element={<AdminPricingCatalogPage />} />
+
       {/* Legacy Routes */}
       <Route path="/legacy-stories" element={<LegacyStoriesPage />} />
       
