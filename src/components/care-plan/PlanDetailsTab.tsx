@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
 import { CarePlan } from "@/types/carePlan";
 import { useNavigate } from "react-router-dom";
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard";
 
 interface PlanDetailsTabProps {
   carePlan: CarePlan;
@@ -13,6 +14,7 @@ interface PlanDetailsTabProps {
 
 export const PlanDetailsTab: React.FC<PlanDetailsTabProps> = ({ carePlan }) => {
   const navigate = useNavigate();
+  const { isReadOnly } = useReadOnlyGuard();
   
   const getPlanTypeDisplay = (plan: CarePlan) => {
     if (!plan.metadata?.planType) return "Not specified";
@@ -42,10 +44,12 @@ export const PlanDetailsTab: React.FC<PlanDetailsTabProps> = ({ carePlan }) => {
             Information about this care plan
           </CardDescription>
         </div>
-        <Button variant="outline" size="sm" onClick={handleEdit}>
-          <Edit className="h-4 w-4 mr-2" />
-          Edit
-        </Button>
+        {!isReadOnly && (
+          <Button variant="outline" size="sm" onClick={handleEdit}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

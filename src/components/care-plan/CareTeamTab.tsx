@@ -11,6 +11,7 @@ import { CareTeamMemberCard } from "./CareTeamMemberCard";
 import { Plus, Users } from "lucide-react";
 import { CareTeamMember, CareTeamMemberInput, CareTeamMemberWithProfile } from "@/types/careTypes";
 import { inviteCareTeamMember } from "@/services/care-plans";
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard";
 
 interface Professional {
   id: string;
@@ -37,6 +38,7 @@ export const CareTeamTab: React.FC<CareTeamTabProps> = ({
   onMemberRemoveRequest
 }) => {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const { isReadOnly } = useReadOnlyGuard();
   const [newTeamMember, setNewTeamMember] = useState({
     caregiverId: "",
     role: "caregiver" as const,
@@ -77,13 +79,14 @@ export const CareTeamTab: React.FC<CareTeamTabProps> = ({
     <>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Care Team Members</h2>
-        <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Team Member
-            </Button>
-          </DialogTrigger>
+        {!isReadOnly && (
+          <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Team Member
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Assign Care Professional</DialogTitle>
