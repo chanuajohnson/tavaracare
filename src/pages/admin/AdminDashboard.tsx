@@ -288,6 +288,15 @@ export default function AdminDashboard() {
           <Tag className="h-6 w-6" />
           <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Pricing Catalog</span>
         </Button>
+
+        <Button
+          onClick={handleLifecycleCostClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <Calculator className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Lifecycle Cost</span>
+        </Button>
       </div>
 
       {/* Pending Scheduling Requests Alert */}
