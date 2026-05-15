@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings, UserCheck, MapPin, Link2, Shield, HeartHandshake, ClipboardCheck, DollarSign, Tag } from "lucide-react";
+import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings, UserCheck, MapPin, Link2, Shield, HeartHandshake, ClipboardCheck, DollarSign, Tag, Calculator } from "lucide-react";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { QuizLeadsPanel } from "@/components/admin/QuizLeadsPanel";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
@@ -128,6 +128,10 @@ export default function AdminDashboard() {
 
   const handlePricingCatalogClick = () => {
     navigate('/admin/pricing-catalog');
+  };
+
+  const handleLifecycleCostClick = () => {
+    navigate('/admin/lifecycle-cost');
   };
 
   return (
@@ -283,6 +287,15 @@ export default function AdminDashboard() {
         >
           <Tag className="h-6 w-6" />
           <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Pricing Catalog</span>
+        </Button>
+
+        <Button
+          onClick={handleLifecycleCostClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <Calculator className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Lifecycle Cost</span>
         </Button>
       </div>
 
