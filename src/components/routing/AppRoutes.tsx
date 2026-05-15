@@ -21,6 +21,7 @@ import ProfessionalScreeningPage from "@/pages/admin/ProfessionalScreeningPage";
 import AdminOnboardingChecklistPage from "@/pages/admin/AdminOnboardingChecklistPage";
 import UnitEconomicsPage from "@/pages/admin/UnitEconomicsPage";
 import LifecycleCostPage from "@/pages/admin/LifecycleCostPage";
+import AdminPricingCatalogPage from "@/pages/admin/AdminPricingCatalogPage";
 import MobileScreeningPage from "@/pages/screening/MobileScreeningPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
