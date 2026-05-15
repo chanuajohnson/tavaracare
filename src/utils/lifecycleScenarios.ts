@@ -40,6 +40,8 @@ export interface PricingCatalog {
   fee_plan_adjust: number;
   fee_basic_escalation: number;
   fee_urgent_escalation: number;
+  fee_emergency_stabilization_min: number;
+  fee_emergency_stabilization_max: number;
 }
 
 export interface ScenarioConfig {
