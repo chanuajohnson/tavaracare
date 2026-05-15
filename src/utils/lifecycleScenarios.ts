@@ -77,7 +77,7 @@ export interface ScenarioTimeline {
 
 export const DEFAULT_PRICING: PricingCatalog = {
   setup_assessment: 499,
-  setup_matching: 299,
+  setup_matching: 1399,
   setup_readiness: 199,
   setup_nis: 349,
   sub_active: 699,
@@ -94,6 +94,8 @@ export const DEFAULT_PRICING: PricingCatalog = {
   fee_plan_adjust: 149,
   fee_basic_escalation: 100,
   fee_urgent_escalation: 200,
+  fee_emergency_stabilization_min: 300,
+  fee_emergency_stabilization_max: 2000,
 };
 
 /**
