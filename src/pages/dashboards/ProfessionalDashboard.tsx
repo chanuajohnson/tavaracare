@@ -19,6 +19,8 @@ import { ProfessionalFamilyAwarenessBanner } from "@/components/professional/Pro
 import { ProfessionalMatchingReadinessBanner } from "@/components/professional/ProfessionalMatchingReadinessBanner";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { LeadCaptureModal } from "@/components/family/LeadCaptureModal";
+import { LimitedAccessBanner } from "@/components/shared/LimitedAccessBanner";
+import { ProfessionalPaymentRecordsBanner } from "@/components/professional/ProfessionalPaymentRecordsBanner";
 
 const ProfessionalDashboard = () => {
   const { user } = useAuth();
@@ -64,6 +66,10 @@ const ProfessionalDashboard = () => {
     <div className="min-h-screen bg-background">
       <div className="container px-4 py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
+
+        {/* Mirror the family dashboard: status + payment records above the H1 */}
+        <LimitedAccessBanner />
+        <ProfessionalPaymentRecordsBanner />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
