@@ -175,6 +175,7 @@ export const PROFESSIONAL_ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
       "Care team member confirmed and to be introduced to family",
       "First meeting: Tavara coordinator, care team member, and family at client residence",
       "Care team member commences work at client residence",
+      "Care team member removed from assignment at client residence (end date confirms billing period)",
       "Professional is compensated weekly (every Friday), coordinated by Tavara",
       "NIS contributions are the family's responsibility — Tavara provides tools and guidance to manage them",
       "View your coordinated care placements",
@@ -184,10 +185,11 @@ export const PROFESSIONAL_ONBOARDING_SECTION_DEFS: OnboardingSectionDef[] = [
       1: "Introduction Date",
       2: "Meeting Date",
       3: "Start Date",
+      4: "End Date",
     },
     links: {
-      6: "/dashboard/professional",
-      7: "/professional/onboarding-checklist",
+      7: "/dashboard/professional",
+      8: "/professional/onboarding-checklist",
     },
   },
 ];
