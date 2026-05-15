@@ -258,9 +258,9 @@ const REPORT_ITEM_MAP: Record<string, string> = {
   "caregiver_matching_3": "Tentatively assigned caregiver (pending confirmation)",
   "caregiver_matching_4": "Meet-and-greet arranged if applicable",
   // Rates
-  "rates_and_changes_0": "Agreed: Standard rate tier ($35/hr) — GAPP-certified personal care, medication admin, vitals, meal prep, documentation, specialized care",
-  "rates_and_changes_1": "Agreed: Full Service rate ($40/hr) — Standard + advanced meal prep, complex medical, overnight/live-in, advanced certs, behavioral health",
-  "rates_and_changes_2": "Agreed: Premium rate ($45+/hr) — Full Service + change-in-care management, multi-specialist coordination, 24/7, palliative, family training",
+  "rates_and_changes_0": "Agreed: Standard rate tier ($40/hr) — GAPP-certified personal care, medication admin, vitals, meal prep, documentation, specialized care",
+  "rates_and_changes_1": "Agreed: Full Service rate ($45/hr) — Standard + advanced meal prep, complex medical, overnight/live-in, advanced certs, behavioral health",
+  "rates_and_changes_2": "Agreed: Premium rate ($50+/hr) — Full Service + change-in-care management, multi-specialist coordination, 24/7, palliative, family training",
   "rates_and_changes_3": "Agreed: Holiday rates — 1.5x on recognized holidays, 2x on Christmas",
   "rates_and_changes_4": "Agreed: Overtime rates — 1.5x for shifts beyond standard coverage",
   "rates_and_changes_5": "Acknowledged: Change orders documented and discussed before taking effect",
