@@ -1,8 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Lock, MessageCircle, Phone } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Lock, Phone } from 'lucide-react';
 import { useAccountStatus } from '@/components/auth/AccountStatusGate';
 
 /**
@@ -48,12 +47,6 @@ export const LimitedAccessBanner: React.FC = () => {
               <Phone className="h-4 w-4 mr-2" />
               WhatsApp Coordinator
             </a>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/support">
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Talk to Coordinator
-            </Link>
           </Button>
         </div>
       </CardContent>

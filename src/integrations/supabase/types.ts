@@ -2298,6 +2298,68 @@ export type Database = {
         }
         Relationships: []
       }
+      family_payment_records: {
+        Row: {
+          care_plan_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          family_user_id: string
+          id: string
+          is_milestone: boolean
+          line_items: Json
+          notes: string | null
+          paid_date: string
+          period_end: string | null
+          period_start: string | null
+          receipt_id: string | null
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          care_plan_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          family_user_id: string
+          id?: string
+          is_milestone?: boolean
+          line_items?: Json
+          notes?: string | null
+          paid_date: string
+          period_end?: string | null
+          period_start?: string | null
+          receipt_id?: string | null
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          care_plan_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          family_user_id?: string
+          id?: string
+          is_milestone?: boolean
+          line_items?: Json
+          notes?: string | null
+          paid_date?: string
+          period_end?: string | null
+          period_start?: string | null
+          receipt_id?: string | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_payment_records_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feature_interest_tracking: {
         Row: {
           action_type: string | null

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { PRODUCTION_BASE_URL } from '@/utils/urlConstants';
 import DocumentGenerationMenu from "@/components/admin/care-plans/DocumentGenerationMenu";
+import { PaymentMilestoneTicker } from "@/components/admin/care-plans/PaymentMilestoneTicker";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -1893,6 +1894,14 @@ export default function AdminOnboardingChecklistPage() {
                 </div>
               </CardContent>
             </Card>
+          )}
+          {selectedFamilyId && (
+            <PaymentMilestoneTicker
+              familyUserId={selectedFamilyId}
+              carePlanId={familyCarePlanId}
+              mode="admin"
+              title="Payment Milestones"
+            />
           )}
           {selectedFamilyId && (
             <Card className="mb-4">
