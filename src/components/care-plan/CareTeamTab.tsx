@@ -152,6 +152,7 @@ export const CareTeamTab: React.FC<CareTeamTabProps> = ({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        )}
       </div>
       
       {careTeamMembers.length > 0 ? (
@@ -169,11 +170,17 @@ export const CareTeamTab: React.FC<CareTeamTabProps> = ({
           <div className="p-6 text-center">
             <Users className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
             <h3 className="text-lg font-semibold mb-2">No Team Members</h3>
-            <p className="mb-4 text-muted-foreground">You haven't added any care professionals to this care plan yet.</p>
-            <Button onClick={() => setInviteDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add First Team Member
-            </Button>
+            <p className="mb-4 text-muted-foreground">
+              {isReadOnly
+                ? "No care professionals have been added to this care plan yet."
+                : "You haven't added any care professionals to this care plan yet."}
+            </p>
+            {!isReadOnly && (
+              <Button onClick={() => setInviteDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add First Team Member
+              </Button>
+            )}
           </div>
         </Card>
       )}
