@@ -12,6 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Clock, MoreHorizontal, UserMinus, ChevronDown, ChevronUp, Shield } from "lucide-react";
 import { CareTeamMemberWithProfile } from "@/types/careTypes";
 import { updateEmployeeNISDetails } from "@/services/care-plans/team/nisService";
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard";
 
 interface CareTeamMemberCardProps {
   member: CareTeamMemberWithProfile;
@@ -21,6 +22,7 @@ interface CareTeamMemberCardProps {
 
 export const CareTeamMemberCard: React.FC<CareTeamMemberCardProps> = ({ member, onRemoveRequest, onMemberUpdated }) => {
   const [nisOpen, setNisOpen] = useState(false);
+  const { isReadOnly } = useReadOnlyGuard();
   const [nisNumber, setNisNumber] = useState(member.nisNumber || '');
   const [dateOfBirth, setDateOfBirth] = useState(member.dateOfBirth || '');
   const [dateEmployed, setDateEmployed] = useState(member.dateEmployed || '');
@@ -90,23 +92,25 @@ export const CareTeamMemberCard: React.FC<CareTeamMemberCardProps> = ({ member, 
             }`}>
               {member.status.charAt(0).toUpperCase() + member.status.slice(1)}
             </Badge>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">Open menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={() => onRemoveRequest(member)}
-                >
-                  <UserMinus className="h-4 w-4 mr-2" />
-                  Remove from team
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {!isReadOnly && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Open menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => onRemoveRequest(member)}
+                  >
+                    <UserMinus className="h-4 w-4 mr-2" />
+                    Remove from team
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </CardHeader>
