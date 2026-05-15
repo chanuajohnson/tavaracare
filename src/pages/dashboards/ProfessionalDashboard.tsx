@@ -67,6 +67,10 @@ const ProfessionalDashboard = () => {
       <div className="container px-4 py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
 
+        {/* Mirror the family dashboard: status + payment records above the H1 */}
+        <LimitedAccessBanner />
+        <ProfessionalPaymentRecordsBanner />
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
