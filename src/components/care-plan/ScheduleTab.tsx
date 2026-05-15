@@ -20,6 +20,7 @@ import { EmergencyShiftWhatsAppModal } from './EmergencyShiftWhatsAppModal';
 import { ShareScheduleModal } from './ShareScheduleModal';
 import { toast } from "sonner";
 import { getShiftTimeMappings, getShiftMappingById } from './utils/shiftTimeMapping';
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard";
 
 interface ScheduleTabProps {
   carePlanId: string;
@@ -41,6 +42,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
   onDeleteShift
 }) => {
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
+  const { isReadOnly } = useReadOnlyGuard();
   const [shareScheduleModalOpen, setShareScheduleModalOpen] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<Date>(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
@@ -242,7 +244,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
             </CardDescription>
           </div>
           <div className="flex gap-2">
-            {careTeamMembers.length > 0 && (
+            {careTeamMembers.length > 0 && !isReadOnly && (
               <>
                 <Button 
                   onClick={() => setShareScheduleModalOpen(true)}
@@ -498,10 +500,10 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
               setSelectedWeek={setSelectedWeek}
               careShifts={careShifts}
               careTeamMembers={careTeamMembers}
-              onEditShift={handleEditShift}
-              onDeleteShift={onDeleteShift}
-              onAddShift={openNewShiftDialog}
-              onLogHours={handleLogHours}
+              onEditShift={isReadOnly ? () => {} : handleEditShift}
+              onDeleteShift={isReadOnly ? () => {} : onDeleteShift}
+              onAddShift={isReadOnly ? () => {} : openNewShiftDialog}
+              onLogHours={isReadOnly ? () => {} : handleLogHours}
             />
 
             <Dialog open={workLogFormOpen} onOpenChange={setWorkLogFormOpen}>

@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { CarePlanMetadata } from '@/types/carePlan';
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard";
 
 type PlanType = 'scheduled' | 'on-demand' | 'both';
 type WeekdayOption = '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
@@ -28,11 +29,23 @@ const CreateCarePlanPage = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const familyIdOverride = searchParams.get('familyId');
+  const { isReadOnly } = useReadOnlyGuard();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(!!id);
   const [isEditMode] = useState(!!id);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [familyName, setFamilyName] = useState<string | null>(null);
+
+  // Read-only guard: limited-access families cannot create or edit care plans.
+  // Mirrors the DB-level deny_writes_when_limited_* policies on care_plans.
+  useEffect(() => {
+    if (isReadOnly) {
+      toast.error('Editing is disabled in read-only mode.', {
+        description: 'Please contact your coordinator to make changes.',
+      });
+      navigate('/dashboard/family');
+    }
+  }, [isReadOnly, navigate]);
   
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");

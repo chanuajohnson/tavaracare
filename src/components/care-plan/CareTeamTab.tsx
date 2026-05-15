@@ -11,6 +11,7 @@ import { CareTeamMemberCard } from "./CareTeamMemberCard";
 import { Plus, Users } from "lucide-react";
 import { CareTeamMember, CareTeamMemberInput, CareTeamMemberWithProfile } from "@/types/careTypes";
 import { inviteCareTeamMember } from "@/services/care-plans";
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard";
 
 interface Professional {
   id: string;
@@ -37,6 +38,7 @@ export const CareTeamTab: React.FC<CareTeamTabProps> = ({
   onMemberRemoveRequest
 }) => {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const { isReadOnly } = useReadOnlyGuard();
   const [newTeamMember, setNewTeamMember] = useState({
     caregiverId: "",
     role: "caregiver" as const,
@@ -77,13 +79,14 @@ export const CareTeamTab: React.FC<CareTeamTabProps> = ({
     <>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Care Team Members</h2>
-        <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Team Member
-            </Button>
-          </DialogTrigger>
+        {!isReadOnly && (
+          <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Team Member
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Assign Care Professional</DialogTitle>
@@ -149,6 +152,7 @@ export const CareTeamTab: React.FC<CareTeamTabProps> = ({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        )}
       </div>
       
       {careTeamMembers.length > 0 ? (
@@ -166,11 +170,17 @@ export const CareTeamTab: React.FC<CareTeamTabProps> = ({
           <div className="p-6 text-center">
             <Users className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
             <h3 className="text-lg font-semibold mb-2">No Team Members</h3>
-            <p className="mb-4 text-muted-foreground">You haven't added any care professionals to this care plan yet.</p>
-            <Button onClick={() => setInviteDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add First Team Member
-            </Button>
+            <p className="mb-4 text-muted-foreground">
+              {isReadOnly
+                ? "No care professionals have been added to this care plan yet."
+                : "You haven't added any care professionals to this care plan yet."}
+            </p>
+            {!isReadOnly && (
+              <Button onClick={() => setInviteDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add First Team Member
+              </Button>
+            )}
           </div>
         </Card>
       )}

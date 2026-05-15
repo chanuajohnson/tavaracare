@@ -10,7 +10,8 @@ import { TrainingProgressTracker } from "@/components/professional/TrainingProgr
 import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
 import { ManualMatchNotification } from "@/components/professional/ManualMatchNotification";
 import { CurrentAssignmentsSection } from "@/components/professional/CurrentAssignmentsSection";
-import { ProfessionalPaymentRecordsCard } from "@/components/professional/ProfessionalPaymentRecordsCard";
+import { ProfessionalPaymentRecordsBanner } from "@/components/professional/ProfessionalPaymentRecordsBanner";
+import { LimitedAccessBanner } from "@/components/shared/LimitedAccessBanner";
 import { ActiveChatSessionsSection } from "@/components/professional/ActiveChatSessionsSection";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -120,6 +121,10 @@ const ProfessionalDashboard = () => {
         
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
 
+        {/* Mirror the family dashboard: status + payment records above the H1 */}
+        <LimitedAccessBanner />
+        <ProfessionalPaymentRecordsBanner />
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -149,9 +154,6 @@ const ProfessionalDashboard = () => {
             <ProfessionalFamilyMatchNotification />
             <ProfessionalFamilyAwarenessBanner />
             <ProfessionalMatchingReadinessBanner />
-
-            {/* Family payment records + plan-date milestones (read-only) */}
-            <ProfessionalPaymentRecordsCard />
 
             {/* Manual Match Notifications */}
             <ManualMatchNotification />

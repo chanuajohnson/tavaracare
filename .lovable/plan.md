@@ -1,93 +1,86 @@
-## Pricing Source-of-Truth Alignment + Admin Pricing Manager
+## Three fixes: enforce read-only on care plan, mirror banners on Professional Dashboard, add Pricing card to Admin Dashboard
 
-### Decisions confirmed by user (canonical values)
+### 1. Enforce read-only in the care-plan UI (limited-access users)
 
-| Item | Old/Stale | Canonical |
-|---|---|---|
-| Caregiver Matching & Placement | $299 | **$1,399** one-time |
-| Active Care Management (weekly) | $499/wk (legacy) | **$699/wk** (Ana Aimey legacy = $499) |
-| Rate tier — Standard | $35/hr | **$40/hr** |
-| Rate tier — Full Service | $40/hr | **$45/hr** |
-| Rate tier — Premium | $45+/hr | **$50+/hr** |
-| Emergency Stabilization / Rapid Response | absent | **$300–$2,000** (range, new constant) |
-| Standard / High-Need Secondary Support | n/a | **"Custom Quote"** — surface as line item, no number |
-| Full Care Environment Reset | n/a | **"Custom monthly retainer"** — surface as line item, no number |
+DB-level RESTRICTIVE policies (`deny_writes_when_limited_*`) are already in place from the earlier migration, so any actual write would fail server-side. The bug is purely UX: edit/delete buttons are still rendered and clickable, so the user clicks "Edit" and the form opens — confusing and a trust failure ("Movement is freedom" / "Earn trust in every interaction").
 
----
+Fix at the UI layer using the existing `useReadOnlyGuard()` hook (already returns `isReadOnly`, `readOnlyProps`, `tooltip`, and `guard()` wrapper). For each edit/delete entry point on the care plan:
 
-### Part 1 — Code & copy alignment (immediate)
+- `src/components/care-plan/PlanDetailsTab.tsx` — Edit button: spread `readOnlyProps`, hide entirely when `isReadOnly` (cleaner than disabled here since the section is purely informational).
+- `src/components/care-plan/CareTeamTab.tsx` — "Add team member", "Remove" — hide / disable.
+- `src/components/care-plan/EnhancedScheduleTab.tsx` — "Add shift", "Edit shift", "Delete shift", drag handles — disable + tooltip.
+- `src/components/care-plan/MedicationsTab.tsx` — already partial; verify all edit/delete/add buttons are guarded.
+- `src/components/care-plan/DocumentsTab.tsx` — upload, delete buttons.
+- `src/components/meal-planning/MealPlanner.tsx` & `EditMealDialog.tsx` — add/edit/delete (some already guarded).
+- `src/components/care-plan/PayrollTab.tsx` / `PayrollEntriesTable.tsx` — already guarded.
+- `src/pages/family/care-management/CreateCarePlanPage.tsx` and any "Edit Care Plan" route page — short-circuit at top: if `isReadOnly`, redirect back to `/dashboard/family` with a toast.
 
-**`src/utils/lifecycleScenarios.ts`**
-- `setup_matching: 299` → `1399`
-- `sub_active: 699` (already correct — keep)
-- Add `fee_emergency_stabilization_min: 300`, `fee_emergency_stabilization_max: 2000`
-- Add display-only entries (no math) for `Standard/High-Need Secondary Support` and `Full Care Environment Reset` as `customQuote: true` line items so they render in `/admin/lifecycle-cost` builder as "Custom Quote".
+Pattern applied per component:
+```tsx
+const { isReadOnly, readOnlyProps, guard } = useReadOnlyGuard();
+// hide:    {!isReadOnly && <Button onClick={handleEdit}>Edit</Button>}
+// disable: <Button {...readOnlyProps} onClick={guard(handleEdit, 'Edit')}>Edit</Button>
+```
 
-**`src/pages/support/FAQPage.tsx`**
-- Line 159: "Caregiver Matching & Placement — $299" → **$1,399**
-- Line 99: confirm `$699/wk` already present (yes) — no change.
+This mirrors the same DB-side `is_account_limited` check, so UI and database agree.
 
-**`src/components/admin/lifecycle/FreePlanValueCard.tsx`**
-- Line 64: "$299" → **$1,399**
+### 2. Mirror the two banner cards above the Professional Dashboard heading
 
-**`src/pages/admin/AdminOnboardingChecklistPage.tsx`** (PDF labels lines 261–263)
-- Standard `$35/hr` → **$40/hr**
-- Full Service `$40/hr` → **$45/hr**
-- Premium `$45+/hr` → **$50+/hr**
+Family dashboard (`src/pages/dashboard/family.tsx`) currently renders, above `<FamilyDashboard />`:
+- `<LimitedAccessBanner />`
+- `<PaymentRecordsBanner />`
 
-**`src/components/admin/onboarding/onboardingSections.ts`** — already $40/$45 at lines 226–227; verify line for Premium tier shows $50+/hr; if not, update.
+Professional dashboard (`src/pages/dashboard/ProfessionalDashboard.tsx`) currently has `<ProfessionalPaymentRecordsCard />` buried inside the grid (line 154). Refactor so caregivers see the same hierarchy as families:
 
-**`src/components/admin/onboarding/professionalOnboardingSections.ts`** — apply same tier updates if mirrored.
+a. **Promote `LimitedAccessBanner` into a shared location** — move/re-export from `src/components/shared/LimitedAccessBanner.tsx` (the body is role-agnostic; copy already says "Your dashboard"). Keep the existing family import path working via re-export to avoid touching family code.
 
-**Search sweep** — `rg "\\$35/hr|\\$45\\+/hr|\\$299"` and update any remaining stale strings (component cards, banners, nudge templates, billing email copy).
+b. **Create `ProfessionalPaymentRecordsBanner`** — thin wrapper that mirrors the visual treatment of `PaymentRecordsBanner` (compact strip with Plan Start / Plan End pills + payment ticker) but pulls data via the existing `useUnifiedMatches` flow already used inside `ProfessionalPaymentRecordsCard`. Renders nothing if the caregiver has no assigned family.
 
-**Memory updates (`mem://index.md` + `mem://features/caregiver-rate-tiers`)**
-- Core line: `Care Pricing: Standard ($40/hr), Full Service ($45/hr), Premium ($50+/hr).`
-- Update `caregiver-rate-tiers` memory body to match.
+c. **Mount both above the H1** in `ProfessionalDashboard.tsx`, between `<DashboardHeader />` and the heading `motion.div`:
+```
+<LimitedAccessBanner />
+<ProfessionalPaymentRecordsBanner />
+<motion.div>... Professional Dashboard h1 ...</motion.div>
+```
 
----
+d. Remove the duplicate `<ProfessionalPaymentRecordsCard />` from inside the grid (line 154) so it isn't shown twice.
 
-### Part 2 — Admin Pricing Manager (single source of truth)
+### 3. Add "Pricing Catalog" card to Admin Dashboard
 
-New admin facility so pricing is editable without code changes.
+In `src/pages/admin/AdminDashboard.tsx`, in the action-card grid (after the `Unit Economics` button at ~line 273), add:
 
-**Database** — new table `pricing_catalog`:
-- `code` (text, unique — e.g. `setup_matching`, `sub_active_weekly`, `rate_standard_hr`, `fee_emergency_min`)
-- `category` (enum: `setup`, `subscription`, `add_on`, `rate_tier`, `escalation`, `environment`, `secondary_support`)
-- `display_name`, `description` (text)
-- `price_min` (numeric), `price_max` (numeric, nullable — for ranges like $300–$2,000)
-- `unit` (text: `one_time`, `per_week`, `per_month`, `per_hour`, `custom_quote`)
-- `is_active` (bool), `sort_order` (int)
-- RLS: admins read/write; everyone else read-only `is_active=true`.
-- Seed migration with all canonical values above.
+```tsx
+<Button
+  onClick={() => navigate('/admin/pricing-catalog')}
+  className="h-20 flex flex-col items-center justify-center gap-2"
+  variant="outline"
+>
+  <Tag className="h-6 w-6" />
+  <span className="...">Pricing Catalog</span>
+</Button>
+```
 
-**Admin UI** — new page `/admin/pricing-catalog` (route added without touching protected core routes):
-- Table view grouped by category
-- Inline edit: name, description, price_min/max, unit, active toggle
-- "Custom Quote" rows render with no numeric input
-- Audit toast on save; updated_at displayed
-
-**Refactor read paths** — `lifecycleScenarios.ts` constants become a fallback; the `/admin/lifecycle-cost` page, FAQ pricing block, onboarding PDF labels, and FreePlanValueCard all read from `pricing_catalog` via a new `usePricingCatalog()` hook (with the seeded values as compile-time fallback so nothing breaks if fetch fails).
+Import `Tag` from `lucide-react` and add the handler.
 
 ---
 
 ### Files to edit
-- `src/utils/lifecycleScenarios.ts`
-- `src/pages/support/FAQPage.tsx`
-- `src/components/admin/lifecycle/FreePlanValueCard.tsx`
-- `src/pages/admin/AdminOnboardingChecklistPage.tsx`
-- `src/components/admin/onboarding/onboardingSections.ts` (verify Premium tier)
-- `src/components/admin/onboarding/professionalOnboardingSections.ts` (if mirrored)
-- `mem://index.md`, `mem://features/caregiver-rate-tiers`
+- `src/pages/dashboard/ProfessionalDashboard.tsx` — mount banners above heading, remove duplicate card
+- `src/pages/admin/AdminDashboard.tsx` — add Pricing Catalog button
+- `src/components/care-plan/PlanDetailsTab.tsx` — guard Edit
+- `src/components/care-plan/CareTeamTab.tsx` — guard add/remove
+- `src/components/care-plan/EnhancedScheduleTab.tsx` — guard add/edit/delete shift
+- `src/components/care-plan/DocumentsTab.tsx` — guard upload/delete
+- `src/components/care-plan/MedicationsTab.tsx` — verify/extend guards
+- `src/pages/family/care-management/CreateCarePlanPage.tsx` — redirect on read-only
+- `src/pages/family/care-management/CarePlanDetailPage.tsx` — pass `isReadOnly` through if any tab needs it
+- `src/components/family/dashboard/LimitedAccessBanner.tsx` — re-export from shared
 
 ### Files to create
-- Migration: `pricing_catalog` table + RLS + seed
-- `src/hooks/admin/usePricingCatalog.ts`
-- `src/pages/admin/AdminPricingCatalogPage.tsx`
-- `src/components/admin/pricing/PricingCatalogTable.tsx`
-- `src/components/admin/pricing/PricingRowEditor.tsx`
-- Route registration in admin router (additive, no changes to existing routes)
+- `src/components/shared/LimitedAccessBanner.tsx` (moved body)
+- `src/components/professional/ProfessionalPaymentRecordsBanner.tsx`
 
-### Out of scope (intentional)
-- No changes to `App.tsx`, registration, or auth flows
-- No subscription billing logic changes — display-only catalog
+### Out of scope
+- No DB schema or RLS changes (already in place; this is UX alignment).
+- No changes to `App.tsx`, registration, or auth routing.
+- No changes to admin views — admins remain unaffected because `is_account_limited` is false for them.
