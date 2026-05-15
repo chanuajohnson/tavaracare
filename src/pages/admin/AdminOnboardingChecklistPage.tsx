@@ -110,6 +110,7 @@ function CareSummaryHeader({ checkedItems, linkedCheckedItems, assignedFamilyNam
   assignedFamilyName?: string;
 }) {
   const startDateStr = (linkedCheckedItems?.["post_onboarding_3_date"] || checkedItems["post_onboarding_3_date"]) as string | undefined;
+  const endDateStr = (linkedCheckedItems?.["post_onboarding_4_date"] || checkedItems["post_onboarding_4_date"]) as string | undefined;
   return (
     <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
       <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-blue-900">
@@ -128,6 +129,12 @@ function CareSummaryHeader({ checkedItems, linkedCheckedItems, assignedFamilyNam
           <span className="text-muted-foreground">Start Date:</span>{" "}
           <span className="font-medium">
             {startDateStr ? format(parseLocalDate(startDateStr), "PPP") : "Not set"}
+          </span>
+        </div>
+        <div className="text-sm">
+          <span className="text-muted-foreground">End Date:</span>{" "}
+          <span className="font-medium">
+            {endDateStr ? format(parseLocalDate(endDateStr), "PPP") : "Active — no end date"}
           </span>
         </div>
         <div className="text-sm">
@@ -290,14 +297,15 @@ const REPORT_ITEM_MAP: Record<string, string> = {
   "post_onboarding_1": "Care team member confirmed and introduced to family",
   "post_onboarding_2": "First meeting: Tavara coordinator, care team member, and family at client residence",
   "post_onboarding_3": "Care team member commences work (start date confirms billing period)",
-  "post_onboarding_4": "Care team member compensation coordinated weekly by Tavara",
-  "post_onboarding_5": "Tavara subscription: Family Care Plan (weekly)",
-  "post_onboarding_6": "NIS contributions are the family's responsibility — Tavara provides tools and guidance",
-  "post_onboarding_7": "Care plan and team accessible via dashboard",
-  "post_onboarding_8": "Onboarding progress viewable via dashboard",
-  "post_onboarding_9": "Quote generated",
-  "post_onboarding_10": "Invoice generated",
-  "post_onboarding_11": "Receipt generated",
+  "post_onboarding_4": "Care team member removed from assignment (end date confirms billing period)",
+  "post_onboarding_5": "Care team member compensation coordinated weekly by Tavara",
+  "post_onboarding_6": "Tavara subscription: Family Care Plan (weekly)",
+  "post_onboarding_7": "NIS contributions are the family's responsibility — Tavara provides tools and guidance",
+  "post_onboarding_8": "Care plan and team accessible via dashboard",
+  "post_onboarding_9": "Onboarding progress viewable via dashboard",
+  "post_onboarding_10": "Quote generated",
+  "post_onboarding_11": "Invoice generated",
+  "post_onboarding_12": "Receipt generated",
 };
 
 /** Sections that are always expanded (never compressed) */

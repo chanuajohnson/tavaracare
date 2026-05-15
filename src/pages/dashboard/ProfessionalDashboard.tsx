@@ -10,6 +10,7 @@ import { TrainingProgressTracker } from "@/components/professional/TrainingProgr
 import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
 import { ManualMatchNotification } from "@/components/professional/ManualMatchNotification";
 import { CurrentAssignmentsSection } from "@/components/professional/CurrentAssignmentsSection";
+import { ProfessionalPaymentRecordsCard } from "@/components/professional/ProfessionalPaymentRecordsCard";
 import { ActiveChatSessionsSection } from "@/components/professional/ActiveChatSessionsSection";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -148,6 +149,9 @@ const ProfessionalDashboard = () => {
             <ProfessionalFamilyMatchNotification />
             <ProfessionalFamilyAwarenessBanner />
             <ProfessionalMatchingReadinessBanner />
+
+            {/* Family payment records + plan-date milestones (read-only) */}
+            <ProfessionalPaymentRecordsCard />
 
             {/* Manual Match Notifications */}
             <ManualMatchNotification />

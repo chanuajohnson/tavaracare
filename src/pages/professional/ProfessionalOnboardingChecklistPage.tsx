@@ -119,6 +119,7 @@ function parseLocalDate(dateStr: string): Date {
 /** Care Summary header for post-onboarding */
 function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, boolean | string> }) {
   const startDateStr = checkedItems["post_onboarding_3_date"] as string | undefined;
+  const endDateStr = checkedItems["post_onboarding_4_date"] as string | undefined;
   const careRate = (checkedItems["care_rate"] as string) || "$40/hr (Standard)";
   const rateMatch = careRate.match(/\$?([\d.]+)/);
   const hourlyRate = rateMatch ? parseFloat(rateMatch[1]) : 0;
@@ -147,6 +148,12 @@ function CareSummaryHeader({ checkedItems }: { checkedItems: Record<string, bool
           <span className="text-muted-foreground">Start Date:</span>{" "}
           <span className="font-medium">
             {startDateStr ? format(parseLocalDate(startDateStr), "PPP") : "Not set"}
+          </span>
+        </div>
+        <div className="text-sm">
+          <span className="text-muted-foreground">End Date:</span>{" "}
+          <span className="font-medium">
+            {endDateStr ? format(parseLocalDate(endDateStr), "PPP") : "Active — no end date"}
           </span>
         </div>
         <div className="text-sm">
