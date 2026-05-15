@@ -150,6 +150,9 @@ const ProfessionalDashboard = () => {
             <ProfessionalFamilyAwarenessBanner />
             <ProfessionalMatchingReadinessBanner />
 
+            {/* Family payment records + plan-date milestones (read-only) */}
+            <ProfessionalPaymentRecordsCard />
+
             {/* Manual Match Notifications */}
             <ManualMatchNotification />
             
