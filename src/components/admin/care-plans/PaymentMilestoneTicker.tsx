@@ -27,6 +27,8 @@ interface Props {
   /** admin: can add/delete; family: read-only compact */
   mode?: "admin" | "family";
   title?: string;
+  /** Plan milestone dates rendered as pills above the payment chips. */
+  milestoneDates?: { startDate?: string | null; endDate?: string | null };
 }
 
 const fmtMoney = (n: number, currency = "TTD") =>
@@ -34,11 +36,21 @@ const fmtMoney = (n: number, currency = "TTD") =>
 
 const fmtShort = (iso: string) => format(parseISO(iso), "MMM d");
 
+const fmtMilestone = (iso: string) => {
+  // Accept "YYYY-MM-DD" (treat as local) or full ISO.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    const [y, m, d] = iso.split("-").map(Number);
+    return format(new Date(y, m - 1, d), "PPP");
+  }
+  return format(parseISO(iso), "PPP");
+};
+
 export const PaymentMilestoneTicker: React.FC<Props> = ({
   familyUserId,
   carePlanId,
   mode = "family",
   title,
+  milestoneDates,
 }) => {
   const [records, setRecords] = useState<FamilyPaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
