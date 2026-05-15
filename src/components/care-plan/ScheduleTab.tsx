@@ -500,10 +500,10 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
               setSelectedWeek={setSelectedWeek}
               careShifts={careShifts}
               careTeamMembers={careTeamMembers}
-              onEditShift={handleEditShift}
-              onDeleteShift={onDeleteShift}
-              onAddShift={openNewShiftDialog}
-              onLogHours={handleLogHours}
+              onEditShift={isReadOnly ? () => {} : handleEditShift}
+              onDeleteShift={isReadOnly ? () => {} : onDeleteShift}
+              onAddShift={isReadOnly ? () => {} : openNewShiftDialog}
+              onLogHours={isReadOnly ? () => {} : handleLogHours}
             />
 
             <Dialog open={workLogFormOpen} onOpenChange={setWorkLogFormOpen}>
