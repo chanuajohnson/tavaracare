@@ -110,6 +110,7 @@ function CareSummaryHeader({ checkedItems, linkedCheckedItems, assignedFamilyNam
   assignedFamilyName?: string;
 }) {
   const startDateStr = (linkedCheckedItems?.["post_onboarding_3_date"] || checkedItems["post_onboarding_3_date"]) as string | undefined;
+  const endDateStr = (linkedCheckedItems?.["post_onboarding_4_date"] || checkedItems["post_onboarding_4_date"]) as string | undefined;
   return (
     <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
       <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-blue-900">
@@ -128,6 +129,12 @@ function CareSummaryHeader({ checkedItems, linkedCheckedItems, assignedFamilyNam
           <span className="text-muted-foreground">Start Date:</span>{" "}
           <span className="font-medium">
             {startDateStr ? format(parseLocalDate(startDateStr), "PPP") : "Not set"}
+          </span>
+        </div>
+        <div className="text-sm">
+          <span className="text-muted-foreground">End Date:</span>{" "}
+          <span className="font-medium">
+            {endDateStr ? format(parseLocalDate(endDateStr), "PPP") : "Active — no end date"}
           </span>
         </div>
         <div className="text-sm">
