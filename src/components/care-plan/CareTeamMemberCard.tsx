@@ -139,6 +139,7 @@ export const CareTeamMemberCard: React.FC<CareTeamMemberCardProps> = ({ member, 
                 id={`nis-toggle-${member.id}`}
                 checked={isNisRegistered}
                 onCheckedChange={setIsNisRegistered}
+                disabled={isReadOnly}
               />
             </div>
 
@@ -150,6 +151,8 @@ export const CareTeamMemberCard: React.FC<CareTeamMemberCardProps> = ({ member, 
                 value={nisNumber}
                 onChange={(e) => setNisNumber(e.target.value)}
                 className="h-8 text-sm"
+                disabled={isReadOnly}
+                readOnly={isReadOnly}
               />
             </div>
 
@@ -162,6 +165,8 @@ export const CareTeamMemberCard: React.FC<CareTeamMemberCardProps> = ({ member, 
                   value={dateOfBirth}
                   onChange={(e) => setDateOfBirth(e.target.value)}
                   className="h-8 text-sm"
+                  disabled={isReadOnly}
+                  readOnly={isReadOnly}
                 />
               </div>
               <div className="space-y-1">
@@ -172,18 +177,22 @@ export const CareTeamMemberCard: React.FC<CareTeamMemberCardProps> = ({ member, 
                   value={dateEmployed}
                   onChange={(e) => setDateEmployed(e.target.value)}
                   className="h-8 text-sm"
+                  disabled={isReadOnly}
+                  readOnly={isReadOnly}
                 />
               </div>
             </div>
 
-            <Button
-              size="sm"
-              onClick={handleSaveNIS}
-              disabled={saving}
-              className="w-full"
-            >
-              {saving ? 'Saving...' : 'Save NIS Details'}
-            </Button>
+            {!isReadOnly && (
+              <Button
+                size="sm"
+                onClick={handleSaveNIS}
+                disabled={saving}
+                className="w-full"
+              >
+                {saving ? 'Saving...' : 'Save NIS Details'}
+              </Button>
+            )}
           </CollapsibleContent>
         </Collapsible>
       </CardContent>
