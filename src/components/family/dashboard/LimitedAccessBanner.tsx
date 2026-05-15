@@ -28,8 +28,9 @@ export const LimitedAccessBanner: React.FC = () => {
               Your account is in limited access
             </h3>
             <p className="text-sm text-amber-900/80 mt-1 max-w-2xl">
-              Some actions are temporarily paused while we sort things out with you. You can still
-              view your dashboard. Please reach out to your coordinator to restore full access.
+              Your dashboard is in <strong>read-only mode</strong>. You can still view everything —
+              care plan, shifts, medications, meals, messages and records — but creating, editing,
+              or deleting is paused. Please reach out to your coordinator to restore full access.
             </p>
             {reason && (
               <blockquote className="mt-3 border-l-4 border-amber-400 pl-3 text-sm italic text-amber-900/90 bg-amber-100/60 py-2 pr-2 rounded-sm">

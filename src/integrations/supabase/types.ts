@@ -6596,6 +6596,7 @@ export type Database = {
         Args: { phone_input: string }
         Returns: undefined
       }
+      is_account_limited: { Args: { _uid: string }; Returns: boolean }
       is_current_user_admin: { Args: never; Returns: boolean }
       recalculate_all_journey_progress: { Args: never; Returns: string }
       reschedule_visit_booking: {
