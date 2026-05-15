@@ -71,8 +71,10 @@ export const PaymentMilestoneTicker: React.FC<Props> = ({
 
   const isAdmin = mode === "admin";
 
+  const hasMilestones = !!(milestoneDates?.startDate || milestoneDates?.endDate);
+
   if (loading) return null;
-  if (!records.length && !isAdmin) return null;
+  if (!records.length && !isAdmin && !hasMilestones) return null;
 
   const total = records.reduce((s, r) => s + Number(r.total_amount || 0), 0);
   const currency = records[0]?.currency || "TTD";
@@ -103,6 +105,28 @@ export const PaymentMilestoneTicker: React.FC<Props> = ({
             />
           )}
         </div>
+
+        {hasMilestones && (
+          <div className="mb-3 flex flex-wrap gap-2">
+            {milestoneDates?.startDate && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-300 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-900">
+                <Calendar className="h-3 w-3" />
+                Plan Start: {fmtMilestone(milestoneDates.startDate)}
+              </span>
+            )}
+            {milestoneDates?.endDate ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900">
+                <Calendar className="h-3 w-3" />
+                Plan End: {fmtMilestone(milestoneDates.endDate)}
+              </span>
+            ) : milestoneDates?.startDate ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-900">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Active — no end date
+              </span>
+            ) : null}
+          </div>
+        )}
 
         {records.length === 0 ? (
           <p className="text-xs text-muted-foreground">No payments logged yet.</p>
