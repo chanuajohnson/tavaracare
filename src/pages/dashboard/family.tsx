@@ -9,6 +9,7 @@ import FamilyDashboard from "@/components/family/FamilyDashboard";
 import { PlatformPositioningDisclaimer } from "@/components/shared/PlatformPositioningDisclaimer";
 import { FreePlanReturnBanner } from "@/components/family/dashboard/FreePlanReturnBanner";
 import { LimitedAccessBanner } from "@/components/family/dashboard/LimitedAccessBanner";
+import { PaymentRecordsBanner } from "@/components/family/dashboard/PaymentRecordsBanner";
 
 export default function FamilyDashboardPage() {
   const { user, userRole } = useAuth();
@@ -75,6 +76,7 @@ export default function FamilyDashboardPage() {
 
       <main className="container mx-auto px-4 pb-8">
         <LimitedAccessBanner />
+        <PaymentRecordsBanner />
         <FreePlanReturnBanner />
         <FamilyDashboard />
         <PlatformPositioningDisclaimer variant="compact" />
