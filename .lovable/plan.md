@@ -1,59 +1,93 @@
-# Plan & End Date — admin checklist + family/professional dashboards
+## Pricing Source-of-Truth Alignment + Admin Pricing Manager
 
-## What changes
+### Decisions confirmed by user (canonical values)
 
-### 1. Add the new "removed from assignment" milestone (admin + professional checklists)
-Both `onboardingSections.ts` (family) and `professionalOnboardingSections.ts` get a new item inserted **right after** the existing "commences work" line, mirroring its shape:
+| Item | Old/Stale | Canonical |
+|---|---|---|
+| Caregiver Matching & Placement | $299 | **$1,399** one-time |
+| Active Care Management (weekly) | $499/wk (legacy) | **$699/wk** (Ana Aimey legacy = $499) |
+| Rate tier — Standard | $35/hr | **$40/hr** |
+| Rate tier — Full Service | $40/hr | **$45/hr** |
+| Rate tier — Premium | $45+/hr | **$50+/hr** |
+| Emergency Stabilization / Rapid Response | absent | **$300–$2,000** (range, new constant) |
+| Standard / High-Need Secondary Support | n/a | **"Custom Quote"** — surface as line item, no number |
+| Full Care Environment Reset | n/a | **"Custom monthly retainer"** — surface as line item, no number |
 
-> "Care team member removed from assignment at client residence (end date confirms billing period)"
+---
 
-with `dateFields[4] = "End Date"`. Because the array grows by one, every following entry's index shifts by +1 — the `links` map keys in both files (and the helper-text reference in `AdminOnboardingChecklistPage.tsx` at `post_onboarding_3`) get re-indexed.
+### Part 1 — Code & copy alignment (immediate)
 
-The end date is stored in the existing `onboarding_checklists` / `professional_onboarding_checklists` tables under the key `post_onboarding_4_date`. No DB migration needed.
+**`src/utils/lifecycleScenarios.ts`**
+- `setup_matching: 299` → `1399`
+- `sub_active: 699` (already correct — keep)
+- Add `fee_emergency_stabilization_min: 300`, `fee_emergency_stabilization_max: 2000`
+- Add display-only entries (no math) for `Standard/High-Need Secondary Support` and `Full Care Environment Reset` as `customQuote: true` line items so they render in `/admin/lifecycle-cost` builder as "Custom Quote".
 
-### 2. Admin & professional onboarding "Care Summary" headers
-Both `CareSummaryHeader` blocks (in `AdminOnboardingChecklistPage.tsx` and `ProfessionalOnboardingChecklistPage.tsx`) get a new "End Date" cell that shows the formatted `post_onboarding_4_date` when set, or "Active — no end date" when not.
+**`src/pages/support/FAQPage.tsx`**
+- Line 159: "Caregiver Matching & Placement — $299" → **$1,399**
+- Line 99: confirm `$699/wk` already present (yes) — no change.
 
-### 3. Family dashboard — payment records card shows plan dates
-`PaymentRecordsBanner` already wraps `PaymentMilestoneTicker` in family mode. We extend it to also fetch the family's `onboarding_checklists` row and pull `post_onboarding_3_date` (start) + `post_onboarding_4_date` (end). The ticker gets a new optional `milestoneDates` prop and renders two date pills above the payment chips — "Plan Start: Apr 13, 2026" and "Plan End: May 8, 2026" (end pill hidden if not set).
+**`src/components/admin/lifecycle/FreePlanValueCard.tsx`**
+- Line 64: "$299" → **$1,399**
 
-### 4. Professional dashboard — new payment-records card
-New component `src/components/professional/ProfessionalPaymentRecordsCard.tsx`. Mounted in `ProfessionalDashboard.tsx` immediately under `ProfessionalMatchingReadinessBanner` (which already sits under the status banners), before `CurrentAssignmentsSection`.
+**`src/pages/admin/AdminOnboardingChecklistPage.tsx`** (PDF labels lines 261–263)
+- Standard `$35/hr` → **$40/hr**
+- Full Service `$40/hr` → **$45/hr**
+- Premium `$45+/hr` → **$50+/hr**
 
-It:
-- Reads active assignments via `useUnifiedMatches('professional')`
-- Picks the most recent active assignment's `family_user_id` + `care_plan_id`
-- Reuses `PaymentMilestoneTicker` in family (read-only) mode with the same `milestoneDates` prop, so the professional sees the same plan-start / plan-end pills plus the chronological payment chips
-- Heading: "Family payment records — {family name}"
-- Returns `null` if no active assignment
+**`src/components/admin/onboarding/onboardingSections.ts`** — already $40/$45 at lines 226–227; verify line for Premium tier shows $50+/hr; if not, update.
 
-This requires no schema change. RLS already allows assigned care-team members to read the family's `onboarding_checklists` row (verified — care_team_members can read their family's records). For `family_payment_records`, the existing policy is admin + the family. **One small migration adds a SELECT policy** so active care-team members can read their assigned family's payment records.
+**`src/components/admin/onboarding/professionalOnboardingSections.ts`** — apply same tier updates if mirrored.
 
-### 5. Migration (one new SELECT policy)
-```sql
-CREATE POLICY "Active care team can view family payment records"
-  ON public.family_payment_records FOR SELECT TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.care_team_members ctm
-      WHERE ctm.family_id = family_payment_records.family_user_id
-        AND ctm.caregiver_id = auth.uid()
-        AND ctm.status = 'active'
-    )
-  );
-```
-Same for `onboarding_checklists` if not already covered (verify before policy add — skip if existing policy covers care-team read).
+**Search sweep** — `rg "\\$35/hr|\\$45\\+/hr|\\$299"` and update any remaining stale strings (component cards, banners, nudge templates, billing email copy).
 
-## Files touched
-- `src/components/admin/onboarding/onboardingSections.ts` — insert item + dateField, re-key links
-- `src/components/admin/onboarding/professionalOnboardingSections.ts` — same shape change
-- `src/pages/admin/AdminOnboardingChecklistPage.tsx` — `CareSummaryHeader` adds End Date cell; bump `post_onboarding_3` label key reference
-- `src/pages/professional/ProfessionalOnboardingChecklistPage.tsx` — header adds End Date cell
-- `src/components/admin/care-plans/PaymentMilestoneTicker.tsx` — add optional `milestoneDates?: { startDate?: string; endDate?: string }` prop, render pills row
-- `src/components/family/dashboard/PaymentRecordsBanner.tsx` — fetch checklist row, pass milestoneDates
-- `src/components/professional/ProfessionalPaymentRecordsCard.tsx` — new
-- `src/pages/dashboard/ProfessionalDashboard.tsx` — mount the new card under readiness banner
-- One migration adding the SELECT policy on `family_payment_records` for active care-team members.
+**Memory updates (`mem://index.md` + `mem://features/caregiver-rate-tiers`)**
+- Core line: `Care Pricing: Standard ($40/hr), Full Service ($45/hr), Premium ($50+/hr).`
+- Update `caregiver-rate-tiers` memory body to match.
 
-## Out of scope
-No changes to routing, registration, the chat flow, or the family-side write enforcement landed in the previous turn. PaymentMilestoneTicker admin write logic is untouched.
+---
+
+### Part 2 — Admin Pricing Manager (single source of truth)
+
+New admin facility so pricing is editable without code changes.
+
+**Database** — new table `pricing_catalog`:
+- `code` (text, unique — e.g. `setup_matching`, `sub_active_weekly`, `rate_standard_hr`, `fee_emergency_min`)
+- `category` (enum: `setup`, `subscription`, `add_on`, `rate_tier`, `escalation`, `environment`, `secondary_support`)
+- `display_name`, `description` (text)
+- `price_min` (numeric), `price_max` (numeric, nullable — for ranges like $300–$2,000)
+- `unit` (text: `one_time`, `per_week`, `per_month`, `per_hour`, `custom_quote`)
+- `is_active` (bool), `sort_order` (int)
+- RLS: admins read/write; everyone else read-only `is_active=true`.
+- Seed migration with all canonical values above.
+
+**Admin UI** — new page `/admin/pricing-catalog` (route added without touching protected core routes):
+- Table view grouped by category
+- Inline edit: name, description, price_min/max, unit, active toggle
+- "Custom Quote" rows render with no numeric input
+- Audit toast on save; updated_at displayed
+
+**Refactor read paths** — `lifecycleScenarios.ts` constants become a fallback; the `/admin/lifecycle-cost` page, FAQ pricing block, onboarding PDF labels, and FreePlanValueCard all read from `pricing_catalog` via a new `usePricingCatalog()` hook (with the seeded values as compile-time fallback so nothing breaks if fetch fails).
+
+---
+
+### Files to edit
+- `src/utils/lifecycleScenarios.ts`
+- `src/pages/support/FAQPage.tsx`
+- `src/components/admin/lifecycle/FreePlanValueCard.tsx`
+- `src/pages/admin/AdminOnboardingChecklistPage.tsx`
+- `src/components/admin/onboarding/onboardingSections.ts` (verify Premium tier)
+- `src/components/admin/onboarding/professionalOnboardingSections.ts` (if mirrored)
+- `mem://index.md`, `mem://features/caregiver-rate-tiers`
+
+### Files to create
+- Migration: `pricing_catalog` table + RLS + seed
+- `src/hooks/admin/usePricingCatalog.ts`
+- `src/pages/admin/AdminPricingCatalogPage.tsx`
+- `src/components/admin/pricing/PricingCatalogTable.tsx`
+- `src/components/admin/pricing/PricingRowEditor.tsx`
+- Route registration in admin router (additive, no changes to existing routes)
+
+### Out of scope (intentional)
+- No changes to `App.tsx`, registration, or auth flows
+- No subscription billing logic changes — display-only catalog
