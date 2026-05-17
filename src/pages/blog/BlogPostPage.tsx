@@ -262,19 +262,37 @@ const BlogPostPage = () => {
 
             <div className="mt-16 pt-8 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <p className="text-sm text-muted-foreground">
-                Want to share this with family? Copy the full article text.
+                Share this article with your family or care team.
               </p>
-              <Button onClick={handleCopyArticle} variant="outline" size="sm">
-                {copied ? (
-                  <>
-                    <Check className="mr-2 h-4 w-4" /> Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy className="mr-2 h-4 w-4" /> Copy article text
-                  </>
-                )}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={handleCopyShareLink}
+                  variant="default"
+                  size="sm"
+                  title="Paste into WhatsApp, iMessage, LinkedIn or Slack for a rich preview. Auto-redirects to the article."
+                >
+                  {shareCopied ? (
+                    <>
+                      <Check className="mr-2 h-4 w-4" /> Share link copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="mr-2 h-4 w-4" /> Copy share link
+                    </>
+                  )}
+                </Button>
+                <Button onClick={handleCopyArticle} variant="outline" size="sm">
+                  {copied ? (
+                    <>
+                      <Check className="mr-2 h-4 w-4" /> Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="mr-2 h-4 w-4" /> Copy article text
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </article>
 
