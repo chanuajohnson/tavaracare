@@ -30,7 +30,7 @@ const findCaregiver: BlogPost = {
   description:
     "A practical, T&T-specific guide to finding a trusted in-home caregiver, what to look for, what to ask, and how care coordination changes the outcome.",
   category: "Family Care Guides",
-  publishedAt: "2026-05-17",
+  publishedAt: "2026-01-14",
   author: "Chanua Johnson, Tavara Care Coordinator & Founder",
   readingTime: "8 min read",
   cta: { label: "Find Care Now", href: "/urgent-families" },
@@ -164,7 +164,7 @@ const careCosts: BlogPost = {
   description:
     "A transparent 2026 breakdown of senior care costs in T&T, hourly rates, live-in care, subscriptions, what's included, and what actually drives the price up.",
   category: "Family Care Guides",
-  publishedAt: "2026-05-17",
+  publishedAt: "2026-01-28",
   author: "Chanua Johnson, Tavara Care Coordinator & Founder",
   readingTime: "10 min read",
   cta: { label: "Talk to Tavara About Care Costs", href: "/family" },
@@ -346,7 +346,7 @@ const whenHelpFeelsLikePressure: BlogPost = {
   description:
     "Bringing a caregiver into your parent's home is rarely just logistics. This is the emotional reality nobody warns Caribbean families about, and why slowing down is part of the work.",
   category: "Emotional Realities of Care",
-  publishedAt: "2026-05-17",
+  publishedAt: "2026-03-11",
   author: "Chanua Johnson, Tavara Care Coordinator & Founder",
   readingTime: "9 min read",
   cta: { label: "Talk to Tavara", href: "/family" },
@@ -487,7 +487,7 @@ const whyFamiliesResist: BlogPost = {
   description:
     "Resistance to in-home care isn't a problem to solve, it's information. A look at why families push back, especially in Caribbean households, and how to move through it.",
   category: "Emotional Realities of Care",
-  publishedAt: "2026-05-17",
+  publishedAt: "2026-02-18",
   author: "Chanua Johnson, Tavara Care Coordinator & Founder",
   readingTime: "9 min read",
   cta: { label: "Talk to Tavara", href: "/family" },
@@ -648,7 +648,7 @@ const hoardingOverwhelm: BlogPost = {
   description:
     "When the home fills up faster than it empties, it's rarely about clutter. It's about memory, identity, and grief, and why care has to begin with the person, not the pile.",
   category: "Emotional Realities of Care",
-  publishedAt: "2026-05-17",
+  publishedAt: "2026-05-13",
   author: "Chanua Johnson, Tavara Care Coordinator & Founder",
   readingTime: "10 min read",
   cta: { label: "Talk to Tavara", href: "/family" },
@@ -808,7 +808,7 @@ const adultChildTrap: BlogPost = {
   description:
     "The specific exhaustion of caring for an aging parent while holding everything else together, what it looks like in Caribbean families, and what relief actually looks like.",
   category: "Emotional Realities of Care",
-  publishedAt: "2026-05-17",
+  publishedAt: "2026-04-22",
   author: "Chanua Johnson, Tavara Care Coordinator & Founder",
   readingTime: "10 min read",
   cta: { label: "Find Care Now", href: "/urgent-families" },
@@ -985,7 +985,7 @@ const caribbeanFamiliesCare: BlogPost = {
   description:
     "Respectability, pride, religion, privacy, diaspora, the cultural reasons bringing in care feels different in Caribbean households, and how families move through it anyway.",
   category: "Emotional Realities of Care",
-  publishedAt: "2026-05-17",
+  publishedAt: "2026-04-01",
   author: "Chanua Johnson, Tavara Care Coordinator & Founder",
   readingTime: "10 min read",
   cta: { label: "Talk to Tavara", href: "/family" },
