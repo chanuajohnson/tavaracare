@@ -1,37 +1,51 @@
-## Problem
+# Tavara Language & Communication Guardrails — Always-On
 
-Editing the "Senior Care Costs" post and clicking **Publish now** stamps `published_at` with the current time, which is why the post jumped to today's date and to the top of `/blog`.
+Goal: make the guardrail text you wrote impossible to ignore — by Lovable when generating code/copy, by the blog editor, by the chatbot, and by any future contributor. Also fold in the existing **financial privacy on public surfaces** rule so it travels with the language rules as one unified contract.
 
-Source: `src/pages/admin/AdminBlogEditorPage.tsx` line 204:
-```tsx
-onClick={() => persist("published", new Date().toISOString())}
-```
-This override is applied unconditionally — even on posts that were already published months ago.
+## What gets created / updated
 
-## Fix (single file, presentation only)
+### 1. Canonical doc — `docs/TAVARA_LANGUAGE_GUARDRAILS.md` (new)
+Single source of truth. Contains the full guardrail you wrote, lightly structured:
+- Core operating philosophy ("emotionally intelligent care coordination")
+- Tone rules
+- What Tavara is NOT
+- Banned words → preferred replacements table (hire, patient, staff, case, placement, clean-up, hoarding, burnout pipeline, payroll, agency, training oversight, "families engage caregivers directly")
+- Preferred framing vocabulary
+- Core beliefs
+- DO / DO NOT communication rules
+- Social media guardrails
+- Brand position ("not selling caregiver hours — selling continuity, coordination, reduced chaos")
+- **Financial privacy on public surfaces** section (copied from `mem://constraints/financial-privacy-public-surfaces`) so the language + money rules live together
+- Cross-link to existing `docs/TAVARA_WRITING_STYLE.md` (anti-AI-tell rules, no em-dashes, banned AI words)
 
-In `src/pages/admin/AdminBlogEditorPage.tsx`:
+### 2. Project memory — always in context
+Update `mem://index.md` Core block with the non-negotiables (one-liners, since Core is loaded every action):
+- "Tavara language: never 'hire a caregiver / patient / staff / case / placement / clean-up / payroll / agency'. Use 'arrange care / loved one / care team / household / match / home preparation / caregiver payment coordination / care coordination platform'. See mem://constraints/tavara-language-guardrails."
+- "Tavara sells continuity and coordination, not caregiver hours. Never sound like Uber-for-caregivers, gig staffing, or corporate healthcare."
+- Keep existing financial-privacy Core line; add cross-reference.
 
-1. **"Publish now" button** — only stamp the current time on the *first* publish. If the post is already published (or already has a `published_at`), keep the existing date.
-   ```tsx
-   onClick={() => {
-     const firstPublish = !existing?.published_at;
-     persist("published", firstPublish ? new Date().toISOString() : undefined);
-   }}
-   ```
-   Passing `undefined` lets `persist` fall through to whatever is in the `publishedAt` field (which is already pre-filled from `existing.published_at` on load), so the original date is preserved.
+Create new detailed memory file `mem://constraints/tavara-language-guardrails` with the full banned/preferred table + tone rules. Reference it from the index Memories list.
 
-2. **"Save draft" button** — same risk in reverse: keep the existing `published_at` rather than nulling it. Current code already passes `undefined` for the date, so no change needed — verified.
+### 3. Chatbot system prompt — `supabase/functions/tav-chat-enhanced/index.ts`
+Inject a "Language guardrails" block into the system prompt so TAV itself never uses banned words live:
+- Banned terms list with substitutions
+- Tone reminder (calm, observant, operationally competent, not corporate, not gig-economy)
+- Financial-privacy reminder (no subscription dollar figures, Home Preparation dollar figures, household monthly totals, or lifecycle projections in public chat — only the per-hour care rates $40/$45/$50+ and subscription tier names)
 
-3. Add a small UI affordance so admins know what's happening: change the button label to **"Re-publish"** when `existing?.status === "published"`, and show a hint under the publish-date field: *"Editing keeps the original publish date. Change the date manually if you want to bump it."*
+### 4. Blog editor affordance — `src/pages/admin/AdminBlogEditorPage.tsx`
+Add a small **"Language guardrails"** collapsible panel above the body editor showing the banned-words list and replacements at a glance. Pure presentation, no validation gate — just keeps the rules in front of the editor's eyes every time they write a post. Link to the full doc.
+
+### 5. Public-facing financial guardrail — reinforce
+Re-affirm the existing `mem://constraints/financial-privacy-public-surfaces` rule inside the new combined doc and chatbot prompt so the "no public dollar figures except per-hour care rate" line is enforced alongside the language rules. No code change to existing public pages — they already comply per memory.
 
 ## What this does NOT change
+- No edits to registration flows, routing, App.tsx, or any protected components in your guardrail list.
+- No rewriting of existing blog posts. The new doc + memory are forward-looking; you can run a copy audit later as a separate task.
+- No database changes.
 
-- The publish-date input field stays editable — admins who *want* to bump the date can still do so explicitly.
-- Scheduled / draft flows untouched.
-- No database migration. No change to the blog post body.
-- Sort order on `/blog` will return to the original date once the post is re-saved (or I can run a one-off `UPDATE` to restore the prior `published_at` if you tell me the date it should be).
+## Open questions before I build
+1. **Scope of chatbot prompt update** — TAV is your conversational front door, so I'd inject the guardrails there. Want me to also update `tav-core/services/CoreTAVService.ts` (the embedded widget) the same way, or keep that for a later pass?
+2. **Blog editor panel** — collapsible info panel (always visible, closed by default) vs. a tooltip on a "Guardrails" link in the toolbar? I'd go collapsible-closed-by-default.
+3. **Anything to add to the banned list I haven't captured?** The list above is verbatim from your message plus financial-privacy. If there are extras (e.g. "client", "customer", "user" in family-facing copy), tell me now and I'll fold them in.
 
-## Follow-up question
-
-Do you want me to also restore the *previous* `published_at` on the Senior Care Costs post (so it drops back down the list immediately), or just fix the editor behavior going forward? If yes, tell me the date it should revert to — I don't have the prior value cached.
+If 1–3 are "yes / collapsible / nothing to add", I'll implement exactly as planned.
