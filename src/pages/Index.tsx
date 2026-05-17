@@ -761,6 +761,12 @@ const Index = () => {
           </div>
         </div>
 
+        <FaqSection
+          ids={HOMEPAGE_FAQ_IDS}
+          title="Common Questions from Families & Caregivers"
+          intro="Quick answers about how Tavara works, pricing, and getting started."
+        />
+
         {isDebug && (
           <div className="container px-4 pb-8">
             <div className="mt-12 space-y-6 border-t pt-8">
