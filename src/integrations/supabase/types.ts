@@ -2857,6 +2857,125 @@ export type Database = {
           },
         ]
       }
+      guardrail_breach_log: {
+        Row: {
+          banned_term: string | null
+          excerpt: string
+          id: string
+          post_id: string
+          preferred_term: string | null
+          resolved: boolean
+          resolved_at: string | null
+          rule_id: string | null
+          rule_type: string
+          scanned_at: string
+          severity: string
+        }
+        Insert: {
+          banned_term?: string | null
+          excerpt: string
+          id?: string
+          post_id: string
+          preferred_term?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          rule_id?: string | null
+          rule_type: string
+          scanned_at?: string
+          severity: string
+        }
+        Update: {
+          banned_term?: string | null
+          excerpt?: string
+          id?: string
+          post_id?: string
+          preferred_term?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          rule_id?: string | null
+          rule_type?: string
+          scanned_at?: string
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guardrail_breach_log_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guardrail_breach_log_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "language_guardrails"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guardrail_proposals: {
+        Row: {
+          accepted_rule_id: string | null
+          banned_term: string | null
+          body: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          preferred_term: string | null
+          rationale: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          rule_type: string
+          scope: string
+          severity: string
+          source_feedback: string
+          status: string
+        }
+        Insert: {
+          accepted_rule_id?: string | null
+          banned_term?: string | null
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          preferred_term?: string | null
+          rationale?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rule_type: string
+          scope?: string
+          severity?: string
+          source_feedback: string
+          status?: string
+        }
+        Update: {
+          accepted_rule_id?: string | null
+          banned_term?: string | null
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          preferred_term?: string | null
+          rationale?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rule_type?: string
+          scope?: string
+          severity?: string
+          source_feedback?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guardrail_proposals_accepted_rule_id_fkey"
+            columns: ["accepted_rule_id"]
+            isOneToOne: false
+            referencedRelation: "language_guardrails"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hero_videos: {
         Row: {
           created_at: string | null
