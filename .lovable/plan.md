@@ -1,72 +1,127 @@
-# Admin Guardrails Management Facility
+# Why the "Inside Tavara Onboarding" article is not visible
 
-## Goal
-Move the Tavara language and financial-privacy guardrails out of hardcoded files and into an admin-managed catalog. Give admins a single place to view, edit, add, and retire rules, plus a clear "how to use and enforce" guide. The blog editor panel and the TAV chatbot system prompt both read from the same source of truth.
+Confirmed in the database:
 
-## What admins get
+- Title: *Inside Tavara Onboarding: What the First Two Weeks Really Look Like*
+- `status` = `published`
+- `published_at` = **2026-05-18 01:51:00 UTC**
+- Current time = 2026-05-17 ~14:00 UTC
 
-1. **Dashboard card** — new tile on `/admin` labelled "Language Guardrails" next to "Blog Management" and "Pricing Catalog". Shows current rule count and a small status badge (e.g. "12 banned terms, 3 financial rules").
-2. **Management page** — new route `/admin/language-guardrails` with four tabs:
-   - **Word Rules** — table of banned → preferred entries. Inline add, edit, archive. Each row has: banned term, preferred replacement, why this matters (short reason shown as tooltip), severity (hard ban vs soft preference), scope (family-facing, caregiver-facing, internal-only, all surfaces), active toggle.
-   - **Financial Privacy** — table of allow-list and deny-list items (per-hour rates allowed, subscription dollar amounts forbidden, etc.) with the same edit/archive controls.
-   - **Tone Rules** — list of style guardrails (no em-dashes, no AI buzzwords, no "It's not just X, it's Y", etc.). Plain text bullets, editable.
-   - **How to use** — written guide (see below) rendered from a markdown field, editable by admin.
-3. **Search and filter** on the Word Rules tab. Filter by scope, by severity, or by active/archived.
-4. **Audit trail** — every change records who edited what and when. Shown as a "Recent changes" panel on the page.
+The public blog query in `src/lib/blog/api.ts` (`usePublishedPosts` / `usePublishedPost`) filters with `.lte("published_at", new Date().toISOString())`, so anything scheduled in the future is correctly hidden. The post is scheduled ~12 hours in the future, not actually live yet.
 
-## Where the rules surface (enforcement)
+**Fix:** one-click "Publish now" — update `published_at` to `now()` for that row. No code change needed for that single fix, but see Part B below for a small editor improvement so this stops biting us.
 
-- **Blog editor panel** (`AdminBlogEditorPage.tsx`) — the amber collapsible block reads the active rules from the catalog instead of hardcoded JSX. Same visual, dynamic content.
-- **TAV chatbot system prompt** (`tav-chat-enhanced` edge function) — on every invocation, the function fetches active guardrail rules from the table and injects them into the system prompt. One DB read, cached for the request lifetime.
-- **`docs/TAVARA_LANGUAGE_GUARDRAILS.md`** — stays as the canonical narrative document. The management page links to it. Admin can regenerate the doc from the catalog with a one-click "Export to markdown" action (writes nothing to the repo, just gives the admin the up-to-date text to paste).
-- **`mem://constraints/tavara-language-guardrails`** — remains as the always-on memory file for the Lovable agent. Manual sync from admin export when rules change meaningfully.
+---
 
-## Data model
+# Part A — Make the missing article live now
 
-New table `language_guardrails` (single table covers word rules, financial rules, and tone rules via a `rule_type` discriminator):
+Single data update:
 
-- `id uuid`
-- `rule_type text` — one of `word`, `financial_allow`, `financial_deny`, `tone`
-- `banned_term text nullable` — only used when rule_type=word
-- `preferred_term text nullable` — only used when rule_type=word
-- `body text` — the full rule statement (used for financial and tone rules; for word rules it's the "why this matters" reason)
-- `scope text` — `family_facing`, `caregiver_facing`, `internal`, `all`
-- `severity text` — `hard` (never use) or `soft` (prefer alternative)
-- `is_active boolean default true`
-- `display_order int`
-- `created_by uuid`, `updated_by uuid`, `created_at`, `updated_at`
+```
+UPDATE blog_posts
+SET published_at = now()
+WHERE slug = 'inside-tavara-onboarding-step-by-step';
+```
 
-New table `language_guardrails_audit` (id, guardrail_id, action [created/updated/archived/restored], changed_by, changed_at, before jsonb, after jsonb).
+Done via the insert/update tool, not a migration.
 
-RLS: admins can read and write both tables. Anonymous reads allowed on `language_guardrails` (active rows only) so the blog editor preview and any public-facing tooling can read without auth. Audit table is admin-read-only.
+---
 
-Seed migration inserts the current hardcoded rule set from the existing panel and `tav-chat-enhanced` so day one of the admin page matches what is already live.
+# Part B — Self-improving guardrails (zero-breach loop)
 
-## The "How to use" guide (seeded into the page)
+Today's gap: the dynamic `language_guardrails` table powers the TAV chatbot prompt and the amber panel in the blog editor, but **nothing actually scans the article body against those rules before publish**. The legacy `lintBody()` in `src/lib/blog/api.ts` has a tiny hardcoded BANNED_WORDS list and isn't wired into any UI. That is why "placement fee", "paid directly to caregiver", "baseline agreement", etc. slipped through.
 
-Rendered as a markdown section inside the management page. Covers:
+We close the loop in four moves.
 
-1. **What guardrails are.** Non-negotiable language and money rules that shape every public surface, every chatbot reply, and every piece of marketing copy.
-2. **Where they show up automatically.** Blog editor panel, TAV chatbot, admin warnings. Anything else (printed flyers, social posts) is human-enforced and the same rules apply.
-3. **How to add a new banned word.** Open Word Rules tab, click "Add rule", fill in banned + preferred + reason + scope + severity, save. Change is live within the minute on the blog editor and on the next TAV invocation.
-4. **How to retire a rule.** Click the row, toggle Active off. The rule is hidden from enforcement but kept in the audit history.
-5. **How to handle a borderline case.** If the rule is sometimes okay (e.g. "client" is fine in legal documents but not in family copy), set scope appropriately rather than archiving the rule.
-6. **Financial privacy quick reference.** What is allowed public (per-hour rates, subscription tier names) and what is never public (subscription dollar amounts, home preparation costs, household totals).
-7. **Review cadence.** Quarterly review by the founder. The page surfaces "rules not reviewed in 90+ days" at the top of the list.
-8. **What to do if TAV breaks a rule.** Add the failure pattern as a new word or tone rule, redeploy is automatic, screenshot the original failure for the audit note.
+## B1. Live guardrail scanner in the blog editor
 
-## Files touched
+Replace the unused hardcoded `lintBody` with a live scanner that reads from `language_guardrails`:
 
-- New: `supabase/migrations/...` for the two tables, RLS, seed data.
-- New: `src/pages/admin/AdminLanguageGuardrailsPage.tsx` — the management UI.
-- New: `src/components/admin/guardrails/GuardrailsTable.tsx`, `GuardrailRuleDialog.tsx`, `GuardrailsAuditPanel.tsx`, `GuardrailsHowToUse.tsx`.
-- Edit: `src/App.tsx` — register the new route under the existing admin section.
-- Edit: `src/pages/admin/AdminDashboard.tsx` — add the dashboard card next to Blog Management.
-- Edit: `src/pages/admin/AdminBlogEditorPage.tsx` — replace the hardcoded amber panel block with a component that queries the catalog. UI stays identical, content becomes dynamic.
-- Edit: `supabase/functions/tav-chat-enhanced/index.ts` — replace the hardcoded LANGUAGE GUARDRAILS string with a fetch from the catalog at request time, with a sensible fallback to the current hardcoded text if the DB read fails (so TAV never goes silent).
+- New hook `useGuardrailScan(body, title, description, faqs)` that:
+  - pulls all active rules from `language_guardrails`
+  - for each `word` rule: regex-match `banned_term` in body/title/description/faqs, suggest `preferred_term`
+  - for each `financial_deny` rule: regex-match the denied figure/phrase
+  - for `tone` rules: regex-match if `banned_term` is present (e.g. "drift back into chaos" overuse → count occurrences > 1)
+  - returns `{ issues: [{ ruleId, severity, kind, excerpt, lineNumber, banned, preferred, scope }] }`
+- Panel in `AdminBlogEditorPage.tsx` directly under the body field:
+  - Red badge for `severity = hard`, amber for `soft`
+  - Each issue shows the offending excerpt, the rule, and a **"Replace with preferred"** button that does a single in-body replace
+  - Live count, updates as you type (debounced 400ms)
+- **Publish guard**: the existing "Status: published" save is blocked while any `hard` issues exist. Soft issues show a warning but allow save. An admin override checkbox ("I've reviewed these and they are intentional") unblocks; the override + reason is written to `language_guardrails_audit` as a new action type `override_used` so we can learn from overrides.
 
-## Open questions before building
+## B2. "Learn from review" intake on the guardrails page
 
-1. **Audit trail depth** — do you want full before/after JSON snapshots stored, or just a one-line "X changed banned_term from Y to Z" log? Default plan: full JSON.
-2. **Who can edit** — admin only, or do you want a separate "content editor" role that can suggest changes but not apply them? Default plan: admin only.
-3. **Export to markdown action** — should it overwrite `docs/TAVARA_LANGUAGE_GUARDRAILS.md` directly (requires a server-side write) or just download a `.md` file for you to drop in manually? Default plan: download only, no repo writes.
+On `/admin/language-guardrails`, add a new tab **"Learn from feedback"**:
+
+- Textarea: paste reviewer feedback (the kind of message the user just sent)
+- "Extract proposed rules" button calls a new edge function `guardrails-extract-rules` that:
+  - sends the pasted feedback + the current rule set to Lovable AI Gateway (`google/gemini-2.5-flash`)
+  - asks it to return a JSON array of *new candidate rules* in the same shape as `language_guardrails` rows, with `banned_term`, `preferred_term`, `rule_type`, `scope`, `severity`, and a short `rationale`
+  - skips anything that duplicates an existing active rule
+- The candidates render as a review list: each row has Accept / Edit / Reject. Accept inserts into `language_guardrails` with `created_by = current admin`. Reject is logged so we don't re-propose it.
+
+This is the actual learning loop — every round of editorial feedback becomes new enforced rules without manual SQL.
+
+Seed the new system immediately with the rules implied by today's feedback so the next breach is impossible:
+
+| rule_type | banned_term | preferred_term | severity |
+|---|---|---|---|
+| word | placement fee | onboarding coordination | hard |
+| word | matching and placement fee | care setup coordination | hard |
+| word | placement | onboarding coordination | soft |
+| word | dispatch | coordinate | soft |
+| word | match result | match outcome | soft |
+| word | paid directly to (the )?caregiver | coordinated through Tavara | hard |
+| word | family arranges (care )?directly | Tavara coordinates the arrangement | hard |
+| word | direct arrangement | care coordination arrangement | hard |
+| word | baseline agreement | care coordination agreement | soft |
+| tone | drift back into chaos | fragmented coordination / reactive care / household strain / operational overwhelm / unstable routines | soft (overuse: warn if used >1x in same post) |
+| word | 8 hour shift | eight-hour shift | soft |
+
+## B3. Nightly re-scan of all published posts
+
+New edge function `guardrails-scan-published` (scheduled daily via Supabase cron):
+
+- Loads every `status = published` post
+- Runs the same scanner against current `language_guardrails`
+- Writes results to a new lightweight table `guardrail_breach_log` (post_id, rule_id, severity, excerpt, scanned_at, resolved bool)
+- Admin dashboard guardrails card surfaces:
+  - "X published posts with active breaches" with a link to a list
+  - Per-post: open in editor with the breach panel pre-expanded
+
+This is what gets us toward zero — when a rule is added today, tomorrow's scan flags every legacy article that violates it.
+
+## B4. Audit + visibility upgrades
+
+- `language_guardrails_audit` already captures CRUD. Add two synthetic actions:
+  - `override_used` — when an admin publishes despite soft issues
+  - `proposal_accepted` / `proposal_rejected` — from the Learn-from-feedback flow
+- AdminDashboard guardrails card adds two numbers: **active rules** and **open breaches in published posts**.
+
+---
+
+# Technical notes
+
+- **Tables touched:** `blog_posts` (data update only), `language_guardrails` (seed new rules via insert tool), new table `guardrail_breach_log` (migration).
+- **New files:**
+  - `src/hooks/admin/useGuardrailScan.ts`
+  - `src/components/admin/guardrails/GuardrailScanPanel.tsx` (used inside `AdminBlogEditorPage`)
+  - `src/components/admin/guardrails/LearnFromFeedbackTab.tsx`
+  - `supabase/functions/guardrails-extract-rules/index.ts` (Lovable AI Gateway, `google/gemini-2.5-flash`, validates JSON before returning)
+  - `supabase/functions/guardrails-scan-published/index.ts` (scheduled)
+- **Edited files:**
+  - `src/lib/blog/api.ts` — remove the dead hardcoded `lintBody`, keep typed exports
+  - `src/pages/admin/AdminBlogEditorPage.tsx` — mount the scan panel, gate the Publish action on `hard` issues
+  - `src/pages/admin/AdminLanguageGuardrailsPage.tsx` — add the Learn-from-feedback tab
+  - `src/pages/admin/AdminDashboard.tsx` — surface open-breach count on the guardrails card
+- **Memory:** update `mem://constraints/tavara-language-guardrails` to record the new banned terms (placement/dispatch/match result/paid directly/baseline agreement) and the "drift back into chaos" overuse rule.
+
+---
+
+# Open questions before I build
+
+1. **Publish gating strength** — block hard-severity issues completely, or always allow override-with-reason? Default: block hard, allow override-with-reason on soft.
+2. **Scope of the nightly scan** — only `published`, or also `scheduled` and `draft`? Default: published + scheduled.
+3. **Auto-fix on accept** — when a new rule is accepted from feedback, should the system also auto-scan existing posts and offer one-click apply-preferred-term? Default: yes, surface as a list, never auto-rewrite without admin click.
+
+Reply with answers (or "go with defaults") and I'll build it.
