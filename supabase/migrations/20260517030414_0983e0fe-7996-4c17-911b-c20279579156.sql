@@ -1,0 +1,1 @@
+CREATE POLICY "TEMP seed blog posts" ON public.blog_posts FOR INSERT TO anon WITH CHECK (true);
