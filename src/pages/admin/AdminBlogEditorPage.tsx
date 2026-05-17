@@ -201,10 +201,18 @@ export default function AdminBlogEditorPage() {
               Schedule
             </Button>
             <Button
-              onClick={() => persist("published", new Date().toISOString())}
+              onClick={() => {
+                const firstPublish = !existing?.published_at;
+                persist("published", firstPublish ? new Date().toISOString() : undefined);
+              }}
               disabled={save.isPending}
+              title={
+                existing?.published_at
+                  ? "Keeps the original publish date. Edit the date field to bump it."
+                  : "Publishes now"
+              }
             >
-              Publish now
+              {existing?.status === "published" ? "Re-publish" : "Publish now"}
             </Button>
           </div>
         </div>
