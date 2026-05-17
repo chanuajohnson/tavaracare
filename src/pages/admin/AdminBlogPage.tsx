@@ -49,7 +49,8 @@ const statusVariant = (s: BlogStatus): "default" | "secondary" | "outline" | "de
 };
 
 export default function AdminBlogPage() {
-  const { user, isAdmin, isLoading } = useAuth();
+  const { user, userRole, isLoading } = useAuth();
+  const isAdmin = userRole === "admin";
   const navigate = useNavigate();
   const { data: posts = [], isLoading: postsLoading } = useAllPosts();
   const del = useDeletePost();
