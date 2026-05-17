@@ -1,12 +1,69 @@
 import { useParams, Link, Navigate } from "react-router-dom";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SEO } from "@/components/seo/SEO";
 import { BlogCard } from "@/components/blog/BlogCard";
+import {
+  PullQuote,
+  TavaraLearned,
+  Observation,
+  SectionDivider,
+} from "@/components/blog/editorial";
 import { getPostBySlug, blogPosts } from "@/content/blog/posts";
+
+// Custom renderers that turn standard markdown into Tavara editorial blocks.
+//   ---                          -> SectionDivider
+//   > text                       -> PullQuote
+//   > [!LEARNED] text            -> TavaraLearned
+//   > [!OBSERVATION] text        -> Observation
+const extractFirstText = (node: any): string => {
+  if (!node) return "";
+  if (typeof node === "string") return node;
+  if (Array.isArray(node)) return node.map(extractFirstText).join("");
+  if (node.props?.children) return extractFirstText(node.props.children);
+  return "";
+};
+
+const stripDirective = (children: any, tag: string): any => {
+  // Walk into the first text node and strip the [!TAG] prefix once.
+  const visit = (n: any): any => {
+    if (typeof n === "string") return n.replace(new RegExp(`^\\s*\\[!${tag}\\]\\s*`), "");
+    if (Array.isArray(n)) {
+      const out = [...n];
+      for (let i = 0; i < out.length; i++) {
+        const before = extractFirstText(out[i]);
+        const after = visit(out[i]);
+        if (extractFirstText(after) !== before) {
+          out[i] = after;
+          return out;
+        }
+      }
+      return out;
+    }
+    if (n && typeof n === "object" && n.props?.children) {
+      return { ...n, props: { ...n.props, children: visit(n.props.children) } };
+    }
+    return n;
+  };
+  return visit(children);
+};
+
+const markdownComponents: Components = {
+  hr: () => <SectionDivider />,
+  blockquote: ({ children }) => {
+    const text = extractFirstText(children).trimStart();
+    if (text.startsWith("[!LEARNED]")) {
+      return <TavaraLearned>{stripDirective(children, "LEARNED")}</TavaraLearned>;
+    }
+    if (text.startsWith("[!OBSERVATION]")) {
+      return <Observation>{stripDirective(children, "OBSERVATION")}</Observation>;
+    }
+    return <PullQuote>{children}</PullQuote>;
+  },
+};
 
 const BASE_URL = "https://tavara.care";
 
