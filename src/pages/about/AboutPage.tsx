@@ -14,6 +14,11 @@ import { Link } from 'react-router-dom';
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SEO } from '@/components/seo/SEO';
+import { FaqSection } from '@/components/seo/FaqSection';
+import { buildFaqPageSchema } from '@/data/faqs';
+
+// Curated About-page FAQ subset focused on the platform model + trust questions.
+const ABOUT_FAQ_IDS = ['faq-model-1', 'faq-model-2', 'faq-model-3', 'faq-1', 'faq-18'];
 
 const AboutPage = () => {
   const [activeCard, setActiveCard] = useState<string | null>(null);
@@ -28,6 +33,7 @@ const AboutPage = () => {
         title="About Tavara | Community-Based Care Coordination for Families"
         description="Tavara is a technology-driven care coordination platform that connects families with qualified caregivers across Trinidad and Tobago and the Caribbean."
         canonicalPath="/about"
+        schema={buildFaqPageSchema(ABOUT_FAQ_IDS)}
       />
       <Container>
         <Breadcrumb />
@@ -342,6 +348,11 @@ const AboutPage = () => {
             </motion.div>
           </div>
         </div>
+        <FaqSection
+          ids={ABOUT_FAQ_IDS}
+          title="About the Tavara Model"
+          intro="The most common questions about how Tavara works, who employs caregivers, and what our coordination covers."
+        />
       </Container>
     </div>
   );
