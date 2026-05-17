@@ -35,6 +35,8 @@ import { toast } from "sonner";
 import { BlogGuardrailsPanel } from "@/components/admin/guardrails/BlogGuardrailsPanel";
 import { GuardrailScanPanel } from "@/components/admin/guardrails/GuardrailScanPanel";
 import { useGuardrailScan } from "@/hooks/admin/useGuardrailScan";
+import { useBlogLinkValidation } from "@/hooks/admin/useBlogLinkValidation";
+import { BlogLinkValidationPanel } from "@/components/admin/blog/BlogLinkValidationPanel";
 import { getBlogShareUrl } from "@/lib/blog/shareUrl";
 
 export default function AdminBlogEditorPage() {
@@ -96,6 +98,7 @@ export default function AdminBlogEditorPage() {
   }, [body, readingTime]);
 
   const scan = useGuardrailScan({ title, description, body, faqs });
+  const linkCheck = useBlogLinkValidation(body);
 
   if (authLoading) return <div className="container py-12">Loading…</div>;
   if (!user) return <Navigate to="/auth" replace />;
@@ -214,13 +217,15 @@ export default function AdminBlogEditorPage() {
             <Button
               variant="outline"
               onClick={() => persist("scheduled")}
-              disabled={save.isPending || !publishedAt || scan.hardCount > 0}
+              disabled={save.isPending || !publishedAt || scan.hardCount > 0 || linkCheck.errorCount > 0}
               title={
                 scan.hardCount > 0
                   ? `Resolve ${scan.hardCount} hard guardrail breach(es) first`
-                  : !publishedAt
-                    ? "Set a publish date first"
-                    : ""
+                  : linkCheck.errorCount > 0
+                    ? `Fix ${linkCheck.errorCount} broken internal link(s) first`
+                    : !publishedAt
+                      ? "Set a publish date first"
+                      : ""
               }
             >
               Schedule
@@ -231,16 +236,22 @@ export default function AdminBlogEditorPage() {
                   toast.error(`Cannot publish — ${scan.hardCount} hard guardrail breach(es) detected`);
                   return;
                 }
+                if (linkCheck.errorCount > 0) {
+                  toast.error(`Cannot publish — ${linkCheck.errorCount} broken internal link(s) detected`);
+                  return;
+                }
                 const firstPublish = !existing?.published_at;
                 persist("published", firstPublish ? new Date().toISOString() : undefined);
               }}
-              disabled={save.isPending || scan.hardCount > 0}
+              disabled={save.isPending || scan.hardCount > 0 || linkCheck.errorCount > 0}
               title={
                 scan.hardCount > 0
                   ? `Resolve ${scan.hardCount} hard guardrail breach(es) first`
-                  : existing?.published_at
-                    ? "Keeps the original publish date. Edit the date field to bump it."
-                    : "Publishes now"
+                  : linkCheck.errorCount > 0
+                    ? `Fix ${linkCheck.errorCount} broken internal link(s) first`
+                    : existing?.published_at
+                      ? "Keeps the original publish date. Edit the date field to bump it."
+                      : "Publishes now"
               }
             >
               {existing?.status === "published" ? "Re-publish" : "Publish now"}
@@ -537,6 +548,8 @@ export default function AdminBlogEditorPage() {
                 </div>
               </CardContent>
             </Card>
+
+            <BlogLinkValidationPanel result={linkCheck} />
 
             <Card>
               <CardHeader>
