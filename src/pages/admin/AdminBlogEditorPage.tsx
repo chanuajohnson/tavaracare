@@ -94,7 +94,7 @@ export default function AdminBlogEditorPage() {
     if (body && !readingTime) setReadingTime(estimateReadingTime(body));
   }, [body, readingTime]);
 
-  const lintIssues = useMemo(() => lintBody(body), [body]);
+  const scan = useGuardrailScan({ title, description, body, faqs });
 
   if (authLoading) return <div className="container py-12">Loading…</div>;
   if (!user) return <Navigate to="/auth" replace />;
