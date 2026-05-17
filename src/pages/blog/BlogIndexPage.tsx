@@ -3,16 +3,22 @@ import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/seo/SEO";
 import { BlogCard } from "@/components/blog/BlogCard";
-import { blogPosts, blogCategories, type BlogCategory } from "@/content/blog/posts";
-
-type Filter = BlogCategory | "All";
+import { usePublishedPosts, BLOG_CATEGORIES } from "@/lib/blog/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const BlogIndexPage = () => {
-  const [filter, setFilter] = useState<Filter>("All");
+  const [filter, setFilter] = useState<string>("All");
+  const { data: posts = [], isLoading } = usePublishedPosts();
+
+  const activeCategories = useMemo(() => {
+    const set = new Set<string>();
+    posts.forEach((p) => set.add(p.category));
+    return Array.from(set);
+  }, [posts]);
 
   const filtered = useMemo(
-    () => (filter === "All" ? blogPosts : blogPosts.filter((p) => p.category === filter)),
-    [filter],
+    () => (filter === "All" ? posts : posts.filter((p) => p.category === filter)),
+    [filter, posts],
   );
 
   const schema = {
@@ -22,17 +28,17 @@ const BlogIndexPage = () => {
     url: "https://tavara.care/blog",
     description:
       "Guides and reflections on care coordination, caregiver hiring, and the emotional realities of in-home care in Trinidad & Tobago.",
-    blogPost: blogPosts.map((p) => ({
+    blogPost: posts.map((p) => ({
       "@type": "BlogPosting",
       headline: p.title,
       description: p.description,
       url: `https://tavara.care/blog/${p.slug}`,
-      datePublished: p.publishedAt,
-      author: { "@type": "Organization", name: p.author },
+      datePublished: p.published_at,
+      author: { "@type": "Person", name: p.author_name },
     })),
   };
 
-  const filters: Filter[] = ["All", ...blogCategories];
+  const filters = ["All", ...activeCategories.length ? activeCategories : BLOG_CATEGORIES];
 
   return (
     <>
@@ -68,13 +74,21 @@ const BlogIndexPage = () => {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((post) => (
-              <BlogCard key={post.slug} post={post} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-64 w-full" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filtered.map((post) => (
+                <BlogCard key={post.slug} post={post} />
+              ))}
+            </div>
+          )}
 
-          {filtered.length === 0 && (
+          {!isLoading && filtered.length === 0 && (
             <p className="text-muted-foreground text-center py-12">
               No posts in this category yet — more on the way.
             </p>

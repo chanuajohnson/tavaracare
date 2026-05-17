@@ -22,6 +22,8 @@ import AdminOnboardingChecklistPage from "@/pages/admin/AdminOnboardingChecklist
 import UnitEconomicsPage from "@/pages/admin/UnitEconomicsPage";
 import LifecycleCostPage from "@/pages/admin/LifecycleCostPage";
 import AdminPricingCatalogPage from "@/pages/admin/AdminPricingCatalogPage";
+import AdminBlogPage from "@/pages/admin/AdminBlogPage";
+import AdminBlogEditorPage from "@/pages/admin/AdminBlogEditorPage";
 import MobileScreeningPage from "@/pages/screening/MobileScreeningPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
@@ -203,6 +205,8 @@ export const AppRoutes = () => {
       <Route path="/admin/unit-economics" element={<UnitEconomicsPage />} />
       <Route path="/admin/lifecycle-cost" element={<LifecycleCostPage />} />
       <Route path="/admin/pricing-catalog" element={<AdminPricingCatalogPage />} />
+      <Route path="/admin/blog" element={<AdminBlogPage />} />
+      <Route path="/admin/blog/:id" element={<AdminBlogEditorPage />} />
 
       {/* Legacy Routes */}
       <Route path="/legacy-stories" element={<LegacyStoriesPage />} />

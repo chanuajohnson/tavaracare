@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SEO } from "@/components/seo/SEO";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { BlogCard } from "@/components/blog/BlogCard";
 import chanuaAvatar from "@/assets/chanua-johnson.jpg";
 import {
@@ -14,13 +15,8 @@ import {
   Observation,
   SectionDivider,
 } from "@/components/blog/editorial";
-import { getPostBySlug, blogPosts } from "@/content/blog/posts";
+import { usePublishedPost, usePublishedPosts } from "@/lib/blog/api";
 
-// Custom renderers that turn standard markdown into Tavara editorial blocks.
-//   ---                          -> SectionDivider
-//   > text                       -> PullQuote
-//   > [!LEARNED] text            -> TavaraLearned
-//   > [!OBSERVATION] text        -> Observation
 const extractFirstText = (node: any): string => {
   if (!node) return "";
   if (typeof node === "string") return node;
@@ -30,7 +26,6 @@ const extractFirstText = (node: any): string => {
 };
 
 const stripDirective = (children: any, tag: string): any => {
-  // Walk into the first text node and strip the [!TAG] prefix once.
   const visit = (n: any): any => {
     if (typeof n === "string") return n.replace(new RegExp(`^\\s*\\[!${tag}\\]\\s*`), "");
     if (Array.isArray(n)) {
@@ -71,21 +66,44 @@ const BASE_URL = "https://tavara.care";
 
 const BlogPostPage = () => {
   const { slug } = useParams<{ slug: string }>();
-  const post = slug ? getPostBySlug(slug) : undefined;
+  const { data: post, isLoading } = usePublishedPost(slug);
+  const { data: allPosts = [] } = usePublishedPosts();
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-background py-16">
+        <Container>
+          <div className="max-w-3xl mx-auto space-y-4">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        </Container>
+      </main>
+    );
+  }
 
   if (!post) return <Navigate to="/blog" replace />;
 
   const url = `${BASE_URL}/blog/${post.slug}`;
-  const related = blogPosts.filter((p) => p.slug !== post.slug).slice(0, 3);
+  const related = allPosts.filter((p) => p.slug !== post.slug).slice(0, 3);
+  const avatarSrc = post.author_avatar_url || chanuaAvatar;
+  const initials = (post.author_name || "C")
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: post.title,
     description: post.description,
-    datePublished: post.publishedAt,
-    dateModified: post.publishedAt,
-    author: { "@type": "Organization", name: post.author },
+    datePublished: post.published_at,
+    dateModified: post.updated_at,
+    author: { "@type": "Person", name: post.author_name },
     publisher: {
       "@type": "Organization",
       name: "Tavara Care",
@@ -143,44 +161,54 @@ const BlogPostPage = () => {
             <header className="mb-10 space-y-4">
               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <Badge variant="secondary">{post.category}</Badge>
-                <span>{post.readingTime}</span>
-                <span>·</span>
-                <time dateTime={post.publishedAt}>
-                  {new Date(post.publishedAt).toLocaleDateString("en-GB", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </time>
+                {post.reading_time && <span>{post.reading_time}</span>}
+                {post.published_at && (
+                  <>
+                    <span>·</span>
+                    <time dateTime={post.published_at}>
+                      {new Date(post.published_at).toLocaleDateString("en-GB", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </time>
+                  </>
+                )}
               </div>
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight">{post.title}</h1>
               <p className="text-lg text-muted-foreground">{post.description}</p>
               <div className="flex items-center gap-3 pt-2">
                 <Avatar className="h-10 w-10 border border-border">
-                  <AvatarImage src={chanuaAvatar} alt="Chanua Johnson" className="object-cover" />
-                  <AvatarFallback>CJ</AvatarFallback>
+                  <AvatarImage src={avatarSrc} alt={post.author_name} className="object-cover" />
+                  <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <div className="text-sm leading-tight">
-                  <div className="font-medium text-foreground">Chanua Johnson</div>
-                  <div className="text-muted-foreground">Tavara Care Coordinator & Founder</div>
+                  <div className="font-medium text-foreground">{post.author_name}</div>
+                  {post.author_role && (
+                    <div className="text-muted-foreground">{post.author_role}</div>
+                  )}
                 </div>
               </div>
             </header>
 
             <div className="prose-editorial prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-table:text-sm">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{post.body}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {post.body}
+              </ReactMarkdown>
             </div>
 
-            <aside className="mt-12 p-6 md:p-8 rounded-lg bg-primary-100/40 border border-primary-200">
-              <h2 className="text-xl font-semibold mb-2">Ready when you are</h2>
-              <p className="text-muted-foreground mb-4">
-                Tavara is a care coordination platform serving families across Trinidad & Tobago.
-                Start at the pace that's right for your home.
-              </p>
-              <Button asChild>
-                <Link to={post.cta.href}>{post.cta.label}</Link>
-              </Button>
-            </aside>
+            {post.cta_label && post.cta_href && (
+              <aside className="mt-12 p-6 md:p-8 rounded-lg bg-primary-100/40 border border-primary-200">
+                <h2 className="text-xl font-semibold mb-2">Ready when you are</h2>
+                <p className="text-muted-foreground mb-4">
+                  Tavara is a care coordination platform serving families across Trinidad & Tobago.
+                  Start at the pace that's right for your home.
+                </p>
+                <Button asChild>
+                  <Link to={post.cta_href}>{post.cta_label}</Link>
+                </Button>
+              </aside>
+            )}
 
             {post.faqs.length > 0 && (
               <section className="mt-16">
