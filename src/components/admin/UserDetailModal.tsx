@@ -1015,24 +1015,13 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-4">
-            {/* v2: ProfessionalActivityTab — shifts, feed, compliance */}
-            {user.role === 'professional' ? (
+            {user.role === 'professional' && (
               <ProfessionalActivityTab
                 professionalId={user.id}
                 professionalName={user.full_name}
               />
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600">
-                    Activity tracking is available for professional accounts.
-                  </p>
-                </CardContent>
-              </Card>
             )}
+            <UserActivityPanel userId={user.id} userFullName={user.full_name} />
           </TabsContent>
         </Tabs>
       </DialogContent>
