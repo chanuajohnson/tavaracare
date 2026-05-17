@@ -3175,6 +3175,84 @@ export type Database = {
         }
         Relationships: []
       }
+      language_guardrails: {
+        Row: {
+          banned_term: string | null
+          body: string
+          created_at: string
+          created_by: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          preferred_term: string | null
+          rule_type: string
+          scope: string
+          severity: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          banned_term?: string | null
+          body: string
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          preferred_term?: string | null
+          rule_type: string
+          scope?: string
+          severity?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          banned_term?: string | null
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          preferred_term?: string | null
+          rule_type?: string
+          scope?: string
+          severity?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      language_guardrails_audit: {
+        Row: {
+          action: string
+          after: Json | null
+          before: Json | null
+          changed_at: string
+          changed_by: string | null
+          guardrail_id: string | null
+          id: string
+        }
+        Insert: {
+          action: string
+          after?: Json | null
+          before?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          guardrail_id?: string | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          after?: Json | null
+          before?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          guardrail_id?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       lesson_content_blocks: {
         Row: {
           content: string

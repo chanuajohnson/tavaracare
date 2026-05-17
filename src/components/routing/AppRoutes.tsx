@@ -24,6 +24,7 @@ import LifecycleCostPage from "@/pages/admin/LifecycleCostPage";
 import AdminPricingCatalogPage from "@/pages/admin/AdminPricingCatalogPage";
 import AdminBlogPage from "@/pages/admin/AdminBlogPage";
 import AdminBlogEditorPage from "@/pages/admin/AdminBlogEditorPage";
+import AdminLanguageGuardrailsPage from "@/pages/admin/AdminLanguageGuardrailsPage";
 import MobileScreeningPage from "@/pages/screening/MobileScreeningPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
@@ -207,6 +208,7 @@ export const AppRoutes = () => {
       <Route path="/admin/pricing-catalog" element={<AdminPricingCatalogPage />} />
       <Route path="/admin/blog" element={<AdminBlogPage />} />
       <Route path="/admin/blog/:id" element={<AdminBlogEditorPage />} />
+      <Route path="/admin/language-guardrails" element={<AdminLanguageGuardrailsPage />} />
 
       {/* Legacy Routes */}
       <Route path="/legacy-stories" element={<LegacyStoriesPage />} />

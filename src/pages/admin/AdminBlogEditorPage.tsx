@@ -33,6 +33,7 @@ import {
 } from "@/lib/blog/api";
 import chanuaAvatar from "@/assets/chanua-johnson.jpg";
 import { toast } from "sonner";
+import { BlogGuardrailsPanel } from "@/components/admin/guardrails/BlogGuardrailsPanel";
 
 export default function AdminBlogEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -254,43 +255,7 @@ export default function AdminBlogEditorPage() {
                   />
                 </div>
                 <div>
-                  <details className="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm">
-                    <summary className="cursor-pointer font-semibold text-amber-900">
-                      Tavara language guardrails (click to expand — read before writing)
-                    </summary>
-                    <div className="mt-2 space-y-2 text-amber-950">
-                      <p className="font-medium">
-                        Tavara is a care coordination platform — never an agency, staffing company, or
-                        Uber-for-caregivers. We sell continuity and coordination, not caregiver hours.
-                      </p>
-                      <p className="font-medium">Banned → use instead:</p>
-                      <ul className="list-disc pl-5 text-xs leading-relaxed">
-                        <li><b>hire a caregiver</b> → arrange care / build a care team</li>
-                        <li><b>patient</b> → loved one / person receiving care</li>
-                        <li><b>staff</b> → care team / caregiver</li>
-                        <li><b>case</b> → household / family / care arrangement</li>
-                        <li><b>placement</b> → match / care arrangement</li>
-                        <li><b>clean-up</b> → home preparation</li>
-                        <li><b>hoarding</b> → overwhelming environments / homes carrying years of accumulation</li>
-                        <li><b>payroll</b> (family-facing) → caregiver payment coordination</li>
-                        <li><b>training oversight</b> → care standards</li>
-                        <li><b>agency</b> → care coordination platform</li>
-                        <li><b>client / customer / user</b> → family / household</li>
-                      </ul>
-                      <p className="font-medium pt-1">Financial privacy on public copy:</p>
-                      <p className="text-xs leading-relaxed">
-                        OK to mention: per-hour care rates ($40 / $45 / $50+ — call them "care rate", never "wage"),
-                        subscription tier names (Basic, Active Care, Premium), Matching & Placement $1,399.
-                        NEVER public: subscription dollar amounts, Home Preparation dollar amounts, Day 0 figures,
-                        household monthly totals, lifecycle projections.
-                      </p>
-                      <p className="text-xs">
-                        No em-dashes or en-dashes. No AI buzzwords (delve, leverage, holistic, journey, landscape,
-                        seamless, transformative). No "It's not just X, it's Y." Full doc:{" "}
-                        <code>docs/TAVARA_LANGUAGE_GUARDRAILS.md</code>.
-                      </p>
-                    </div>
-                  </details>
+                  <BlogGuardrailsPanel />
                   <Label>Body (markdown)</Label>
                   <Tabs defaultValue="write" className="w-full">
                     <TabsList>
