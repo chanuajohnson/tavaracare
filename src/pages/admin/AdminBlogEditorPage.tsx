@@ -26,7 +26,6 @@ import {
   uploadBlogAsset,
   slugify,
   estimateReadingTime,
-  lintBody,
   BLOG_CATEGORIES,
   type BlogStatus,
   type BlogFAQ,
@@ -34,6 +33,8 @@ import {
 import chanuaAvatar from "@/assets/chanua-johnson.jpg";
 import { toast } from "sonner";
 import { BlogGuardrailsPanel } from "@/components/admin/guardrails/BlogGuardrailsPanel";
+import { GuardrailScanPanel } from "@/components/admin/guardrails/GuardrailScanPanel";
+import { useGuardrailScan } from "@/hooks/admin/useGuardrailScan";
 
 export default function AdminBlogEditorPage() {
   const { id } = useParams<{ id: string }>();
