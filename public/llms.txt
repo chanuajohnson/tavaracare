@@ -21,6 +21,20 @@ Standard caregiver rates: $40/hr (Standard), $45/hr (Full Service), $50+/hr (Pre
 - [Frequently Asked Questions](https://tavara.care/support/faq): Pricing, plans, the coordination model, and how it works
 - [Privacy Policy](https://tavara.care/privacy-policy): How Tavara handles personal and health information
 
+## Locations
+
+- [Caregivers in Port of Spain](https://tavara.care/care/port-of-spain): In-home care across Port of Spain and surrounding neighbourhoods
+- [Caregivers in San Fernando](https://tavara.care/care/san-fernando): In-home care across San Fernando and South Trinidad
+- [Caregivers in Arima](https://tavara.care/care/arima): In-home care across Arima and East Trinidad
+- [Caregivers in Tobago](https://tavara.care/care/tobago): In-home care across Tobago, designed for diaspora coordination
+
+## Services
+
+- [Elder Care at Home](https://tavara.care/services/elder-care): In-home elder care across Trinidad & Tobago
+- [Dementia & Alzheimer's Care](https://tavara.care/services/dementia-care): Dementia friendly in-home care, sundowning and memory loss support
+- [Post-Surgery Recovery Care](https://tavara.care/services/post-surgery-care): Recovery support at home after hospital discharge
+- [Live-In Care](https://tavara.care/services/live-in-care): Continuous in-home support with rotating caregivers
+
 ## Blog
 
 - [Tavara Care Blog](https://tavara.care/blog): Guides for families, caregivers, and the village around them

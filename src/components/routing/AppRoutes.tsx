@@ -31,6 +31,14 @@ import AboutPage from "@/pages/about/AboutPage";
 import FAQPage from "@/pages/support/FAQPage";
 import PrivacyPolicyPage from "@/pages/legal/PrivacyPolicyPage";
 import ErrandsPage from "@/pages/errands/ErrandsPage";
+import PortOfSpainPage from "@/pages/locations/PortOfSpainPage";
+import SanFernandoPage from "@/pages/locations/SanFernandoPage";
+import ArimaPage from "@/pages/locations/ArimaPage";
+import TobagoPage from "@/pages/locations/TobagoPage";
+import ElderCarePage from "@/pages/services/ElderCarePage";
+import DementiaCarePage from "@/pages/services/DementiaCarePage";
+import PostSurgeryCarePage from "@/pages/services/PostSurgeryCarePage";
+import LiveInCarePage from "@/pages/services/LiveInCarePage";
 import NotFound from "@/pages/NotFound";
 import SupabaseDebugPage from "@/pages/debug/SupabaseDebugPage";
 
@@ -133,7 +141,19 @@ export const AppRoutes = () => {
       <Route path="/onboarding-guide" element={<OnboardingGuidePage />} />
       <Route path="/blog" element={<BlogIndexPage />} />
       <Route path="/blog/:slug" element={<BlogPostPage />} />
-      
+
+      {/* SEO Landing Pages — Locations */}
+      <Route path="/care/port-of-spain" element={<PortOfSpainPage />} />
+      <Route path="/care/san-fernando" element={<SanFernandoPage />} />
+      <Route path="/care/arima" element={<ArimaPage />} />
+      <Route path="/care/tobago" element={<TobagoPage />} />
+
+      {/* SEO Landing Pages — Services */}
+      <Route path="/services/elder-care" element={<ElderCarePage />} />
+      <Route path="/services/dementia-care" element={<DementiaCarePage />} />
+      <Route path="/services/post-surgery-care" element={<PostSurgeryCarePage />} />
+      <Route path="/services/live-in-care" element={<LiveInCarePage />} />
+
       {/* Registration Routes */}
       <Route path="/registration/family" element={<FamilyRegistration />} />
       <Route path="/registration/professional" element={<ProfessionalRegistration />} />

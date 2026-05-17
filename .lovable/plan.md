@@ -1,49 +1,66 @@
-## What's actually happening
 
-Your "play didn't work" isn't a TTS bug — the blog page itself is crashing before the audio player renders.
+# SEO follow-through plan
 
-**Console evidence:**
-```
-[PROVIDER-ERROR] TavaraStateProvider failed:
-FunctionsFetchError: Failed to send a request to the Edge Function
-```
+GSC is verified for `tavara.care` ✅ (screenshot confirms property is live, processing data). Here's how we knock down the rest, in the order that gives the most SEO lift per hour.
 
-`TavaraStateProvider` wraps the app. When its edge function call fails, its error boundary shows the red **"Service Unavailable"** screen you're seeing — which replaces the entire blog post, including the new `<BlogAudioPlayer>`. So Play was never clickable.
+## 1. Submit sitemap to GSC (5 min) — do first
+Use the connected Google Search Console connector to POST our sitemap so Google starts crawling immediately instead of waiting on discovery.
 
-Separately, the new `blog-tts-generate` function has **zero invocation logs**, confirming nothing ever reached it.
+- Endpoint: `PUT /webmasters/v3/sites/sc-domain%3Atavara.care/sitemaps/https%3A%2F%2Ftavara.care%2Fsitemap.xml`
+- Verify it lands under **Sitemaps** in GSC.
 
-## Plan
+## 2. Image alt-text audit (1–2 hrs)
+Sweep all public-route components for `<img>` and `<Avatar>` without meaningful `alt`. Scope:
+- `src/pages/Index.tsx`, `About`, `FAQ`, `Features`, `Errands`, `Urgent*`, `Legacy*`, `Blog*`
+- Hero/marketing components under `src/components/`
+- Fix: add descriptive alts (not "image" / not filename). Decorative images → `alt=""`.
 
-### 1. Stop `TavaraStateProvider` from nuking the whole page
-The provider should fail gracefully — log + degrade — not throw to the nearest error boundary and replace public content like blog posts.
+Deliverable: ripgrep report of offenders + fixes in one pass.
 
-- Find which edge function `TavaraStateProvider` is calling and why it's returning `FunctionsFetchError` (most likely: not deployed, CORS missing, or 5xx).
-- Make the provider's fetch failure **non-fatal**: catch the error, set state to `degraded`, render `children` normally. Only show "Service Unavailable" if a feature actually needs that state.
-- Public routes (`/blog/*`, marketing pages) should never depend on this provider succeeding.
+## 3. Four location landing pages (the big lift)
+New directory `src/pages/locations/` with one page per city, each route registered in `src/App.tsx` (additive — no existing routes touched, per guardrail).
 
-### 2. Verify the audio player path end-to-end (once the page renders again)
-- Confirm `blog-tts-generate` is deployed and reachable (curl test).
-- Confirm `useBlogAudio` surfaces errors visibly in the player UI (toast + inline message) instead of silently doing nothing — so a future failure shows "Couldn't generate audio" instead of a dead Play button.
-- Confirm the first Play call writes a row into `blog_audio` and uploads an MP3 to the `blog-audio` bucket.
+Pages:
+- `/care/port-of-spain`
+- `/care/san-fernando`
+- `/care/arima`
+- `/care/tobago`
 
-### 3. Player UX hardening
-- Show a clear "Preparing audio…" state on first click (already in hook — verify it actually displays).
-- Show an inline error if generation fails (429 / 402 / 5xx from ElevenLabs).
+Each page (~600–800 words, identical scaffold, unique copy):
+- H1 with city + "care coordination"
+- `<SEO>` with unique title/description/canonical, `LocalBusiness` JSON-LD scoped to that city's `areaServed`
+- Sections: local context, care tiers ($40/$45/$50+ per hour — per public-pricing rule), how matching works, urgent care CTA, FAQ (3–4 Qs), link to `/registration/family`
+- Reuse existing components (hero, pricing card, FAQ accordion). No new business logic.
 
-## Technical scope
+Add all 4 to `public/sitemap.xml` + `public/llms.txt`.
 
-Files I'd touch (pending your approval):
-- `src/components/providers/TavaraStateProvider` (or wherever that provider lives) — make failure non-fatal
-- `src/hooks/useBlogAudio.ts` — surface errors to UI
-- `src/components/blog/BlogAudioPlayer.tsx` — render error state
-- No changes to routing, auth, registration flows, or the chat system
+## 4. Four service landing pages
+New directory `src/pages/services/`:
+- `/services/elder-care`
+- `/services/dementia-care`
+- `/services/post-surgery-care`
+- `/services/live-in-care`
 
-No DB migration needed — table + bucket already exist.
+Same scaffold as locations but `Service` JSON-LD, scoped to that care type. Cross-link to relevant locations. Sitemap + llms.txt update.
 
-## Open question for you
+## 5. SSR/SSG decision (research only, no code)
+Investigate path forward for social-crawler-accurate per-route OG tags. Two realistic options for Lovable's Vite stack:
+- **(A) `vite-plugin-ssg`** — prerender static routes (locations, services, blog index, about, FAQ) at build. Blog posts stay dynamic via existing `blog-share` edge function. Lowest risk, biggest payoff.
+- **(B) Extend the `blog-share` pattern** with a generic `og-redirect` edge function for marketing routes too. Cheaper, uglier share URLs.
 
-Do you want me to:
-- **(A)** Just make `TavaraStateProvider` fail-soft so the blog page renders and you can test Play, **then** debug the provider's own backend separately, or
-- **(B)** Also dig into why that provider's edge function is failing in this same pass?
+Deliverable: short written recommendation, no implementation yet.
 
-A is faster and unblocks the audio feature today. B is more thorough.
+## What I won't touch (guardrails)
+- `src/App.tsx` routing — only **additive** route entries for new pages, no restructuring
+- Registration flows, chat flows, AuthProvider, dashboards
+- Existing per-page SEO components
+
+## Suggested execution order
+1. Submit sitemap to GSC (5 min)
+2. Alt-text audit + fixes (1 pass)
+3. Location pages × 4 (one PR-sized batch)
+4. Service pages × 4 (one PR-sized batch)
+5. SSR write-up
+
+## One question before I start
+Do you want me to **(A)** do all 5 in sequence in this session, or **(B)** start with #1 + #2 + the SSR write-up, then have you review copy direction before I generate 8 landing pages?
