@@ -10,6 +10,7 @@ import { TestimonialCard } from "@/components/spotlight/TestimonialCard";
 import { useSpotlightCaregivers, useCaregiverTestimonials } from "@/hooks/useSpotlightData";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SpotlightCaregiverDetailModal } from "@/components/spotlight/SpotlightCaregiverDetailModal";
+import { SEO } from "@/components/seo/SEO";
 import { SpotlightCaregiver } from "@/services/spotlightService";
 
 // AI-generated avatar images for featured caregivers
@@ -105,6 +106,11 @@ const UrgentCaregiversPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Urgent: Caregivers Available Now | Tavara Care"
+        description="Connect immediately with vetted caregivers available for urgent care needs in Trinidad and Tobago. View profiles and request a match through Tavara."
+        canonicalPath="/urgent-caregivers"
+      />
       {/* Track page view with UTM params - geo data now fetched inside useTracking */}
       <PageViewTracker 
         actionType="urgent_caregivers_page_view"

@@ -5,6 +5,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumbs/Breadcrumb";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useLocation } from "react-router-dom";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
+import { SEO } from "@/components/seo/SEO";
 
 const FeaturesPage = () => {
   const { clearLastAction } = useAuth();
@@ -48,6 +49,11 @@ const FeaturesPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO
+        title="Platform Features & Roadmap | Tavara Care Coordination"
+        description="Explore Tavara's care coordination features: caregiver matching, care plans, medication tracking, team scheduling, and more. Vote on what we build next."
+        canonicalPath="/features"
+      />
       <PageViewTracker actionType="features_page_view" />
       
       <div className="container px-4 py-12 mx-auto">

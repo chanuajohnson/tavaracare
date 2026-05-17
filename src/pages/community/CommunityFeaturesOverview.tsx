@@ -5,10 +5,16 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserCog, Users, Calendar, Heart, Rocket } from "lucide-react";
+import { SEO } from "@/components/seo/SEO";
 
 const CommunityFeaturesOverview = () => {
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Join a Care Circle in Your Community | Tavara Village Network"
+        description="Become part of Tavara's care community. Join care circles, share local resources, support families, and help build a stronger village of care."
+        canonicalPath="/community"
+      />
       <div className="container px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

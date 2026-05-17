@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UrgentBadge } from "@/components/spotlight/UrgentBadge";
 import { FamilyDetailModal } from "@/components/family/FamilyDetailModal";
 import { useState } from "react";
+import { SEO } from "@/components/seo/SEO";
 
 interface UrgentFamily {
   id: string;
@@ -115,6 +116,11 @@ const UrgentFamiliesPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Families Needing Care Now | Urgent Matches on Tavara"
+        description="See families in Trinidad and Tobago who need a caregiver urgently. Review care needs, conditions, and schedules — then connect through Tavara."
+        canonicalPath="/urgent-families"
+      />
       <PageViewTracker 
         actionType="urgent_families_page_view"
         journeyStage="discovery"

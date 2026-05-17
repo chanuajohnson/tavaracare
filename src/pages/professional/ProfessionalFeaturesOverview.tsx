@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, UserCog, FileText, BookOpen, Building } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { SEO } from "@/components/seo/SEO";
 
 const ProfessionalFeaturesOverview = () => {
   const breadcrumbItems = [
@@ -20,6 +21,11 @@ const ProfessionalFeaturesOverview = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Caregiver Jobs Near You | Join Tavara as a Care Professional"
+        description="Find caregiver jobs and care opportunities with families across Trinidad and Tobago. Build your profile, get matched, and grow your care career with Tavara."
+        canonicalPath="/professional"
+      />
       <div className="container px-4 py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
 

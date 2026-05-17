@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /registration/
+Disallow: /auth
+Disallow: /profile/
+Disallow: /demo/
+Disallow: /debug/
+Disallow: /screening/
+
+Sitemap: https://tavara.care/sitemap.xml

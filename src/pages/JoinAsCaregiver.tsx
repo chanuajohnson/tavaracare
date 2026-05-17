@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Heart, Shield, Clock, Users, Star, ArrowRight, CheckCircle2, MapPin } from 'lucide-react';
 import { getStoredUTMData } from '@/utils/utmTracking';
+import { SEO } from '@/components/seo/SEO';
 
 const JoinAsCaregiver = () => {
   const navigate = useNavigate();
@@ -72,6 +73,11 @@ const JoinAsCaregiver = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Become a Caregiver in Trinidad & Tobago | Join Tavara"
+        description="Join Tavara as a professional caregiver. Get matched with families who need your skills, build your profile, and grow your career in home care."
+        canonicalPath="/join-as-caregiver"
+      />
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/20 via-primary/10 to-background py-16 md:py-24">
         <div className="container max-w-6xl mx-auto px-4 relative z-10">
