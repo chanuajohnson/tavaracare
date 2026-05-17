@@ -482,6 +482,69 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_posts: {
+        Row: {
+          author_avatar_url: string | null
+          author_name: string
+          author_role: string | null
+          body: string
+          category: string
+          cover_image_url: string | null
+          created_at: string
+          cta_href: string | null
+          cta_label: string | null
+          description: string
+          faqs: Json
+          id: string
+          published_at: string | null
+          reading_time: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_avatar_url?: string | null
+          author_name?: string
+          author_role?: string | null
+          body: string
+          category: string
+          cover_image_url?: string | null
+          created_at?: string
+          cta_href?: string | null
+          cta_label?: string | null
+          description: string
+          faqs?: Json
+          id?: string
+          published_at?: string | null
+          reading_time?: string | null
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_avatar_url?: string | null
+          author_name?: string
+          author_role?: string | null
+          body?: string
+          category?: string
+          cover_image_url?: string | null
+          created_at?: string
+          cta_href?: string | null
+          cta_label?: string | null
+          description?: string
+          faqs?: Json
+          id?: string
+          published_at?: string | null
+          reading_time?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           calendar_id: string
