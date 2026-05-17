@@ -1,87 +1,58 @@
 ## Goal
 
-Apply the financial-privacy posture you just confirmed across every public surface. The principle:
+Tighten the public-facing post `senior-care-costs-trinidad-tobago-2026` so neither household totals nor subscription dollar amounts are exposed, and align the public language ("care rate" instead of "wage" where it refers to what the family sees on a tier). Update the financial-privacy constraint so this rule applies to every public surface, not just this post.
 
-> Tavara publishes **product prices** (per-hour tiers, subscription tiers). Tavara does **not** publish **household-level money** (monthly wage totals, full Day 0 invoice figures, full 13-week projections, individual family budgets). Those live behind onboarding so a Care Administrator can tailor the offering and so caregivers never see what a given household "can pay."
+## Current state (verified against DB)
 
-Why this matters (your own framing, captured for the record):
-- Public household budgets create wage-inflation pressure once caregivers see them.
-- Big monthly totals scare off families who would actually fit a smaller, tailored offering.
-- Public figures kill the chance to onboard and shape the engagement to the household.
-- Care Administrators lose negotiating room when the "ceiling" is already on a blog.
+Good news: the household monthly totals you remembered ($6,880, $14,109, $30,000+) are already stripped from the live post. The current scenarios describe shape only and a callout already explains why totals are private.
 
----
+What is still leaking publicly:
 
-## Audit results (what's currently public)
+1. **Subscription dollar amounts** appear three times:
+   - The pricing table (Basic Free / Active Care $699 wk / $2,499 mo / Premium $899 wk / $3,299 mo).
+   - Inline in the "Active Care ($699/wk or $2,499/mo)" paragraph.
+   - Inline in the "Premium ($899/wk or $3,299/mo)" paragraph.
+2. **Home Preparation tier prices** ($199 / $499) inside the Premium subscription paragraph.
+3. **"Caregiver's wage" framing** in the LEARNED callout and the budgeting tips, which on a public page still reads as a wage figure attached to the per-hour tier.
 
-| Surface | Status | Action |
-|---|---|---|
-| `/admin/lifecycle-cost` | Admin-only | Keep as-is. |
-| `/admin/pricing-catalog` | Admin-only | Keep as-is. |
-| `/subscription`, `/subscription/features` | Public, pulled from `pricing_catalog` | Keep. Subscription tiers are product prices, not household budgets. |
-| Blog: `senior-care-costs-trinidad-tobago-2026` | Public | **Strip household-level monthly totals.** Tiers and subscription numbers stay. |
-| Blog: `how-to-find-trusted-caregiver-trinidad-tobago` | Public | Clean. Only mentions per-hour tiers. Leave alone. |
-| Other 6 published posts | Public, no pricing | Clean. |
+## Changes
 
-The one real leak is in the cost-guide post I just edited: the scenario block still publishes specific monthly household totals ($6,880/mo, $9,675/mo, $30,000+/mo). That contradicts the privacy posture. It needs another pass.
+### 1. Blog post edit (single UPDATE migration on `blog_posts`)
 
----
+- **Subscription table:** keep the three rows (Basic, Active Care, Premium) and the Weekly/Monthly columns, but replace dollar cells with "Free", "Quoted at onboarding", "Quoted at onboarding". Add one line under the table: "Subscription pricing for Active Care and Premium is shared privately during onboarding so we can match the tier to the actual coordination intensity your household needs."
+- **Active Care paragraph (line 120):** remove "($699/wk or $2,499/mo)". Keep the 30+ hours/week framing.
+- **Premium paragraph (line 122):** remove "($899/wk or $3,299/mo)" and remove the parenthetical Home Preparation prices. Replace with "Home Preparation tier pricing is quoted at onboarding based on scope."
+- **LEARNED callout (line 128) and budgeting tips (line 175):** soften "caregiver's wage" on the public page to "the caregiver's pay" or "the per-hour care rate". Keep the pass-through explanation intact in the subscription explainer paragraph (line 108, 114) where the wage/coordination split is the actual point being made; that paragraph needs the word "wage" to explain pass-through honestly. Sweep is targeted, not blanket.
+- **Per-hour tiers ($40 / $45 / $50+) stay public.** They are product prices, not household figures, and removing them would break the article's purpose.
 
-## Edits
+### 2. Memory update
 
-### Single edit to `senior-care-costs-trinidad-tobago-2026`: rewrite the scenarios section
+Update `mem://constraints/financial-privacy-public-surfaces`:
 
-Replace the three scenario blocks so they describe **shape and intensity** instead of publishing dollar totals. Tiers and subscription tiers stay (those are already on `/subscription`). Wage math stays off the page.
+- Move subscription dollar amounts from the allow-list to the deny-list.
+- Allow-list now: per-hour care tier rates, tier names (Basic, Active Care, Premium), the fact of a Day 0 setup fee, the fact of a Home Preparation tier.
+- Deny-list now: household monthly totals, full Day 0 figures, lifecycle projections, **subscription weekly/monthly dollar amounts**, **Home Preparation dollar amounts**, any arithmetic that lets a reader reverse-engineer a household budget.
+- Add wording note: on public pages use "care rate" / "the rate the household pays" for the per-hour figure; "wage" is reserved for private onboarding documents and the one pass-through explainer paragraph where the split is the explicit subject.
 
-New copy for the scenarios section:
+Update `mem://index.md` Core line to reflect the new deny-list (subscription dollar amounts not public).
 
-> ## Three illustrative scenarios
->
-> These mirror the three scenarios our Care Administrators walk through during onboarding. They describe the *shape* of care at three common intensities. The actual monthly numbers depend on your specific hours, tier, and household, which is why we work them out with you privately rather than publish them here.
->
-> ### Conservative
-> Standard companion care. $40/hour tier. Roughly 40 hours a week (a standard weekday daytime shift). Active Care coordination subscription. This is a good fit for relatively independent seniors who mainly need company, light help, and a watchful eye, with a small coordination layer keeping the family informed.
->
-> ### Typical
-> Conservative scope plus medication management and structured daily monitoring. Same $40/hour tier and similar hours. Active Care subscription. This is where most ongoing households land once a parent's needs are real but steady, hands-on enough to need a trained caregiver, structured enough to run on a predictable rhythm.
->
-> ### Premium
-> Specialist-tier care. $45/hour tier. Longer days (10 hours), still typically 5 days a week. Premium Care coordination plus medication oversight. Used for clinical complexity, dementia with behavioural needs, or post-surgical recovery, where the household needs a higher trained caregiver and tighter operational support.
->
-> **Around-the-clock rotation** with two caregivers is a separate conversation, genuinely a household operation, and we always work the numbers out individually after a Care Administrator has seen the household.
->
-> > **Why we don't print monthly totals here.** Two reasons. First, the right number depends on your specific hours, tier, and household, and a tailored plan is usually meaningfully different from a sticker price. Second, publishing household budgets publicly puts upward pressure on caregiver wages and frames Tavara families in a way that doesn't serve them. The full projection lives behind onboarding. [Start a family profile](/family) and a Care Administrator will share your specific 13-week scenario privately.
+### 3. Out of scope
 
-### Tighten one related line in the same post
+- No changes to `/subscription` or `/subscription/features` routes in this pass. If the user wants the subscription page itself to stop showing dollar amounts, that is a separate, larger change touching the pricing page UI and onboarding lead-capture, and we should scope it deliberately.
+- No changes to `/admin/pricing-catalog` or `/admin/lifecycle-cost` (admin-only, keep figures).
+- No edits to other blog posts (audited last pass, clean).
+- No schema changes.
 
-The closing of "The cost nobody puts on the spreadsheet" section and the "How to think about budget" list both currently reference monthly figures indirectly. Keep them, but make sure the "15% buffer" advice points at the per-hour tier and subscription as the base, not at a household total. Light touch, one paragraph.
+## Technical notes
 
-### No other blog edits
+- One `supabase--migration` with an `UPDATE public.blog_posts SET body = $cost3$...$cost3$ WHERE slug = 'senior-care-costs-trinidad-tobago-2026'`.
+- One `code--write` to `mem://constraints/financial-privacy-public-surfaces`.
+- One `code--write` to `mem://index.md` (full file, preserving every other line).
 
-The companion post `how-to-find-trusted-caregiver-trinidad-tobago` only references the per-hour tiers, which match the public posture. Leave it.
+## Open question for you before I run it
 
----
+The `/subscription` page currently shows the same dollar amounts publicly. Do you want this pass to:
+- **(A)** Only fix the blog post + memory (subscription page keeps current pricing visible), or
+- **(B)** Also strip dollar amounts from the public subscription page and replace with "Quoted at onboarding" CTAs?
 
-## Memory update (so future content respects this)
-
-Add a new core memory and index entry so every future blog post, landing page, and registration-funnel copy respects the same rule. Proposed addition to `mem://index.md` Core:
-
-> Public pricing surfaces show **product prices only** (per-hour tiers, subscription tiers). Household-level money (monthly wage totals, Day 0 invoice figures, full lifecycle projections, individual budgets) is **never** published. Those are shared privately during onboarding. See `mem://constraints/financial-privacy-public-surfaces`.
-
-And a new memory file `mem://constraints/financial-privacy-public-surfaces` capturing the three reasons (wage-inflation pressure, prospect scare-off, lost tailoring room) and the allow-list / deny-list.
-
----
-
-## Implementation note (for the build phase)
-
-- One `UPDATE public.blog_posts SET body = ..., updated_at = now() WHERE slug = 'senior-care-costs-trinidad-tobago-2026';` via the migration tool.
-- One `code--write mem://constraints/financial-privacy-public-surfaces` plus an index update.
-- Lint pass (no em/en-dashes, no banned vocabulary).
-- No route, component, or schema changes.
-
-## Out of scope
-
-- Changing `/subscription` pricing display.
-- Making `/admin/lifecycle-cost` public.
-- Re-pricing anything in `pricing_catalog`.
-- Editing the other 7 blog posts.
+I'd recommend (A) for this pass — the blog is the active leak, and changing the subscription page deserves its own scoped plan because it affects conversion flow.
