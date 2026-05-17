@@ -542,6 +542,10 @@ Every "no" is protecting something. Underneath:
 
 Notice none of these are about the caregiver. They're about the meaning the caregiver carries.
 
+> Resistance is not a rejection of care. It's usually an attempt to protect identity.
+
+---
+
 The most effective thing a family can do is name what's actually being protected, gently, out loud. *"I think you're worried about losing the way you do mornings."* That kind of sentence opens more doors than any pitch about care plans.
 
 ## The mistake families make in the first conversation
