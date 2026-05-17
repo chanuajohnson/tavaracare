@@ -306,6 +306,15 @@ export default function AdminDashboard() {
           <FileText className="h-6 w-6" />
           <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Blog Management</span>
         </Button>
+
+        <Button
+          onClick={() => navigate('/admin/language-guardrails')}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <ShieldCheck className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Language Guardrails</span>
+        </Button>
       </div>
 
       {/* Pending Scheduling Requests Alert */}
