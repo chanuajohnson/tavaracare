@@ -156,8 +156,8 @@ const BlogPostPage = () => {
               <p className="text-sm text-muted-foreground">By {post.author}</p>
             </header>
 
-            <div className="prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-table:text-sm">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.body}</ReactMarkdown>
+            <div className="prose-editorial prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-table:text-sm">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{post.body}</ReactMarkdown>
             </div>
 
             <aside className="mt-12 p-6 md:p-8 rounded-lg bg-primary-100/40 border border-primary-200">
