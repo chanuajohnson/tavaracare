@@ -19,6 +19,7 @@ import {
   SectionDivider,
 } from "@/components/blog/editorial";
 import { usePublishedPost, usePublishedPosts } from "@/lib/blog/api";
+import { getBlogShareUrl } from "@/lib/blog/shareUrl";
 
 const extractFirstText = (node: any): string => {
   if (!node) return "";
@@ -72,6 +73,7 @@ const BlogPostPage = () => {
   const { data: post, isLoading } = usePublishedPost(slug);
   const { data: allPosts = [] } = usePublishedPosts();
   const [copied, setCopied] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const handleCopyArticle = async () => {
     if (!post) return;
@@ -84,6 +86,18 @@ const BlogPostPage = () => {
       setCopied(true);
       toast.success("Article copied to clipboard");
       setTimeout(() => setCopied(false), 2500);
+    } catch {
+      toast.error("Could not copy. Select and copy manually.");
+    }
+  };
+
+  const handleCopyShareLink = async () => {
+    if (!post) return;
+    try {
+      await navigator.clipboard.writeText(getBlogShareUrl(post.slug));
+      setShareCopied(true);
+      toast.success("Share link copied — paste into WhatsApp for a rich preview");
+      setTimeout(() => setShareCopied(false), 2500);
     } catch {
       toast.error("Could not copy. Select and copy manually.");
     }
@@ -165,6 +179,8 @@ const BlogPostPage = () => {
         description={post.description}
         canonicalPath={`/blog/${post.slug}`}
         ogType="article"
+        ogImage={post.cover_image_url ?? undefined}
+        ogImageAlt={post.title}
         schema={schemas}
       />
       <main className="min-h-screen bg-background py-12 md:py-16">
@@ -246,19 +262,37 @@ const BlogPostPage = () => {
 
             <div className="mt-16 pt-8 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <p className="text-sm text-muted-foreground">
-                Want to share this with family? Copy the full article text.
+                Share this article with your family or care team.
               </p>
-              <Button onClick={handleCopyArticle} variant="outline" size="sm">
-                {copied ? (
-                  <>
-                    <Check className="mr-2 h-4 w-4" /> Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy className="mr-2 h-4 w-4" /> Copy article text
-                  </>
-                )}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={handleCopyShareLink}
+                  variant="default"
+                  size="sm"
+                  title="Paste into WhatsApp, iMessage, LinkedIn or Slack for a rich preview. Auto-redirects to the article."
+                >
+                  {shareCopied ? (
+                    <>
+                      <Check className="mr-2 h-4 w-4" /> Share link copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="mr-2 h-4 w-4" /> Copy share link
+                    </>
+                  )}
+                </Button>
+                <Button onClick={handleCopyArticle} variant="outline" size="sm">
+                  {copied ? (
+                    <>
+                      <Check className="mr-2 h-4 w-4" /> Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="mr-2 h-4 w-4" /> Copy article text
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </article>
 

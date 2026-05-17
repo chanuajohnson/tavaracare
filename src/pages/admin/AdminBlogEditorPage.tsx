@@ -17,7 +17,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Trash2, Plus, Eye, Save, Upload, AlertTriangle } from "lucide-react";
+import { Trash2, Plus, Eye, Save, Upload, AlertTriangle, Share2, Check } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { BlogGuardrailsPanel } from "@/components/admin/guardrails/BlogGuardrailsPanel";
 import { GuardrailScanPanel } from "@/components/admin/guardrails/GuardrailScanPanel";
 import { useGuardrailScan } from "@/hooks/admin/useGuardrailScan";
+import { getBlogShareUrl } from "@/lib/blog/shareUrl";
 
 export default function AdminBlogEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -182,11 +183,27 @@ export default function AdminBlogEditorPage() {
           <div>
             <h1 className="text-2xl font-bold">{isNew ? "New post" : "Edit post"}</h1>
             {existing && (
-              <p className="text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <Link to={`/blog/${existing.slug}`} target="_blank" className="hover:underline">
                   View public URL ↗
                 </Link>
-              </p>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(getBlogShareUrl(existing.slug));
+                      toast.success("Share link copied — paste into WhatsApp for a rich preview");
+                    } catch {
+                      toast.error("Could not copy. Select and copy manually.");
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 hover:underline text-primary"
+                  title="Crawler-friendly URL for WhatsApp, iMessage, LinkedIn, Slack. Shows the article's own cover, title, and description, then redirects humans to tavara.care."
+                >
+                  <Share2 className="h-3.5 w-3.5" />
+                  Copy share link (rich preview)
+                </button>
+              </div>
             )}
           </div>
           <div className="flex flex-wrap gap-2">
