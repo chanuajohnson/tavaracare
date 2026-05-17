@@ -208,6 +208,7 @@ export const AppRoutes = () => {
       <Route path="/admin/pricing-catalog" element={<AdminPricingCatalogPage />} />
       <Route path="/admin/blog" element={<AdminBlogPage />} />
       <Route path="/admin/blog/:id" element={<AdminBlogEditorPage />} />
+      <Route path="/admin/language-guardrails" element={<AdminLanguageGuardrailsPage />} />
 
       {/* Legacy Routes */}
       <Route path="/legacy-stories" element={<LegacyStoriesPage />} />
