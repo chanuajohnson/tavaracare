@@ -107,6 +107,8 @@ Sustainable care is built around a **small team**, not a hero. That usually mean
 
 This is also why coordination matters. It's not glamorous, but the families who do best are the ones who treat the home like an operation: a schedule everyone can see, a place to log what happened during the shift, a way to flag concerns before they become crises.
 
+> [!LEARNED] The families who do best treat the home like a small operation, not a hero project. One caregiver plus one or two trusted fill-ins beats one caregiver carrying everything alone — every time.
+
 ## What good care looks like, three months in
 
 If you've got the right caregiver and the right coordination, here's what life looks like after about ninety days:
