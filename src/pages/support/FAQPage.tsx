@@ -31,9 +31,15 @@ export default function FAQPage() {
   
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
+      <SEO
+        title="FAQ — Tavara Care Coordination Platform"
+        description="Answers to common questions about Tavara: care coordination, caregiver matching, pricing, NIS payroll, plans, and family/professional accounts."
+        canonicalPath="/support/faq"
+        schema={buildFaqPageSchema()}
+      />
       {/* Breadcrumbs */}
       <Breadcrumbs items={breadcrumbItems} className="mb-6" />
-      
+
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold mb-2">Frequently Asked Questions</h1>
         <p className="text-muted-foreground">Find answers to common questions about the Tavara.care</p>
