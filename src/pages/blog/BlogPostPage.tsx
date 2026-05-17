@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +71,23 @@ const BlogPostPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data: post, isLoading } = usePublishedPost(slug);
   const { data: allPosts = [] } = usePublishedPosts();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyArticle = async () => {
+    if (!post) return;
+    const faqText = post.faqs.length
+      ? `\n\nFrequently asked questions\n\n${post.faqs.map((f) => `Q: ${f.q}\nA: ${f.a}`).join("\n\n")}`
+      : "";
+    const text = `${post.title}\n\n${post.description}\n\n${post.body}${faqText}\n\nSource: https://tavara.care/blog/${post.slug}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast.success("Article copied to clipboard");
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      toast.error("Could not copy. Select and copy manually.");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -223,6 +243,23 @@ const BlogPostPage = () => {
                 </div>
               </section>
             )}
+
+            <div className="mt-16 pt-8 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-sm text-muted-foreground">
+                Want to share this with family? Copy the full article text.
+              </p>
+              <Button onClick={handleCopyArticle} variant="outline" size="sm">
+                {copied ? (
+                  <>
+                    <Check className="mr-2 h-4 w-4" /> Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="mr-2 h-4 w-4" /> Copy article text
+                  </>
+                )}
+              </Button>
+            </div>
           </article>
 
           {related.length > 0 && (
