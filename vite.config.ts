@@ -2,6 +2,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+// @ts-ignore - plain JS plugin
+import seoPrerender from "./prerender/vite-plugin-seo-prerender.mjs";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -29,6 +31,7 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       react(),
+      isProductionBuild && seoPrerender(),
     ].filter(Boolean),
     resolve: {
       alias: {
