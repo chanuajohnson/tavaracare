@@ -218,6 +218,8 @@ Three things, mainly:
 
 What does **not** drive Tavara pricing: family size, postcode, or how nice your house looks. The rate is the rate.
 
+> The rate is the rate. We'd rather quote you honestly than win you with a low number you don't actually pay.
+
 ## Live-in care: how it's actually priced
 
 Live-in care isn't billed hourly — it's billed weekly, because the caregiver is on-site continuously and effectively becomes part of the household routine.
