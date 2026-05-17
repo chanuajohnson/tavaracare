@@ -265,6 +265,10 @@ It is **not** the caregiver's wage. Caregivers are paid separately and directly 
 
 You can downgrade or pause anytime. The subscription is meant to track the actual intensity of care, not lock you in.
 
+> [!LEARNED] The families who budget best separate two things in their head: the caregiver's wage (paid directly to the caregiver) and the coordination fee (paid to Tavara for the operational layer). When those get blurred together, the whole number looks scarier than it is.
+
+---
+
 ## What's not included in the rate
 
 A few costs we want to flag because they catch families off guard:
