@@ -1,36 +1,59 @@
-Today both banners pick a single record:
-- `PaymentRecordsBanner` (family) loads only the most recent `care_plans` row and renders one ticker.
-- `ProfessionalPaymentRecordsBanner` picks the first `care_team` assignment from `useUnifiedMatches` and renders one ticker.
+## Goal
 
-A caregiver can be on multiple care plans, and a family can have multiple plans. We need both banners to render one ticker per care plan, clearly labeled with the plan (and family, on the professional side).
+The admin "User Management" cards already open a `UserDetailModal` with an existing **Activity** tab. Today that tab only shows content for professionals (shifts/feed). For all other roles it shows a placeholder. The user wants the same kind of login + device + activity info we surfaced for Ana Maria Aimey to be visible here, for every user.
 
-### Family side — `src/components/family/dashboard/PaymentRecordsBanner.tsx`
-1. Fetch ALL care plans for the user (`select id, title, status` from `care_plans` where `family_id=user.id`, ordered by `created_at desc`).
-2. Render one `<PaymentMilestoneTicker />` per care plan with:
-   - `carePlanId={plan.id}` (so payments are filtered per plan)
-   - `title={\`Your payment records — ${plan.title}\`}` (fallback to "Untitled care plan")
-3. Keep the onboarding-checklist milestone fetch as-is (one row per family) and pass the same `milestoneDates` to each ticker. (Plan-level milestones aren't tracked separately yet — out of scope.)
-4. If the family has zero care plans, render a single ticker with `carePlanId={null}` and the existing title to preserve current behavior.
-5. Continue returning null until resolved.
+## Scope (frontend only)
 
-### Professional side — `src/components/professional/ProfessionalPaymentRecordsBanner.tsx`
-1. Switch from "pick first care_team assignment" to "list all assignments that have a `care_plan_id`" using the existing `useUnifiedMatches('professional')` data (`assignments` already includes `assignment_type`, `family_user_id`, `care_plan_id`, `family_name`, `care_plan_title`).
-2. For each such assignment, fetch the family's `onboarding_checklists.checked_items` once per `family_user_id` (memoized in a `Map<familyUserId, milestoneDates>`) to avoid duplicate calls.
-3. Render one `<PaymentMilestoneTicker />` per assignment with:
-   - `familyUserId={assignment.family_user_id}`
-   - `carePlanId={assignment.care_plan_id}`
-   - `mode="family"` (read-only)
-   - `title={\`Family payment records — ${assignment.family_name}${assignment.care_plan_title ? ' · ' + assignment.care_plan_title : ''}\`}`
-   - `milestoneDates={milestonesByFamily.get(family_user_id)}`
-4. Render nothing if there are zero assignments with a `care_plan_id` (matches today's null behavior when there's no care_team assignment).
+Only `src/components/admin/UserDetailModal.tsx` and one new presentational component. No DB changes, no changes to other admin tabs, cards, routing, or core files.
 
-### Files touched
-- `src/components/family/dashboard/PaymentRecordsBanner.tsx`
-- `src/components/professional/ProfessionalPaymentRecordsBanner.tsx`
+## What the Activity tab will show
 
-No DB changes, no shared component changes — `PaymentMilestoneTicker` already supports per-plan filtering via its `carePlanId` prop.
+A new role-agnostic `UserActivityPanel` rendered in the existing Activity tab, with three stacked sections:
 
-### Verification
-- Tricia (professional, 1 active care_team assignment to family `7d850934`, plan `4848aec5`): sees one ticker labeled with that family + plan title.
-- Family with 2 care plans: sees two tickers, each labeled with the plan title and showing only that plan's payments.
-- Family/professional with no plans: same as today (null or single fallback).
+1. **Last Login & Device**
+   - Most recent `session_analytics` row for `user_id`
+   - Fields: last sign-in timestamp (relative + absolute), device_type, browser, referrer, exit_page
+   - Fallback: "No session data recorded yet"
+
+2. **Login History** (collapsible, last 10 sessions)
+   - From `session_analytics` ordered by `started_at desc limit 10`
+   - Columns: Started at · Duration · Device · Browser · Page views · Exit page
+
+3. **Recent Activity Trail** (last 25 events)
+   - From `cta_engagement_tracking` ordered by `created_at desc limit 25`
+   - Columns: Timestamp · Feature · Action · session_id (short)
+   - Groups consecutive events from the same `session_id` visually
+
+For `professional` role, keep the current `ProfessionalActivityTab` (shifts/feed/compliance) ABOVE the new panel — do not remove existing functionality. The new `UserActivityPanel` renders for all roles below it.
+
+## Technical details
+
+- New file: `src/components/admin/UserActivityPanel.tsx`
+  - Props: `{ userId: string; userFullName?: string }`
+  - Uses `supabase` client directly with two queries (parallel via `Promise.all`):
+    - `from('session_analytics').select('*').eq('user_id', userId).order('started_at', { ascending: false }).limit(10)`
+    - `from('cta_engagement_tracking').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(25)`
+  - Loading skeleton, empty states, error toast
+  - Uses existing shadcn `Card`, `Table`, `Badge`, `Collapsible`
+  - Date formatting via existing `date-fns` (already in project) — `formatDistanceToNow` + `format`
+
+- Edit `src/components/admin/UserDetailModal.tsx` lines 1016-1035:
+  - Always render `<UserActivityPanel userId={user.id} userFullName={user.full_name} />`
+  - For professionals, render `<ProfessionalActivityTab .../>` first, then the new panel
+  - Remove the "Activity tracking is available for professional accounts" placeholder
+
+## Out of scope
+
+- No changes to `RoleBasedUserGrid` card layout
+- No new top-level admin tab
+- No backend/RLS changes (both tables are already readable by admins; if RLS blocks reads we will surface the error and stop — no policy edits in this pass)
+- No edits to protected core files (App.tsx, AuthProvider, routing, registration pages)
+
+## Verification
+
+After implementing, open `/dashboard/admin` → User Management → click Ana Maria Aimey's card → Activity tab. Confirm:
+- Last login shows April 12, 2026 ~19:48 UTC, Desktop / Windows / Chrome
+- Login history lists her sessions
+- Activity trail lists dashboard → care management → care plans → care assessment → registration edit
+
+Then open a professional (e.g. Tricia Cumm) and confirm both `ProfessionalActivityTab` and the new panel render together.
