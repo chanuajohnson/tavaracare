@@ -98,6 +98,7 @@ export default function AdminBlogEditorPage() {
   }, [body, readingTime]);
 
   const scan = useGuardrailScan({ title, description, body, faqs });
+  const linkCheck = useBlogLinkValidation(body);
 
   if (authLoading) return <div className="container py-12">Loading…</div>;
   if (!user) return <Navigate to="/auth" replace />;
