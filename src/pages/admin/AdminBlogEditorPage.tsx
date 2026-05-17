@@ -33,6 +33,7 @@ import {
 } from "@/lib/blog/api";
 import chanuaAvatar from "@/assets/chanua-johnson.jpg";
 import { toast } from "sonner";
+import { BlogGuardrailsPanel } from "@/components/admin/guardrails/BlogGuardrailsPanel";
 
 export default function AdminBlogEditorPage() {
   const { id } = useParams<{ id: string }>();
