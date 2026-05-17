@@ -73,6 +73,7 @@ const BlogPostPage = () => {
   const { data: post, isLoading } = usePublishedPost(slug);
   const { data: allPosts = [] } = usePublishedPosts();
   const [copied, setCopied] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const handleCopyArticle = async () => {
     if (!post) return;
@@ -85,6 +86,18 @@ const BlogPostPage = () => {
       setCopied(true);
       toast.success("Article copied to clipboard");
       setTimeout(() => setCopied(false), 2500);
+    } catch {
+      toast.error("Could not copy. Select and copy manually.");
+    }
+  };
+
+  const handleCopyShareLink = async () => {
+    if (!post) return;
+    try {
+      await navigator.clipboard.writeText(getBlogShareUrl(post.slug));
+      setShareCopied(true);
+      toast.success("Share link copied — paste into WhatsApp for a rich preview");
+      setTimeout(() => setShareCopied(false), 2500);
     } catch {
       toast.error("Could not copy. Select and copy manually.");
     }
