@@ -58,6 +58,10 @@ A trusted caregiver, in practice, is someone who:
 
 That last one matters more than people realise. A caregiver who's scrolling for eight hours is not a caregiver — they're a presence. The [no-personal-phone standard during shifts](/professional) is one of the things Tavara holds firmly, because it's where dignity and safety quietly slip.
 
+> A caregiver who's scrolling for eight hours is not a caregiver — they're a presence.
+
+---
+
 ## Where to start your search
 
 Most T&T families end up trying one of four routes:
