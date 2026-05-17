@@ -243,6 +243,23 @@ const BlogPostPage = () => {
                 </div>
               </section>
             )}
+
+            <div className="mt-16 pt-8 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-sm text-muted-foreground">
+                Want to share this with family? Copy the full article text.
+              </p>
+              <Button onClick={handleCopyArticle} variant="outline" size="sm">
+                {copied ? (
+                  <>
+                    <Check className="mr-2 h-4 w-4" /> Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="mr-2 h-4 w-4" /> Copy article text
+                  </>
+                )}
+              </Button>
+            </div>
           </article>
 
           {related.length > 0 && (
