@@ -257,6 +257,7 @@ export default function AdminBlogEditorPage() {
                 </div>
                 <div>
                   <BlogGuardrailsPanel />
+                  <GuardrailScanPanel scan={scan} body={body} onBodyReplace={setBody} />
                   <Label>Body (markdown)</Label>
                   <Tabs defaultValue="write" className="w-full">
                     <TabsList>
