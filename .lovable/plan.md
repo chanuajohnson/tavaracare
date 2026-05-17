@@ -1,66 +1,85 @@
+# SSG Prerender Spike — fix social previews on tavara.care
 
-# SEO follow-through plan
+Goal: make pasting any public marketing URL (e.g. `/care/port-of-spain`) into WhatsApp/LinkedIn/Slack/Facebook show the correct per-route title, description, and OG image — without those crawlers executing JavaScript.
 
-GSC is verified for `tavara.care` ✅ (screenshot confirms property is live, processing data). Here's how we knock down the rest, in the order that gives the most SEO lift per hour.
+Approach: build-time prerender to static HTML, served by Lovable hosting's "if a file exists at the path, serve it" rule. The hydrated SPA still loads on top, so all interactivity is unchanged.
 
-## 1. Submit sitemap to GSC (5 min) — do first
-Use the connected Google Search Console connector to POST our sitemap so Google starts crawling immediately instead of waiting on discovery.
+## Why this works on Lovable hosting
 
-- Endpoint: `PUT /webmasters/v3/sites/sc-domain%3Atavara.care/sitemaps/https%3A%2F%2Ftavara.care%2Fsitemap.xml`
-- Verify it lands under **Sitemaps** in GSC.
+Lovable's static host serves real files when they exist and falls back to `index.html` otherwise. So if the build emits `dist/care/port-of-spain/index.html` with proper head tags, that file is served to crawlers and humans alike. The hydrated React app then takes over for humans. No edge function, no hosting config.
 
-## 2. Image alt-text audit (1–2 hrs)
-Sweep all public-route components for `<img>` and `<Avatar>` without meaningful `alt`. Scope:
-- `src/pages/Index.tsx`, `About`, `FAQ`, `Features`, `Errands`, `Urgent*`, `Legacy*`, `Blog*`
-- Hero/marketing components under `src/components/`
-- Fix: add descriptive alts (not "image" / not filename). Decorative images → `alt=""`.
+## Step 1 — One-route spike (≈1 hr)
 
-Deliverable: ripgrep report of offenders + fixes in one pass.
+Goal: prove the toolchain works end-to-end before touching 15 routes.
 
-## 3. Four location landing pages (the big lift)
-New directory `src/pages/locations/` with one page per city, each route registered in `src/App.tsx` (additive — no existing routes touched, per guardrail).
+1. Install `vite-plugin-prerender` (or `vite-prerender-plugin` — pick whichever is currently maintained and SWC-compatible; fall back to a tiny custom `puppeteer`/`playwright` post-build script if neither works cleanly with `@vitejs/plugin-react-swc`).
+2. Configure it to prerender exactly one route: `/care/port-of-spain`.
+3. Build locally. Verify:
+   - `dist/care/port-of-spain/index.html` exists
+   - Its `<head>` contains the per-route `<title>`, `<meta name="description">`, canonical, `og:*`, `twitter:*`, and the `LocalBusiness` + `FAQPage` JSON-LD from `<LandingPageScaffold>`
+   - The hydrated app still mounts on top (no double-render, no hydration mismatch warnings)
+4. If the spike fails (plugin incompatibility, top-level `window`/`document` access in some dependency that can't be guarded quickly), stop and report; fall back to a narrower Option B (extending the `blog-share` edge-function pattern) for the highest-traffic 4–6 pages only.
 
-Pages:
-- `/care/port-of-spain`
-- `/care/san-fernando`
-- `/care/arima`
-- `/care/tobago`
+## Step 2 — Expand to full route list (≈2 hrs)
 
-Each page (~600–800 words, identical scaffold, unique copy):
-- H1 with city + "care coordination"
-- `<SEO>` with unique title/description/canonical, `LocalBusiness` JSON-LD scoped to that city's `areaServed`
-- Sections: local context, care tiers ($40/$45/$50+ per hour — per public-pricing rule), how matching works, urgent care CTA, FAQ (3–4 Qs), link to `/registration/family`
-- Reuse existing components (hero, pricing card, FAQ accordion). No new business logic.
+If the spike passes, add these routes to the prerender list:
 
-Add all 4 to `public/sitemap.xml` + `public/llms.txt`.
+- `/` (Index)
+- `/about`
+- `/faq`
+- `/features`
+- `/errands`
+- `/legacy`
+- `/privacy`
+- `/blog` (index only — individual posts stay on the existing `blog-share` edge function so edits don't go stale)
+- `/care/port-of-spain`, `/care/san-fernando`, `/care/arima`, `/care/tobago`
+- `/services/elder-care`, `/services/dementia-care`, `/services/post-surgery-care`, `/services/live-in-care`
+- Public urgent pages (read-only, no auth) — confirm list before including
 
-## 4. Four service landing pages
-New directory `src/pages/services/`:
-- `/services/elder-care`
-- `/services/dementia-care`
-- `/services/post-surgery-care`
-- `/services/live-in-care`
+Excluded (no SEO value, require auth, or behavior-heavy): `/dashboard/*`, `/admin/*`, `/registration/*`, `/auth`, chat surfaces, anything behind `AuthProvider`-gated routes.
 
-Same scaffold as locations but `Service` JSON-LD, scoped to that care type. Cross-link to relevant locations. Sitemap + llms.txt update.
+## Step 3 — SSR-safety audit (≈1–2 hrs, runs in parallel with Step 2)
 
-## 5. SSR/SSG decision (research only, no code)
-Investigate path forward for social-crawler-accurate per-route OG tags. Two realistic options for Lovable's Vite stack:
-- **(A) `vite-plugin-ssg`** — prerender static routes (locations, services, blog index, about, FAQ) at build. Blog posts stay dynamic via existing `blog-share` edge function. Lowest risk, biggest payoff.
-- **(B) Extend the `blog-share` pattern** with a generic `og-redirect` edge function for marketing routes too. Cheaper, uglier share URLs.
+Prerender executes React in Node. Anything that touches `window`, `document`, `localStorage`, `navigator`, or `matchMedia` at module top level or in the initial render path breaks the build.
 
-Deliverable: short written recommendation, no implementation yet.
+Audit scope: only components actually rendered by the routes in Step 2. Specifically:
+- `LandingPageScaffold` and its imports
+- `SEO` component
+- `Navigation`, `Footer`, page-level marketing components for the listed routes
+- Any analytics / tracking pixels that fire on mount (guard with `typeof window !== 'undefined'` or move to `useEffect`)
 
-## What I won't touch (guardrails)
-- `src/App.tsx` routing — only **additive** route entries for new pages, no restructuring
-- Registration flows, chat flows, AuthProvider, dashboards
-- Existing per-page SEO components
+Out of scope: chat flow, registration, dashboards, AuthProvider internals — none of these are prerendered.
 
-## Suggested execution order
-1. Submit sitemap to GSC (5 min)
-2. Alt-text audit + fixes (1 pass)
-3. Location pages × 4 (one PR-sized batch)
-4. Service pages × 4 (one PR-sized batch)
-5. SSR write-up
+## Step 4 — Verify (≈30 min)
 
-## One question before I start
-Do you want me to **(A)** do all 5 in sequence in this session, or **(B)** start with #1 + #2 + the SSR write-up, then have you review copy direction before I generate 8 landing pages?
+1. Build, deploy to preview.
+2. Run the existing acceptance test in `docs/SSR_DECISION.md`:
+   - View-source on each prerendered URL — confirm per-route head tags are in the static HTML
+   - Paste 3 sample URLs (one location, one service, `/about`) into WhatsApp and verify per-page preview cards render
+   - Run Facebook Sharing Debugger and LinkedIn Post Inspector on the same URLs
+3. Smoke-test the hydrated app: navigate between pages, confirm no console errors, confirm interactive elements (WhatsApp CTA, FAQ accordion) work.
+
+## Guardrails (per project rules)
+
+- **No changes to** `src/App.tsx` routing, `AuthProvider`, registration flows, chat flow files, dashboards, or anything under `src/pages/registration/`.
+- Prerender list is data-only — adding/removing routes from prerender does NOT change the React Router tree.
+- `index.html` static head stays as the fallback for any non-prerendered route.
+- `blog-share` edge function stays exactly as-is.
+
+## Deliverables
+
+- Updated `vite.config.ts` with prerender plugin
+- A small `prerender.config.ts` (or inline config) listing the routes
+- Any SSR guards added to components flagged in Step 3 (minimal, surgical)
+- Updated `docs/SSR_DECISION.md` marking the decision as "Implemented via Option A" with results from the acceptance test
+
+## What this plan explicitly does NOT do
+
+- Does not migrate to Next.js, Remix, or TanStack Start
+- Does not prerender individual blog posts (the edge function already handles that)
+- Does not prerender any authenticated route
+- Does not change any per-page copy, design, or SEO content — only the *delivery mechanism* of the head tags
+
+## Open question before I implement
+
+Confirm: prerender exactly the route list in Step 2, or do you want me to also include `/urgent`, `/urgent/*` public pages? Default if you don't reply: include only `/urgent` (the public index), exclude per-family urgent pages until reviewed.
