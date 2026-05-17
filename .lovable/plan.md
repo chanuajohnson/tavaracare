@@ -1,113 +1,87 @@
 ## Goal
 
-Tighten the cost-guide blog post so it:
-1. Doesn't over-divulge the Day 0 fee structure publicly.
-2. Explains *why* Day 0 fees exist (the human concierge / matchmaker layer).
-3. Aligns the scenario section with the three canonical scenarios used in `/admin/lifecycle-cost` (Conservative, Typical, Premium, first 13 weeks).
-4. Ends with a clear CTA to sign up / start onboarding, which is where the full lifecycle cost detail actually lives.
+Apply the financial-privacy posture you just confirmed across every public surface. The principle:
 
-No new routes, no new pages, no code changes. Pure blog content edit via `UPDATE blog_posts ... WHERE slug = 'senior-care-costs-trinidad-tobago-2026'`.
+> Tavara publishes **product prices** (per-hour tiers, subscription tiers). Tavara does **not** publish **household-level money** (monthly wage totals, full Day 0 invoice figures, full 13-week projections, individual family budgets). Those live behind onboarding so a Care Administrator can tailor the offering and so caregivers never see what a given household "can pay."
 
----
-
-## Recommendation on the "public lifecycle-cost page" question
-
-You asked whether the blog would be better supported by a public `/admin/lifecycle-cost`. My recommendation: **keep `/admin/lifecycle-cost` admin-only.** Two reasons:
-
-- It's a detailed internal pricing calculator with live scenario builders. Posting the full $1,399 + $499 Day 0 bundle and 13-week timelines on a public page commoditises the offer and invites apples-to-apples comparison against agencies that quote one flat number.
-- Common practice for coordinated-care providers in T&T and the wider region is to publish *ranges and philosophy* publicly, and *the full cost projection* only after a family signs up and a Care Administrator can walk them through it.
-
-So the blog will:
-- Remove the explicit "$1,399 one-time" line from the public copy.
-- Keep the hourly tiers ($40 / $45 / $50+) and subscription tiers (Basic / Active / Premium) — those are already public.
-- Reference "Day 0 setup fees" qualitatively with the dating-app/matchmaker analogy.
-- Push readers who want the actual numbers to **start a profile and onboard**, where the Care Administrator shares the full lifecycle projection.
-
-If you'd rather expose `/admin/lifecycle-cost` publicly instead, say the word and I'll plan that separately (route move, auth guards off, branding pass, SEO). It's a different conversation.
+Why this matters (your own framing, captured for the record):
+- Public household budgets create wage-inflation pressure once caregivers see them.
+- Big monthly totals scare off families who would actually fit a smaller, tailored offering.
+- Public figures kill the chance to onboard and shape the engagement to the household.
+- Care Administrators lose negotiating room when the "ceiling" is already on a blog.
 
 ---
 
-## Edits to `senior-care-costs-trinidad-tobago-2026`
+## Audit results (what's currently public)
 
-### 1. "The short answer" table — remove the $1,399 line
+| Surface | Status | Action |
+|---|---|---|
+| `/admin/lifecycle-cost` | Admin-only | Keep as-is. |
+| `/admin/pricing-catalog` | Admin-only | Keep as-is. |
+| `/subscription`, `/subscription/features` | Public, pulled from `pricing_catalog` | Keep. Subscription tiers are product prices, not household budgets. |
+| Blog: `senior-care-costs-trinidad-tobago-2026` | Public | **Strip household-level monthly totals.** Tiers and subscription numbers stay. |
+| Blog: `how-to-find-trusted-caregiver-trinidad-tobago` | Public | Clean. Only mentions per-hour tiers. Leave alone. |
+| Other 6 published posts | Public, no pricing | Clean. |
 
-Replace the one-time Matching & Placement row. New table:
+The one real leak is in the cost-guide post I just edited: the scenario block still publishes specific monthly household totals ($6,880/mo, $9,675/mo, $30,000+/mo). That contradicts the privacy posture. It needs another pass.
 
-| Care type | Typical rate (TTD) |
-|---|---|
-| GAPP (Geriatric Adolescent Partnership Programme) | Free to the family, government subsidised |
-| Companion / standard care | **$40 / hour** |
-| Full service personal care | **$45 / hour** |
-| Premium / specialised care | **$50+ / hour** |
-| Live-in care | Quoted weekly, varies by complexity |
-| Day 0 setup (Care Administrator concierge layer) | Quoted at onboarding |
+---
 
-### 2. New section: "Why Day 0 setup fees? The human concierge layer"
+## Edits
 
-Replaces the existing "The one-time fees" section. New copy:
+### Single edit to `senior-care-costs-trinidad-tobago-2026`: rewrite the scenarios section
 
-> ## Why Day 0 setup fees? The human concierge layer
->
-> Auto-matching is free and automatic. Similar to how a dating app surfaces compatible profiles, Tavara's system pulls a shortlist of caregivers whose availability, tier, and scope line up with your household.
->
-> Day 0 is what comes next, and it's done by a human Care Administrator who:
->
-> - Refines and ranks the auto-matches against your specific household needs.
-> - Conducts pre-placement interviews with shortlisted caregivers.
-> - Mediates the back-and-forth until both family and caregiver are confident.
-> - Handles the formal introduction, onboarding, and care team build-out.
->
-> Think of free auto-matching as the dating-app match list. Day 0 is the personal matchmaker who interviews everyone and confirms the fit before anyone moves in.
->
-> We quote Day 0 setup at onboarding rather than printing a sticker price here, because the right setup depends on the household: whether it's a single primary care recipient or a couple, whether there's a secondary care need, whether the care plan is starting at Standard or Premium tier. [Start a family profile](/family) and a Care Administrator will walk you through it.
+Replace the three scenario blocks so they describe **shape and intensity** instead of publishing dollar totals. Tiers and subscription tiers stay (those are already on `/subscription`). Wage math stays off the page.
 
-### 3. Subscription section — keep, but add a sign-up nudge at the end
-
-Keep the existing Basic / Active Care / Premium subscription block. Add a closing paragraph:
-
-> The subscription numbers above are the public ones. The full picture, what Day 0 looks like for *your* household, how the 13-week ramp from setup to steady-state actually trends, and what your specific scenario projects month by month, is something we walk through during onboarding rather than publish in a blog. If you want that detail, [create a family profile](/family) and a Care Administrator will share it.
-
-### 4. Rewrite the scenarios section to mirror `/admin/lifecycle-cost`
-
-Replace the current three scenarios (20 hrs / 60 hrs / round-the-clock) with the three canonical scenarios that the internal `/admin/lifecycle-cost` page uses, so the blog and the internal projection tool tell the same story:
+New copy for the scenarios section:
 
 > ## Three illustrative scenarios
 >
-> These mirror the three scenarios our Care Administrators use during onboarding. They are illustrative, not quotes. Real numbers depend on your specifics, and the first 13 weeks of care typically include a small ramp from setup to steady state.
+> These mirror the three scenarios our Care Administrators walk through during onboarding. They describe the *shape* of care at three common intensities. The actual monthly numbers depend on your specific hours, tier, and household, which is why we work them out with you privately rather than publish them here.
 >
-> **Conservative**
-> Standard companion care. $40/hr, 8 hours a day, 5 days a week (40 hrs/wk). Active Care coordination subscription.
-> Wages: 40 × $40 × 4.3 ≈ **$6,880/month**, paid family-to-caregiver. Plus Active Care **$2,499/month** for the coordination layer.
+> ### Conservative
+> Standard companion care. $40/hour tier. Roughly 40 hours a week (a standard weekday daytime shift). Active Care coordination subscription. This is a good fit for relatively independent seniors who mainly need company, light help, and a watchful eye, with a small coordination layer keeping the family informed.
 >
-> **Typical**
-> Conservative scope plus medication management and daily SOP monitoring. Same hours and rate. Active Care subscription. Where most ongoing households land once a parent's needs are steady but real.
-> Same wage base (≈ $6,880/month), plus Active Care $2,499/month, plus small variable items (overtime, holiday hours at 1.5x).
+> ### Typical
+> Conservative scope plus medication management and structured daily monitoring. Same $40/hour tier and similar hours. Active Care subscription. This is where most ongoing households land once a parent's needs are real but steady, hands-on enough to need a trained caregiver, structured enough to run on a predictable rhythm.
 >
-> **Premium**
-> Specialist-tier care. $45/hr, 10 hours a day, 5 days a week (50 hrs/wk). Premium Care coordination plus medication oversight. Used for clinical complexity, dementia with behavioural needs, or post-surgical recovery.
-> Wages: 50 × $45 × 4.3 ≈ **$9,675/month**, plus Premium subscription **$3,299/month**.
+> ### Premium
+> Specialist-tier care. $45/hour tier. Longer days (10 hours), still typically 5 days a week. Premium Care coordination plus medication oversight. Used for clinical complexity, dementia with behavioural needs, or post-surgical recovery, where the household needs a higher trained caregiver and tighter operational support.
 >
-> Around-the-clock rotation with two caregivers is a separate conversation. Wages alone run $30,000+/month and we always quote those individually after a Care Administrator has seen the household.
+> **Around-the-clock rotation** with two caregivers is a separate conversation, genuinely a household operation, and we always work the numbers out individually after a Care Administrator has seen the household.
 >
-> > If you want the live, 13-week scenario projection for your specific household, that lives behind onboarding. [Start a family profile](/family) and we'll walk you through it.
+> > **Why we don't print monthly totals here.** Two reasons. First, the right number depends on your specific hours, tier, and household, and a tailored plan is usually meaningfully different from a sticker price. Second, publishing household budgets publicly puts upward pressure on caregiver wages and frames Tavara families in a way that doesn't serve them. The full projection lives behind onboarding. [Start a family profile](/family) and a Care Administrator will share your specific 13-week scenario privately.
 
-### 5. Tidy the FAQ to match
+### Tighten one related line in the same post
 
-Update the FAQ row that currently reads "Are there any one-time fees?" to match the new public posture:
+The closing of "The cost nobody puts on the spreadsheet" section and the "How to think about budget" list both currently reference monthly figures indirectly. Keep them, but make sure the "15% buffer" advice points at the per-hour tier and subscription as the base, not at a household total. Light touch, one paragraph.
 
-> **Are there any one-time fees?**
-> Yes. Tavara has a Day 0 setup bundle covering the Care Administrator's concierge work: pre-placement interviews, ranking, mediation, formal introduction, and care team build-out. The exact figure depends on the household and is quoted during onboarding. Auto-matching itself is free.
+### No other blog edits
+
+The companion post `how-to-find-trusted-caregiver-trinidad-tobago` only references the per-hour tiers, which match the public posture. Leave it.
 
 ---
 
-## Implementation note (for the build phase, not the user)
+## Memory update (so future content respects this)
 
-- Single `UPDATE public.blog_posts SET body = ..., faqs = ..., updated_at = now() WHERE slug = 'senior-care-costs-trinidad-tobago-2026';` via the migration tool.
-- Run the result through `lintBody` (no em/en-dashes, no banned AI vocabulary, no "It's not just X, it's Y").
-- No edits to `/admin/lifecycle-cost` itself, no route changes, no component changes.
+Add a new core memory and index entry so every future blog post, landing page, and registration-funnel copy respects the same rule. Proposed addition to `mem://index.md` Core:
+
+> Public pricing surfaces show **product prices only** (per-hour tiers, subscription tiers). Household-level money (monthly wage totals, Day 0 invoice figures, full lifecycle projections, individual budgets) is **never** published. Those are shared privately during onboarding. See `mem://constraints/financial-privacy-public-surfaces`.
+
+And a new memory file `mem://constraints/financial-privacy-public-surfaces` capturing the three reasons (wage-inflation pressure, prospect scare-off, lost tailoring room) and the allow-list / deny-list.
+
+---
+
+## Implementation note (for the build phase)
+
+- One `UPDATE public.blog_posts SET body = ..., updated_at = now() WHERE slug = 'senior-care-costs-trinidad-tobago-2026';` via the migration tool.
+- One `code--write mem://constraints/financial-privacy-public-surfaces` plus an index update.
+- Lint pass (no em/en-dashes, no banned vocabulary).
+- No route, component, or schema changes.
 
 ## Out of scope
 
-- Making `/admin/lifecycle-cost` public. Flagged above as a separate decision.
-- Changing the actual Day 0 pricing in `pricing_catalog`.
-- Changes to the Family Readiness Quiz post just shipped.
+- Changing `/subscription` pricing display.
+- Making `/admin/lifecycle-cost` public.
+- Re-pricing anything in `pricing_catalog`.
+- Editing the other 7 blog posts.
