@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { BlogGuardrailsPanel } from "@/components/admin/guardrails/BlogGuardrailsPanel";
 import { GuardrailScanPanel } from "@/components/admin/guardrails/GuardrailScanPanel";
 import { useGuardrailScan } from "@/hooks/admin/useGuardrailScan";
+import { getBlogShareUrl } from "@/lib/blog/shareUrl";
 
 export default function AdminBlogEditorPage() {
   const { id } = useParams<{ id: string }>();
