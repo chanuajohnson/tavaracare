@@ -11,6 +11,11 @@ import { SupabaseDebugger } from "@/components/debug/SupabaseDebugger";
 import { supabase } from '@/integrations/supabase/client';
 import { captureUTMParams } from '@/utils/utmTracking';
 import { SEO } from '@/components/seo/SEO';
+import { FaqSection } from '@/components/seo/FaqSection';
+import { buildFaqPageSchema } from '@/data/faqs';
+
+// Curated homepage FAQ subset — visible on page and emitted as FAQPage schema.
+const HOMEPAGE_FAQ_IDS = ['faq-1', 'faq-5', 'faq-20', 'faq-11', 'faq-8'];
 
 const roles = [
   {
@@ -396,17 +401,20 @@ const Index = () => {
         title="Find a Caregiver Near You | Tavara — Care Coordination Platform"
         description="Connect with qualified caregivers or coordinate care for your family. Tavara brings together families, professionals, and communities to care together."
         canonicalPath="/"
-        schema={{
-          '@context': 'https://schema.org',
-          '@type': 'WebSite',
-          name: 'Tavara',
-          url: 'https://tavara.care',
-          potentialAction: {
-            '@type': 'SearchAction',
-            target: 'https://tavara.care/?q={search_term_string}',
-            'query-input': 'required name=search_term_string',
+        schema={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'Tavara',
+            url: 'https://tavara.care',
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: 'https://tavara.care/?q={search_term_string}',
+              'query-input': 'required name=search_term_string',
+            },
           },
-        }}
+          buildFaqPageSchema(HOMEPAGE_FAQ_IDS),
+        ]}
       />
       {/* Hero Video Section - No top padding, starts immediately */}
       <section className="relative h-screen w-full overflow-hidden">
