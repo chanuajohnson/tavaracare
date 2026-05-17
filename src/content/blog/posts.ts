@@ -609,6 +609,10 @@ Three things, every time:
 2. **Don't optimise yet.** Don't add services, don't reorganise the home, don't push for more hours. Let the first arrangement settle before doing anything else.
 3. **Communicate with the caregiver.** They're not a contractor — they're now part of the household ecosystem. Tell them when something feels off, early, kindly. They will almost always adjust.
 
+> [!LEARNED] In the early conversation, three words ruin almost every opening: *we*, *think*, *you*. "We think you need help" lands as a coalition that's already decided. Naming your own exhaustion in the first person opens the door the other phrasing closes.
+
+---
+
 ## How Tavara helps with this
 
 This whole article is, in a way, why we exist. The matching part — finding a caregiver — is the easy half. The hard half is the human transition, and most platforms don't acknowledge it exists.
