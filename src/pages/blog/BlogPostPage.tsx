@@ -19,6 +19,7 @@ import {
   SectionDivider,
 } from "@/components/blog/editorial";
 import { usePublishedPost, usePublishedPosts } from "@/lib/blog/api";
+import { getBlogShareUrl } from "@/lib/blog/shareUrl";
 
 const extractFirstText = (node: any): string => {
   if (!node) return "";
