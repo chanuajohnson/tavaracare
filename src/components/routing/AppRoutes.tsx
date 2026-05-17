@@ -87,6 +87,10 @@ import ImplementationGuide from "@/pages/ImplementationGuide";
 // Public Pages
 import OnboardingGuidePage from "@/pages/public/OnboardingGuidePage";
 
+// Blog Pages
+import BlogIndexPage from "@/pages/blog/BlogIndexPage";
+import BlogPostPage from "@/pages/blog/BlogPostPage";
+
 // Demo Pages
 import DemoFamilyRegistration from "@/pages/demo/DemoFamilyRegistration";
 import DemoCareAssessment from "@/pages/demo/DemoCareAssessment";
@@ -124,6 +128,8 @@ export const AppRoutes = () => {
       <Route path="/urgent-families" element={<UrgentFamiliesPage />} />
       <Route path="/join-as-caregiver" element={<JoinAsCaregiver />} />
       <Route path="/onboarding-guide" element={<OnboardingGuidePage />} />
+      <Route path="/blog" element={<BlogIndexPage />} />
+      <Route path="/blog/:slug" element={<BlogPostPage />} />
       
       {/* Registration Routes */}
       <Route path="/registration/family" element={<FamilyRegistration />} />

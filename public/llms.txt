@@ -21,6 +21,14 @@ Standard caregiver rates: $40/hr (Standard), $45/hr (Full Service), $50+/hr (Pre
 - [Frequently Asked Questions](https://tavara.care/support/faq): Pricing, plans, the coordination model, and how it works
 - [Privacy Policy](https://tavara.care/privacy-policy): How Tavara handles personal and health information
 
+## Blog
+
+- [Tavara Care Blog](https://tavara.care/blog): Guides for families, caregivers, and the village around them
+- [How to Find a Trusted Caregiver in Trinidad & Tobago](https://tavara.care/blog/how-to-find-trusted-caregiver-trinidad-tobago): Practical T&T-specific guide to vetting and hiring in-home caregivers
+- [Senior Care Costs in Trinidad & Tobago (2026 Guide)](https://tavara.care/blog/senior-care-costs-trinidad-tobago-2026): Transparent 2026 cost breakdown — hourly rates, live-in, subscriptions, what's included
+- [When Help Feels Like Pressure: The Emotional Reality of Bringing Care Into the Home](https://tavara.care/blog/when-help-feels-like-pressure): The emotional adjustment families go through when care enters the home
+- [Why Families Resist Care at First — And Why That's Normal](https://tavara.care/blog/why-families-resist-care): Why resistance is information, not failure, and how to move through it
+
 ## Optional
 
 - [Onboarding Guide](https://tavara.care/onboarding-guide): Steps for new caregivers joining the platform
