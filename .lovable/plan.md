@@ -1,74 +1,75 @@
-# SEO Next Steps — Post-GSC Verification
+## Blog launch plan — Tavara Care
 
-Good news: most of your status list is already shipped. Here's the actual state and what's left.
+Stand up `/blog` infrastructure + publish the first 4 cornerstone articles. Mix of high-intent SEO + emotional authority (your differentiator), per your strategy notes.
 
-## Already done (no work needed)
+### The 4 articles (proposed mix — adjust before I implement)
 
-| Item | Status |
-|---|---|
-| GSC verification | Verified via DNS (your screenshot) |
-| Unique page titles | 12 pages use `<SEO>` component with unique titles |
-| Unique meta descriptions | Same — per-page via `<SEO>` |
-| H1 on Home + About | Done in earlier turns |
-| robots.txt + sitemap.xml | Live at `/robots.txt` and `/sitemap.xml` (16 URLs) |
-| OG / Twitter Card tags | Sitewide in `index.html` + per-page overrides |
-| LocalBusiness schema | Already in `index.html` head |
-| Canonical tags | Per-page via `<SEO>` component |
-| og-image.png | Exists at `public/og-image.png` |
+**SEO / acquisition (2):**
+1. **How to Find a Trusted Caregiver in Trinidad & Tobago** — category: Family Care Guides. CTA: Find Care → `/urgent-families` + `/family/matching`.
+2. **Senior Care Costs in Trinidad & Tobago (2026 Guide)** — category: Family Care Guides. CTA: Book Consultation → `/family` + pricing transparency from `pricing_catalog`.
 
-## Quick wins (this session — ~30 min)
+**Emotional authority (2):**
+3. **When Help Feels Like Pressure: The Emotional Reality of Bringing Care Into the Home** — category: Emotional Realities of Care. CTA: Talk to Tavara.
+4. **Why Families Resist Care at First — And Why That's Normal** — category: Emotional Realities of Care. CTA: Talk to Tavara.
 
-### 1. Submit sitemap to Google Search Console
-Now that `tavara.care` is verified, push the sitemap so Google starts crawling all 16 routes immediately instead of discovering them organically.
-- Single API call via the GSC connector: `PUT /webmasters/v3/sites/{site}/sitemaps/{feedpath}` with `https://tavara.care/sitemap.xml`.
+Articles #3 (Dementia at Home) and #6 (Hoarding/Overwhelm) become the **next batch** — both deserve their own focused writing pass, and Hoarding especially needs careful tone work. Better to ship 4 strong than 6 rushed.
 
-### 2. Add `/llms.txt` for AI crawlers
-ChatGPT, Perplexity, and Claude use `/llms.txt` to understand the site without parsing the JS shell. Cheap win for AI-driven referrals — increasingly important for a care-coordination platform people ask AI about.
-- Create `public/llms.txt` with site summary + curated links to key public pages (Home, About, Errands, Join as Caregiver, Urgent Families, Urgent Caregivers, FAQ, Legacy Stories).
+If you'd rather swap one (e.g. include Dementia at Home in the first 4 and defer "Why Families Resist Care"), tell me before I implement.
 
-### 3. Audit image alt text on public pages
-Scan the public marketing pages (Home, About, Errands, Features, Professional, Community, Legacy, Urgent Families, Urgent Caregivers, Join as Caregiver) for `<img>` tags missing or with empty `alt`. Fix in place with descriptive alt text. UI-only change, no logic touched.
-- Scope: public/marketing pages only. Skip dashboard/admin/registration (already `Disallow`'d in robots.txt).
+### Architecture
 
-## Medium-term (separate sessions, content-heavy)
+- **Source**: MDX files in `src/content/blog/` (per your earlier preference — no Supabase CMS for v1)
+- **Routes** (additive only, respects routing guardrail):
+  - `/blog` — index page with category filters (Family Care Guides / Emotional Realities / Caregiver & Community Support)
+  - `/blog/:slug` — article page
+  - Added to `AppRoutes.tsx` only (no `App.tsx` touch, no existing routes modified)
+- **MDX loading**: `@mdx-js/rollup` + Vite plugin, frontmatter via `gray-matter`. Eagerly imported via `import.meta.glob` so build stays static.
+- **Per-post head**: existing `<SEO>` component — unique title, description, canonical, OG, `Article` + `BreadcrumbList` JSON-LD schemas.
+- **Sitemap**: append 5 entries (`/blog` + 4 posts) to `public/sitemap.xml` (current sitemap is hand-edited static; not migrating to a generator without your sign-off per the sitemap rules).
+- **Styling**: Tailwind typography (`@tailwindcss/typography` if not present) + existing design tokens. No hardcoded colors.
 
-### 4. Blog — first 4 articles
-Needs a content decision before implementation. Options to consider:
-- Routes: `/blog` index + `/blog/[slug]` posts
-- Source: MDX files in `src/content/blog/` (no DB), or Supabase table (CMS-style)
-- Per-post `Article` schema + sitemap entries auto-generated
+### Article structure (each post)
 
-I'll plan this in detail when you're ready — but it needs the 4 article topics + drafts first. Suggested topics based on your keyword targets:
-1. "How to find a trusted caregiver in Trinidad & Tobago"
-2. "Senior care costs in T&T: a 2026 family guide"
-3. "Dementia care at home: what families need to know"
-4. "Hiring a private caregiver vs an agency: pros & cons"
+- Frontmatter: `title`, `slug`, `description`, `category`, `publishedAt`, `author`, `readingTime`, `cta` (label + href), `heroImage` (optional)
+- Body: 1,500–2,200 words, warm/observational tone per your guidance, T&T-specific framing, internal links to `/family`, `/urgent-families`, `/join-as-caregiver`, `/errands`, `/support/faq`, and across blog posts
+- FAQ block at bottom (3–5 Q&As) → contributes to `FAQPage` schema
+- Author: "The Tavara Care Team" (placeholder — change later if you want bylines)
 
-### 5. Location landing pages (4 cities)
-Routes like `/care/port-of-spain`, `/care/san-fernando`, `/care/arima`, `/care/chaguanas`. Each with city-specific H1, copy, LocalBusiness schema scoped to that area, and CTAs to Urgent Families / Join as Caregiver.
+### Files I will create / touch
 
-### 6. Service landing pages (4 services)
-Routes like `/services/elderly-care`, `/services/dementia-care`, `/services/post-surgical-care`, `/services/companion-care`. Each with `Service` schema + FAQ subset.
+**New:**
+- `src/content/blog/how-to-find-trusted-caregiver-trinidad-tobago.mdx`
+- `src/content/blog/senior-care-costs-trinidad-tobago-2026.mdx`
+- `src/content/blog/when-help-feels-like-pressure.mdx`
+- `src/content/blog/why-families-resist-care.mdx`
+- `src/pages/blog/BlogIndexPage.tsx`
+- `src/pages/blog/BlogPostPage.tsx`
+- `src/components/blog/BlogCard.tsx`
+- `src/components/blog/BlogCategoryFilter.tsx`
+- `src/lib/blog.ts` — frontmatter loader + post list
 
-Both #5 and #6 are template work — one component, parameterized by data. ~2 days each once content is ready.
+**Edited (additive only):**
+- `src/components/routing/AppRoutes.tsx` — 2 new `<Route>` entries
+- `public/sitemap.xml` — append 5 entries
+- `public/llms.txt` — append blog index + 4 posts under Pages
+- `vite.config.ts` — register MDX plugin
+- `tailwind.config.ts` — add `@tailwindcss/typography` plugin
+- `package.json` — add `@mdx-js/rollup`, `@mdx-js/react`, `gray-matter`, `@tailwindcss/typography`
 
-## Long-term (architectural)
+### Out of scope (deliberately)
 
-### 7. SSR/SSG investigation
-Currently Vite SPA — `<Helmet>` works for Googlebot (executes JS) but not for LinkedIn/Slack/Facebook preview crawlers (they only see `index.html` static head). Options:
-- **Migrate to Next.js / Remix** — biggest lift, full SSR, best SEO. Breaking change.
-- **Vite SSR with `vite-plugin-ssr` / `vike`** — keeps Vite, adds SSR. Medium lift.
-- **Prerender at build time** with `vite-plugin-prerender` for the ~16 public routes — smallest lift, no runtime server needed, fixes social previews. **Recommended first step.**
+- No CMS, no Supabase table, no admin UI for blog management
+- No author profiles / bylines beyond a static "Tavara Care Team"
+- No newsletter capture, no comments, no related-posts ML
+- No hero images generated yet — can add in a follow-up pass with imagegen
+- No changes to `App.tsx`, auth, registration, dashboard, or chat flow code
 
-Needs its own discovery session.
+### After publish
 
-## Technical details
+Once shipped + deployed, I'll resubmit the sitemap to GSC via the connector so Google picks up the 5 new URLs immediately.
 
-- Sitemap submission uses existing `GOOGLE_SEARCH_CONSOLE_API_KEY` connector — no new secrets.
-- `llms.txt` is a static file in `public/` — no build changes.
-- Alt-text fixes are pure JSX edits in existing components.
-- All changes respect the guardrails: no routing, no `App.tsx`, no auth/registration touches.
+### Confirm before I build
 
-## Recommendation
-
-Approve this plan to execute steps **1–3 now** (sitemap submission + llms.txt + alt-text audit, ~30 min total). Then we tackle #4 (blog) once you decide on topics + draft content, and #7 (prerender) as a focused follow-up.
+1. Are these the right 4 articles, or swap one (e.g. Dementia in, Resistance out)?
+2. OK with MDX + Tailwind typography stack? (Alternative: keep posts as TSX components — simpler, no new deps, but worse authoring ergonomics for future posts.)
+3. Author byline: "The Tavara Care Team" OK, or a specific name?
