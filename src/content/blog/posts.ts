@@ -430,6 +430,10 @@ The family finally feels safe enough to offload coordination. They stop checking
 
 This is what sustainable care looks like. It's not a single dramatic moment. It's the slow disappearance of background dread.
 
+> [!LEARNED] Care is built in seasons, not sprints. The families who try to optimise in week one almost always have to walk it back. The families who let the first arrangement settle for a month tend to expand naturally — because the household, not the platform, leads the next step.
+
+---
+
 ## Care is not just medical. It's emotional.
 
 A caregiver entering a home changes more than the schedule. It changes routines. Family dynamics. Privacy. Identity. The unspoken rules about who's in charge.
