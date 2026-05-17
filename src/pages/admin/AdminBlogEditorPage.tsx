@@ -512,27 +512,17 @@ export default function AdminBlogEditorPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <AlertTriangle className="h-4 w-4" />
-                  Style guardrails
-                  {lintIssues.length > 0 && (
-                    <Badge variant="destructive">{lintIssues.length}</Badge>
-                  )}
+                  Guardrail scan summary
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Non-blocking warnings for AI-tell patterns.
+                  Live count of banned terms detected across title, description, body, and FAQs.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                {lintIssues.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Body looks clean.</p>
-                ) : (
-                  <ul className="space-y-2 text-xs max-h-64 overflow-y-auto">
-                    {lintIssues.map((i, idx) => (
-                      <li key={idx} className="border-l-2 border-amber-500 pl-2">
-                        <div className="font-medium">{i.message}</div>
-                        <div className="text-muted-foreground truncate">{i.excerpt}</div>
-                      </li>
-                    ))}
-                  </ul>
+              <CardContent className="text-sm space-y-1">
+                <div>Hard breaches: <span className="font-semibold text-red-700">{scan.hardCount}</span></div>
+                <div>Soft warnings: <span className="font-semibold text-amber-700">{scan.softCount}</span></div>
+                {scan.hardCount > 0 && (
+                  <p className="text-xs text-red-700 mt-2">Publish is blocked until hard breaches are resolved. Use Apply buttons in the body scan panel or fix manually.</p>
                 )}
               </CardContent>
             </Card>
