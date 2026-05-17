@@ -426,6 +426,10 @@ export default function AdminLanguageGuardrailsPage() {
             />
           </TabsContent>
 
+          <TabsContent value="learn" className="mt-4">
+            <LearnFromFeedbackTab />
+          </TabsContent>
+
           <TabsContent value="how" className="mt-4">
             <HowToUseGuide />
           </TabsContent>
