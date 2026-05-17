@@ -31,7 +31,7 @@ const findCaregiver: BlogPost = {
     "A practical, T&T-specific guide to finding a trusted in-home caregiver, what to look for, what to ask, and how care coordination changes the outcome.",
   category: "Family Care Guides",
   publishedAt: "2026-05-17",
-  author: "The Tavara Care Team",
+  author: "Chanua Johnson, Tavara Care Coordinator & Founder",
   readingTime: "8 min read",
   cta: { label: "Find Care Now", href: "/urgent-families" },
   body: `When a parent's health shifts, or a spouse comes home from hospital, or you finally admit you can't keep doing it alone, the next question is the same in every Trinidad and Tobago home:
@@ -165,7 +165,7 @@ const careCosts: BlogPost = {
     "A transparent 2026 breakdown of senior care costs in T&T, hourly rates, live-in care, subscriptions, what's included, and what actually drives the price up.",
   category: "Family Care Guides",
   publishedAt: "2026-05-17",
-  author: "The Tavara Care Team",
+  author: "Chanua Johnson, Tavara Care Coordinator & Founder",
   readingTime: "10 min read",
   cta: { label: "Talk to Tavara About Care Costs", href: "/family" },
   body: `If you've started looking into senior care in Trinidad and Tobago, you've probably noticed something: nobody wants to give you a straight number.
@@ -347,7 +347,7 @@ const whenHelpFeelsLikePressure: BlogPost = {
     "Bringing a caregiver into your parent's home is rarely just logistics. This is the emotional reality nobody warns Caribbean families about, and why slowing down is part of the work.",
   category: "Emotional Realities of Care",
   publishedAt: "2026-05-17",
-  author: "The Tavara Care Team",
+  author: "Chanua Johnson, Tavara Care Coordinator & Founder",
   readingTime: "9 min read",
   cta: { label: "Talk to Tavara", href: "/family" },
   body: `A daughter finally reaches the point where she brings in a caregiver for her aging parents.
@@ -488,7 +488,7 @@ const whyFamiliesResist: BlogPost = {
     "Resistance to in-home care isn't a problem to solve, it's information. A look at why families push back, especially in Caribbean households, and how to move through it.",
   category: "Emotional Realities of Care",
   publishedAt: "2026-05-17",
-  author: "The Tavara Care Team",
+  author: "Chanua Johnson, Tavara Care Coordinator & Founder",
   readingTime: "9 min read",
   cta: { label: "Talk to Tavara", href: "/family" },
   body: `If you've ever introduced the idea of a caregiver to a parent and watched their face change, closed, polite, distant, you already know what this article is about.
@@ -649,7 +649,7 @@ const hoardingOverwhelm: BlogPost = {
     "When the home fills up faster than it empties, it's rarely about clutter. It's about memory, identity, and grief, and why care has to begin with the person, not the pile.",
   category: "Emotional Realities of Care",
   publishedAt: "2026-05-17",
-  author: "The Tavara Care Team",
+  author: "Chanua Johnson, Tavara Care Coordinator & Founder",
   readingTime: "10 min read",
   cta: { label: "Talk to Tavara", href: "/family" },
   body: `The home is not just a structure.
@@ -809,7 +809,7 @@ const adultChildTrap: BlogPost = {
     "The specific exhaustion of caring for an aging parent while holding everything else together, what it looks like in Caribbean families, and what relief actually looks like.",
   category: "Emotional Realities of Care",
   publishedAt: "2026-05-17",
-  author: "The Tavara Care Team",
+  author: "Chanua Johnson, Tavara Care Coordinator & Founder",
   readingTime: "10 min read",
   cta: { label: "Find Care Now", href: "/urgent-families" },
   body: `There's a specific kind of exhaustion adult children carry that rarely gets acknowledged.
@@ -986,7 +986,7 @@ const caribbeanFamiliesCare: BlogPost = {
     "Respectability, pride, religion, privacy, diaspora, the cultural reasons bringing in care feels different in Caribbean households, and how families move through it anyway.",
   category: "Emotional Realities of Care",
   publishedAt: "2026-05-17",
-  author: "The Tavara Care Team",
+  author: "Chanua Johnson, Tavara Care Coordinator & Founder",
   readingTime: "10 min read",
   cta: { label: "Talk to Tavara", href: "/family" },
   body: `Most international writing on aging and caregiving assumes a particular kind of family, small, nuclear, geographically scattered, individualistic, comfortable outsourcing intimate work.

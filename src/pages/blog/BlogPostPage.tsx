@@ -5,7 +5,9 @@ import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SEO } from "@/components/seo/SEO";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { BlogCard } from "@/components/blog/BlogCard";
+import chanuaAvatar from "@/assets/chanua-johnson.jpg";
 import {
   PullQuote,
   TavaraLearned,
@@ -153,7 +155,16 @@ const BlogPostPage = () => {
               </div>
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight">{post.title}</h1>
               <p className="text-lg text-muted-foreground">{post.description}</p>
-              <p className="text-sm text-muted-foreground">By {post.author}</p>
+              <div className="flex items-center gap-3 pt-2">
+                <Avatar className="h-10 w-10 border border-border">
+                  <AvatarImage src={chanuaAvatar} alt="Chanua Johnson" className="object-cover" />
+                  <AvatarFallback>CJ</AvatarFallback>
+                </Avatar>
+                <div className="text-sm leading-tight">
+                  <div className="font-medium text-foreground">Chanua Johnson</div>
+                  <div className="text-muted-foreground">Tavara Care Coordinator & Founder</div>
+                </div>
+              </div>
             </header>
 
             <div className="prose-editorial prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-table:text-sm">
