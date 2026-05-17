@@ -66,3 +66,6 @@ verify_jwt = false
 
 [functions.blog-share]
 verify_jwt = false
+
+[functions.blog-tts-generate]
+verify_jwt = false

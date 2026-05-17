@@ -482,6 +482,44 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_audio: {
+        Row: {
+          audio_url: string
+          char_count: number
+          duration_seconds: number
+          generated_at: string
+          id: string
+          post_id: string
+          voice_id: string
+        }
+        Insert: {
+          audio_url: string
+          char_count: number
+          duration_seconds: number
+          generated_at?: string
+          id?: string
+          post_id: string
+          voice_id?: string
+        }
+        Update: {
+          audio_url?: string
+          char_count?: number
+          duration_seconds?: number
+          generated_at?: string
+          id?: string
+          post_id?: string
+          voice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_audio_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_posts: {
         Row: {
           author_avatar_url: string | null

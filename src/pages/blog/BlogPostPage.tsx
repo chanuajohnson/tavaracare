@@ -11,6 +11,7 @@ import { SEO } from "@/components/seo/SEO";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BlogCard } from "@/components/blog/BlogCard";
+import { BlogAudioPlayer } from "@/components/blog/BlogAudioPlayer";
 import chanuaAvatar from "@/assets/chanua-johnson.jpg";
 import {
   PullQuote,
@@ -226,6 +227,8 @@ const BlogPostPage = () => {
                 </div>
               </div>
             </header>
+
+            <BlogAudioPlayer postId={post.id} className="mb-10" />
 
             <div className="prose-editorial prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-table:text-sm">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
