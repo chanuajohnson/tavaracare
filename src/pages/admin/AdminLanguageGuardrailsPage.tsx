@@ -18,8 +18,9 @@ import {
   type GuardrailScope,
   type GuardrailSeverity,
 } from '@/hooks/admin/useLanguageGuardrails';
-import { Loader2, Pencil, Plus, Save, X, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Loader2, Pencil, Plus, Save, X, ShieldCheck, AlertTriangle, Sparkles } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { LearnFromFeedbackTab } from '@/components/admin/guardrails/LearnFromFeedbackTab';
 
 const SCOPES: GuardrailScope[] = ['all', 'family_facing', 'caregiver_facing', 'internal'];
 const SEVERITIES: GuardrailSeverity[] = ['hard', 'soft'];
@@ -387,6 +388,7 @@ export default function AdminLanguageGuardrailsPage() {
             <TabsTrigger value="word">Word Rules ({grouped.word.length})</TabsTrigger>
             <TabsTrigger value="financial">Financial Privacy ({grouped.financial_allow.length + grouped.financial_deny.length})</TabsTrigger>
             <TabsTrigger value="tone">Tone ({grouped.tone.length})</TabsTrigger>
+            <TabsTrigger value="learn"><Sparkles className="h-3 w-3 mr-1" />Learn from feedback</TabsTrigger>
             <TabsTrigger value="how">How to use</TabsTrigger>
             <TabsTrigger value="audit">Recent changes</TabsTrigger>
           </TabsList>
@@ -422,6 +424,10 @@ export default function AdminLanguageGuardrailsPage() {
               description="Voice rules that apply to every editorial surface."
               rules={grouped.tone}
             />
+          </TabsContent>
+
+          <TabsContent value="learn" className="mt-4">
+            <LearnFromFeedbackTab />
           </TabsContent>
 
           <TabsContent value="how" className="mt-4">

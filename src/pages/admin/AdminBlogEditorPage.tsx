@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate, Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -26,7 +26,6 @@ import {
   uploadBlogAsset,
   slugify,
   estimateReadingTime,
-  lintBody,
   BLOG_CATEGORIES,
   type BlogStatus,
   type BlogFAQ,
@@ -34,6 +33,8 @@ import {
 import chanuaAvatar from "@/assets/chanua-johnson.jpg";
 import { toast } from "sonner";
 import { BlogGuardrailsPanel } from "@/components/admin/guardrails/BlogGuardrailsPanel";
+import { GuardrailScanPanel } from "@/components/admin/guardrails/GuardrailScanPanel";
+import { useGuardrailScan } from "@/hooks/admin/useGuardrailScan";
 
 export default function AdminBlogEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -93,7 +94,7 @@ export default function AdminBlogEditorPage() {
     if (body && !readingTime) setReadingTime(estimateReadingTime(body));
   }, [body, readingTime]);
 
-  const lintIssues = useMemo(() => lintBody(body), [body]);
+  const scan = useGuardrailScan({ title, description, body, faqs });
 
   if (authLoading) return <div className="container py-12">Loading…</div>;
   if (!user) return <Navigate to="/auth" replace />;
@@ -196,21 +197,33 @@ export default function AdminBlogEditorPage() {
             <Button
               variant="outline"
               onClick={() => persist("scheduled")}
-              disabled={save.isPending || !publishedAt}
-              title={!publishedAt ? "Set a publish date first" : ""}
+              disabled={save.isPending || !publishedAt || scan.hardCount > 0}
+              title={
+                scan.hardCount > 0
+                  ? `Resolve ${scan.hardCount} hard guardrail breach(es) first`
+                  : !publishedAt
+                    ? "Set a publish date first"
+                    : ""
+              }
             >
               Schedule
             </Button>
             <Button
               onClick={() => {
+                if (scan.hardCount > 0) {
+                  toast.error(`Cannot publish — ${scan.hardCount} hard guardrail breach(es) detected`);
+                  return;
+                }
                 const firstPublish = !existing?.published_at;
                 persist("published", firstPublish ? new Date().toISOString() : undefined);
               }}
-              disabled={save.isPending}
+              disabled={save.isPending || scan.hardCount > 0}
               title={
-                existing?.published_at
-                  ? "Keeps the original publish date. Edit the date field to bump it."
-                  : "Publishes now"
+                scan.hardCount > 0
+                  ? `Resolve ${scan.hardCount} hard guardrail breach(es) first`
+                  : existing?.published_at
+                    ? "Keeps the original publish date. Edit the date field to bump it."
+                    : "Publishes now"
               }
             >
               {existing?.status === "published" ? "Re-publish" : "Publish now"}
@@ -256,6 +269,7 @@ export default function AdminBlogEditorPage() {
                 </div>
                 <div>
                   <BlogGuardrailsPanel />
+                  <GuardrailScanPanel scan={scan} body={body} onBodyReplace={setBody} />
                   <Label>Body (markdown)</Label>
                   <Tabs defaultValue="write" className="w-full">
                     <TabsList>
@@ -511,27 +525,17 @@ export default function AdminBlogEditorPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <AlertTriangle className="h-4 w-4" />
-                  Style guardrails
-                  {lintIssues.length > 0 && (
-                    <Badge variant="destructive">{lintIssues.length}</Badge>
-                  )}
+                  Guardrail scan summary
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Non-blocking warnings for AI-tell patterns.
+                  Live count of banned terms detected across title, description, body, and FAQs.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                {lintIssues.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Body looks clean.</p>
-                ) : (
-                  <ul className="space-y-2 text-xs max-h-64 overflow-y-auto">
-                    {lintIssues.map((i, idx) => (
-                      <li key={idx} className="border-l-2 border-amber-500 pl-2">
-                        <div className="font-medium">{i.message}</div>
-                        <div className="text-muted-foreground truncate">{i.excerpt}</div>
-                      </li>
-                    ))}
-                  </ul>
+              <CardContent className="text-sm space-y-1">
+                <div>Hard breaches: <span className="font-semibold text-red-700">{scan.hardCount}</span></div>
+                <div>Soft warnings: <span className="font-semibold text-amber-700">{scan.softCount}</span></div>
+                {scan.hardCount > 0 && (
+                  <p className="text-xs text-red-700 mt-2">Publish is blocked until hard breaches are resolved. Use Apply buttons in the body scan panel or fix manually.</p>
                 )}
               </CardContent>
             </Card>
