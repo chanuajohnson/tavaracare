@@ -48,15 +48,26 @@ export const BlogAudioPlayer = ({ postId, className }: Props) => {
       setIsPlaying(false);
       return;
     }
-    const url = await ensureReady();
-    if (!url) return;
-    // Need to wait a tick for src to be applied
-    requestAnimationFrame(() => {
-      const a = audioRef.current;
-      if (!a) return;
-      a.playbackRate = speed;
-      a.play().then(() => setIsPlaying(true)).catch((e) => console.error(e));
-    });
+    try {
+      const url = await ensureReady();
+      if (!url) {
+        toast.error("Audio not ready yet — please try again in a moment.");
+        return;
+      }
+      // Need to wait a tick for src to be applied
+      requestAnimationFrame(() => {
+        const a = audioRef.current;
+        if (!a) return;
+        a.playbackRate = speed;
+        a.play().then(() => setIsPlaying(true)).catch((e) => {
+          console.error("[BlogAudioPlayer] play() failed:", e);
+          toast.error("Could not start playback in this browser.");
+        });
+      });
+    } catch (e: any) {
+      console.error("[BlogAudioPlayer] prepare failed:", e);
+      toast.error(e?.message || "Could not generate audio. Please try again.");
+    }
   };
 
   const handleStop = () => {
