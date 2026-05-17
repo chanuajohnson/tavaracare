@@ -158,6 +158,9 @@ export function Navigation() {
                 <Link to="/tav-demo" className="text-gray-700 hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                   TAV Demo
                 </Link>
+                <Link to="/blog" className="text-gray-700 hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                  Blog
+                </Link>
                 
                 {isSpecificUser && (
                   <Link to="/admin/user-journey" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700" onClick={() => setIsMenuOpen(false)}>
