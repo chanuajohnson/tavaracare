@@ -455,22 +455,32 @@ const Index = () => {
 
         {/* Content Overlay */}
         <div className="relative z-30 flex flex-col items-center justify-center h-full text-center px-4">
-          {/* Main Heading */}
+          {/* Main Heading — keyword-rich H1 for SEO */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 max-w-4xl leading-tight"
+            className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 max-w-4xl leading-tight"
           >
-            It takes a village to care
+            Find a Caregiver — Care Coordination for Families &amp; Communities
           </motion.h1>
 
-          {/* Subtitle */}
+          {/* Brand phrase — demoted to subtitle */}
+          <motion.p
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.35 }}
+            className="text-2xl md:text-3xl text-white font-medium italic mb-4 max-w-3xl"
+          >
+            It takes a village to care.
+          </motion.p>
+
+          {/* Supporting copy */}
           <motion.p
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-xl md:text-2xl text-white/90 mb-12 max-w-3xl leading-relaxed"
+            className="text-lg md:text-xl text-white/90 mb-12 max-w-3xl leading-relaxed"
           >
             Join our community of care coordinators, families, and professionals to make caring easier and more effective.
           </motion.p>
