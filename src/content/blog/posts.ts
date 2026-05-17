@@ -398,6 +398,10 @@ Not every family is ready immediately for a [home reset](/about), or a contracto
 
 The instinct to fix everything quickly is almost always coming from the right place. It's love, and it's exhaustion. But care that arrives faster than trust tends to get rejected. Then the family loses confidence in the whole idea, and the next attempt is even harder.
 
+> Care that arrives faster than trust tends to get rejected.
+
+---
+
 ## The four emotional stages families go through
 
 We've seen these play out, in some form, in almost every household we've supported.
