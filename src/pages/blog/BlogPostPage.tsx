@@ -71,6 +71,23 @@ const BlogPostPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data: post, isLoading } = usePublishedPost(slug);
   const { data: allPosts = [] } = usePublishedPosts();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyArticle = async () => {
+    if (!post) return;
+    const faqText = post.faqs.length
+      ? `\n\nFrequently asked questions\n\n${post.faqs.map((f) => `Q: ${f.q}\nA: ${f.a}`).join("\n\n")}`
+      : "";
+    const text = `${post.title}\n\n${post.description}\n\n${post.body}${faqText}\n\nSource: https://tavara.care/blog/${post.slug}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast.success("Article copied to clipboard");
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      toast.error("Could not copy. Select and copy manually.");
+    }
+  };
 
   if (isLoading) {
     return (
