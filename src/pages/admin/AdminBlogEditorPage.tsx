@@ -217,13 +217,15 @@ export default function AdminBlogEditorPage() {
             <Button
               variant="outline"
               onClick={() => persist("scheduled")}
-              disabled={save.isPending || !publishedAt || scan.hardCount > 0}
+              disabled={save.isPending || !publishedAt || scan.hardCount > 0 || linkCheck.errorCount > 0}
               title={
                 scan.hardCount > 0
                   ? `Resolve ${scan.hardCount} hard guardrail breach(es) first`
-                  : !publishedAt
-                    ? "Set a publish date first"
-                    : ""
+                  : linkCheck.errorCount > 0
+                    ? `Fix ${linkCheck.errorCount} broken internal link(s) first`
+                    : !publishedAt
+                      ? "Set a publish date first"
+                      : ""
               }
             >
               Schedule
@@ -234,16 +236,22 @@ export default function AdminBlogEditorPage() {
                   toast.error(`Cannot publish — ${scan.hardCount} hard guardrail breach(es) detected`);
                   return;
                 }
+                if (linkCheck.errorCount > 0) {
+                  toast.error(`Cannot publish — ${linkCheck.errorCount} broken internal link(s) detected`);
+                  return;
+                }
                 const firstPublish = !existing?.published_at;
                 persist("published", firstPublish ? new Date().toISOString() : undefined);
               }}
-              disabled={save.isPending || scan.hardCount > 0}
+              disabled={save.isPending || scan.hardCount > 0 || linkCheck.errorCount > 0}
               title={
                 scan.hardCount > 0
                   ? `Resolve ${scan.hardCount} hard guardrail breach(es) first`
-                  : existing?.published_at
-                    ? "Keeps the original publish date. Edit the date field to bump it."
-                    : "Publishes now"
+                  : linkCheck.errorCount > 0
+                    ? `Fix ${linkCheck.errorCount} broken internal link(s) first`
+                    : existing?.published_at
+                      ? "Keeps the original publish date. Edit the date field to bump it."
+                      : "Publishes now"
               }
             >
               {existing?.status === "published" ? "Re-publish" : "Publish now"}
