@@ -10,6 +10,7 @@ import { EnvironmentInfo } from "@/components/debug/EnvironmentInfo";
 import { SupabaseDebugger } from "@/components/debug/SupabaseDebugger";
 import { supabase } from '@/integrations/supabase/client';
 import { captureUTMParams } from '@/utils/utmTracking';
+import { SEO } from '@/components/seo/SEO';
 
 const roles = [
   {
@@ -391,6 +392,22 @@ const Index = () => {
 
   return (
     <div className="min-h-screen w-full">
+      <SEO
+        title="Find a Caregiver Near You | Tavara — Care Coordination Platform"
+        description="Connect with qualified caregivers or coordinate care for your family. Tavara brings together families, professionals, and communities to care together."
+        canonicalPath="/"
+        schema={{
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: 'Tavara',
+          url: 'https://tavara.care',
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: 'https://tavara.care/?q={search_term_string}',
+            'query-input': 'required name=search_term_string',
+          },
+        }}
+      />
       {/* Hero Video Section - No top padding, starts immediately */}
       <section className="relative h-screen w-full overflow-hidden">
         {/* Primary Video */}
