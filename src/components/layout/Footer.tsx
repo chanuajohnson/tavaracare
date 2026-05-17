@@ -50,6 +50,11 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/blog" className="text-gray-300 hover:text-primary-400 transition-colors">
+                  Blog
+                </Link>
+              </li>
+              <li>
                 <Link to="/dashboard/family" className="text-gray-300 hover:text-primary-400 transition-colors">
                   Family Dashboard
                 </Link>
