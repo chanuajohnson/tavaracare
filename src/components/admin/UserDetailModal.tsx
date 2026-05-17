@@ -22,6 +22,7 @@ import type { UserRole } from '@/types/userRoles';
 import { UserNudgeTab } from './UserNudgeTab';
 import { AdminCareLogsTab } from './AdminCareLogsTab';
 import { ProfessionalActivityTab } from './ProfessionalActivityTab';
+import { UserActivityPanel } from './UserActivityPanel';
 
 // Import formatting functions from the PDF generator to ensure UI consistency
 const formatCareSchedule = (careSchedule: string | null): string => {
