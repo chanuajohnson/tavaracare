@@ -23,7 +23,8 @@ const CommunityFeaturesOverview = () => {
           className="space-y-6"
         >
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg mb-8 border border-blue-100">
-            <h1 className="text-3xl font-bold mb-4">Community Dashboard Features</h1>
+            <h1 className="text-3xl font-bold mb-2">Join a Care Circle in Your Community — Tavara Village Network</h1>
+            <p className="text-lg text-muted-foreground mb-4">Community Dashboard Features</p>
             <p className="text-gray-600 mb-4">
               Welcome to the Community Dashboard Features overview! As a valued community member, you have access to a variety of tools and features designed to enhance your experience and allow you to contribute to our growing care community.
             </p>

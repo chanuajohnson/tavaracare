@@ -35,7 +35,8 @@ const ProfessionalFeaturesOverview = () => {
           transition={{ duration: 0.5 }}
           className="space-y-6"
         >
-          <h1 className="text-3xl font-bold">Professional Features Overview</h1>
+          <h1 className="text-3xl font-bold">Caregiver Jobs Near You — Join Tavara as a Care Professional</h1>
+          <p className="text-lg text-muted-foreground mt-2">Professional Features Overview</p>
           <p className="text-muted-foreground mt-2 mb-6">
             Explore all the features available to professional caregivers on our platform. These tools and resources are designed to enhance your caregiving experience and professional development.
           </p>
