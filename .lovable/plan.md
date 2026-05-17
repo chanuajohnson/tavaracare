@@ -1,58 +1,72 @@
-# New Blog Post: Inside Tavara Onboarding
+# Admin Guardrails Management Facility
 
 ## Goal
-Publish the next blog post on what onboarding actually looks like at Tavara — the sequence from first conversation to a fully running care team — illustrated with two anonymised real households and one anonymised caregiver archetype drawn from the system.
+Move the Tavara language and financial-privacy guardrails out of hardcoded files and into an admin-managed catalog. Give admins a single place to view, edit, add, and retire rules, plus a clear "how to use and enforce" guide. The blog editor panel and the TAV chatbot system prompt both read from the same source of truth.
 
-## Source material (kept private, never named in the post)
-- Family A — the Aimey household (Ana Maria + Marcos, family role records).
-- Family B — the founder-owned household with care recipient "June P. Johnson" (the "Pelier" reference).
-- Caregiver archetype — Denise Narcis, a senior professional caregiver in the system.
+## What admins get
 
-Per the user's choice, the post uses **fully anonymous archetypes**. No first names, no surnames, no neighbourhoods that could identify either household.
+1. **Dashboard card** — new tile on `/admin` labelled "Language Guardrails" next to "Blog Management" and "Pricing Catalog". Shows current rule count and a small status badge (e.g. "12 banned terms, 3 financial rules").
+2. **Management page** — new route `/admin/language-guardrails` with four tabs:
+   - **Word Rules** — table of banned → preferred entries. Inline add, edit, archive. Each row has: banned term, preferred replacement, why this matters (short reason shown as tooltip), severity (hard ban vs soft preference), scope (family-facing, caregiver-facing, internal-only, all surfaces), active toggle.
+   - **Financial Privacy** — table of allow-list and deny-list items (per-hour rates allowed, subscription dollar amounts forbidden, etc.) with the same edit/archive controls.
+   - **Tone Rules** — list of style guardrails (no em-dashes, no AI buzzwords, no "It's not just X, it's Y", etc.). Plain text bullets, editable.
+   - **How to use** — written guide (see below) rendered from a markdown field, editable by admin.
+3. **Search and filter** on the Word Rules tab. Filter by scope, by severity, or by active/archived.
+4. **Audit trail** — every change records who edited what and when. Shown as a "Recent changes" panel on the page.
 
-## Anonymised framing used in the post
-- Family A → "a multi-generational household in central Trinidad coordinating care for an aging parent"
-- Family B → "a Port-of-Spain family of three arranging continuous care for a parent with complex daily needs"
-- Caregiver → "a senior caregiver with two decades of bedside experience"
+## Where the rules surface (enforcement)
 
-## Article spec
+- **Blog editor panel** (`AdminBlogEditorPage.tsx`) — the amber collapsible block reads the active rules from the catalog instead of hardcoded JSX. Same visual, dynamic content.
+- **TAV chatbot system prompt** (`tav-chat-enhanced` edge function) — on every invocation, the function fetches active guardrail rules from the table and injects them into the system prompt. One DB read, cached for the request lifetime.
+- **`docs/TAVARA_LANGUAGE_GUARDRAILS.md`** — stays as the canonical narrative document. The management page links to it. Admin can regenerate the doc from the catalog with a one-click "Export to markdown" action (writes nothing to the repo, just gives the admin the up-to-date text to paste).
+- **`mem://constraints/tavara-language-guardrails`** — remains as the always-on memory file for the Lovable agent. Manual sync from admin export when rules change meaningfully.
 
-- **Slug:** `inside-tavara-onboarding-step-by-step`
-- **Title:** Inside Tavara Onboarding: What the First Two Weeks Really Look Like
-- **Category:** Onboarding
-- **Reading time:** ~9 min
-- **Length target:** ~2,000 words
-- **Author:** Chanua Johnson, Founder (matching existing posts)
-- **Published_at:** today's date at 09:00 UTC (newest in the feed, as user wants for a brand-new post)
-- **Status:** `published`
-- **CTA:** "Start your onboarding conversation" → `/family-matching` (or whichever public intake the user prefers — see open question)
+## Data model
 
-## Structure (step-by-step sequence)
+New table `language_guardrails` (single table covers word rules, financial rules, and tone rules via a `rule_type` discriminator):
 
-1. **Opening** — Why families ask "can you just send someone tomorrow," and why the honest answer is no. Frame onboarding as the work that prevents the chaos people normally associate with arranging care.
-2. **Step 1 — The first conversation.** What we listen for: the loved one's daily rhythm, what's already breaking, who in the family is carrying what. Case A used here as the worked example.
-3. **Step 2 — Mapping the household.** Translating that conversation into a care plan: hours of coverage, weekday vs weekend, evening vs overnight, special conditions. Case B used here (more complex coverage).
-4. **Step 3 — The match.** How we choose a primary caregiver and fill-in support. Introduce the caregiver archetype: experience, calm presence, the "no personal phone during shift" professionalism standard.
-5. **Step 4 — Home preparation.** What changes in the physical environment before day one (safety, supplies, a workable space for the care team). No dollar figures, just what gets done and why.
-6. **Step 5 — Meet and greet.** The structured first visit. Why this is not "an interview" but a calibration.
-7. **Step 6 — Service commencement.** Signatures, baseline agreements, the dashboard becoming the operational hub. WhatsApp explained as the secondary handoff channel.
-8. **Step 7 — The first two weeks of rotation.** Primary caregiver settling in, fill-in nurses rotating, daily logs accumulating, the family seeing care happen in writing for the first time.
-9. **What onboarding prevents** — short list: missed medications, caregiver burnout, family arguments about "who told who what," and the slow drift into crisis.
-10. **Closing + CTA** — Onboarding is the product. The hours are just the visible part.
+- `id uuid`
+- `rule_type text` — one of `word`, `financial_allow`, `financial_deny`, `tone`
+- `banned_term text nullable` — only used when rule_type=word
+- `preferred_term text nullable` — only used when rule_type=word
+- `body text` — the full rule statement (used for financial and tone rules; for word rules it's the "why this matters" reason)
+- `scope text` — `family_facing`, `caregiver_facing`, `internal`, `all`
+- `severity text` — `hard` (never use) or `soft` (prefer alternative)
+- `is_active boolean default true`
+- `display_order int`
+- `created_by uuid`, `updated_by uuid`, `created_at`, `updated_at`
 
-## Guardrails applied throughout
-- No banned words: no "hire," "patient," "staff," "case," "placement," "payroll," "agency," "client," "customer," "worker," "employee." Use "arrange care," "loved one," "care team," "household," "match," "home preparation," "caregiver payment coordination," "care coordination platform," "family," "caregiver."
-- No em or en dashes. No "It's not just X, it's Y." No AI-tell vocabulary (delve, leverage, holistic, journey, landscape, transformative, etc.).
-- Financial privacy: NO subscription dollar amounts, NO home preparation dollar amounts, NO household monthly totals. Public-facing care rate references allowed only as the per-hour figures ($40 / $45 / $50+) and only if naturally needed; preference is to leave dollar figures out of this particular post entirely and route specifics to a private onboarding conversation.
-- Tavara positioned as a care coordination platform, never an employer, never an agency.
-- WhatsApp central number 1-868-786-5357 mentioned once, in the closing, as the way to start the first conversation.
-- FAQs (3 to 4 entries) covering: how long onboarding takes, what happens if the first match isn't right, why home preparation matters, what families pay for during onboarding (answered without dollar figures).
+New table `language_guardrails_audit` (id, guardrail_id, action [created/updated/archived/restored], changed_by, changed_at, before jsonb, after jsonb).
 
-## Where it lives
-- Insert as a new row in `blog_posts` via migration with all fields populated (slug, title, description, body in markdown, category, reading_time, author_*, cover_image_url reusing an existing cover or a newly generated one, cta_label, cta_href, faqs jsonb, status='published', published_at=now()).
-- No code changes to the blog reader, listing, or editor. The post renders through the existing `/blog/[slug]` route.
+RLS: admins can read and write both tables. Anonymous reads allowed on `language_guardrails` (active rows only) so the blog editor preview and any public-facing tooling can read without auth. Audit table is admin-read-only.
 
-## Open questions before writing the migration
-1. **CTA destination** — `/family-matching`, `/family/features-overview`, or the WhatsApp deep link? Default plan: `/family-matching`.
-2. **Cover image** — reuse the cover from one of the existing posts (e.g. the "Why families resist care" cover), or generate a new one (calm domestic interior, no faces)?
-3. **Confirmation on Family B identity** — the "Pelier family" reference resolved to the founder-owned household with care recipient June P. Johnson. Confirm that's the intended second case study before publishing.
+Seed migration inserts the current hardcoded rule set from the existing panel and `tav-chat-enhanced` so day one of the admin page matches what is already live.
+
+## The "How to use" guide (seeded into the page)
+
+Rendered as a markdown section inside the management page. Covers:
+
+1. **What guardrails are.** Non-negotiable language and money rules that shape every public surface, every chatbot reply, and every piece of marketing copy.
+2. **Where they show up automatically.** Blog editor panel, TAV chatbot, admin warnings. Anything else (printed flyers, social posts) is human-enforced and the same rules apply.
+3. **How to add a new banned word.** Open Word Rules tab, click "Add rule", fill in banned + preferred + reason + scope + severity, save. Change is live within the minute on the blog editor and on the next TAV invocation.
+4. **How to retire a rule.** Click the row, toggle Active off. The rule is hidden from enforcement but kept in the audit history.
+5. **How to handle a borderline case.** If the rule is sometimes okay (e.g. "client" is fine in legal documents but not in family copy), set scope appropriately rather than archiving the rule.
+6. **Financial privacy quick reference.** What is allowed public (per-hour rates, subscription tier names) and what is never public (subscription dollar amounts, home preparation costs, household totals).
+7. **Review cadence.** Quarterly review by the founder. The page surfaces "rules not reviewed in 90+ days" at the top of the list.
+8. **What to do if TAV breaks a rule.** Add the failure pattern as a new word or tone rule, redeploy is automatic, screenshot the original failure for the audit note.
+
+## Files touched
+
+- New: `supabase/migrations/...` for the two tables, RLS, seed data.
+- New: `src/pages/admin/AdminLanguageGuardrailsPage.tsx` — the management UI.
+- New: `src/components/admin/guardrails/GuardrailsTable.tsx`, `GuardrailRuleDialog.tsx`, `GuardrailsAuditPanel.tsx`, `GuardrailsHowToUse.tsx`.
+- Edit: `src/App.tsx` — register the new route under the existing admin section.
+- Edit: `src/pages/admin/AdminDashboard.tsx` — add the dashboard card next to Blog Management.
+- Edit: `src/pages/admin/AdminBlogEditorPage.tsx` — replace the hardcoded amber panel block with a component that queries the catalog. UI stays identical, content becomes dynamic.
+- Edit: `supabase/functions/tav-chat-enhanced/index.ts` — replace the hardcoded LANGUAGE GUARDRAILS string with a fetch from the catalog at request time, with a sensible fallback to the current hardcoded text if the DB read fails (so TAV never goes silent).
+
+## Open questions before building
+
+1. **Audit trail depth** — do you want full before/after JSON snapshots stored, or just a one-line "X changed banned_term from Y to Z" log? Default plan: full JSON.
+2. **Who can edit** — admin only, or do you want a separate "content editor" role that can suggest changes but not apply them? Default plan: admin only.
+3. **Export to markdown action** — should it overwrite `docs/TAVARA_LANGUAGE_GUARDRAILS.md` directly (requires a server-side write) or just download a `.md` file for you to drop in manually? Default plan: download only, no repo writes.
