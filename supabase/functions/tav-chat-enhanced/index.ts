@@ -111,8 +111,8 @@ serve(async (req) => {
       }
     }
 
-    // Create enhanced system prompt
-    const systemPrompt = createEnhancedSystemPrompt(context, memoryContext);
+    // Create enhanced system prompt (now async — fetches live guardrails)
+    const systemPrompt = await createEnhancedSystemPrompt(context, memoryContext);
 
     // Prepare conversation messages
     const messages = [
