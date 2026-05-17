@@ -1,8 +1,14 @@
 import React from 'react';
+import { SEO } from '@/components/seo/SEO';
 
 const PrivacyPolicyPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-12" style={{ scrollBehavior: 'smooth' }}>
+      <SEO
+        title="Privacy, Terms & AI Use Policy | Tavara Care"
+        description="Tavara's privacy policy, terms of service, cookies notice, and responsible AI use — written with transparency for families and caregivers."
+        canonicalPath="/privacy-policy"
+      />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
         <div className="bg-white rounded-lg shadow-lg p-8 sm:p-12">
           {/* Header */}

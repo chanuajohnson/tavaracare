@@ -1,18 +1,19 @@
 
-import { useEffect } from "react";
+import React from "react";
 import { StoryList } from "@/components/legacy/StoryList";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { Container } from "@/components/ui/container";
+import { SEO } from "@/components/seo/SEO";
 
 const LegacyStoriesPage = () => {
-  useEffect(() => {
-    // Set the page title
-    document.title = "Honoring Loved Ones' Legacies | Tavara";
-  }, []);
-
   return (
     <Container className="py-8">
+      <SEO
+        title="Honoring Loved Ones' Legacies | Tavara Legacy Stories"
+        description="Tributes to people who shaped lives and communities. Read and share legacy stories from families across the Tavara care network."
+        canonicalPath="/legacy-stories"
+      />
       <PageViewTracker 
         actionType="legacy_stories_page_view" 
         journeyStage="content_discovery"
