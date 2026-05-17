@@ -6,13 +6,8 @@ import { Button } from "@/components/ui/button";
 import { SearchIcon, Phone as PhoneIcon, MessageSquare, HelpCircle } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
-
-interface FAQ {
-  id: string;
-  question: string;
-  answer: string;
-  category: string;
-}
+import { SEO } from "@/components/seo/SEO";
+import { faqs, buildFaqPageSchema } from "@/data/faqs";
 
 const faqs: FAQ[] = [
   {
