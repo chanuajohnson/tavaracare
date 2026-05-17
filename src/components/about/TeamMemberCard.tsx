@@ -21,7 +21,8 @@ export const TeamMemberCard = ({ name, role, bio, imageSrc, isDemo = false }: Te
         <div className="aspect-square overflow-hidden bg-gray-100">
           <img 
             src={imageSrc} 
-            alt={name}
+            alt={`${name} — Tavara Care team member`}
+            loading="lazy"
             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
           />
         </div>
