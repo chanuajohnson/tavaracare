@@ -35,6 +35,8 @@ import { toast } from "sonner";
 import { BlogGuardrailsPanel } from "@/components/admin/guardrails/BlogGuardrailsPanel";
 import { GuardrailScanPanel } from "@/components/admin/guardrails/GuardrailScanPanel";
 import { useGuardrailScan } from "@/hooks/admin/useGuardrailScan";
+import { useBlogLinkValidation } from "@/hooks/admin/useBlogLinkValidation";
+import { BlogLinkValidationPanel } from "@/components/admin/blog/BlogLinkValidationPanel";
 import { getBlogShareUrl } from "@/lib/blog/shareUrl";
 
 export default function AdminBlogEditorPage() {
