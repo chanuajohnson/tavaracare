@@ -246,3 +246,24 @@
     transform: translateZ(0);
   }
 }
+
+/* Tavara blog editorial typography — drop cap on the first paragraph
+ * of every blog article body, plus a touch more breathing room between
+ * subheadings. Scoped to .prose-editorial so it never leaks into other
+ * prose blocks across the app.
+ */
+.prose-editorial > p:first-of-type::first-letter {
+  float: left;
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  font-size: 4rem;
+  line-height: 0.9;
+  margin: 0.3rem 0.6rem 0 0;
+  color: hsl(var(--primary));
+}
+.prose-editorial h2 {
+  margin-top: 2.5rem;
+}
+.prose-editorial h3 {
+  margin-top: 1.75rem;
+}
