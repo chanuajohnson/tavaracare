@@ -1,0 +1,1 @@
+DROP POLICY "TEMP seed blog posts" ON public.blog_posts;
