@@ -197,21 +197,33 @@ export default function AdminBlogEditorPage() {
             <Button
               variant="outline"
               onClick={() => persist("scheduled")}
-              disabled={save.isPending || !publishedAt}
-              title={!publishedAt ? "Set a publish date first" : ""}
+              disabled={save.isPending || !publishedAt || scan.hardCount > 0}
+              title={
+                scan.hardCount > 0
+                  ? `Resolve ${scan.hardCount} hard guardrail breach(es) first`
+                  : !publishedAt
+                    ? "Set a publish date first"
+                    : ""
+              }
             >
               Schedule
             </Button>
             <Button
               onClick={() => {
+                if (scan.hardCount > 0) {
+                  toast.error(`Cannot publish — ${scan.hardCount} hard guardrail breach(es) detected`);
+                  return;
+                }
                 const firstPublish = !existing?.published_at;
                 persist("published", firstPublish ? new Date().toISOString() : undefined);
               }}
-              disabled={save.isPending}
+              disabled={save.isPending || scan.hardCount > 0}
               title={
-                existing?.published_at
-                  ? "Keeps the original publish date. Edit the date field to bump it."
-                  : "Publishes now"
+                scan.hardCount > 0
+                  ? `Resolve ${scan.hardCount} hard guardrail breach(es) first`
+                  : existing?.published_at
+                    ? "Keeps the original publish date. Edit the date field to bump it."
+                    : "Publishes now"
               }
             >
               {existing?.status === "published" ? "Re-publish" : "Publish now"}
