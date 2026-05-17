@@ -1,46 +1,71 @@
-## Plan: Add new blog post as draft
+## Plan: Automatic internal-link validation for blog posts
 
-### What
+### Goal
 
-Insert a new row into `blog_posts` with `status = 'draft'` so you can review and publish from `/admin/blog`.
+When editing a blog post in `/admin/blog/:id`, scan the body markdown for internal links and flag any that point to slugs/routes that don't exist, before publish.
 
-### Post metadata
+### What counts as an "internal link"
 
-- **Slug:** `how-to-talk-to-family-about-getting-caregiver`
-- **Title:** How to Talk to Your Family About Getting a Caregiver
-- **Category:** Emotional Realities (matches existing `Emotional Realities of Care` category — will confirm exact string from existing rows)
-- **Description (≤160 chars):** "Care conversations are rarely just about a caregiver. A Caribbean family guide to talking about help with dignity, patience, and trust."
-- **Reading time:** ~8 min read (auto-estimated)
-- **Author:** Chanua Johnson, Tavara Care Coordinator & Founder (defaults)
-- **CTA:** "Talk to Tavara" → `/` (or chat route — will use the same CTA pattern your other posts use)
-- **FAQs:** none for this one (it's a narrative essay, not a how-to)
-- **Status:** `draft`, `published_at: null`
+Any markdown link `[text](href)` where `href`:
 
-### Internal links (all 3 references exist, will be linked)
+- starts with `/` (relative), OR
+- starts with `https://tavara.care` or `https://tavaracare.lovable.app` (treat as relative after stripping the host)
 
-The closing "We've written more about…" section links to:
-- "When Help Feels Like Pressure" → `/blog/when-help-feels-like-pressure`
-- "Why Families Resist Care at First" → `/blog/why-families-resist-care`
-- "The Family Readiness Quiz" → `/blog/family-readiness-quiz-trinidad-tobago`
+External links (other domains), `mailto:`, `tel:`, anchors (`#foo`), and `javascript:` are ignored.
 
-### Body formatting
+### Validation rules per link
 
-- Convert to markdown with H2 (`##`) for the major section headings ("Why families avoid the conversation", "Why timing matters", "The mistakes families often make", "What actually works", "What Tavara has learned", "A few phrases that help", "One last thing").
-- Convert bullet groups (independence/identity/aging/etc.) to `-` lists.
-- Use `> [!LEARNED]` directive for the "What Tavara has learned" closing reflection so it renders in the editorial "What Tavara has learned" callout block.
-- Use `---` divider before the closing CTA paragraph.
-- Strip any em/en-dashes (per writing-style guardrail) — rewrite as commas or sentence breaks.
+1. **Blog links** — `^/blog/([a-z0-9-]+)/?$` → check `blog_posts.slug` exists AND `status = 'published'`. Three states:
+   - **OK** — slug exists and is published.
+   - **Warning** — slug exists but is `draft` / `scheduled` / `hidden` (will 404 for public).
+   - **Error** — no row with that slug.
+2. **App routes** — any other `/...` path → check against the static route list extracted from `src/components/routing/AppRoutes.tsx`. A small allow-list of well-known dynamic prefixes (`/urgent/`, `/care/`, `/services/`, `/dashboard/`, `/admin/`, `/registration/`) is treated as valid without deep matching. Unknown paths surface as a **Warning** (not error — admin may know better than the static parser).
+3. **Duplicate-href detection** is out of scope.
 
-### Language guardrail pass
+### New files
 
-The source copy already uses "support / help / loved one / household" language. I'll do one pass to make sure no banned terms slipped in ("hire", "staff", "client", em-dashes, "journey", etc.) before insert.
+1. **`src/lib/blog/linkValidation.ts`** — pure utilities:
+   - `extractInternalLinks(body: string): { href: string; text: string; line: number }[]` — regex pass over markdown.
+   - `KNOWN_ROUTES: Set<string>` — hand-curated list of top-level public routes (`/`, `/about`, `/faq`, `/features`, `/blog`, `/urgent-families`, `/care/port-of-spain`, etc.) lifted from `AppRoutes.tsx` + `locationsData.ts` + `servicesData.ts`. One-time static export, easy to extend.
+   - `DYNAMIC_PREFIXES: string[]` — `['/blog/', '/urgent/', '/care/', '/services/', '/dashboard/', '/admin/', '/registration/']`.
+   - `classifyRoute(href): 'blog-slug' | 'known-route' | 'dynamic-allowed' | 'unknown'`.
 
-### How it's inserted
+2. **`src/hooks/admin/useBlogLinkValidation.ts`** — React Query hook:
+   - Input: `body: string`.
+   - Extracts internal links, collects unique blog slugs, runs ONE query: `select slug, status from blog_posts where slug in (...)`.
+   - Returns `{ issues: LinkIssue[]; errorCount: number; warningCount: number; isLoading: boolean }` where `LinkIssue = { href, text, line, severity: 'error' | 'warning', reason: string }`.
+   - Debounced/memoized on body so it doesn't re-fetch on every keystroke.
 
-Single `INSERT INTO blog_posts (...) VALUES (...)` via the insert tool. No schema changes, no migration. After insert, post appears in `/admin/blog` as a draft — you click "Edit" to review, then toggle status to "published" when ready.
+3. **`src/components/admin/blog/BlogLinkValidationPanel.tsx`** — Card component rendered inside the editor's right sidebar (same column as the Guardrail scan summary). Shows:
+   - Counter: `X errors / Y warnings`.
+   - List of issues with line number, link text, href, reason, and a "Copy" affordance.
+   - Empty state: "All N internal links resolve."
+
+### Edit to existing file
+
+**`src/pages/admin/AdminBlogEditorPage.tsx`** (minimal, additive):
+
+1. Import the hook + panel.
+2. `const linkCheck = useBlogLinkValidation(body);`
+3. Render `<BlogLinkValidationPanel result={linkCheck} />` directly above the existing Guardrail scan summary card (line ~541).
+4. Extend the Publish + Schedule button disabled conditions:
+   - `disabled = ... || linkCheck.errorCount > 0`
+   - Update the `title` tooltip to mention link errors when present.
+   - Toast message in the Publish handler: `"Cannot publish — N broken internal link(s) detected"`.
+5. Warnings do **not** block publish (consistent with guardrail soft warnings).
+
+No routing changes, no edits to `App.tsx`, `AuthProvider`, registration, chat, dashboards, or core systems.
 
 ### Out of scope
 
-- No code changes.
-- No SSG prerender list update (drafts aren't public; when you publish, `/blog/[slug]` is already covered by the existing dynamic blog route — SSG only prerenders the marketing/landing routes, not individual blog posts).
-- No changes to `BlogPostPage`, navigation, or routing.
+- Validating external (off-domain) URLs by HTTP HEAD — too slow and noisy.
+- Auto-fixing broken links.
+- Validating links inside `description`, `cta_href`, or FAQ answers (can be a v2 — current scope is body only, where the cross-links live).
+- Schema changes — purely client-side validation against existing `blog_posts` reads.
+
+### Verification
+
+After implementing, open the new draft post (`/admin/blog/8dea7301-...`) and confirm the panel shows "All 3 internal links resolve." Then temporarily edit one link to `/blog/does-not-exist`, save, and confirm:
+- panel flips to "1 error",
+- Publish button is disabled with the correct tooltip,
+- Re-fixing the link clears the error.
