@@ -1,51 +1,58 @@
-# Tavara Language & Communication Guardrails — Always-On
+# New Blog Post: Inside Tavara Onboarding
 
-Goal: make the guardrail text you wrote impossible to ignore — by Lovable when generating code/copy, by the blog editor, by the chatbot, and by any future contributor. Also fold in the existing **financial privacy on public surfaces** rule so it travels with the language rules as one unified contract.
+## Goal
+Publish the next blog post on what onboarding actually looks like at Tavara — the sequence from first conversation to a fully running care team — illustrated with two anonymised real households and one anonymised caregiver archetype drawn from the system.
 
-## What gets created / updated
+## Source material (kept private, never named in the post)
+- Family A — the Aimey household (Ana Maria + Marcos, family role records).
+- Family B — the founder-owned household with care recipient "June P. Johnson" (the "Pelier" reference).
+- Caregiver archetype — Denise Narcis, a senior professional caregiver in the system.
 
-### 1. Canonical doc — `docs/TAVARA_LANGUAGE_GUARDRAILS.md` (new)
-Single source of truth. Contains the full guardrail you wrote, lightly structured:
-- Core operating philosophy ("emotionally intelligent care coordination")
-- Tone rules
-- What Tavara is NOT
-- Banned words → preferred replacements table (hire, patient, staff, case, placement, clean-up, hoarding, burnout pipeline, payroll, agency, training oversight, "families engage caregivers directly")
-- Preferred framing vocabulary
-- Core beliefs
-- DO / DO NOT communication rules
-- Social media guardrails
-- Brand position ("not selling caregiver hours — selling continuity, coordination, reduced chaos")
-- **Financial privacy on public surfaces** section (copied from `mem://constraints/financial-privacy-public-surfaces`) so the language + money rules live together
-- Cross-link to existing `docs/TAVARA_WRITING_STYLE.md` (anti-AI-tell rules, no em-dashes, banned AI words)
+Per the user's choice, the post uses **fully anonymous archetypes**. No first names, no surnames, no neighbourhoods that could identify either household.
 
-### 2. Project memory — always in context
-Update `mem://index.md` Core block with the non-negotiables (one-liners, since Core is loaded every action):
-- "Tavara language: never 'hire a caregiver / patient / staff / case / placement / clean-up / payroll / agency'. Use 'arrange care / loved one / care team / household / match / home preparation / caregiver payment coordination / care coordination platform'. See mem://constraints/tavara-language-guardrails."
-- "Tavara sells continuity and coordination, not caregiver hours. Never sound like Uber-for-caregivers, gig staffing, or corporate healthcare."
-- Keep existing financial-privacy Core line; add cross-reference.
+## Anonymised framing used in the post
+- Family A → "a multi-generational household in central Trinidad coordinating care for an aging parent"
+- Family B → "a Port-of-Spain family of three arranging continuous care for a parent with complex daily needs"
+- Caregiver → "a senior caregiver with two decades of bedside experience"
 
-Create new detailed memory file `mem://constraints/tavara-language-guardrails` with the full banned/preferred table + tone rules. Reference it from the index Memories list.
+## Article spec
 
-### 3. Chatbot system prompt — `supabase/functions/tav-chat-enhanced/index.ts`
-Inject a "Language guardrails" block into the system prompt so TAV itself never uses banned words live:
-- Banned terms list with substitutions
-- Tone reminder (calm, observant, operationally competent, not corporate, not gig-economy)
-- Financial-privacy reminder (no subscription dollar figures, Home Preparation dollar figures, household monthly totals, or lifecycle projections in public chat — only the per-hour care rates $40/$45/$50+ and subscription tier names)
+- **Slug:** `inside-tavara-onboarding-step-by-step`
+- **Title:** Inside Tavara Onboarding: What the First Two Weeks Really Look Like
+- **Category:** Onboarding
+- **Reading time:** ~9 min
+- **Length target:** ~2,000 words
+- **Author:** Chanua Johnson, Founder (matching existing posts)
+- **Published_at:** today's date at 09:00 UTC (newest in the feed, as user wants for a brand-new post)
+- **Status:** `published`
+- **CTA:** "Start your onboarding conversation" → `/family-matching` (or whichever public intake the user prefers — see open question)
 
-### 4. Blog editor affordance — `src/pages/admin/AdminBlogEditorPage.tsx`
-Add a small **"Language guardrails"** collapsible panel above the body editor showing the banned-words list and replacements at a glance. Pure presentation, no validation gate — just keeps the rules in front of the editor's eyes every time they write a post. Link to the full doc.
+## Structure (step-by-step sequence)
 
-### 5. Public-facing financial guardrail — reinforce
-Re-affirm the existing `mem://constraints/financial-privacy-public-surfaces` rule inside the new combined doc and chatbot prompt so the "no public dollar figures except per-hour care rate" line is enforced alongside the language rules. No code change to existing public pages — they already comply per memory.
+1. **Opening** — Why families ask "can you just send someone tomorrow," and why the honest answer is no. Frame onboarding as the work that prevents the chaos people normally associate with arranging care.
+2. **Step 1 — The first conversation.** What we listen for: the loved one's daily rhythm, what's already breaking, who in the family is carrying what. Case A used here as the worked example.
+3. **Step 2 — Mapping the household.** Translating that conversation into a care plan: hours of coverage, weekday vs weekend, evening vs overnight, special conditions. Case B used here (more complex coverage).
+4. **Step 3 — The match.** How we choose a primary caregiver and fill-in support. Introduce the caregiver archetype: experience, calm presence, the "no personal phone during shift" professionalism standard.
+5. **Step 4 — Home preparation.** What changes in the physical environment before day one (safety, supplies, a workable space for the care team). No dollar figures, just what gets done and why.
+6. **Step 5 — Meet and greet.** The structured first visit. Why this is not "an interview" but a calibration.
+7. **Step 6 — Service commencement.** Signatures, baseline agreements, the dashboard becoming the operational hub. WhatsApp explained as the secondary handoff channel.
+8. **Step 7 — The first two weeks of rotation.** Primary caregiver settling in, fill-in nurses rotating, daily logs accumulating, the family seeing care happen in writing for the first time.
+9. **What onboarding prevents** — short list: missed medications, caregiver burnout, family arguments about "who told who what," and the slow drift into crisis.
+10. **Closing + CTA** — Onboarding is the product. The hours are just the visible part.
 
-## What this does NOT change
-- No edits to registration flows, routing, App.tsx, or any protected components in your guardrail list.
-- No rewriting of existing blog posts. The new doc + memory are forward-looking; you can run a copy audit later as a separate task.
-- No database changes.
+## Guardrails applied throughout
+- No banned words: no "hire," "patient," "staff," "case," "placement," "payroll," "agency," "client," "customer," "worker," "employee." Use "arrange care," "loved one," "care team," "household," "match," "home preparation," "caregiver payment coordination," "care coordination platform," "family," "caregiver."
+- No em or en dashes. No "It's not just X, it's Y." No AI-tell vocabulary (delve, leverage, holistic, journey, landscape, transformative, etc.).
+- Financial privacy: NO subscription dollar amounts, NO home preparation dollar amounts, NO household monthly totals. Public-facing care rate references allowed only as the per-hour figures ($40 / $45 / $50+) and only if naturally needed; preference is to leave dollar figures out of this particular post entirely and route specifics to a private onboarding conversation.
+- Tavara positioned as a care coordination platform, never an employer, never an agency.
+- WhatsApp central number 1-868-786-5357 mentioned once, in the closing, as the way to start the first conversation.
+- FAQs (3 to 4 entries) covering: how long onboarding takes, what happens if the first match isn't right, why home preparation matters, what families pay for during onboarding (answered without dollar figures).
 
-## Open questions before I build
-1. **Scope of chatbot prompt update** — TAV is your conversational front door, so I'd inject the guardrails there. Want me to also update `tav-core/services/CoreTAVService.ts` (the embedded widget) the same way, or keep that for a later pass?
-2. **Blog editor panel** — collapsible info panel (always visible, closed by default) vs. a tooltip on a "Guardrails" link in the toolbar? I'd go collapsible-closed-by-default.
-3. **Anything to add to the banned list I haven't captured?** The list above is verbatim from your message plus financial-privacy. If there are extras (e.g. "client", "customer", "user" in family-facing copy), tell me now and I'll fold them in.
+## Where it lives
+- Insert as a new row in `blog_posts` via migration with all fields populated (slug, title, description, body in markdown, category, reading_time, author_*, cover_image_url reusing an existing cover or a newly generated one, cta_label, cta_href, faqs jsonb, status='published', published_at=now()).
+- No code changes to the blog reader, listing, or editor. The post renders through the existing `/blog/[slug]` route.
 
-If 1–3 are "yes / collapsible / nothing to add", I'll implement exactly as planned.
+## Open questions before writing the migration
+1. **CTA destination** — `/family-matching`, `/family/features-overview`, or the WhatsApp deep link? Default plan: `/family-matching`.
+2. **Cover image** — reuse the cover from one of the existing posts (e.g. the "Why families resist care" cover), or generate a new one (calm domestic interior, no faces)?
+3. **Confirmation on Family B identity** — the "Pelier family" reference resolved to the founder-owned household with care recipient June P. Johnson. Confirm that's the intended second case study before publishing.
