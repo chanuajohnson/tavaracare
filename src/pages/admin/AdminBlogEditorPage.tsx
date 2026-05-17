@@ -370,7 +370,9 @@ export default function AdminBlogEditorPage() {
                     onChange={(e) => setPublishedAt(e.target.value)}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Posts only appear publicly once this time has passed.
+                    Posts only appear publicly once this time has passed. Editing a
+                    published post keeps this date — change it here if you want to bump
+                    the post to the top of the blog.
                   </p>
                 </div>
                 <div>
