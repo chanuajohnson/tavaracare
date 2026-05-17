@@ -179,6 +179,8 @@ const BlogPostPage = () => {
         description={post.description}
         canonicalPath={`/blog/${post.slug}`}
         ogType="article"
+        ogImage={post.cover_image_url ?? undefined}
+        ogImageAlt={post.title}
         schema={schemas}
       />
       <main className="min-h-screen bg-background py-12 md:py-16">
