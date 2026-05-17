@@ -13,6 +13,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { SEO } from '@/components/seo/SEO';
 
 const AboutPage = () => {
   const [activeCard, setActiveCard] = useState<string | null>(null);
@@ -23,10 +24,16 @@ const AboutPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEO
+        title="About Tavara | Community-Based Care Coordination for Families"
+        description="Tavara is a technology-driven care coordination platform that connects families with qualified caregivers across Trinidad and Tobago and the Caribbean."
+        canonicalPath="/about"
+      />
       <Container>
         <Breadcrumb />
         <div className="space-y-8 py-8">
           <div className="text-center space-y-4 max-w-3xl mx-auto">
+            <h1 className="sr-only">About Tavara — Community-Based Care Coordination</h1>
             <motion.div 
               initial={{ opacity: 0, y: 20 }} 
               animate={{ opacity: 1, y: 0 }} 
@@ -35,7 +42,7 @@ const AboutPage = () => {
             >
               <img 
                 src="/TAVARACARElogo.JPG"
-                alt="About Tavara" 
+                alt="Tavara Care logo — community-based care coordination platform" 
                 className="h-12 w-auto md:h-14"
               />
             </motion.div>
