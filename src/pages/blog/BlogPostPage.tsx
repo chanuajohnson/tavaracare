@@ -11,6 +11,7 @@ import { SEO } from "@/components/seo/SEO";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BlogCard } from "@/components/blog/BlogCard";
+import { BlogAudioPlayer } from "@/components/blog/BlogAudioPlayer";
 import chanuaAvatar from "@/assets/chanua-johnson.jpg";
 import {
   PullQuote,
