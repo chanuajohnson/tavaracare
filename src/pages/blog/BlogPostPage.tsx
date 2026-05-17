@@ -228,6 +228,8 @@ const BlogPostPage = () => {
               </div>
             </header>
 
+            <BlogAudioPlayer postId={post.id} className="mb-10" />
+
             <div className="prose-editorial prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-table:text-sm">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                 {post.body}
