@@ -1,0 +1,27 @@
+# Tavara Care
+
+> Tavara is a Care Coordination & Management Platform connecting families in Trinidad & Tobago with trusted caregivers. Families engage caregivers directly; Tavara coordinates matching, scheduling, training oversight, payroll calculation, and quality oversight. Not a placement or employment agency.
+
+Tavara helps families find, hire, and manage in-home caregivers for elderly parents, dementia care, post-surgical recovery, and companion support. Care professionals join to access vetted job opportunities, training, and payroll support. The platform spans the Caribbean with a focus on Trinidad & Tobago.
+
+Standard caregiver rates: $40/hr (Standard), $45/hr (Full Service), $50+/hr (Premium/Specialized). Care management subscriptions: Basic (Free), Active Care ($699/wk), Premium ($899/wk). One-time Caregiver Matching & Placement: $1,399.
+
+## Pages
+
+- [Home](https://tavara.care/): Find a caregiver and coordinate care for families & communities
+- [About Tavara](https://tavara.care/about): How the care coordination model works and who we serve
+- [On-Demand Errands](https://tavara.care/errands): Errand and concierge services for seniors and families in T&T
+- [Features Overview](https://tavara.care/features): Platform features for families, professionals, and communities
+- [Caregiver Jobs — Join as a Caregiver](https://tavara.care/join-as-caregiver): Apply to join Tavara as a care professional
+- [Care Professionals Hub](https://tavara.care/professional): Professional features, training, and payroll tools
+- [Community Care Circles](https://tavara.care/community): Join a care circle in your community
+- [Urgent Caregivers Needed](https://tavara.care/urgent-caregivers): Live list of caregivers ready to start work
+- [Urgent Families Needing Care](https://tavara.care/urgent-families): Live list of families urgently seeking caregivers
+- [Legacy Stories](https://tavara.care/legacy-stories): Anonymous care stories that honor the people we care for
+- [Frequently Asked Questions](https://tavara.care/support/faq): Pricing, plans, the coordination model, and how it works
+- [Privacy Policy](https://tavara.care/privacy-policy): How Tavara handles personal and health information
+
+## Optional
+
+- [Onboarding Guide](https://tavara.care/onboarding-guide): Steps for new caregivers joining the platform
+- [Subscription Plans](https://tavara.care/subscription): Family and professional subscription tiers

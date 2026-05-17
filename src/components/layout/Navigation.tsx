@@ -127,7 +127,7 @@ export function Navigation() {
             <Link to="/" className="flex items-center">
               <img 
                 src="/TAVARACARElogo.JPG"
-                alt="Tavara" 
+                alt="Tavara Care — care coordination platform" 
                 className="h-6 w-auto sm:h-7"
               />
             </Link>
