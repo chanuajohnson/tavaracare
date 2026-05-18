@@ -66,6 +66,15 @@ export const TavaraAssistantPanel: React.FC = () => {
   const dashboardRole = location.pathname === '/dashboard/family' ? 'family' : 
                        location.pathname === '/dashboard/professional' ? 'professional' : null;
 
+  // SILENT ROUTES: high-traffic pages where TAV must not auto-open. Bubble still
+  // renders and remains clickable; demo mode is exempt so demos keep auto-open.
+  const SILENT_ROUTE_PREFIXES = ['/dashboard', '/blog'];
+  const isSilentRoute = !isDemoMode && (
+    location.pathname === '/' ||
+    SILENT_ROUTE_PREFIXES.some(p => location.pathname === p || location.pathname.startsWith(p + '/'))
+  );
+
+
   // Get comprehensive journey progress - use direct hooks like professional implementation
   const professionalProgress = useEnhancedProfessionalProgress();
   const familyJourneyProgress = useEnhancedJourneyProgress();
@@ -136,8 +145,13 @@ export const TavaraAssistantPanel: React.FC = () => {
 
   // ENHANCED MAGIC AUTO-GREETING with DEMO MODE and LOUD MODE for dashboards
   useEffect(() => {
+    if (isSilentRoute) {
+      console.log('TAV: Silent route, skipping session auto-greeting:', location.pathname);
+      return;
+    }
     const sessionKey = isDemoMode ? `tavara_demo_greeted_${location.pathname}` : `tavara_session_greeted`;
     const hasGreetedThisSession = isDemoMode ? false : sessionStorage.getItem(sessionKey); // Always greet in demo mode
+
     
     console.log('TAV: Auto-greeting check:', {
       hasGreetedThisSession,
@@ -192,6 +206,11 @@ export const TavaraAssistantPanel: React.FC = () => {
       return;
     }
 
+    // Silent routes: never auto-open via navigation greeting
+    if (isSilentRoute) {
+      return;
+    }
+
     // Check if this is a journey touchpoint and we haven't greeted for this specific page
     if (isJourneyTouchpoint(currentPath) && !greetedPages.has(currentPath)) {
       console.log('TAV: Detected NEW journey touchpoint navigation:', currentPath, 'for role:', state.currentRole);
@@ -215,12 +234,13 @@ export const TavaraAssistantPanel: React.FC = () => {
     }
   }, [location.pathname, isJourneyTouchpoint, state.isOpen, greetedPages, openPanel, state.currentRole, hasInitialGreeted, isLoudMode]);
 
-  // Auto-open for nudges
+  // Auto-open for nudges (suppressed on silent routes — bubble indicator still updates)
   useEffect(() => {
+    if (isSilentRoute) return;
     if (nudges.length > 0 && !state.isOpen && hasInitialGreeted) {
       setTimeout(() => openPanel(), 500);
     }
-  }, [nudges.length, state.isOpen, hasInitialGreeted, openPanel]);
+  }, [nudges.length, state.isOpen, hasInitialGreeted, openPanel, isSilentRoute]);
 
   const fetchNudges = async () => {
     if (!user) return;
