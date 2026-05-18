@@ -1,32 +1,32 @@
-## Goal
+## What's already done (verified this turn)
 
-Remove the pricing-disclosure footnote from all four `/care/*` location pages. Sitemap and link-validator coverage already verified — no work needed there.
+1. **GSC** — `sc-domain:tavara.care` verified; sitemap submitted via API (HTTP 204).
+2. **Alt text** — all 9 `<img>` tags in `src/` already have meaningful alt attributes. Nothing to fix.
+3. **Blog** — 10 posts published in DB (goal was 4).
+4. **Prerender + sitemap** — 16 routes prerendered; sitemap covers marketing routes + 4 `/care/*` + 4 `/services/*` + 7 blog posts.
+
+## One gap to close
+
+`public/sitemap.xml` lists **7 blog URLs** but DB has **10 published posts**. The 3 newest posts are not discoverable via sitemap → Google won't crawl them promptly.
 
 ## Change
 
-Edit `src/components/landing/LandingPageScaffold.tsx` (single source for all four /care pages):
+Sync `public/sitemap.xml` to current published posts.
 
-- Delete lines 139–141:
-  ```
-  <p className="text-xs text-muted-foreground mt-3">
-    Care rates are paid directly to the caregiver. Subscription tier details are shared privately during onboarding.
-  </p>
-  ```
-- Keep the 3 pricing tier cards above it (Standard $40 / Full Service $45 / Premium $50+) — these are explicitly allowed on public surfaces per the financial-privacy guardrail.
+- Query `blog_posts` where `status='published'` for slug + published_at
+- Update the `<url>` entries for `/blog/<slug>` in `public/sitemap.xml` so all 10 are present, each with correct `<lastmod>`
+- Keep all non-blog entries untouched
+- Resubmit sitemap to GSC after deploy (one curl, ~5 sec)
 
-That removes the line from `/care/port-of-spain`, `/care/san-fernando`, `/care/arima`, and `/care/tobago` in one edit.
-
-## Already verified — no action needed
-
-- **Sitemap** (`public/sitemap.xml`): all four `/care/*` URLs present at priority 0.9, changefreq monthly.
-- **Link validator** (`src/lib/blog/linkValidation.ts`): all four `/care/*` paths in `KNOWN_ROUTES`. Blog posts can safely link to them.
+Optionally: add a tiny `scripts/generate-blog-sitemap.ts` that regenerates the blog section from Supabase on `prebuild`, so this never drifts again. Recommend doing this only if you want — otherwise manual sync now is fine.
 
 ## Out of scope
 
-- No copy changes to the per-location intro/sections/FAQs.
-- No changes to the pricing tier cards themselves.
-- No sitemap or link-validator edits (already correct).
+- No URL Inspection API per-URL submits (Google removed bulk request-indexing; sitemap is the supported path).
+- No alt-text edits (audit clean).
+- No new blog content (goal exceeded).
+- No SSR work.
 
 ## Verification
 
-After implementing, visit each of `/care/port-of-spain`, `/care/san-fernando`, `/care/arima`, `/care/tobago` and confirm the footnote line is gone while the three tier cards remain.
+After edit + deploy: `curl -sI https://tavara.care/sitemap.xml`, grep for the 3 new slugs, resubmit sitemap PUT to GSC, confirm 204.
