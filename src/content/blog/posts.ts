@@ -181,8 +181,9 @@ For most families in T&T, in-home senior care in 2026 will fall into one of thes
 | Companion / standard care | **\$40 / hour** |
 | Full service personal care | **\$45 / hour** |
 | Premium / specialised care | **\$50+ / hour** |
-| Live-in care | Quoted weekly, varies by complexity |
+| Live-in care | **Starts from \$2,400 / week**, quoted by complexity |
 | One-time Matching & Placement | **\$1,399** |
+| Day 0 setup (Care Administrator concierge layer) | Quoted at onboarding |
 
 Add to that an optional **care coordination subscription**:
 
