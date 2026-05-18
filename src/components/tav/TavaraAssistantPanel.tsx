@@ -206,6 +206,11 @@ export const TavaraAssistantPanel: React.FC = () => {
       return;
     }
 
+    // Silent routes: never auto-open via navigation greeting
+    if (isSilentRoute) {
+      return;
+    }
+
     // Check if this is a journey touchpoint and we haven't greeted for this specific page
     if (isJourneyTouchpoint(currentPath) && !greetedPages.has(currentPath)) {
       console.log('TAV: Detected NEW journey touchpoint navigation:', currentPath, 'for role:', state.currentRole);
