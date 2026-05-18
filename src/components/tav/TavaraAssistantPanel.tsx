@@ -234,12 +234,13 @@ export const TavaraAssistantPanel: React.FC = () => {
     }
   }, [location.pathname, isJourneyTouchpoint, state.isOpen, greetedPages, openPanel, state.currentRole, hasInitialGreeted, isLoudMode]);
 
-  // Auto-open for nudges
+  // Auto-open for nudges (suppressed on silent routes — bubble indicator still updates)
   useEffect(() => {
+    if (isSilentRoute) return;
     if (nudges.length > 0 && !state.isOpen && hasInitialGreeted) {
       setTimeout(() => openPanel(), 500);
     }
-  }, [nudges.length, state.isOpen, hasInitialGreeted, openPanel]);
+  }, [nudges.length, state.isOpen, hasInitialGreeted, openPanel, isSilentRoute]);
 
   const fetchNudges = async () => {
     if (!user) return;
