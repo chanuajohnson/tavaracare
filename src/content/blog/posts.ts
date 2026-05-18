@@ -315,7 +315,7 @@ We'd rather quote you honestly than win you with a low number you don't actually
   faqs: [
     {
       q: "What is the average cost of a caregiver in Trinidad and Tobago in 2026?",
-      a: "In-home caregiver rates through Tavara in 2026 are $40/hr for Standard care, $45/hr for Full Service, and $50+/hr for Premium or specialised care. Live-in care is quoted weekly.",
+      a: "In-home caregiver rates through Tavara in 2026 are $40/hr for Standard care, $45/hr for Full Service, and $50+/hr for Premium or specialised care. Live-in care starts from $2,400 / week and is quoted by complexity.",
     },
     {
       q: "Are there any one-time fees?",
