@@ -181,8 +181,9 @@ For most families in T&T, in-home senior care in 2026 will fall into one of thes
 | Companion / standard care | **\$40 / hour** |
 | Full service personal care | **\$45 / hour** |
 | Premium / specialised care | **\$50+ / hour** |
-| Live-in care | Quoted weekly, varies by complexity |
+| Live-in care | **Starts from \$2,400 / week**, quoted by complexity |
 | One-time Matching & Placement | **\$1,399** |
+| Day 0 setup (Care Administrator concierge layer) | Quoted at onboarding |
 
 Add to that an optional **care coordination subscription**:
 
@@ -222,7 +223,7 @@ What does **not** drive Tavara pricing: family size, postcode, or how nice your 
 
 ## Live-in care: how it's actually priced
 
-Live-in care isn't billed hourly, it's billed weekly, because the caregiver is on-site continuously and effectively becomes part of the household routine.
+Live-in care isn't billed hourly, it's billed weekly, because the caregiver is on-site continuously and effectively becomes part of the household routine. As a floor, plan for **\$2,400 / week** for a basic single-caregiver live-in arrangement; rotation, sleep cover, and complexity move it up from there.
 
 Live-in rates depend on:
 
@@ -314,7 +315,7 @@ We'd rather quote you honestly than win you with a low number you don't actually
   faqs: [
     {
       q: "What is the average cost of a caregiver in Trinidad and Tobago in 2026?",
-      a: "In-home caregiver rates through Tavara in 2026 are $40/hr for Standard care, $45/hr for Full Service, and $50+/hr for Premium or specialised care. Live-in care is quoted weekly.",
+      a: "In-home caregiver rates through Tavara in 2026 are $40/hr for Standard care, $45/hr for Full Service, and $50+/hr for Premium or specialised care. Live-in care starts from $2,400 / week and is quoted by complexity.",
     },
     {
       q: "Are there any one-time fees?",
