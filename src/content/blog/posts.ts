@@ -643,7 +643,7 @@ Resistance is not a wall. It's a door with a lock you haven't found the key to y
 };
 
 const hoardingOverwhelm: BlogPost = {
-  slug: "hoarding-overwhelm-aging-hidden-caregiving-challenge",
+  slug: "when-a-home-starts-feeling-heavy-aging-accumulation-caregiving",
   title: "Hoarding, Overwhelm & Aging: The Hidden Caregiving Challenge Nobody Talks About",
   description:
     "When the home fills up faster than it empties, it's rarely about clutter. It's about memory, identity, and grief, and why care has to begin with the person, not the pile.",
