@@ -136,9 +136,6 @@ export const LandingPageScaffold: React.FC<{ data: LandingPageData }> = ({ data 
                 </Card>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-3">
-              Care rates are paid directly to the caregiver. Subscription tier details are shared privately during onboarding.
-            </p>
           </div>
         </section>
 
