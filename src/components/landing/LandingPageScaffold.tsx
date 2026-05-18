@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Check, MapPin, Heart, Phone } from 'lucide-react';
 import { SEO } from '@/components/seo/SEO';
+import { HowMatchingWorksCard } from '@/components/about/HowMatchingWorksCard';
 
 export interface LandingFAQ {
   q: string;
