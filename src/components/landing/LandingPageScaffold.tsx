@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Check, MapPin, Heart, Phone } from 'lucide-react';
 import { SEO } from '@/components/seo/SEO';
+import { HowMatchingWorksCard } from '@/components/about/HowMatchingWorksCard';
 
 export interface LandingFAQ {
   q: string;
@@ -151,25 +152,10 @@ export const LandingPageScaffold: React.FC<{ data: LandingPageData }> = ({ data 
           ))}
         </section>
 
-        {/* How matching works */}
+        {/* How matching works — shared with /about for one source of truth */}
         <section className="bg-muted/30 border-y">
-          <div className="container max-w-3xl mx-auto px-4 py-12">
-            <h2 className="text-2xl font-semibold mb-6">How matching works on Tavara</h2>
-            <ol className="space-y-4">
-              {[
-                'Share your situation. A short intake covers your loved one, the care needed, and your schedule.',
-                'We match you with vetted caregivers whose skills and availability fit.',
-                'You meet caregivers, choose your care team, and start.',
-                'Your dashboard coordinates schedule, daily care logs, and caregiver payment.',
-              ].map((step, i) => (
-                <li key={i} className="flex gap-3">
-                  <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
-                    {i + 1}
-                  </span>
-                  <span className="text-muted-foreground leading-relaxed pt-0.5">{step}</span>
-                </li>
-              ))}
-            </ol>
+          <div className="container max-w-4xl mx-auto px-4 py-12">
+            <HowMatchingWorksCard />
           </div>
         </section>
 
