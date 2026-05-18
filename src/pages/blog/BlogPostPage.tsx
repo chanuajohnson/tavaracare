@@ -119,7 +119,18 @@ const BlogPostPage = () => {
     );
   }
 
-  if (!post) return <Navigate to="/blog" replace />;
+  // Slug rename redirects: keep old URLs (already indexed by Google) routing to current canonical post.
+  // Extend this map whenever a published post's slug changes.
+  const BLOG_SLUG_REDIRECTS: Record<string, string> = {
+    "hoarding-overwhelm-aging-hidden-caregiving-challenge":
+      "when-a-home-starts-feeling-heavy-aging-accumulation-caregiving",
+  };
+  if (!post) {
+    if (slug && BLOG_SLUG_REDIRECTS[slug]) {
+      return <Navigate to={`/blog/${BLOG_SLUG_REDIRECTS[slug]}`} replace />;
+    }
+    return <Navigate to="/blog" replace />;
+  }
 
   const url = `${BASE_URL}/blog/${post.slug}`;
   const related = allPosts.filter((p) => p.slug !== post.slug).slice(0, 3);
