@@ -145,8 +145,13 @@ export const TavaraAssistantPanel: React.FC = () => {
 
   // ENHANCED MAGIC AUTO-GREETING with DEMO MODE and LOUD MODE for dashboards
   useEffect(() => {
+    if (isSilentRoute) {
+      console.log('TAV: Silent route, skipping session auto-greeting:', location.pathname);
+      return;
+    }
     const sessionKey = isDemoMode ? `tavara_demo_greeted_${location.pathname}` : `tavara_session_greeted`;
     const hasGreetedThisSession = isDemoMode ? false : sessionStorage.getItem(sessionKey); // Always greet in demo mode
+
     
     console.log('TAV: Auto-greeting check:', {
       hasGreetedThisSession,
