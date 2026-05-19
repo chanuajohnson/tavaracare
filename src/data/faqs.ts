@@ -151,13 +151,13 @@ export const faqs: FAQ[] = [
   {
     id: "faq-21",
     question: "How does care plan pricing work?",
-    answer: "Tavara offers two managed care coordination plans:\n\n- Active Care Management — $699/week ($2,499/month). Includes a dedicated care coordinator, structured weekly care coordination, caregiver oversight, billing support, and managed care.\n- Premium Care Management — $899/week ($3,299/month). Includes all Active Care features plus concierge-level coordination, 24/7 on-call support, priority matching, and complex family care management.\n\nAdditional one-time services:\n- Caregiver Matching & Placement — $1,399\n- Care Assessment & Setup — $499\n\nThese may be waived for early adopters or as part of promotional offers.",
+    answer: "Tavara offers two managed care coordination tiers:\n\n- Active Care Management — A dedicated care coordinator, structured weekly care coordination, caregiver oversight, billing support, and managed care.\n- Premium Care Management — All Active Care features plus concierge-level coordination, 24/7 on-call support, priority matching, and complex household care management.\n\nCaregiver Matching & Placement and Care Assessment & Setup are one-time services quoted at onboarding. Subscription tier pricing is shared privately during onboarding so we can match the right tier to your household.\n\nPublic care rates are $40/hr Standard, $45/hr Full Service, and $50+/hr Premium. Live-in care starts from $2,400 / week and is quoted by complexity.",
     category: "Care Management"
   },
   {
     id: "faq-22",
     question: "Are there discounts for early adopters or legacy families?",
-    answer: "Yes! Tavara honors legacy pricing for families who joined during our early growth phase. This means:\n\n- Your original care management rate is preserved (e.g., $499/week instead of $699/week)\n- Your caregiver hourly rate remains at the rate agreed upon at the time of hire\n- One-time fees such as Caregiver Matching & Placement or Care Assessment & Setup may have been waived\n\nAll legacy pricing is clearly displayed in your billing summary with 'Discounted' or 'Waived' labels for full transparency. We believe in rewarding trust — if you were with us early, you keep your rate.",
+    answer: "Yes. Tavara honors legacy pricing for families who joined during our early growth phase. This means:\n\n- Your original care coordination rate is preserved\n- Your caregiver rate remains at the rate agreed upon at the time of match\n- One-time services such as Caregiver Matching & Placement or Care Assessment & Setup may have been waived\n\nAll legacy pricing is reflected in your private billing summary with 'Discounted' or 'Waived' labels for full transparency. If you were with us early, you keep your rate.",
     category: "Subscription & Pricing"
   }
 ];
