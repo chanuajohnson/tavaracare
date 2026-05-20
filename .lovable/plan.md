@@ -1,57 +1,124 @@
-## Goal
+# AI Social Share Generator (per blog post)
 
-Enable RLS on `work_log_expenses`, `user_journey`, and `holidays` without breaking payroll calculations, expense lists, or journey tracking.
+Adds an emotionally intelligent, platform-aware social caption generator + UTM link builder to the admin blog editor at `/admin/blog/:id`. Every generated link is logged for attribution analytics.
 
-## Context discovered
+## Scope (locked from your answers)
 
-- **`work_log_expenses`** — RLS OFF. 3 inert policies exist (`deny_writes_when_limited_ins/upd/del`) but **no SELECT policy**. Just flipping RLS on would make `payrollCalculationService.calculatePayrollEntry` see zero expenses and silently drop reimbursements. Columns: `id, work_log_id, category, amount, description, receipt_url, status`. Authorization derives via `work_logs.care_team_member_id` → `care_team_members.caregiver_id` (caregiver) and `care_team_members.family_id` (family).
-- **`user_journey`** — RLS OFF. No policies. Columns: `id, user_id, event_type, event_data, event_timestamp`. Write-mostly analytics. `user_id` is nullable (anonymous events possible).
-- **`holidays`** — RLS OFF. No policies. Columns: `id, date, name, pay_multiplier`. Reference data — frontend uses a hardcoded array, but if any read happens it should still work for authenticated users.
+- Lives in the **blog editor only** (per post panel)
+- AI generates **caption/post copy only** (no hooks/hashtags pack)
+- AI **suggests** campaign + utm_content slug; admin can override before copy
+- Every generated link is **stored** in a new tracking table
 
-## Migration plan (single migration)
+Platforms: Facebook, Instagram, WhatsApp, TikTok, LinkedIn.
 
-### 1. `work_log_expenses`
-Drop the 3 stale "deny_writes" policies and replace with a full set:
+## What the user sees
 
-- **SELECT** for `authenticated`:
-  - admin via `has_role(auth.uid(),'admin')`, OR
-  - caregiver who owns the work log: `EXISTS (work_logs wl JOIN care_team_members ctm ON ctm.id = wl.care_team_member_id WHERE wl.id = work_log_expenses.work_log_id AND ctm.caregiver_id = auth.uid())`, OR
-  - family on the care plan: `EXISTS (... AND ctm.family_id = auth.uid())`.
-- **INSERT** with check: same caregiver-owns-work-log condition AND `NOT is_account_limited(auth.uid())`. Admin bypass via `has_role`.
-- **UPDATE** USING + WITH CHECK: caregiver who owns the row OR admin, AND `NOT is_account_limited`.
-- **DELETE** USING: caregiver who owns the row OR admin, AND `NOT is_account_limited`.
-- Then `ALTER TABLE public.work_log_expenses ENABLE ROW LEVEL SECURITY;`
+New "Social share" panel on `/admin/blog/:id`, below the existing "Copy share link" buttons.
 
-### 2. `user_journey`
-- **INSERT** with check `true` to `authenticated` and `anon` (event_data is non-PII analytics, user_id may be null for pre-auth events; preserves current write-mostly hook behavior).
-- **SELECT** to `authenticated`: `user_id = auth.uid() OR has_role(auth.uid(),'admin')`.
-- **UPDATE/DELETE** to admin only via `has_role`.
-- Enable RLS.
+```text
++-- Social share -----------------------------------------+
+| Platform: [FB] [IG] [WhatsApp] [TikTok] [LinkedIn]      |
+|                                                         |
+| Campaign: [family-readiness          v]  (AI suggested) |
+| Content:  [when-help-feels-pressure   ]  (editable)     |
+|                                                         |
+| Caption:                                                |
+|  ----------------------------------------------------   |
+|  | <AI-generated, tone-tuned per platform>          |   |
+|  ----------------------------------------------------   |
+|  [ Regenerate ]                                         |
+|                                                         |
+| UTM link (auto-built, live preview):                    |
+|  https://tavara.care/blog/<slug>?utm_source=...         |
+|                                                         |
+| [ Copy caption + link ]   [ Copy link only ]            |
++---------------------------------------------------------+
+```
 
-### 3. `holidays`
-- **SELECT** to `authenticated` USING `true` (reference data, non-sensitive).
-- **INSERT/UPDATE/DELETE** to admin only via `has_role(auth.uid(),'admin')`.
-- Enable RLS.
+Behavior:
+- Pick a platform → AI generates a tone-matched caption + suggests campaign and content slug
+- Admin can edit campaign (preset dropdown) and content slug (text) before copying
+- Caption is editable too; "Regenerate" calls AI again with current platform
+- Copy buttons log the link to the tracking table with `copied_at`
 
-## Verification (after user approves + runs)
+## Tone rules (enforced in system prompt)
 
-1. `select tablename, rowsecurity from pg_tables where schemaname='public' and tablename in ('work_log_expenses','user_journey','holidays');` — all `true`.
-2. Re-run `security--run_security_scan` — the 4 errors for these tables clear.
-3. Spot-check in preview:
-   - `/dashboard/family/care-management/<plan>/payroll` — pending payroll entry that includes a reimbursement still shows `expenseTotal > 0` (proves caregiver SELECT works).
-   - Caregiver adds an expense from shift card — succeeds (INSERT policy works).
-   - Admin views any work log's expenses — succeeds.
-   - Journey tracking still fires on dashboard navigation — no 401/403 in network tab.
+Inherits `mem://preferences/writing-style` + `mem://constraints/tavara-language-guardrails`:
+- No em/en-dashes, no AI buzzwords, no "not just X, it's Y"
+- Never "hire / patient / agency / client / staff"; always "arrange care / loved one / family / care team"
+- Per-platform voice:
+  - **Facebook** — longer reflective storytelling, family/community
+  - **Instagram** — short emotional resonance, carousel-friendly lines, ends with "Link in bio"
+  - **WhatsApp** — short, personal, like forwarding to a friend; no corporate phrasing
+  - **TikTok** — strong hook + truth + "Full article in bio"
+  - **LinkedIn** — thoughtful systems/infrastructure framing, professional but human
 
-## Out of scope (separate follow-ups)
+## UTM structure
 
-- ~190 `function_search_path_mutable` warnings.
-- ~10 `rls_references_user_metadata` errors (would need `get_current_user_role` rewrite).
-- Auth config warnings (OTP expiry, leaked password protection).
-- No changes to `pricing_catalog`, payroll calc code, or any frontend.
+```
+https://tavara.care/blog/<slug>?utm_source=<platform>&utm_medium=social&utm_campaign=<campaign>&utm_content=<content>
+```
 
-## Notes / risk
+- `utm_source` fixed per platform (`facebook`, `instagram`, `whatsapp`, `tiktok`, `linkedin`)
+- `utm_medium` always `social`
+- `utm_campaign` from preset list (lowercase, hyphenated): `family-readiness`, `caregiver-awareness`, `care-coordination`, `caregiver-burnout`, `aging-in-place`, `blog-launch`
+- `utm_content` AI-suggested slug derived from post title + platform (e.g. `when-help-feels-pressure-fb`)
 
-- Existing `deny_writes_when_limited_*` policies become redundant because the limit guard is folded into the new INSERT/UPDATE/DELETE policies. Dropping them keeps the policy set clean and prevents OR-merge surprises.
-- All policies are `AS PERMISSIVE` (default). Caregiver and admin clauses are OR'd inside each policy so admins keep full access.
-- No schema changes, no data changes. Pure RLS hardening.
+Reuses existing `generateUTMLink` in `src/utils/utmTracking.ts` (already there). Capture side already exists via `captureUTMParams` on landing.
+
+## Tracking table
+
+```sql
+social_share_links (
+  id uuid pk,
+  post_id uuid fk blog_posts,
+  platform text,           -- facebook|instagram|whatsapp|tiktok|linkedin
+  campaign text,
+  content_slug text,
+  full_url text,
+  caption text,
+  generated_by uuid,       -- admin user
+  generated_at timestamptz default now(),
+  copied_at timestamptz    -- set when admin clicks Copy
+)
+```
+
+RLS: admins only (via `has_role(auth.uid(),'admin')`) for select/insert/update.
+
+Future: join `utm_campaign` captured in `user_journey` against this table to attribute registrations to specific generated links.
+
+## Technical implementation
+
+### New files
+- `supabase/migrations/<ts>_social_share_links.sql` — table + RLS
+- `supabase/functions/generate-social-caption/index.ts` — calls Lovable AI Gateway (`google/gemini-3-flash-preview`), returns `{ caption, suggestedCampaign, suggestedContentSlug }`. System prompt embeds tone guardrails + platform context + post title/description.
+- `src/components/admin/blog/SocialSharePanel.tsx` — the UI panel
+- `src/lib/blog/socialCampaigns.ts` — campaign preset constants + slugify helper
+
+### Touched files
+- `src/pages/admin/AdminBlogEditor.tsx` (or wherever `/admin/blog/:id` lives — confirm during build) — mount `<SocialSharePanel post={post} />` below existing share buttons. No routing or layout changes.
+- `src/utils/utmTracking.ts` — already exports `generateUTMLink`; reuse as-is.
+
+### Edge function contract
+
+Request: `{ postId, platform }`  
+Response: `{ caption: string, suggestedCampaign: string, suggestedContentSlug: string }`
+
+Function loads the post server-side, builds a tone-tuned prompt per platform, returns JSON via AI SDK `Output.object` schema.
+
+## Out of scope (intentionally)
+
+- Hook variants, hashtag packs, image generation
+- Standalone `/admin/social-share` page for non-blog URLs
+- Scheduling/posting to platforms (copy-paste only)
+- Analytics dashboard for generated links (table exists; surface later)
+- Any change to chat flow, registration, routing, AuthProvider, or other protected files
+
+## Verification
+
+1. Open `/admin/blog/<any-published-post>`, see Social share panel
+2. Click each platform → caption regenerates with correct tone; UTM preview updates live
+3. Edit campaign + content slug → URL updates
+4. Click Copy → clipboard contains caption + URL; row appears in `social_share_links` with `copied_at` set
+5. Paste link in browser → existing `captureUTMParams` stores UTM in localStorage on landing
+6. Confirm no banned words appear in 5 sample captions per platform
