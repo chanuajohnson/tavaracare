@@ -38,6 +38,7 @@ import { useGuardrailScan } from "@/hooks/admin/useGuardrailScan";
 import { useBlogLinkValidation } from "@/hooks/admin/useBlogLinkValidation";
 import { BlogLinkValidationPanel } from "@/components/admin/blog/BlogLinkValidationPanel";
 import { getBlogShareUrl } from "@/lib/blog/shareUrl";
+import { SocialSharePanel } from "@/components/admin/blog/SocialSharePanel";
 
 export default function AdminBlogEditorPage() {
   const { id } = useParams<{ id: string }>();
