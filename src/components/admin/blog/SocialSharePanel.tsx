@@ -161,7 +161,7 @@ export function SocialSharePanel({ postId, postSlug, postTitle }: Props) {
         <div>
           <div className="flex items-center justify-between">
             <Label className="text-xs">Caption</Label>
-            <Button size="sm" variant="ghost" onClick={generate} disabled={loading} type="button">
+            <Button size="sm" variant="ghost" onClick={() => generate()} disabled={loading} type="button">
               {loading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Sparkles className="h-3 w-3 mr-1" />}
               {caption ? "Regenerate" : "Generate"}
             </Button>
