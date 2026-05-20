@@ -1,17 +1,21 @@
-## Auto-generate caption on copy if empty
+## Fix CORS preflight on `generate-social-caption`
 
-**Scope:** `src/components/admin/blog/SocialSharePanel.tsx` only.
+**Root cause:** The edge function's `OPTIONS` handler returns `corsHeaders` that only include `Access-Control-Allow-Origin` and `Access-Control-Allow-Headers`. It's missing `Access-Control-Allow-Methods`, and the response body `"ok"` may be sent without the right shape. The browser logs `Response to preflight request doesn't pass access control check: It does not have HTTP ok status` — meaning the OPTIONS response is failing (likely the function is crashing before reaching the OPTIONS return, or the headers are rejected).
 
-**Change:** Update `copyCaptionAndLink` so that if `caption` is empty/whitespace, it first runs the AI generation, awaits the result, then copies `caption + URL`. If generation fails, fall back to copying just the URL with a warning toast.
+**Scope:** `supabase/functions/generate-social-caption/index.ts` only.
 
-**Implementation:**
-1. Refactor `generate()` to return the generated caption (so the copy handler can use the freshly returned value without waiting for React state).
-2. In `copyCaptionAndLink`:
-   - If `caption.trim()` is empty → call `generate()`, use the returned text.
-   - Otherwise → use existing `caption` value.
-   - Concatenate `${text}\n\n${utmUrl}`, write to clipboard, log to `social_share_links`.
-3. Toast: "Caption generated and copied" when auto-generated, "Caption + link copied" otherwise.
+**Changes:**
+1. Expand `corsHeaders` to include:
+   - `Access-Control-Allow-Origin: *`
+   - `Access-Control-Allow-Headers: authorization, x-client-info, apikey, content-type`
+   - `Access-Control-Allow-Methods: POST, OPTIONS`
+2. Ensure the `OPTIONS` branch returns `new Response(null, { status: 204, headers: corsHeaders })` — handled before any other code that could throw.
+3. Confirm every `return new Response(...)` (success + all error branches) already spreads `corsHeaders`. They do, but verify after edit.
+4. Redeploy the function via `supabase--deploy_edge_functions`.
 
-**Out of scope:** No changes to edge function, schema, link button, or other panels.
+**Out of scope:** No changes to `SocialSharePanel.tsx`, schema, or other functions.
 
-**Verification:** Open a blog post, leave caption empty, click "Copy caption + link" → should show loading spinner briefly, then paste yields caption + tracked URL together; `social_share_links` row inserted with `caption` populated.
+**Verification:**
+1. Deploy function.
+2. Open a post at `/admin/blog/:id`, click **Generate** → no CORS error in console; caption appears or a clean toast error (401/402/429) shows.
+3. Check edge function logs for the actual invocation to confirm it ran.

@@ -6,6 +6,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
 };
 
 const PLATFORM_GUIDANCE: Record<string, string> = {
@@ -52,7 +54,7 @@ suggestedCampaign MUST be one of: ${CAMPAIGNS.join(", ")}.
 suggestedContentSlug: lowercase, hyphen-separated, 3-6 words, derived from the post's emotional theme and platform (e.g. "when-help-feels-pressure-fb").`;
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
