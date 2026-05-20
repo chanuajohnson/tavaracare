@@ -1,39 +1,57 @@
-## Why you're not seeing the updates
+## Goal
 
-The previous edits landed in `src/content/blog/posts.ts` (static seed file), but the live blog post at `/blog/cost-of-care-trinidad-tobago-2026` and the admin editor at `/admin/blog/062d8677...` both read from the **`blog_posts` Supabase table**. Confirmed via DB query — the published row still says `Live-in care | Quoted weekly, varies by complexity`, no $2,400 floor, no inline floor sentence.
+Enable RLS on `work_log_expenses`, `user_journey`, and `holidays` without breaking payroll calculations, expense lists, or journey tracking.
 
-The FAQ page is hardcoded in `src/data/faqs.ts` and currently **violates the financial-privacy guardrail**: it publicly prints subscription dollars ($699/wk, $2,499/mo, $899/wk, $3,299/mo, $19.99/mo, $34.99/mo), the $1,399 Matching & Placement figure, the $499 Care Assessment & Setup figure, and a legacy "$499/week instead of $699/week" example. Per `mem://constraints/financial-privacy-public-surfaces`, none of these belong on a public surface — only tier names + per-hour care rates ($40/$45/$50+) + a single Live-in "starts from $X/wk" floor are allowed.
+## Context discovered
 
-## 1. Update the DB blog post (id `062d8677-0799-435d-af04-10c546137326`)
+- **`work_log_expenses`** — RLS OFF. 3 inert policies exist (`deny_writes_when_limited_ins/upd/del`) but **no SELECT policy**. Just flipping RLS on would make `payrollCalculationService.calculatePayrollEntry` see zero expenses and silently drop reimbursements. Columns: `id, work_log_id, category, amount, description, receipt_url, status`. Authorization derives via `work_logs.care_team_member_id` → `care_team_members.caregiver_id` (caregiver) and `care_team_members.family_id` (family).
+- **`user_journey`** — RLS OFF. No policies. Columns: `id, user_id, event_type, event_data, event_timestamp`. Write-mostly analytics. `user_id` is nullable (anonymous events possible).
+- **`holidays`** — RLS OFF. No policies. Columns: `id, date, name, pay_multiplier`. Reference data — frontend uses a hardcoded array, but if any read happens it should still work for authenticated users.
 
-Create a Supabase migration that updates the `body` column for slug `senior-care-costs-trinidad-tobago-2026`:
+## Migration plan (single migration)
 
-- Replace the Live-in table row from `| Live-in care | Quoted weekly, varies by complexity |` → `| Live-in care | **Starts from $2,400 / week**, quoted by complexity |`
-- Inside the "## Live-in care: how it's actually priced" section, insert one sentence after the opening paragraph: `As a floor, plan for **$2,400 / week** for a basic single-caregiver live-in arrangement; rotation, sleep cover, and complexity move it up from there.`
-- Also patch the in-post FAQ answer (the "In-home caregiver rates" Q in the post body, if present) to end with `Live-in care starts from $2,400 / week and is quoted by complexity.`
+### 1. `work_log_expenses`
+Drop the 3 stale "deny_writes" policies and replace with a full set:
 
-Use targeted `REPLACE(body, '<old>', '<new>')` calls in a single migration so the change is idempotent and re-runnable. Bump `updated_at = now()`.
+- **SELECT** for `authenticated`:
+  - admin via `has_role(auth.uid(),'admin')`, OR
+  - caregiver who owns the work log: `EXISTS (work_logs wl JOIN care_team_members ctm ON ctm.id = wl.care_team_member_id WHERE wl.id = work_log_expenses.work_log_id AND ctm.caregiver_id = auth.uid())`, OR
+  - family on the care plan: `EXISTS (... AND ctm.family_id = auth.uid())`.
+- **INSERT** with check: same caregiver-owns-work-log condition AND `NOT is_account_limited(auth.uid())`. Admin bypass via `has_role`.
+- **UPDATE** USING + WITH CHECK: caregiver who owns the row OR admin, AND `NOT is_account_limited`.
+- **DELETE** USING: caregiver who owns the row OR admin, AND `NOT is_account_limited`.
+- Then `ALTER TABLE public.work_log_expenses ENABLE ROW LEVEL SECURITY;`
 
-## 2. Scrub `src/data/faqs.ts` to match the guardrail
+### 2. `user_journey`
+- **INSERT** with check `true` to `authenticated` and `anon` (event_data is non-PII analytics, user_id may be null for pre-auth events; preserves current write-mostly hook behavior).
+- **SELECT** to `authenticated`: `user_id = auth.uid() OR has_role(auth.uid(),'admin')`.
+- **UPDATE/DELETE** to admin only via `has_role`.
+- Enable RLS.
 
-Edit four FAQ answers in place (keep ids, questions, categories):
+### 3. `holidays`
+- **SELECT** to `authenticated` USING `true` (reference data, non-sensitive).
+- **INSERT/UPDATE/DELETE** to admin only via `has_role(auth.uid(),'admin')`.
+- Enable RLS.
 
-- **faq-11** (subscription plans & pricing): drop all $ amounts. Replace dollar figures with tier names only and a closing line: `Exact subscription pricing is shared privately during onboarding so we can match the right tier to your household.` Keep the feature bullets per tier.
-- **faq-21** (how does care plan pricing work): drop $699/wk, $2,499/mo, $899/wk, $3,299/mo, $1,399, $499. Describe Active Care vs Premium Care by what's included, add `Caregiver Matching & Placement and Care Assessment & Setup are one-time services quoted at onboarding.` Reference the per-hour care rates ($40/$45/$50+) and the Live-in floor (`Live-in care starts from $2,400 / week`).
-- **faq-22** (legacy/early-adopter discounts): remove the "$499/week instead of $699/week" example. Replace with generic language: legacy rates are preserved, one-time fees may have been waived, all shown in your private billing summary.
-- **faq-10** (what features require paid subscription): no $ to remove, but reword the closing to point to onboarding for tier selection rather than implying a public price list.
+## Verification (after user approves + runs)
 
-Leave faq-20 (caregiver hourly rates) untouched — $40 / $45 / $50+ are on the allow-list.
+1. `select tablename, rowsecurity from pg_tables where schemaname='public' and tablename in ('work_log_expenses','user_journey','holidays');` — all `true`.
+2. Re-run `security--run_security_scan` — the 4 errors for these tables clear.
+3. Spot-check in preview:
+   - `/dashboard/family/care-management/<plan>/payroll` — pending payroll entry that includes a reimbursement still shows `expenseTotal > 0` (proves caregiver SELECT works).
+   - Caregiver adds an expense from shift card — succeeds (INSERT policy works).
+   - Admin views any work log's expenses — succeeds.
+   - Journey tracking still fires on dashboard navigation — no 401/403 in network tab.
 
-## 3. Verification
+## Out of scope (separate follow-ups)
 
-- After migration: `select substring(body from position('Live-in care' in body) for 200) from blog_posts where slug = 'senior-care-costs-trinidad-tobago-2026'` returns the new floor row.
-- Reload `/blog/cost-of-care-trinidad-tobago-2026` in preview — table shows the floor, prose has the floor sentence, in-post FAQ updated.
-- `rg "699|2,?499|899|3,?299|1,?399|499/week|499\b|19\.99|34\.99" src/data/faqs.ts` returns zero matches.
-- Reload `/support/faq` — Subscription & Pricing, Care Management, and legacy FAQ entries no longer print private $ amounts.
+- ~190 `function_search_path_mutable` warnings.
+- ~10 `rls_references_user_metadata` errors (would need `get_current_user_role` rewrite).
+- Auth config warnings (OTP expiry, leaked password protection).
+- No changes to `pricing_catalog`, payroll calc code, or any frontend.
 
-## Out of scope
+## Notes / risk
 
-- No edits to `pricing_catalog`, `/admin/pricing-catalog`, `/admin/lifecycle-cost`, subscription billing flows, or onboarding copy.
-- No change to faq-20 (caregiver hourly rates) — already compliant.
-- No change to `src/content/blog/posts.ts` (already updated last loop; it stays as the seed reference).
+- Existing `deny_writes_when_limited_*` policies become redundant because the limit guard is folded into the new INSERT/UPDATE/DELETE policies. Dropping them keeps the policy set clean and prevents OR-merge surprises.
+- All policies are `AS PERMISSIVE` (default). Caregiver and admin clauses are OR'd inside each policy so admins keep full access.
+- No schema changes, no data changes. Pure RLS hardening.
