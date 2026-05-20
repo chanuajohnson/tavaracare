@@ -54,7 +54,7 @@ suggestedCampaign MUST be one of: ${CAMPAIGNS.join(", ")}.
 suggestedContentSlug: lowercase, hyphen-separated, 3-6 words, derived from the post's emotional theme and platform (e.g. "when-help-feels-pressure-fb").`;
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
