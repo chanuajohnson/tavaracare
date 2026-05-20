@@ -552,6 +552,14 @@ export default function AdminBlogEditorPage() {
 
             <BlogLinkValidationPanel result={linkCheck} />
 
+            {existing && (
+              <SocialSharePanel
+                postId={existing.id}
+                postSlug={existing.slug}
+                postTitle={existing.title}
+              />
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
