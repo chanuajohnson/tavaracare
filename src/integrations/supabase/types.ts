@@ -5270,6 +5270,53 @@ export type Database = {
           },
         ]
       }
+      social_share_links: {
+        Row: {
+          campaign: string
+          caption: string | null
+          content_slug: string
+          copied_at: string | null
+          full_url: string
+          generated_at: string
+          generated_by: string | null
+          id: string
+          platform: string
+          post_id: string
+        }
+        Insert: {
+          campaign: string
+          caption?: string | null
+          content_slug: string
+          copied_at?: string | null
+          full_url: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          platform: string
+          post_id: string
+        }
+        Update: {
+          campaign?: string
+          caption?: string | null
+          content_slug?: string
+          copied_at?: string | null
+          full_url?: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          platform?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_share_links_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
           audience: string
