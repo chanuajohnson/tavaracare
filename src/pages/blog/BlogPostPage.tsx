@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { BlogInlineCTA } from "@/components/blog/BlogInlineCTA";
+import { BlogTopCTA } from "@/components/blog/BlogTopCTA";
 import { BlogEndCTABlock } from "@/components/blog/BlogEndCTABlock";
 import { BlogStickyMobileCTA } from "@/components/blog/BlogStickyMobileCTA";
-import { captureInboundAttribution } from "@/lib/blog/attribution";
+import { captureInboundAttribution, trackBlogCtaClick } from "@/lib/blog/attribution";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Copy, Check } from "lucide-react";
