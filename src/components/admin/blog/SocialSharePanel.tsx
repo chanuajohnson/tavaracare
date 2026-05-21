@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, Copy, Loader2, Share2 } from "lucide-react";
+import { Sparkles, Copy, Loader2, Share2, BarChart3 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -110,9 +111,16 @@ export function SocialSharePanel({ postId, postSlug, postTitle }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Share2 className="h-4 w-4" />
-          Social share (AI-tuned)
+        <CardTitle className="flex items-center justify-between gap-2 text-base">
+          <span className="flex items-center gap-2">
+            <Share2 className="h-4 w-4" />
+            Social share (AI-tuned)
+          </span>
+          <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs">
+            <Link to={`/admin/blog/${postId}/analytics`}>
+              <BarChart3 className="h-3.5 w-3.5 mr-1" /> Analytics
+            </Link>
+          </Button>
         </CardTitle>
         <CardDescription className="text-xs">
           Platform-aware caption + UTM-tracked link. Every copy is logged for attribution.

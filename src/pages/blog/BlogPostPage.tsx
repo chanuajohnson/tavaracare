@@ -1,5 +1,9 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
+import { BlogInlineCTA } from "@/components/blog/BlogInlineCTA";
+import { BlogEndCTABlock } from "@/components/blog/BlogEndCTABlock";
+import { BlogStickyMobileCTA } from "@/components/blog/BlogStickyMobileCTA";
+import { captureInboundAttribution } from "@/lib/blog/attribution";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Copy, Check } from "lucide-react";
@@ -75,6 +79,23 @@ const BlogPostPage = () => {
   const { data: allPosts = [] } = usePublishedPosts();
   const [copied, setCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+
+  // Capture inbound social UTMs (utm_source=facebook|whatsapp|linkedin...) on landing
+  // so downstream conversions can be attributed back to the originating share.
+  useEffect(() => {
+    if (post?.slug) {
+      void captureInboundAttribution(post.slug);
+    }
+  }, [post?.slug]);
+
+  // Split body roughly in half on a paragraph boundary so we can inject an inline CTA
+  const [bodyFirstHalf, bodySecondHalf] = useMemo(() => {
+    if (!post?.body) return ["", ""];
+    const paras = post.body.split(/\n\n+/);
+    if (paras.length < 4) return [post.body, ""];
+    const mid = Math.floor(paras.length / 2);
+    return [paras.slice(0, mid).join("\n\n"), paras.slice(mid).join("\n\n")];
+  }, [post?.body]);
 
   const handleCopyArticle = async () => {
     if (!post) return;
@@ -243,18 +264,26 @@ const BlogPostPage = () => {
 
             <div className="prose-editorial prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-table:text-sm">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                {post.body}
+                {bodyFirstHalf || post.body}
               </ReactMarkdown>
+
+              {bodySecondHalf && <BlogInlineCTA postSlug={post.slug} />}
+
+              {bodySecondHalf && (
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                  {bodySecondHalf}
+                </ReactMarkdown>
+              )}
             </div>
 
+            <BlogEndCTABlock postSlug={post.slug} />
+
             {post.cta_label && post.cta_href && (
-              <aside className="mt-12 p-6 md:p-8 rounded-lg bg-primary-100/40 border border-primary-200">
-                <h2 className="text-xl font-semibold mb-2">Ready when you are</h2>
-                <p className="text-muted-foreground mb-4">
-                  Tavara is a care coordination platform serving families across Trinidad & Tobago.
-                  Start at the pace that's right for your home.
+              <aside className="mt-8 p-5 rounded-lg bg-muted/40 border border-border">
+                <p className="text-sm text-muted-foreground mb-3">
+                  Editor's note from the author:
                 </p>
-                <Button asChild>
+                <Button asChild variant="outline" size="sm">
                   <Link to={post.cta_href}>{post.cta_label}</Link>
                 </Button>
               </aside>
@@ -322,6 +351,7 @@ const BlogPostPage = () => {
           )}
         </Container>
       </main>
+      <BlogStickyMobileCTA postSlug={post.slug} category={post.category} />
     </>
   );
 };
