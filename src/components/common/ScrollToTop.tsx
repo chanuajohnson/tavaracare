@@ -1,26 +1,32 @@
 
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigationType } from 'react-router-dom';
 
 export const ScrollToTop = () => {
   const { pathname } = useLocation();
+  const navigationType = useNavigationType();
 
   useEffect(() => {
-    // Scroll to top immediately
+    // On browser back/forward (POP), let the browser restore the prior scroll
+    // position naturally — important for blog → CTA → back flows so readers
+    // return to where they left off in the article.
+    if (navigationType === 'POP') {
+      return;
+    }
+
+    // Forward navigation (PUSH/REPLACE): scroll to top immediately.
     window.scrollTo({ top: 0, behavior: 'instant' });
-    
-    // Additional scroll attempts to ensure it works consistently
+
     const timeouts = [
       setTimeout(() => window.scrollTo({ top: 0, behavior: 'instant' }), 10),
       setTimeout(() => window.scrollTo({ top: 0, behavior: 'instant' }), 50),
       setTimeout(() => window.scrollTo({ top: 0, behavior: 'instant' }), 100)
     ];
 
-    // Cleanup timeouts
     return () => {
       timeouts.forEach(timeout => clearTimeout(timeout));
     };
-  }, [pathname]);
+  }, [pathname, navigationType]);
 
-  return null; // This component doesn't render anything
+  return null;
 };
