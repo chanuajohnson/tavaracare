@@ -351,6 +351,7 @@ const BlogPostPage = () => {
           )}
         </Container>
       </main>
+      <BlogStickyMobileCTA postSlug={post.slug} category={post.category} />
     </>
   );
 };
