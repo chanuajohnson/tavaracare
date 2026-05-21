@@ -44,7 +44,13 @@ export function BlogInlineCTA({ postSlug }: Props) {
           Share what your household needs and we will help you build a steady care team.
         </p>
         <Button asChild size="sm" onClick={() => onClick("inline-family", familyHref)}>
-          <Link to={familyHref}>
+          <Link
+            to={familyHref}
+            state={{
+              referringPagePath: `/blog/${postSlug}`,
+              referringPageLabel: "Back to article",
+            }}
+          >
             Start your family readiness <ArrowRight className="ml-1 h-3.5 w-3.5" />
           </Link>
         </Button>
