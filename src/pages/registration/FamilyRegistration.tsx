@@ -77,6 +77,8 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const referrerState = (location.state ?? {}) as { referringPagePath?: string; referringPageLabel?: string };
 
   // Function to fetch existing profile data using secure function
   const fetchExistingProfileData = async () => {
