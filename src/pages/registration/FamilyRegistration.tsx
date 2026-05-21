@@ -667,13 +667,23 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
       />
       
       <DashboardHeader 
-        breadcrumbItems={[
-          { 
-            label: isDemo ? "TAV Demo" : "Family Dashboard", 
-            path: isDemo ? "/tav-demo?openDemo=true" : "/dashboard/family" 
-          },
-          { label: isEditMode ? "Edit Family Profile" : "Family Registration", path: `/registration/family${isEditMode ? '?edit=true' : ''}` }
-        ]} 
+        breadcrumbItems={(() => {
+          const base = [
+            { 
+              label: isDemo ? "TAV Demo" : "Family Dashboard", 
+              path: isDemo ? "/tav-demo?openDemo=true" : "/dashboard/family" 
+            },
+            { label: isEditMode ? "Edit Family Profile" : "Family Registration", path: `/registration/family${isEditMode ? '?edit=true' : ''}` }
+          ];
+          // If user arrived from a blog post via a CTA, surface that origin as the
+          // first crumb so they can return to the exact article they came from.
+          const referringPagePath = (referrerState?.referringPagePath as string | undefined);
+          const referringPageLabel = (referrerState?.referringPageLabel as string | undefined);
+          if (referringPagePath && referringPagePath.startsWith('/blog/') && referringPageLabel) {
+            return [{ label: referringPageLabel, path: referringPagePath }, ...base];
+          }
+          return base;
+        })()} 
       />
       
       <div className="container max-w-4xl py-10">
