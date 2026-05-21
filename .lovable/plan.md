@@ -1,39 +1,65 @@
-# Fix TAV reappearing + scroll loss + breadcrumb on blog → CTA → back
+# Add top-of-article CTA + clarify the "Copy share link" button
 
-Three independent issues, all triggered by the flow: blog post → click "Start your family readiness" → land on `/registration/family` → browser back.
+## Part 1: What the "Copy share link" button actually tracks
 
-## 1. TAV pops up when returning to a blog post
+Short answer: **right now, nothing.**
 
-**Root cause:** `/blog/*` is in `SILENT_ROUTE_PREFIXES` so TAV never *auto-opens* there. But `/registration/family` is NOT silent — TAV auto-opens there (it's a journey touchpoint). TAV's `isOpen` lives in `TavaraStateContext` and persists across navigation, so when the user hits Back to `/blog/...`, the panel is still open from the registration page.
+The button copies a URL built by `getBlogShareUrl(slug)`, which points at the `blog-share` Supabase Edge Function. That function exists to serve rich Open Graph + Twitter Card previews to social crawlers (WhatsApp, iMessage, LinkedIn, Slack, Facebook) since those crawlers don't run JavaScript and can't read the SPA meta tags. It redirects humans to the canonical article URL.
 
-**Fix (in `TavaraAssistantPanel.tsx` only):** Add a new effect that runs on `location.pathname` change. If the new route is a silent route (`/blog/*`, `/dashboard/*`, `/`) AND `state.isOpen` is true AND the panel was not user-opened on this route, call `closePanel()` and clear `showGreeting`. This preserves: explicit user opens on blog (clicking the bubble still works), demo mode (exempt from silent rules), and TAV's behavior on every non-silent route.
+Crucially:
+- It does NOT stamp UTM parameters
+- It does NOT insert a row into `social_share_links`
+- It does NOT fire a `cta_engagement_tracking` event
+- It does NOT distinguish a copy by an admin vs. a copy by a reader
 
-No changes to `useTavaraState`, no global guardrail edits, no provider edits.
+So any link copied via that button shows up in GA4 as **direct / (none)** traffic, with zero per-platform attribution. The admin-only `SocialSharePanel` (the one we built with `buildSocialUtmUrl`) is the only path that produces tracked, per-platform share links.
 
-## 2. Back from CTA scrolls to top of blog instead of CTA position
+### Two ways to fix this — pick one
 
-**Root cause:** `src/components/common/ScrollToTop.tsx` force-scrolls to `(0,0)` on every `pathname` change, including browser back/forward (POP). This kills the browser's built-in scroll restoration.
+**Option A: Make "Copy share link" a tracked share (recommended).**
+- Stamp the copied URL with `utm_source=share-button`, `utm_medium=blog-share`, `utm_campaign=<post-slug>`, `utm_content=copy-button`
+- Fire a `cta_engagement_tracking` row with `placement=public-copy-share` so it appears in `/admin/blog/:postId/analytics`
+- Per-platform attribution still won't be perfect (we can't know if the reader pasted into WhatsApp vs. LinkedIn), but at least we'll know shares originated from a reader, not from the admin panel.
 
-**Fix (in `ScrollToTop.tsx` only):** Use `useNavigationType()` from `react-router-dom`. Skip the manual scroll when `navigationType === 'POP'` so the browser restores the prior scroll position naturally. PUSH/REPLACE keeps current behavior (scroll to top on forward navigation). Zero impact on any other page — every route already relies on this same component.
+**Option B: Keep it untracked, but rename and de-emphasize.**
+- Leave it as a quiet utility for personal sharing, no metrics promise. No code change beyond a tooltip clarification.
 
-## 3. Breadcrumb on `/registration/family` should reflect blog origin
+I recommend **Option A** because it closes the only blind spot in the reader → share funnel and feeds the same dashboard you already have.
 
-**Constraint:** Project guardrail says do not modify *fields* in `FamilyRegistration.tsx`. The breadcrumb prop is not a form field, but it is in that protected file. I want explicit approval before touching it.
+## Part 2: Add a top-of-article Family/Caregiver CTA
 
-**Proposed fix (scoped, minimal):**
-- In `BlogInlineCTA.tsx` and `BlogEndCTABlock.tsx`, when navigating to `/registration/family`, pass `state={{ referringPagePath: '/blog/<slug>', referringPageLabel: '<post title>' }}` via `<Link>`. (These two files are blog-owned, not in the protected zone.)
-- In `FamilyRegistration.tsx`, read `location.state` and, if `referringPagePath` is present AND starts with `/blog/`, prepend that crumb to `breadcrumbItems`. Default behavior (Family Dashboard → Family Registration) is unchanged for every other entry path.
+Some readers don't scroll past the first screen. Right now the first dual CTA appears at the ~50% paragraph boundary. Add a third placement at the very top.
 
-No other registration page is touched, no other breadcrumb on the platform is affected.
+### Where it goes
 
-## Files to edit
+A new `BlogTopCTA` component, rendered in `BlogPostPage.tsx` immediately **after the article header (title + description + author row) and before `BlogAudioPlayer`**. That position keeps the headline above the fold but puts the audience-fork card visible on the first scroll for most desktop viewports.
 
-1. `src/components/tav/TavaraAssistantPanel.tsx` — add silent-route auto-close effect (~10 lines)
-2. `src/components/common/ScrollToTop.tsx` — skip scroll on POP nav (~3 line change)
-3. `src/components/blog/BlogInlineCTA.tsx` — add `state` to family `<Link>`
-4. `src/components/blog/BlogEndCTABlock.tsx` — add `state` to family `<Link>`
-5. `src/pages/registration/FamilyRegistration.tsx` — read `location.state`, conditionally prepend a blog crumb to `breadcrumbItems` (breadcrumb prop only, no form fields touched)
+### What it looks like
 
-## Approval needed
+Same dual-card pattern as `BlogInlineCTA` (For Families / For Caregivers), but visually lighter and tighter:
+- Single horizontal bar on desktop (two pills side by side), stacked on mobile
+- Smaller height than the mid-article card so it doesn't push the article body down too far
+- Same attribution: forwards inbound UTMs via `buildCtaDestination` and fires `trackBlogCtaClick` with new `placement` values `top-family` and `top-professional`
+- Same destinations: `/registration/family` (with `referringPagePath` state for the blog breadcrumb) and `/registration/professional`
 
-Item 5 touches the protected `FamilyRegistration.tsx`. Confirm I may modify only its `breadcrumbItems` array (no form fields, no submit logic, no auth) before I implement.
+### Why this is safe
+
+- No change to existing inline mid-article or end-of-article CTAs
+- New `placement` strings extend, not replace, the existing analytics enum, so the admin dashboard at `/admin/blog/:postId/analytics` will just show three placements per post instead of two
+- No layout regression: the new component is `not-prose` so it doesn't interact with the article typography
+
+## Files
+
+**Part 1 (Option A, if approved):**
+- `src/pages/blog/BlogPostPage.tsx` — change `handleCopyShareLink` to stamp UTMs and fire the engagement event
+- `src/lib/blog/shareUrl.ts` — add an optional `withUtm` helper that appends `utm_source=share-button&utm_medium=blog-share&utm_campaign=<slug>&utm_content=copy-button`
+
+**Part 2:**
+- `src/components/blog/BlogTopCTA.tsx` — new component (mirrors BlogInlineCTA structure, compressed visual)
+- `src/components/blog/BlogInlineCTA.tsx` — extend `BlogCtaPlacement` type to include `top-family` / `top-professional` (if it's a typed union)
+- `src/lib/blog/attribution.ts` — same placement union extension if defined there
+- `src/pages/blog/BlogPostPage.tsx` — render `<BlogTopCTA postSlug={post.slug} />` between the header `</header>` and `<BlogAudioPlayer />`
+
+## Open question
+
+Do you want me to do **Option A** for the share button as well, or just the top CTA in this round?
