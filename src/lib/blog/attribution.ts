@@ -112,11 +112,14 @@ function getSessionId(): string {
 }
 
 export type BlogCtaPlacement =
+  | "top-family"
+  | "top-professional"
   | "inline-family"
   | "inline-professional"
   | "end-family"
   | "end-professional"
-  | "sticky-mobile";
+  | "sticky-mobile"
+  | "public-copy-share";
 
 /**
  * Build a destination URL that forwards inbound attribution as `utm_referrer_*`

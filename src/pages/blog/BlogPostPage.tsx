@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { BlogInlineCTA } from "@/components/blog/BlogInlineCTA";
+import { BlogTopCTA } from "@/components/blog/BlogTopCTA";
 import { BlogEndCTABlock } from "@/components/blog/BlogEndCTABlock";
 import { BlogStickyMobileCTA } from "@/components/blog/BlogStickyMobileCTA";
-import { captureInboundAttribution } from "@/lib/blog/attribution";
+import { captureInboundAttribution, trackBlogCtaClick } from "@/lib/blog/attribution";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Copy, Check } from "lucide-react";
@@ -24,7 +25,7 @@ import {
   SectionDivider,
 } from "@/components/blog/editorial";
 import { usePublishedPost, usePublishedPosts } from "@/lib/blog/api";
-import { getBlogShareUrl } from "@/lib/blog/shareUrl";
+import { getBlogShareUrlWithUtm } from "@/lib/blog/shareUrl";
 
 const extractFirstText = (node: any): string => {
   if (!node) return "";
@@ -115,10 +116,16 @@ const BlogPostPage = () => {
 
   const handleCopyShareLink = async () => {
     if (!post) return;
+    const shareUrl = getBlogShareUrlWithUtm(post.slug);
     try {
-      await navigator.clipboard.writeText(getBlogShareUrl(post.slug));
+      await navigator.clipboard.writeText(shareUrl);
       setShareCopied(true);
       toast.success("Share link copied — paste into WhatsApp for a rich preview");
+      void trackBlogCtaClick({
+        postSlug: post.slug,
+        placement: "public-copy-share",
+        destination: shareUrl,
+      });
       setTimeout(() => setShareCopied(false), 2500);
     } catch {
       toast.error("Could not copy. Select and copy manually.");
@@ -259,6 +266,8 @@ const BlogPostPage = () => {
                 </div>
               </div>
             </header>
+
+            <BlogTopCTA postSlug={post.slug} />
 
             <BlogAudioPlayer postId={post.id} className="mb-10" />
 
