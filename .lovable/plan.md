@@ -1,21 +1,21 @@
-## Fix CORS preflight on `generate-social-caption`
+## Plan: Fix Generate Caption CORS failure
 
-**Root cause:** The edge function's `OPTIONS` handler returns `corsHeaders` that only include `Access-Control-Allow-Origin` and `Access-Control-Allow-Headers`. It's missing `Access-Control-Allow-Methods`, and the response body `"ok"` may be sent without the right shape. The browser logs `Response to preflight request doesn't pass access control check: It does not have HTTP ok status` — meaning the OPTIONS response is failing (likely the function is crashing before reaching the OPTIONS return, or the headers are rejected).
+The screenshot shows the remaining failure is not the OPTIONS status anymore. The browser is rejecting the preflight because the request includes `x-app-version`, but the edge function's `Access-Control-Allow-Headers` does not allow that header.
 
-**Scope:** `supabase/functions/generate-social-caption/index.ts` only.
+## Changes to make
 
-**Changes:**
-1. Expand `corsHeaders` to include:
-   - `Access-Control-Allow-Origin: *`
-   - `Access-Control-Allow-Headers: authorization, x-client-info, apikey, content-type`
-   - `Access-Control-Allow-Methods: POST, OPTIONS`
-2. Ensure the `OPTIONS` branch returns `new Response(null, { status: 204, headers: corsHeaders })` — handled before any other code that could throw.
-3. Confirm every `return new Response(...)` (success + all error branches) already spreads `corsHeaders`. They do, but verify after edit.
-4. Redeploy the function via `supabase--deploy_edge_functions`.
+1. Update `supabase/functions/generate-social-caption/index.ts`
+   - Add `x-app-version` to `Access-Control-Allow-Headers`.
+   - Keep `Access-Control-Allow-Methods: POST, OPTIONS`.
+   - Keep the early `OPTIONS` return with HTTP 204.
+   - Keep CORS headers on every success and error response.
 
-**Out of scope:** No changes to `SocialSharePanel.tsx`, schema, or other functions.
+2. Redeploy `generate-social-caption`
+   - Deploy the updated edge function so the live preview receives the new preflight headers.
 
-**Verification:**
-1. Deploy function.
-2. Open a post at `/admin/blog/:id`, click **Generate** → no CORS error in console; caption appears or a clean toast error (401/402/429) shows.
-3. Check edge function logs for the actual invocation to confirm it ran.
+## Verification
+
+1. Click Generate again on `/admin/blog/062d8677-0799-435d-af04-10c546137326`.
+2. Confirm the console no longer shows:
+   - `Request header field x-app-version is not allowed by Access-Control-Allow-Headers`
+3. If generation still fails after CORS is cleared, the next visible error should be the real function response, such as auth, admin role, AI credits, or gateway response, instead of a browser CORS block.
