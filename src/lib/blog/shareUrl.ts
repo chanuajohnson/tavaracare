@@ -23,3 +23,19 @@ export function getBlogShareUrl(slug: string): string {
 export function getBlogArticleUrl(slug: string): string {
   return `https://tavara.care/blog/${slug}`;
 }
+
+/**
+ * Same crawler-friendly share URL, but stamped with UTM params so reader-driven
+ * shares are attributable in GA4 and in the admin blog analytics dashboard.
+ * Per-platform attribution is best-effort (we can't know if the paste landed in
+ * WhatsApp vs. LinkedIn), but it cleanly separates reader shares from direct.
+ */
+export function getBlogShareUrlWithUtm(slug: string): string {
+  const base = getBlogShareUrl(slug);
+  const url = new URL(base);
+  url.searchParams.set("utm_source", "share-button");
+  url.searchParams.set("utm_medium", "blog-share");
+  url.searchParams.set("utm_campaign", slug);
+  url.searchParams.set("utm_content", "copy-button");
+  return url.toString();
+}
