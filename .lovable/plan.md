@@ -1,21 +1,45 @@
-## Plan: Fix Generate Caption CORS failure
+## Goal
+Resolve the current Generate Caption failure shown in the browser console. The remaining blocker is CORS preflight rejection because the browser is now sending `x-client-env`, but `generate-social-caption` does not include it in `Access-Control-Allow-Headers`.
 
-The screenshot shows the remaining failure is not the OPTIONS status anymore. The browser is rejecting the preflight because the request includes `x-app-version`, but the edge function's `Access-Control-Allow-Headers` does not allow that header.
+## Root cause
+The edge function currently allows:
 
-## Changes to make
+```text
+authorization, x-client-info, apikey, content-type, x-app-version
+```
+
+The screenshot shows the failing preflight now includes:
+
+```text
+x-client-env
+```
+
+Because that header is not allowed, the browser blocks the request before the function can generate the caption.
+
+## Implementation plan
 
 1. Update `supabase/functions/generate-social-caption/index.ts`
-   - Add `x-app-version` to `Access-Control-Allow-Headers`.
+   - Add `x-client-env` to `Access-Control-Allow-Headers`.
+   - Also add the common Supabase client runtime headers so this does not fail again if the client sends additional SDK metadata headers:
+     - `x-supabase-client-platform`
+     - `x-supabase-client-platform-version`
+     - `x-supabase-client-runtime`
+     - `x-supabase-client-runtime-version`
    - Keep `Access-Control-Allow-Methods: POST, OPTIONS`.
-   - Keep the early `OPTIONS` return with HTTP 204.
+   - Keep the early `OPTIONS` response.
    - Keep CORS headers on every success and error response.
 
-2. Redeploy `generate-social-caption`
-   - Deploy the updated edge function so the live preview receives the new preflight headers.
+2. Redeploy the `generate-social-caption` edge function
+   - The source change alone is not enough. The deployed function must be updated for the live preview to receive the new CORS headers.
 
-## Verification
+3. Verify the fix
+   - Test the deployed function preflight with headers including `x-client-env`.
+   - Confirm the response includes `x-client-env` in `Access-Control-Allow-Headers`.
+   - Ask you to click Generate again.
+   - If CORS clears but generation still fails, the next error will be the real backend response, for example admin role, AI credits, rate limit, or AI gateway response, rather than a browser CORS block.
 
-1. Click Generate again on `/admin/blog/062d8677-0799-435d-af04-10c546137326`.
-2. Confirm the console no longer shows:
-   - `Request header field x-app-version is not allowed by Access-Control-Allow-Headers`
-3. If generation still fails after CORS is cleared, the next visible error should be the real function response, such as auth, admin role, AI credits, or gateway response, instead of a browser CORS block.
+## Files to change
+
+- `supabase/functions/generate-social-caption/index.ts`
+
+No frontend changes are needed for this specific error.
