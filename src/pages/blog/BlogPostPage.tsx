@@ -116,10 +116,16 @@ const BlogPostPage = () => {
 
   const handleCopyShareLink = async () => {
     if (!post) return;
+    const shareUrl = getBlogShareUrlWithUtm(post.slug);
     try {
-      await navigator.clipboard.writeText(getBlogShareUrl(post.slug));
+      await navigator.clipboard.writeText(shareUrl);
       setShareCopied(true);
       toast.success("Share link copied — paste into WhatsApp for a rich preview");
+      void trackBlogCtaClick({
+        postSlug: post.slug,
+        placement: "public-copy-share",
+        destination: shareUrl,
+      });
       setTimeout(() => setShareCopied(false), 2500);
     } catch {
       toast.error("Could not copy. Select and copy manually.");
