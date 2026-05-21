@@ -49,7 +49,13 @@ export function BlogEndCTABlock({ postSlug }: Props) {
             })
           }
         >
-          <Link to={familyHref}>
+          <Link
+            to={familyHref}
+            state={{
+              referringPagePath: `/blog/${postSlug}`,
+              referringPageLabel: "Back to article",
+            }}
+          >
             Begin family readiness <ArrowRight className="ml-1 h-4 w-4" />
           </Link>
         </Button>
