@@ -80,6 +80,23 @@ const BlogPostPage = () => {
   const [copied, setCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
 
+  // Capture inbound social UTMs (utm_source=facebook|whatsapp|linkedin...) on landing
+  // so downstream conversions can be attributed back to the originating share.
+  useEffect(() => {
+    if (post?.slug) {
+      void captureInboundAttribution(post.slug);
+    }
+  }, [post?.slug]);
+
+  // Split body roughly in half on a paragraph boundary so we can inject an inline CTA
+  const [bodyFirstHalf, bodySecondHalf] = useMemo(() => {
+    if (!post?.body) return ["", ""];
+    const paras = post.body.split(/\n\n+/);
+    if (paras.length < 4) return [post.body, ""];
+    const mid = Math.floor(paras.length / 2);
+    return [paras.slice(0, mid).join("\n\n"), paras.slice(mid).join("\n\n")];
+  }, [post?.body]);
+
   const handleCopyArticle = async () => {
     if (!post) return;
     const faqText = post.faqs.length
