@@ -111,9 +111,16 @@ export function SocialSharePanel({ postId, postSlug, postTitle }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Share2 className="h-4 w-4" />
-          Social share (AI-tuned)
+        <CardTitle className="flex items-center justify-between gap-2 text-base">
+          <span className="flex items-center gap-2">
+            <Share2 className="h-4 w-4" />
+            Social share (AI-tuned)
+          </span>
+          <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs">
+            <Link to={`/admin/blog/${postId}/analytics`}>
+              <BarChart3 className="h-3.5 w-3.5 mr-1" /> Analytics
+            </Link>
+          </Button>
         </CardTitle>
         <CardDescription className="text-xs">
           Platform-aware caption + UTM-tracked link. Every copy is logged for attribution.
