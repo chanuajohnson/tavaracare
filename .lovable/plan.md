@@ -1,108 +1,39 @@
-## Goal
+# Fix TAV reappearing + scroll loss + breadcrumb on blog → CTA → back
 
-Three outcomes for every blog post shared to Facebook, WhatsApp, and LinkedIn:
-1. Know exactly which platform drove each visit, click, and conversion
-2. See the metrics that matter in one admin view
-3. Give every visitor a foolproof path into their journey (family or professional)
+Three independent issues, all triggered by the flow: blog post → click "Start your family readiness" → land on `/registration/family` → browser back.
 
----
+## 1. TAV pops up when returning to a blog post
 
-## 1. How per-platform tracking already works (and what we'll harden)
+**Root cause:** `/blog/*` is in `SILENT_ROUTE_PREFIXES` so TAV never *auto-opens* there. But `/registration/family` is NOT silent — TAV auto-opens there (it's a journey touchpoint). TAV's `isOpen` lives in `TavaraStateContext` and persists across navigation, so when the user hits Back to `/blog/...`, the panel is still open from the registration page.
 
-The `SocialSharePanel` already builds platform-stamped URLs via `buildSocialUtmUrl`. Your example link:
+**Fix (in `TavaraAssistantPanel.tsx` only):** Add a new effect that runs on `location.pathname` change. If the new route is a silent route (`/blog/*`, `/dashboard/*`, `/`) AND `state.isOpen` is true AND the panel was not user-opened on this route, call `closePanel()` and clear `showGreeting`. This preserves: explicit user opens on blog (clicking the bubble still works), demo mode (exempt from silent rules), and TAV's behavior on every non-silent route.
 
-```
-?utm_source=facebook&utm_medium=social&utm_campaign=family-readiness&utm_content=planning-financial-future-care-fb
-```
+No changes to `useTavaraState`, no global guardrail edits, no provider edits.
 
-Each platform copy generates its own URL with `utm_source=facebook|whatsapp|linkedin|instagram|tiktok`, and every copy is logged to `social_share_links` (post_id, platform, campaign, content_slug, full_url, caption, generated_by, copied_at).
+## 2. Back from CTA scrolls to top of blog instead of CTA position
 
-**Hardening work:**
-- Ensure GA4 receives these UTMs on `page_view` (default behavior — verify in DebugView).
-- Add a lightweight `utm_landed` event fire on `BlogPostPage` mount when `utm_source` is present, with `{source, medium, campaign, content, post_slug}`. This gives a clean GA4 dimension independent of session attribution.
-- Persist landed UTMs to `sessionStorage` so downstream conversions (`family_registration_page_view`, `care_assessment_page_view`, `family_matches_view`, `caregiver_assigned`) can attach `first_touch_source/campaign/content` as event params. This is what closes the loop from "Facebook post X" → "family registered."
+**Root cause:** `src/components/common/ScrollToTop.tsx` force-scrolls to `(0,0)` on every `pathname` change, including browser back/forward (POP). This kills the browser's built-in scroll restoration.
 
----
+**Fix (in `ScrollToTop.tsx` only):** Use `useNavigationType()` from `react-router-dom`. Skip the manual scroll when `navigationType === 'POP'` so the browser restores the prior scroll position naturally. PUSH/REPLACE keeps current behavior (scroll to top on forward navigation). Zero impact on any other page — every route already relies on this same component.
 
-## 2. Metrics to watch (and where)
+## 3. Breadcrumb on `/registration/family` should reflect blog origin
 
-**In GA4 (already wired):**
-- `page_view` filtered by `page_location contains /blog/` → reach per platform via `session_source`/`session_campaign`.
-- Funnel: blog → `family_registration_page_view` → `care_assessment_page_view` → `family_matches_view` → `caregiver_assigned` (once dev adds the gtag call).
-- Scroll depth (25/50/75/90) once GTM trigger is added — tells you which posts actually get read vs. bounced.
-- Path exploration from blog title → next page.
+**Constraint:** Project guardrail says do not modify *fields* in `FamilyRegistration.tsx`. The breadcrumb prop is not a form field, but it is in that protected file. I want explicit approval before touching it.
 
-**In Tavara admin (new small dashboard at `/admin/blog/analytics`):**
-Joins `social_share_links` (what we shared) with downstream signals to show per-post-per-platform:
-- Copies generated (proxy for posts published)
-- Landings (`utm_landed` events stored in `cta_engagement_tracking`)
-- CTA clicks per CTA slot (see §3)
-- Registrations attributed (family + professional) within 30-day window
-- Conversion rate = registrations / landings
+**Proposed fix (scoped, minimal):**
+- In `BlogInlineCTA.tsx` and `BlogEndCTABlock.tsx`, when navigating to `/registration/family`, pass `state={{ referringPagePath: '/blog/<slug>', referringPageLabel: '<post title>' }}` via `<Link>`. (These two files are blog-owned, not in the protected zone.)
+- In `FamilyRegistration.tsx`, read `location.state` and, if `referringPagePath` is present AND starts with `/blog/`, prepend that crumb to `breadcrumbItems`. Default behavior (Family Dashboard → Family Registration) is unchanged for every other entry path.
 
-This is the single view to compare Facebook vs. WhatsApp vs. LinkedIn for each post.
+No other registration page is touched, no other breadcrumb on the platform is affected.
 
----
+## Files to edit
 
-## 3. Foolproof CTAs inside every blog post
+1. `src/components/tav/TavaraAssistantPanel.tsx` — add silent-route auto-close effect (~10 lines)
+2. `src/components/common/ScrollToTop.tsx` — skip scroll on POP nav (~3 line change)
+3. `src/components/blog/BlogInlineCTA.tsx` — add `state` to family `<Link>`
+4. `src/components/blog/BlogEndCTABlock.tsx` — add `state` to family `<Link>`
+5. `src/pages/registration/FamilyRegistration.tsx` — read `location.state`, conditionally prepend a blog crumb to `breadcrumbItems` (breadcrumb prop only, no form fields touched)
 
-Today `BlogPostPage` has one optional `cta_label`/`cta_href` aside at the bottom. That's too late and single-audience. Add three CTA placements that fork by audience:
+## Approval needed
 
-**Placement A — Inline mid-article card** (after ~50% scroll, injected by markdown component):
-- "Caring for a parent in Trinidad & Tobago? Start your readiness check" → `/registration/family?utm_inline=blog-mid`
-- "Are you a caregiver? Join our care team" → `/registration/professional?utm_inline=blog-mid`
-
-**Placement B — End-of-article dual CTA block** (replaces current single aside):
-Two side-by-side cards, audience-forked:
-- Family card: headline, one-line benefit, "Start your free family readiness assessment" → `/family/care-assessment`
-- Professional card: headline, "Apply to join Tavara's care team" → `/registration/professional`
-- Both cards carry the inbound UTM forward as `utm_referrer_*` params so the registration funnel keeps attribution.
-
-**Placement C — Sticky bottom bar on mobile only** (dismissible):
-- Single primary CTA chosen by post `category`:
-  - Family-readiness / aging-in-place / caregiver-burnout → family CTA
-  - Caregiver-awareness → professional CTA
-  - Fallback → family CTA
-
-**CTA tracking:**
-Every CTA click fires `blog_cta_click` with `{post_slug, placement: 'mid'|'end-family'|'end-pro'|'sticky', destination, inbound_utm_source, inbound_utm_campaign}` and logs to `cta_engagement_tracking`. This is what the admin dashboard counts.
-
----
-
-## 4. Files to add / change
-
-**New:**
-- `src/components/blog/BlogInlineCTA.tsx` — mid-article dual card
-- `src/components/blog/BlogEndCTABlock.tsx` — end-of-article dual card, replaces current single aside
-- `src/components/blog/BlogStickyMobileCTA.tsx` — dismissible mobile bar
-- `src/lib/blog/attribution.ts` — read/persist inbound UTMs, build forwarded URLs, fire `utm_landed` and `blog_cta_click`
-- `src/pages/admin/BlogAnalyticsPage.tsx` + route entry — per-post-per-platform dashboard
-- `src/hooks/admin/useBlogSocialAnalytics.ts` — joins `social_share_links` with `cta_engagement_tracking`
-
-**Edited (UI/presentation only, per project guardrails):**
-- `src/pages/blog/BlogPostPage.tsx` — mount attribution hook, inject Inline CTA into markdown render, swap aside for `BlogEndCTABlock`, add sticky mobile CTA
-- `src/components/admin/blog/SocialSharePanel.tsx` — add a small "View analytics" link to the new dashboard for this post
-
-**No backend schema changes required** — `social_share_links` and `cta_engagement_tracking` already exist. No edge function changes. No edits to App.tsx routing beyond adding the admin analytics page route (will confirm exact location before editing).
-
----
-
-## 5. What you do per platform when posting
-
-For the example post you pasted:
-
-| Platform | What to copy | Click "Copy caption + link" with platform set to |
-|---|---|---|
-| Facebook | caption + facebook-stamped URL | Facebook |
-| WhatsApp | caption + whatsapp-stamped URL (use Status or broadcast) | WhatsApp |
-| LinkedIn | caption + linkedin-stamped URL | LinkedIn |
-
-Each generates a distinct `utm_source` + `utm_content` (e.g. `-fb`, `-wa`, `-li`), so GA4 and the admin dashboard separate them cleanly. The caption is auto-tuned per platform by the existing edge function.
-
----
-
-## 6. Open questions before I build
-
-1. **Sticky mobile CTA** — keep it (recommended for conversion) or skip to stay minimalist?
-2. **Inline mid-article CTA** — inject automatically at ~50% of content, or only when post body contains a `[!CTA]` directive (author-controlled)?
-3. **Admin dashboard scope** — per-post drilldown only, or also a top-level "all posts × all platforms" grid?
+Item 5 touches the protected `FamilyRegistration.tsx`. Confirm I may modify only its `breadcrumbItems` array (no form fields, no submit logic, no auth) before I implement.
