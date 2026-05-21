@@ -264,18 +264,26 @@ const BlogPostPage = () => {
 
             <div className="prose-editorial prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-table:text-sm">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                {post.body}
+                {bodyFirstHalf || post.body}
               </ReactMarkdown>
+
+              {bodySecondHalf && <BlogInlineCTA postSlug={post.slug} />}
+
+              {bodySecondHalf && (
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                  {bodySecondHalf}
+                </ReactMarkdown>
+              )}
             </div>
 
+            <BlogEndCTABlock postSlug={post.slug} />
+
             {post.cta_label && post.cta_href && (
-              <aside className="mt-12 p-6 md:p-8 rounded-lg bg-primary-100/40 border border-primary-200">
-                <h2 className="text-xl font-semibold mb-2">Ready when you are</h2>
-                <p className="text-muted-foreground mb-4">
-                  Tavara is a care coordination platform serving families across Trinidad & Tobago.
-                  Start at the pace that's right for your home.
+              <aside className="mt-8 p-5 rounded-lg bg-muted/40 border border-border">
+                <p className="text-sm text-muted-foreground mb-3">
+                  Editor's note from the author:
                 </p>
-                <Button asChild>
+                <Button asChild variant="outline" size="sm">
                   <Link to={post.cta_href}>{post.cta_label}</Link>
                 </Button>
               </aside>
