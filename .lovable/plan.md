@@ -1,39 +1,55 @@
-## Two small responsive polish fixes (presentation only)
+## Make the reader "copy link" share a clean tavara.care URL
 
-### 1. Mobile hero — content sits too high
+You picked the tradeoff: clean link in WhatsApp/iMessage, accept that the link preview card will fall back to the sitewide Open Graph defaults (Tavara name + sitewide image) instead of the per-article title/image.
 
-`src/pages/Index.tsx` lines 420 + 465: the hero is `h-screen` with `flex flex-col items-center justify-center`. Because the sticky nav (~56px) sits above this `100vh` block, the geometric center of the section falls above the visible center of the viewport on phones, so the H1 "Find a Caregiver…" reads high and the CTAs drift down.
+### What changes
 
-**Change:**
-- Section: `h-screen` → `min-h-[calc(100vh-56px)] h-[calc(100vh-56px)] md:h-screen` so the centered column is centered in the *visible* area on mobile/tablet (nav offset accounted for), while desktop keeps the full-bleed `h-screen` look.
-- Content wrapper (line 465): add `pt-8 md:pt-0` to give the headline a little breathing room from the top edge on small screens without nudging desktop.
+**File:** `src/lib/blog/shareUrl.ts`
 
-No copy, color, font, animation, or video logic changes.
+Point `getBlogShareUrl` at the canonical article URL on tavara.care instead of the Supabase edge function. The UTM helper keeps working unchanged because it just decorates whatever base URL is returned.
 
-### 2. Tablet nav — Tavara logo + "It takes a village to care" squeezed
+```text
+// Before
+export function getBlogShareUrl(slug: string): string {
+  return `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/blog-share/${slug}`;
+}
 
-`src/components/layout/Navigation.tsx` lines 126–134: the brand block uses `flex-col sm:flex-row` and the tagline shows from `sm` upward with only `sm:ml-2`. On tablet widths (md, ~768–1023px) the full horizontal menu starts competing for space, crushing the logo + tagline together before the mobile menu kicks in at `lg`.
+// After
+export function getBlogShareUrl(slug: string): string {
+  return `https://tavara.care/blog/${slug}`;
+}
+```
 
-**Changes (lines 126–134 only):**
-- Brand row: `flex items-center flex-col sm:flex-row` → `flex items-center flex-col sm:flex-row sm:gap-3 min-w-0 shrink-0`.
-- Logo: `h-6 w-auto sm:h-7` → `h-6 w-auto sm:h-7 shrink-0`.
-- Tagline: hide at the cramped tablet range and bring it back at `lg` where the row layout has room — `text-xs text-gray-600 italic sm:ml-2` → `hidden lg:inline text-xs text-gray-600 italic lg:ml-0 whitespace-nowrap`. Mobile already stacks the tagline below the logo via `flex-col`, so `hidden lg:inline` only affects the squeeze zone.
+Drop the now-unused `SUPABASE_PROJECT_ID` constant and its import-meta env read in the same file. Update the docblock to reflect the new behavior (clean human link, helmet-based preview, sitewide OG fallback on non-JS crawlers).
 
-Net effect: phone keeps stacked logo + tagline; tablet shows just the clean logo (matches the existing tight-space pattern); desktop (`lg+`) shows logo + tagline inline with proper gap.
+### What still works the same
+
+- Reader's "Copy to share" button on `BlogPostPage.tsx` still copies a UTM-stamped URL — now `https://tavara.care/blog/<slug>?utm_source=share-button&utm_medium=blog-share&utm_campaign=<slug>&utm_content=copy-button`.
+- Tracking: `trackBlogCtaClick({ placement: "public-copy-share" })` still fires; the landing on the article still fires `blog_utm_landed` because the URL carries UTMs.
+- Admin "Copy share link" buttons (`AdminBlogEditorPage.tsx`) use the same helper, so they also get the clean URL.
+- The `blog-share` edge function is left in place and continues to work for any older share URLs already in the wild; we just stop generating new ones that point at it.
+
+### What changes for crawlers
+
+- WhatsApp/iMessage/LinkedIn/Slack/Facebook will now show the **sitewide** Open Graph card from `index.html` (Tavara logo + default description), not the per-article card. That's the explicit tradeoff you chose.
+- Google and other JS-executing crawlers still see the per-article meta via react-helmet-async on the SPA route, so SEO is unaffected.
+
+### Out of scope (left untouched, per protected-files rules)
+
+- `supabase/functions/blog-share/index.ts` — unchanged; old shares still resolve.
+- `BlogPostPage.tsx`, `BlogInlineCTA.tsx`, `BlogEndCTABlock.tsx`, `BlogStickyMobileCTA.tsx` — unchanged.
+- `attribution.ts`, `PageViewTracker.tsx`, analytics dashboard — unchanged.
+- No DNS, no Supabase custom domain, no edge function redeploy.
+
+### Verification after build
+
+1. Open any blog post (e.g. `/blog/senior-care-costs-trinidad-tobago-2026`), click the share button.
+2. Toast confirms copied, paste somewhere: URL reads `https://tavara.care/blog/senior-care-costs-trinidad-tobago-2026?utm_source=share-button&utm_medium=blog-share&utm_campaign=...&utm_content=copy-button`.
+3. Paste into WhatsApp — preview card shows the sitewide Tavara OG (expected).
+4. Click the preview from another device — lands on the article, `cta_engagement_tracking` records a `blog_utm_landed` row with `utm_source=share-button`.
 
 ### Files
 
-- `src/pages/Index.tsx` — two class-string tweaks on the hero section + content wrapper.
-- `src/components/layout/Navigation.tsx` — three class-string tweaks on the brand block.
+- `src/lib/blog/shareUrl.ts` — body of `getBlogShareUrl`, remove unused const, refresh docblock. ~10-line diff.
 
-### Out of scope (protected)
-
-No changes to routes, AuthProvider, registration, chat flow, nav links, hero video logic, role CTAs, copy, or design tokens.
-
-### Verification
-
-- 390×844 (mobile): H1 reads visually centered, "It takes a village to care" tagline still appears under the logo in the nav (stacked).
-- 820×1180 (tablet): nav shows logo only (no squeeze), hero centers cleanly above the fold minus nav.
-- ≥1024px: nav shows logo + tagline inline with gap; hero unchanged.
-
-Note: visual class-only tweaks like these can also be made for free via Visual Edits (select element → adjust). I'll still ship them in code so they persist across both breakpoints.
+Reminder: visual-only tweaks like this kind of swap can be made for free via Visual Edits when they're literal text/color changes — for logic like this, code edit is the right call.
