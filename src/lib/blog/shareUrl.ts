@@ -1,23 +1,20 @@
 /**
- * Build a crawler-friendly share URL for a blog post.
+ * Build a reader-friendly share URL for a blog post.
  *
- * The share URL points at the `blog-share` Supabase Edge Function, which
- * returns static HTML with article-specific Open Graph + Twitter Card meta
- * tags. Social crawlers (WhatsApp, iMessage, LinkedIn, Slack, Facebook,
- * Telegram, Discord) do not execute JavaScript, so they cannot read the
- * tags injected by react-helmet-async on the SPA route. The edge function
- * serves them pre-rendered HTML and instantly redirects humans to the
- * clean article URL on tavara.care.
+ * Share links point directly at the canonical article on tavara.care so the
+ * URL reads cleanly when pasted into WhatsApp, iMessage, LinkedIn, etc.
  *
- * Use `getBlogShareUrl(slug)` for any "copy link to share" action.
- * Use `/blog/{slug}` (tavara.care) for any in-app link or human-facing
- * navigation.
+ * Tradeoff: non-JS social crawlers (WhatsApp, iMessage, LinkedIn, Slack,
+ * Facebook) will show the sitewide Open Graph card from index.html rather
+ * than the per-article card, because they cannot execute the SPA's
+ * react-helmet-async meta injection. JS-executing crawlers (Googlebot)
+ * still see the per-article meta, so SEO is unaffected.
+ *
+ * Use `getBlogShareUrl(slug)` (or the UTM-stamped variant below) for any
+ * "copy link to share" action and for in-app human-facing share buttons.
  */
-const SUPABASE_PROJECT_ID =
-  import.meta.env.VITE_SUPABASE_PROJECT_ID ?? 'cpdfmyemjrefnhddyrck';
-
 export function getBlogShareUrl(slug: string): string {
-  return `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/blog-share/${slug}`;
+  return `https://tavara.care/blog/${slug}`;
 }
 
 export function getBlogArticleUrl(slug: string): string {
@@ -25,10 +22,10 @@ export function getBlogArticleUrl(slug: string): string {
 }
 
 /**
- * Same crawler-friendly share URL, but stamped with UTM params so reader-driven
- * shares are attributable in GA4 and in the admin blog analytics dashboard.
- * Per-platform attribution is best-effort (we can't know if the paste landed in
- * WhatsApp vs. LinkedIn), but it cleanly separates reader shares from direct.
+ * Same clean share URL, stamped with UTM params so reader-driven shares are
+ * attributable in GA4 and in the admin blog analytics dashboard. Per-platform
+ * attribution is best-effort (we can't know if the paste landed in WhatsApp
+ * vs. LinkedIn), but it cleanly separates reader shares from direct.
  */
 export function getBlogShareUrlWithUtm(slug: string): string {
   const base = getBlogShareUrl(slug);
