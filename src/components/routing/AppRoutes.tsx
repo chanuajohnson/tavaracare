@@ -229,6 +229,7 @@ export const AppRoutes = () => {
       <Route path="/admin/lifecycle-cost" element={<LifecycleCostPage />} />
       <Route path="/admin/pricing-catalog" element={<AdminPricingCatalogPage />} />
       <Route path="/admin/blog" element={<AdminBlogPage />} />
+      <Route path="/admin/blog/analytics" element={<BlogAnalyticsLeaderboardPage />} />
       <Route path="/admin/blog/:id" element={<AdminBlogEditorPage />} />
       <Route path="/admin/blog/:postId/analytics" element={<BlogAnalyticsPage />} />
       <Route path="/admin/language-guardrails" element={<AdminLanguageGuardrailsPage />} />
