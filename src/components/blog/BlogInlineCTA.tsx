@@ -20,7 +20,7 @@ export function BlogInlineCTA({ postSlug }: Props) {
     void trackBlogCtaClick({ postSlug, placement, destination });
   };
 
-  const familyHref = buildCtaDestination("/registration/family", "inline-family", postSlug);
+  const familyHref = buildCtaDestination("/family/readiness-quiz", "inline-family", postSlug);
   const proHref = buildCtaDestination(
     "/registration/professional",
     "inline-professional",
