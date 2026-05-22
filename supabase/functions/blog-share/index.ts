@@ -148,13 +148,13 @@ Deno.serve(async (req) => {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${safe.title}</title>
   <meta name="description" content="${safe.description}" />
-  <link rel="canonical" href="${safe.target}" />
+  <link rel="canonical" href="${safe.canonical}" />
 
   <meta property="og:site_name" content="Tavara" />
   <meta property="og:type" content="article" />
   <meta property="og:title" content="${safe.title}" />
   <meta property="og:description" content="${safe.description}" />
-  <meta property="og:url" content="${safe.target}" />
+  <meta property="og:url" content="${safe.canonical}" />
   <meta property="og:image" content="${safe.image}" />
   <meta property="og:image:secure_url" content="${safe.image}" />
   <meta property="og:image:width" content="1200" />
@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
     <strong>${safe.titleRaw}</strong><br />
     ${safe.description}
   </p>
-  <p><a href="${safe.target}">Read the full article on Tavara</a></p>
+  <p><a href="${safe.redirectTarget}">Read the full article on Tavara</a></p>
 </body>
 </html>`;
 
