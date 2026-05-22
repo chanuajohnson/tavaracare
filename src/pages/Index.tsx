@@ -417,7 +417,7 @@ const Index = () => {
         ]}
       />
       {/* Hero Video Section - No top padding, starts immediately */}
-      <section className="relative h-screen w-full overflow-hidden">
+      <section className="relative h-[calc(100vh-56px)] md:h-screen w-full overflow-hidden">
         {/* Primary Video */}
         <video
           ref={primaryVideoRef}
@@ -462,7 +462,7 @@ const Index = () => {
         <div className="absolute inset-0 bg-black/40 z-20"></div>
 
         {/* Content Overlay */}
-        <div className="relative z-30 flex flex-col items-center justify-center h-full text-center px-4">
+        <div className="relative z-30 flex flex-col items-center justify-center h-full text-center px-4 pt-8 md:pt-0">
           {/* Main Heading — keyword-rich H1 for SEO */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}

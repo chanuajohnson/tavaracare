@@ -1,70 +1,39 @@
-## Two small, scoped changes
+## Two small responsive polish fixes (presentation only)
 
-### 1. Mobile sticky CTA → readiness quiz (correct journey order)
+### 1. Mobile hero — content sits too high
 
-The family journey is: **Readiness Quiz → Family Registration → Care Needs Assessment → …**
+`src/pages/Index.tsx` lines 420 + 465: the hero is `h-screen` with `flex flex-col items-center justify-center`. Because the sticky nav (~56px) sits above this `100vh` block, the geometric center of the section falls above the visible center of the viewport on phones, so the H1 "Find a Caregiver…" reads high and the CTAs drift down.
 
-Today, `BlogStickyMobileCTA.tsx` sends the family audience to `/family/care-assessment`, which jumps two steps ahead. The inline + end-of-article CTAs on the blog already direct readers into the readiness flow; the mobile sticky bar should match.
+**Change:**
+- Section: `h-screen` → `min-h-[calc(100vh-56px)] h-[calc(100vh-56px)] md:h-screen` so the centered column is centered in the *visible* area on mobile/tablet (nav offset accounted for), while desktop keeps the full-bleed `h-screen` look.
+- Content wrapper (line 465): add `pt-8 md:pt-0` to give the headline a little breathing room from the top edge on small screens without nudging desktop.
 
-**Change (single line, `src/components/blog/BlogStickyMobileCTA.tsx` line 45):**
+No copy, color, font, animation, or video logic changes.
 
-```text
-baseHref = audience === "professional"
-  ? "/registration/professional"
-  : "/family/readiness-quiz"     // was: /family/care-assessment
-```
+### 2. Tablet nav — Tavara logo + "It takes a village to care" squeezed
 
-Everything else stays: UTM/attribution wrapping via `buildCtaDestination`, `trackBlogCtaClick({ placement: "sticky-mobile" })`, dismissible bar, "Back to article" breadcrumb state for the family path.
+`src/components/layout/Navigation.tsx` lines 126–134: the brand block uses `flex-col sm:flex-row` and the tagline shows from `sm` upward with only `sm:ml-2`. On tablet widths (md, ~768–1023px) the full horizontal menu starts competing for space, crushing the logo + tagline together before the mobile menu kicks in at `lg`.
 
-No changes to inline/end CTAs (they already point to the readiness flow), no changes to attribution tracking, no changes to the professional path.
+**Changes (lines 126–134 only):**
+- Brand row: `flex items-center flex-col sm:flex-row` → `flex items-center flex-col sm:flex-row sm:gap-3 min-w-0 shrink-0`.
+- Logo: `h-6 w-auto sm:h-7` → `h-6 w-auto sm:h-7 shrink-0`.
+- Tagline: hide at the cramped tablet range and bring it back at `lg` where the row layout has room — `text-xs text-gray-600 italic sm:ml-2` → `hidden lg:inline text-xs text-gray-600 italic lg:ml-0 whitespace-nowrap`. Mobile already stacks the tagline below the logo via `flex-col`, so `hidden lg:inline` only affects the squeeze zone.
 
-### 2. TAV: minimal bubble everywhere, opens only on deliberate click
-
-Today only `/`, `/dashboard/*`, and `/blog/*` are in `SILENT_ROUTE_PREFIXES` inside `src/components/tav/TavaraAssistantPanel.tsx` (lines 71–75). On every other route TAV auto-greets, auto-opens after a delay, and re-opens on navigation touchpoints + when nudges arrive — that's the disruptive popup you're seeing.
-
-The blog behavior you want everywhere is exactly the existing "silent route" path: bubble renders, indicator/nudge count still updates, panel only opens when the user clicks the bubble (or uses Footer's `openPanel`).
-
-**Change (`src/components/tav/TavaraAssistantPanel.tsx`):**
-
-Replace the prefix list with a single global flag so every non-demo route is silent:
-
-```text
-// Before
-const SILENT_ROUTE_PREFIXES = ['/dashboard', '/blog'];
-const isSilentRoute = !isDemoMode && (
-  location.pathname === '/' ||
-  SILENT_ROUTE_PREFIXES.some(p => location.pathname === p || location.pathname.startsWith(p + '/'))
-);
-
-// After
-// TAV is silent site-wide: bubble stays clickable, panel only opens on
-// deliberate user action. Demo routes remain exempt so guided demos keep
-// their auto-open behavior.
-const isSilentRoute = !isDemoMode;
-```
-
-Everything downstream already respects `isSilentRoute`:
-- Session auto-greeting effect (line 148) → skipped
-- Navigation touchpoint auto-greeting (line 210) → skipped
-- Auto-close when arriving on a silent route (line 241) → still closes any lingering panel
-- Nudge auto-open (line 249) → skipped (bubble badge still updates via `markNudgesAsRead` / nudge fetch)
-
-Demo routes (`/demo/*`, `/tav-demo`) continue to auto-open because `isDemoMode` short-circuits the flag — important for the guided demo experiences.
-
-### What stays untouched
-
-- Chat flow engine, registration flows, `FamilyRegistration.tsx`, AuthProvider, AppRoutes, layout/navigation — all protected files unchanged.
-- TAV state machine, nudge service, Supabase calls, role detection, demo mode logic.
-- Blog inline + end CTAs, share-link UTM forwarding, analytics dashboard, leaderboard.
-- Footer's "Open TAV" entry point still works (calls `openPanel()` directly).
+Net effect: phone keeps stacked logo + tagline; tablet shows just the clean logo (matches the existing tight-space pattern); desktop (`lg+`) shows logo + tagline inline with proper gap.
 
 ### Files
 
-- `src/components/blog/BlogStickyMobileCTA.tsx` — one-line `baseHref` change.
-- `src/components/tav/TavaraAssistantPanel.tsx` — replace `SILENT_ROUTE_PREFIXES` with site-wide silent flag (≈4 lines).
+- `src/pages/Index.tsx` — two class-string tweaks on the hero section + content wrapper.
+- `src/components/layout/Navigation.tsx` — three class-string tweaks on the brand block.
 
-### Verification after build
+### Out of scope (protected)
 
-1. Mobile blog post (non-professional category) → tap "Start family readiness" → lands on `/family/readiness-quiz?utm_*` with "Back to article" breadcrumb.
-2. Any non-demo route (home, registration, care plan, admin, etc.) → TAV bubble appears bottom-right but panel does NOT auto-open; clicking the bubble opens it as before.
-3. `/demo/family-registration` (or `/tav-demo`) → auto-open still fires (demo mode exempt).
+No changes to routes, AuthProvider, registration, chat flow, nav links, hero video logic, role CTAs, copy, or design tokens.
+
+### Verification
+
+- 390×844 (mobile): H1 reads visually centered, "It takes a village to care" tagline still appears under the logo in the nav (stacked).
+- 820×1180 (tablet): nav shows logo only (no squeeze), hero centers cleanly above the fold minus nav.
+- ≥1024px: nav shows logo + tagline inline with gap; hero unchanged.
+
+Note: visual class-only tweaks like these can also be made for free via Visual Edits (select element → adjust). I'll still ship them in code so they persist across both breakpoints.

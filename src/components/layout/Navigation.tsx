@@ -123,15 +123,15 @@ export function Navigation() {
     <>
       <nav className="sticky top-0 z-50 bg-background border-b py-3 px-4 sm:px-6">
         <div className="container mx-auto flex justify-between items-center">
-          <div className="flex items-center flex-col sm:flex-row">
+          <div className="flex items-center flex-col sm:flex-row sm:gap-3 min-w-0 shrink-0">
             <Link to="/" className="flex items-center">
               <img 
                 src="/TAVARACARElogo.JPG"
                 alt="Tavara Care — care coordination platform" 
-                className="h-6 w-auto sm:h-7"
+                className="h-6 w-auto sm:h-7 shrink-0"
               />
             </Link>
-            <span className="text-xs text-gray-600 italic sm:ml-2">It takes a village to care</span>
+            <span className="hidden lg:inline text-xs text-gray-600 italic whitespace-nowrap">It takes a village to care</span>
           </div>
           
           {/* Mobile menu button */}
