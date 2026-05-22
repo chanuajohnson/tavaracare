@@ -1,65 +1,82 @@
-# Add top-of-article CTA + clarify the "Copy share link" button
+# DB verification + Step 2a (sticky mobile) + Step 3 (dashboard) + Step 4 (fix blog-share UTM stripping)
 
-## Part 1: What the "Copy share link" button actually tracks
+## Verification results (last 2h, senior-care-costs post)
 
-Short answer: **right now, nothing.**
+| Event | Source / Placement | Status |
+|---|---|---|
+| `blog_utm_landed` | `utm_source=facebook` | Fires (2 landings) |
+| `blog_cta_click` | `placement=top-family`, inbound `facebook` | Fires |
+| `blog_cta_click` | `placement=public-copy-share`, inbound `facebook` | Fires |
+| `family_registration_page_view` | — | Not seen — verify `PageViewTracker` UTM forwarding in Step 3d |
 
-The button copies a URL built by `getBlogShareUrl(slug)`, which points at the `blog-share` Supabase Edge Function. That function exists to serve rich Open Graph + Twitter Card previews to social crawlers (WhatsApp, iMessage, LinkedIn, Slack, Facebook) since those crawlers don't run JavaScript and can't read the SPA meta tags. It redirects humans to the canonical article URL.
+Three of four fired. Plumbing is mostly correct. But the screenshot of `cpdfmyemjrefnhddyrck.supabase.co/.../blog-share` exposes a real attribution leak — see Step 4.
 
-Crucially:
-- It does NOT stamp UTM parameters
-- It does NOT insert a row into `social_share_links`
-- It does NOT fire a `cta_engagement_tracking` event
-- It does NOT distinguish a copy by an admin vs. a copy by a reader
+## Step 4 — Fix `blog-share` edge function UTM stripping (NEW, highest priority)
 
-So any link copied via that button shows up in GA4 as **direct / (none)** traffic, with zero per-platform attribution. The admin-only `SocialSharePanel` (the one we built with `buildSocialUtmUrl`) is the only path that produces tracked, per-platform share links.
+**What's wrong in the screenshot:**
 
-### Two ways to fix this — pick one
+The edge function returns HTML with OG/Twitter meta tags for crawlers, then redirects humans via:
 
-**Option A: Make "Copy share link" a tracked share (recommended).**
-- Stamp the copied URL with `utm_source=share-button`, `utm_medium=blog-share`, `utm_campaign=<post-slug>`, `utm_content=copy-button`
-- Fire a `cta_engagement_tracking` row with `placement=public-copy-share` so it appears in `/admin/blog/:postId/analytics`
-- Per-platform attribution still won't be perfect (we can't know if the reader pasted into WhatsApp vs. LinkedIn), but at least we'll know shares originated from a reader, not from the admin panel.
+```html
+<meta http-equiv="refresh" content="0;url=https://tavara.care/blog/senior-care-costs-trinidad-tobago-2026" />
+<script>window.location.replace("https://tavara.care/blog/senior-care-costs-trinidad-tobago-2026");</script>
+```
 
-**Option B: Keep it untracked, but rename and de-emphasize.**
-- Leave it as a quiet utility for personal sharing, no metrics promise. No code change beyond a tooltip clarification.
+Both targets are **hard-coded with no query string**. So when someone clicks a Facebook share that points at `…/blog-share/<slug>?utm_source=facebook&utm_medium=social&utm_campaign=…`, the edge function:
 
-I recommend **Option A** because it closes the only blind spot in the reader → share funnel and feeds the same dashboard you already have.
+1. ✅ Serves the right OG card to the FB crawler
+2. ❌ Throws away every UTM param when redirecting the human to `tavara.care`
 
-## Part 2: Add a top-of-article Family/Caregiver CTA
+That's why our verified `blog_utm_landed` rows only happen when the link points **directly** at `tavara.care/blog/...?utm_source=...` (the admin panel `SocialSharePanel` does this). The moment a link routes through `blog-share` — which is what Open Graph crawlers use and what most paste-and-share flows produce — UTMs evaporate.
 
-Some readers don't scroll past the first screen. Right now the first dual CTA appears at the ~50% paragraph boundary. Add a third placement at the very top.
+**Other issues visible in that HTML:**
 
-### Where it goes
+- The redirect uses the production domain hardcoded; fine for now, but worth confirming it matches the `PRODUCTION_BASE_URL` constant.
+- `og:url` is also hardcoded without UTMs, which is actually correct (canonical should be clean) — leave it alone.
 
-A new `BlogTopCTA` component, rendered in `BlogPostPage.tsx` immediately **after the article header (title + description + author row) and before `BlogAudioPlayer`**. That position keeps the headline above the fold but puts the audience-fork card visible on the first scroll for most desktop viewports.
+**Fix (in `supabase/functions/blog-share/index.ts`):**
 
-### What it looks like
+1. Parse the incoming request URL's `searchParams`.
+2. Build the destination URL with the canonical path **plus** the original query string forwarded as-is: `https://tavara.care/blog/${slug}${incomingSearch}`.
+3. Use that forwarded URL in both the `<meta http-equiv="refresh">` and the `window.location.replace(...)` call.
+4. Keep `og:url` clean (no UTMs) — that's the canonical for crawlers.
 
-Same dual-card pattern as `BlogInlineCTA` (For Families / For Caregivers), but visually lighter and tighter:
-- Single horizontal bar on desktop (two pills side by side), stacked on mobile
-- Smaller height than the mid-article card so it doesn't push the article body down too far
-- Same attribution: forwards inbound UTMs via `buildCtaDestination` and fires `trackBlogCtaClick` with new `placement` values `top-family` and `top-professional`
-- Same destinations: `/registration/family` (with `referringPagePath` state for the blog breadcrumb) and `/registration/professional`
+After deploy, retest: share a `blog-share` link with `?utm_source=facebook` → open in incognito → confirm a `blog_utm_landed` row with `utm_source=facebook`. This single fix probably doubles measured social attribution.
 
-### Why this is safe
+## Step 2a — `BlogStickyMobileCTA` breadcrumb state
 
-- No change to existing inline mid-article or end-of-article CTAs
-- New `placement` strings extend, not replace, the existing analytics enum, so the admin dashboard at `/admin/blog/:postId/analytics` will just show three placements per post instead of two
-- No layout regression: the new component is `not-prose` so it doesn't interact with the article typography
+Already wired for tracking. Only missing piece: pass `state={{ referringPagePath: '/blog/${postSlug}', referringPageLabel: 'Back to article' }}` on the family-audience `<Link>` so the registration breadcrumb shows the same "Back to article" entry as inline/end CTAs. 2-line change.
+
+## Step 3 — Dashboard polish (`/admin/blog/:postId/analytics`)
+
+**3a. Two new ratio columns per platform**
+- **Engage %** = `ctaClicks / landings`
+- **Convert %** = `registrations / landings` (already computed; just expose)
+
+**3b. 30-day landings sparkline**
+Bucket `blog_utm_landed` by day, return `daily: { date, landings }[]`. Render inline 60px sparkline above the platform table.
+
+**3c. All-posts leaderboard at `/admin/blog/analytics`**
+Group last-90d events by `post_slug`, join `blog_posts` for titles, show landings / clicks / registrations / convert %, link each row to its detail page. Add "View leaderboard" link from `/admin/blog`.
+
+**3d. Verify `PageViewTracker` forwards `utm_referrer_*`**
+Quick read of `src/components/tracking/PageViewTracker.tsx`. If it doesn't currently push `utm_referrer_source/campaign/content` into `additional_data` on registration page views, add the 3-line fix. This explains the missing `family_registration_page_view` row in verification.
 
 ## Files
 
-**Part 1 (Option A, if approved):**
-- `src/pages/blog/BlogPostPage.tsx` — change `handleCopyShareLink` to stamp UTMs and fire the engagement event
-- `src/lib/blog/shareUrl.ts` — add an optional `withUtm` helper that appends `utm_source=share-button&utm_medium=blog-share&utm_campaign=<slug>&utm_content=copy-button`
+- `supabase/functions/blog-share/index.ts` — forward query string in both redirect paths (4)
+- `src/components/blog/BlogStickyMobileCTA.tsx` — breadcrumb `state` on family link (2a)
+- `src/hooks/admin/useBlogSocialAnalytics.ts` — daily series + engage ratio (3a, 3b)
+- `src/pages/admin/BlogAnalyticsPage.tsx` — sparkline + new columns (3a, 3b)
+- `src/pages/admin/BlogAnalyticsLeaderboardPage.tsx` *(new)* — leaderboard (3c)
+- `src/components/routing/AppRoutes.tsx` — one route entry (3c)
+- `src/components/tracking/PageViewTracker.tsx` — UTM referrer forwarding, only if missing (3d)
 
-**Part 2:**
-- `src/components/blog/BlogTopCTA.tsx` — new component (mirrors BlogInlineCTA structure, compressed visual)
-- `src/components/blog/BlogInlineCTA.tsx` — extend `BlogCtaPlacement` type to include `top-family` / `top-professional` (if it's a typed union)
-- `src/lib/blog/attribution.ts` — same placement union extension if defined there
-- `src/pages/blog/BlogPostPage.tsx` — render `<BlogTopCTA postSlug={post.slug} />` between the header `</header>` and `<BlogAudioPlayer />`
+No changes to: chat flow, registration forms, auth, layout, navigation, or any protected file.
 
-## Open question
+## Test loop after deploy
 
-Do you want me to do **Option A** for the share button as well, or just the top CTA in this round?
+1. Open `https://cpdfmyemjrefnhddyrck.supabase.co/functions/v1/blog-share/senior-care-costs-trinidad-tobago-2026?utm_source=facebook&utm_medium=social&utm_campaign=test` in incognito → confirm landing URL is `tavara.care/blog/...?utm_source=facebook&utm_medium=social&utm_campaign=test` and a `blog_utm_landed` row appears.
+2. On mobile width, click sticky CTA → breadcrumb shows "Back to article".
+3. `/admin/blog/:postId/analytics` shows sparkline + Engage % + Convert %.
+4. `/admin/blog/analytics` shows leaderboard with today's senior-care post ranked.
