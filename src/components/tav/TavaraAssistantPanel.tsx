@@ -66,13 +66,11 @@ export const TavaraAssistantPanel: React.FC = () => {
   const dashboardRole = location.pathname === '/dashboard/family' ? 'family' : 
                        location.pathname === '/dashboard/professional' ? 'professional' : null;
 
-  // SILENT ROUTES: high-traffic pages where TAV must not auto-open. Bubble still
-  // renders and remains clickable; demo mode is exempt so demos keep auto-open.
-  const SILENT_ROUTE_PREFIXES = ['/dashboard', '/blog'];
-  const isSilentRoute = !isDemoMode && (
-    location.pathname === '/' ||
-    SILENT_ROUTE_PREFIXES.some(p => location.pathname === p || location.pathname.startsWith(p + '/'))
-  );
+  // TAV is silent site-wide: bubble stays clickable and badges still update,
+  // but the panel only opens on deliberate user action (click bubble or Footer
+  // "Open TAV" entry point). Demo routes remain exempt so guided demos keep
+  // their auto-open behavior.
+  const isSilentRoute = !isDemoMode;
 
 
   // Get comprehensive journey progress - use direct hooks like professional implementation
