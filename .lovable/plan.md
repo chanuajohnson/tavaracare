@@ -1,55 +1,41 @@
-## Make the reader "copy link" share a clean tavara.care URL
+## Problem
 
-You picked the tradeoff: clean link in WhatsApp/iMessage, accept that the link preview card will fall back to the sitewide Open Graph defaults (Tavara name + sitewide image) instead of the per-article title/image.
+Blog CTAs labeled "Start your family readiness" / "Begin family readiness" point to registration or care-assessment, not to the readiness quiz. Only the mobile sticky CTA is already correct.
 
-### What changes
+| Component | Label | Current href | Should be |
+|---|---|---|---|
+| `BlogTopCTA.tsx` | Start your family readiness | `/registration/family` | `/family/readiness-quiz` |
+| `BlogInlineCTA.tsx` | Start your family readiness | `/registration/family` | `/family/readiness-quiz` |
+| `BlogEndCTABlock.tsx` | Begin family readiness | `/family/care-assessment` | `/family/readiness-quiz` |
+| `BlogStickyMobileCTA.tsx` | Start family readiness | `/family/readiness-quiz` | (already correct) |
 
-**File:** `src/lib/blog/shareUrl.ts`
+## Changes
 
-Point `getBlogShareUrl` at the canonical article URL on tavara.care instead of the Supabase edge function. The UTM helper keeps working unchanged because it just decorates whatever base URL is returned.
+Single-line edit in each of the three files — swap the `baseHref` passed to `buildCtaDestination(...)` to `/family/readiness-quiz`. UTM forwarding, attribution, `referringPagePath` router state, and `trackBlogCtaClick` payloads all keep working unchanged because they're independent of the base path.
 
-```text
-// Before
-export function getBlogShareUrl(slug: string): string {
-  return `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/blog-share/${slug}`;
-}
+No changes to:
+- The quiz page itself (`FamilyReadinessQuizPage.tsx`) or `QuizResultCard.tsx`
+- Caregiver-side CTAs (`/registration/professional`)
+- `attribution.ts`, tracking, analytics
 
-// After
-export function getBlogShareUrl(slug: string): string {
-  return `https://tavara.care/blog/${slug}`;
-}
-```
+## Post-quiz flow (confirming, no code change needed)
 
-Drop the now-unused `SUPABASE_PROJECT_ID` constant and its import-meta env read in the same file. Update the docblock to reflect the new behavior (clean human link, helmet-based preview, sitewide OG fallback on non-JS crawlers).
+After the user completes `/family/readiness-quiz`, the result card already drives them onward:
 
-### What still works the same
+- **Anonymous users** → `AnonymousLeadCapture` + "Save your stage" button routes to `/auth?tab=signup&role=family`, which on success lands on `/registration/family` (the standard family signup → registration handoff).
+- **Authenticated users** → "Go to my dashboard" lands on `/dashboard/family`, where the journey card reflects their new stage and surfaces the next family-registration / care-plan step.
 
-- Reader's "Copy to share" button on `BlogPostPage.tsx` still copies a UTM-stamped URL — now `https://tavara.care/blog/<slug>?utm_source=share-button&utm_medium=blog-share&utm_campaign=<slug>&utm_content=copy-button`.
-- Tracking: `trackBlogCtaClick({ placement: "public-copy-share" })` still fires; the landing on the article still fires `blog_utm_landed` because the URL carries UTMs.
-- Admin "Copy share link" buttons (`AdminBlogEditorPage.tsx`) use the same helper, so they also get the clean URL.
-- The `blog-share` edge function is left in place and continues to work for any older share URLs already in the wild; we just stop generating new ones that point at it.
+So the flow the user described (quiz → encourage to register → family registration → journey progress) is already in place; this plan just fixes the entry point so the three blog CTAs actually land on the quiz first.
 
-### What changes for crawlers
+## Verification
 
-- WhatsApp/iMessage/LinkedIn/Slack/Facebook will now show the **sitewide** Open Graph card from `index.html` (Tavara logo + default description), not the per-article card. That's the explicit tradeoff you chose.
-- Google and other JS-executing crawlers still see the per-article meta via react-helmet-async on the SPA route, so SEO is unaffected.
+1. Open any blog post on mobile, scroll, tap "Start your family readiness" in the inline and top CTAs → lands on `/family/readiness-quiz?utm_source=blog&utm_content=inline-family&...`.
+2. Same for end-of-article "Begin family readiness".
+3. Confirm the sticky bottom CTA still works (unchanged).
+4. Complete the quiz as anonymous → result screen → "Save your stage" → `/auth?tab=signup&role=family` → after signup lands on `/registration/family`.
 
-### Out of scope (left untouched, per protected-files rules)
+## Files touched
 
-- `supabase/functions/blog-share/index.ts` — unchanged; old shares still resolve.
-- `BlogPostPage.tsx`, `BlogInlineCTA.tsx`, `BlogEndCTABlock.tsx`, `BlogStickyMobileCTA.tsx` — unchanged.
-- `attribution.ts`, `PageViewTracker.tsx`, analytics dashboard — unchanged.
-- No DNS, no Supabase custom domain, no edge function redeploy.
-
-### Verification after build
-
-1. Open any blog post (e.g. `/blog/senior-care-costs-trinidad-tobago-2026`), click the share button.
-2. Toast confirms copied, paste somewhere: URL reads `https://tavara.care/blog/senior-care-costs-trinidad-tobago-2026?utm_source=share-button&utm_medium=blog-share&utm_campaign=...&utm_content=copy-button`.
-3. Paste into WhatsApp — preview card shows the sitewide Tavara OG (expected).
-4. Click the preview from another device — lands on the article, `cta_engagement_tracking` records a `blog_utm_landed` row with `utm_source=share-button`.
-
-### Files
-
-- `src/lib/blog/shareUrl.ts` — body of `getBlogShareUrl`, remove unused const, refresh docblock. ~10-line diff.
-
-Reminder: visual-only tweaks like this kind of swap can be made for free via Visual Edits when they're literal text/color changes — for logic like this, code edit is the right call.
+- `src/components/blog/BlogTopCTA.tsx` (1 line)
+- `src/components/blog/BlogInlineCTA.tsx` (1 line)
+- `src/components/blog/BlogEndCTABlock.tsx` (1 line)

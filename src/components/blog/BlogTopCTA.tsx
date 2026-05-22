@@ -20,7 +20,7 @@ export function BlogTopCTA({ postSlug }: Props) {
     void trackBlogCtaClick({ postSlug, placement, destination });
   };
 
-  const familyHref = buildCtaDestination("/registration/family", "top-family", postSlug);
+  const familyHref = buildCtaDestination("/family/readiness-quiz", "top-family", postSlug);
   const proHref = buildCtaDestination(
     "/registration/professional",
     "top-professional",
