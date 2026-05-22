@@ -82,11 +82,23 @@ export default function BlogAnalyticsPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle className="text-base">Landings — last 30 days</CardTitle>
+            <CardDescription>
+              Daily blog landings tagged with any inbound UTM source.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Sparkline points={data?.daily ?? []} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle className="text-base">Per-platform performance</CardTitle>
             <CardDescription>
               Landings come from <code>blog_utm_landed</code> events tagged with each
-              platform's <code>utm_source</code>. Registrations are credited back to a
-              platform when the user arrived from a link tagged with that source.
+              platform's <code>utm_source</code>. Engage % = CTA clicks / landings.
+              Convert % = registrations / landings.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -100,8 +112,9 @@ export default function BlogAnalyticsPage() {
                     <TableHead className="text-right">Links</TableHead>
                     <TableHead className="text-right">Landings</TableHead>
                     <TableHead className="text-right">CTA clicks</TableHead>
+                    <TableHead className="text-right">Engage %</TableHead>
                     <TableHead className="text-right">Registrations</TableHead>
-                    <TableHead className="text-right">Conv. %</TableHead>
+                    <TableHead className="text-right">Convert %</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -113,6 +126,9 @@ export default function BlogAnalyticsPage() {
                       <TableCell className="text-right">{row.copies}</TableCell>
                       <TableCell className="text-right">{row.landings}</TableCell>
                       <TableCell className="text-right">{row.ctaClicks}</TableCell>
+                      <TableCell className="text-right">
+                        {row.engageRate.toFixed(1)}%
+                      </TableCell>
                       <TableCell className="text-right">{row.registrations}</TableCell>
                       <TableCell className="text-right">
                         {row.conversionRate.toFixed(1)}%
