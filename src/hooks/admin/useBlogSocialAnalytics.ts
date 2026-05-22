@@ -7,7 +7,13 @@ export interface PlatformMetrics {
   landings: number;
   ctaClicks: number;
   registrations: number;
-  conversionRate: number;
+  engageRate: number; // ctaClicks / landings * 100
+  conversionRate: number; // registrations / landings * 100
+}
+
+export interface DailyLandingPoint {
+  date: string; // YYYY-MM-DD
+  landings: number;
 }
 
 export interface PostSocialAnalytics {
@@ -17,6 +23,7 @@ export interface PostSocialAnalytics {
   totals: PlatformMetrics;
   byPlatform: PlatformMetrics[];
   ctaByPlacement: Record<string, number>;
+  daily: DailyLandingPoint[]; // last 30 days landings
 }
 
 const PLATFORMS = ["facebook", "whatsapp", "linkedin", "instagram", "tiktok"];
