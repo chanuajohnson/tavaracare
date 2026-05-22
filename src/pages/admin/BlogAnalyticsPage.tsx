@@ -82,11 +82,23 @@ export default function BlogAnalyticsPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle className="text-base">Landings — last 30 days</CardTitle>
+            <CardDescription>
+              Daily blog landings tagged with any inbound UTM source.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Sparkline points={data?.daily ?? []} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle className="text-base">Per-platform performance</CardTitle>
             <CardDescription>
               Landings come from <code>blog_utm_landed</code> events tagged with each
-              platform's <code>utm_source</code>. Registrations are credited back to a
-              platform when the user arrived from a link tagged with that source.
+              platform's <code>utm_source</code>. Engage % = CTA clicks / landings.
+              Convert % = registrations / landings.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -100,8 +112,9 @@ export default function BlogAnalyticsPage() {
                     <TableHead className="text-right">Links</TableHead>
                     <TableHead className="text-right">Landings</TableHead>
                     <TableHead className="text-right">CTA clicks</TableHead>
+                    <TableHead className="text-right">Engage %</TableHead>
                     <TableHead className="text-right">Registrations</TableHead>
-                    <TableHead className="text-right">Conv. %</TableHead>
+                    <TableHead className="text-right">Convert %</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -113,6 +126,9 @@ export default function BlogAnalyticsPage() {
                       <TableCell className="text-right">{row.copies}</TableCell>
                       <TableCell className="text-right">{row.landings}</TableCell>
                       <TableCell className="text-right">{row.ctaClicks}</TableCell>
+                      <TableCell className="text-right">
+                        {row.engageRate.toFixed(1)}%
+                      </TableCell>
                       <TableCell className="text-right">{row.registrations}</TableCell>
                       <TableCell className="text-right">
                         {row.conversionRate.toFixed(1)}%
@@ -171,5 +187,43 @@ function KpiCard({ label, value }: { label: string; value: number | string }) {
         <div className="text-2xl font-bold mt-1">{value}</div>
       </CardContent>
     </Card>
+  );
+}
+
+function Sparkline({ points }: { points: { date: string; landings: number }[] }) {
+  if (points.length === 0) {
+    return <p className="text-sm text-muted-foreground">No landings yet.</p>;
+  }
+  const width = 600;
+  const height = 60;
+  const padding = 4;
+  const max = Math.max(1, ...points.map((p) => p.landings));
+  const stepX = (width - padding * 2) / Math.max(1, points.length - 1);
+  const coords = points.map((p, i) => {
+    const x = padding + i * stepX;
+    const y = height - padding - (p.landings / max) * (height - padding * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const path = `M ${coords.join(" L ")}`;
+  const last = points[points.length - 1];
+  const total = points.reduce((acc, p) => acc + p.landings, 0);
+  return (
+    <div className="flex items-center gap-4">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+        className="flex-1 h-16 w-full text-primary"
+        role="img"
+        aria-label="30-day landings sparkline"
+      >
+        <path d={path} fill="none" stroke="currentColor" strokeWidth={2} />
+      </svg>
+      <div className="text-right shrink-0">
+        <div className="text-2xl font-bold">{total}</div>
+        <div className="text-xs text-muted-foreground">
+          30d total · {last.landings} today
+        </div>
+      </div>
+    </div>
   );
 }

@@ -116,9 +116,14 @@ export default function AdminBlogPage() {
               Write, edit, schedule, hide, and publish posts.
             </p>
           </div>
-          <Button onClick={() => navigate("/admin/blog/new")}>
-            <Plus className="h-4 w-4 mr-2" /> New post
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate("/admin/blog/analytics")}>
+              View leaderboard
+            </Button>
+            <Button onClick={() => navigate("/admin/blog/new")}>
+              <Plus className="h-4 w-4 mr-2" /> New post
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">

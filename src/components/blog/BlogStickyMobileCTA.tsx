@@ -65,7 +65,17 @@ export function BlogStickyMobileCTA({ postSlug, category }: Props) {
           className="flex-1"
           onClick={() => void trackBlogCtaClick({ postSlug, placement, destination: href })}
         >
-          <Link to={href}>
+          <Link
+            to={href}
+            state={
+              audience === "family"
+                ? {
+                    referringPagePath: `/blog/${postSlug}`,
+                    referringPageLabel: "Back to article",
+                  }
+                : undefined
+            }
+          >
             {label} <ArrowRight className="ml-1 h-4 w-4" />
           </Link>
         </Button>

@@ -85,8 +85,29 @@ export const PageViewTracker = ({
           hasAdditionalData: Object.keys(additionalData).length > 0
         });
         
+        // Parse UTM params off the current URL so attribution survives into the
+        // analytics dashboard. Both inbound (utm_source on this page) and
+        // referrer (utm_referrer_source carried forward by buildCtaDestination)
+        // are surfaced as top-level keys for the social-analytics hook to match on.
+        const search = new URLSearchParams(location.search);
+        const utmFields: Record<string, string> = {};
+        for (const k of [
+          "utm_source",
+          "utm_medium",
+          "utm_campaign",
+          "utm_content",
+          "utm_term",
+          "utm_referrer_source",
+          "utm_referrer_campaign",
+          "utm_referrer_content",
+        ]) {
+          const v = search.get(k);
+          if (v) utmFields[k] = v;
+        }
+
         await trackEngagement(actionType, {
           ...additionalData,
+          ...utmFields,
           path: location.pathname,
           search: location.search,
           referrer: document.referrer,
