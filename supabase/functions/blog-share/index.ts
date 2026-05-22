@@ -111,7 +111,14 @@ Deno.serve(async (req) => {
       return fallbackHtml(slug, "Article not published yet.");
     }
 
-    const target = `${ARTICLE_BASE}/blog/${post.slug}`;
+    // Canonical (clean) URL — used for og:url and crawlers
+    const canonical = `${ARTICLE_BASE}/blog/${post.slug}`;
+    // Redirect target for humans — forwards the original query string so UTMs
+    // (utm_source=facebook, etc.) survive the hop and the on-site attribution
+    // hook can record `blog_utm_landed` with the right source.
+    const incomingSearch = url.search ?? "";
+    const redirectTarget = `${canonical}${incomingSearch}`;
+
     const title = `${post.title} | Tavara Care`;
     const description = post.description ?? "";
     const image = post.cover_image_url || DEFAULT_OG_IMAGE;
@@ -120,18 +127,19 @@ Deno.serve(async (req) => {
       title: htmlEscape(title),
       description: htmlEscape(description),
       image: htmlEscape(image),
-      target: htmlEscape(target),
+      canonical: htmlEscape(canonical),
+      redirectTarget: htmlEscape(redirectTarget),
       category: htmlEscape(post.category ?? "Care"),
       author: htmlEscape(post.author_name ?? "Tavara"),
       titleRaw: htmlEscape(post.title),
     };
 
     // For bots: serve meta-only, no redirect (some crawlers refuse to follow refresh).
-    // For humans: serve meta + instant redirect to the canonical article URL.
+    // For humans: serve meta + instant redirect to canonical + forwarded UTMs.
     const redirectTags = isBot
       ? ""
-      : `<meta http-equiv="refresh" content="0;url=${safe.target}" />
-  <script>window.location.replace(${JSON.stringify(target)});</script>`;
+      : `<meta http-equiv="refresh" content="0;url=${safe.redirectTarget}" />
+  <script>window.location.replace(${JSON.stringify(redirectTarget)});</script>`;
 
     const html = `<!doctype html>
 <html lang="en">
