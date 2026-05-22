@@ -17,7 +17,7 @@ interface Props {
  * caregiver. Inbound UTMs are forwarded to the registration funnel.
  */
 export function BlogEndCTABlock({ postSlug }: Props) {
-  const familyHref = buildCtaDestination("/family/care-assessment", "end-family", postSlug);
+  const familyHref = buildCtaDestination("/family/readiness-quiz", "end-family", postSlug);
   const proHref = buildCtaDestination(
     "/registration/professional",
     "end-professional",
