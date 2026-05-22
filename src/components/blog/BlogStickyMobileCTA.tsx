@@ -42,7 +42,7 @@ export function BlogStickyMobileCTA({ postSlug, category }: Props) {
   const audience = pickAudience(category);
   const placement: BlogCtaPlacement = "sticky-mobile";
   const baseHref =
-    audience === "professional" ? "/registration/professional" : "/family/care-assessment";
+    audience === "professional" ? "/registration/professional" : "/family/readiness-quiz";
   const href = buildCtaDestination(baseHref, placement, postSlug);
   const label =
     audience === "professional" ? "Join our care team" : "Start family readiness";
