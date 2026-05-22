@@ -69,6 +69,9 @@ export function useBlogSocialAnalytics(postId: string, postSlug: string, postTit
       const ctaClicksByPlatform = new Map<string, number>();
       const ctaByPlacement: Record<string, number> = {};
       const registrationsByPlatform = new Map<string, number>();
+      const landingsByDay = new Map<string, number>();
+
+      const dailyCutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
 
       for (const ev of eventsRes.data ?? []) {
         const data = (ev.additional_data as Record<string, unknown>) ?? {};
@@ -76,6 +79,11 @@ export function useBlogSocialAnalytics(postId: string, postSlug: string, postTit
           if (data.post_slug !== postSlug) continue;
           const src = String(data.utm_source ?? "unknown").toLowerCase();
           landingsByPlatform.set(src, (landingsByPlatform.get(src) ?? 0) + 1);
+          const createdMs = ev.created_at ? new Date(ev.created_at).getTime() : 0;
+          if (createdMs >= dailyCutoff) {
+            const day = new Date(createdMs).toISOString().slice(0, 10);
+            landingsByDay.set(day, (landingsByDay.get(day) ?? 0) + 1);
+          }
         } else if (ev.action_type === "blog_cta_click") {
           if (data.post_slug !== postSlug) continue;
           const src = String(data.inbound_utm_source ?? "direct").toLowerCase();
@@ -110,22 +118,34 @@ export function useBlogSocialAnalytics(postId: string, postSlug: string, postTit
       const byPlatform: PlatformMetrics[] = Array.from(allPlatforms)
         .map((p) => {
           const landings = landingsByPlatform.get(p) ?? 0;
+          const ctaClicks = ctaClicksByPlatform.get(p) ?? 0;
           const registrations = registrationsByPlatform.get(p) ?? 0;
           return {
             platform: p,
             copies: copiesByPlatform.get(p) ?? 0,
             landings,
-            ctaClicks: ctaClicksByPlatform.get(p) ?? 0,
+            ctaClicks,
             registrations,
+            engageRate: landings > 0 ? (ctaClicks / landings) * 100 : 0,
             conversionRate: landings > 0 ? (registrations / landings) * 100 : 0,
           };
         })
         .sort((a, b) => b.landings - a.landings || b.copies - a.copies);
 
-      const sum = (key: keyof Omit<PlatformMetrics, "platform" | "conversionRate">) =>
+      const sum = (key: "copies" | "landings" | "ctaClicks" | "registrations") =>
         byPlatform.reduce((acc, row) => acc + row[key], 0);
       const totalLandings = sum("landings");
+      const totalClicks = sum("ctaClicks");
       const totalRegs = sum("registrations");
+
+      // Build a continuous 30-day series so the sparkline shows zeros, not gaps.
+      const daily: DailyLandingPoint[] = [];
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .slice(0, 10);
+        daily.push({ date: d, landings: landingsByDay.get(d) ?? 0 });
+      }
 
       return {
         postId,
@@ -133,12 +153,14 @@ export function useBlogSocialAnalytics(postId: string, postSlug: string, postTit
         postTitle,
         byPlatform,
         ctaByPlacement,
+        daily,
         totals: {
           platform: "all",
           copies: sum("copies"),
           landings: totalLandings,
-          ctaClicks: sum("ctaClicks"),
+          ctaClicks: totalClicks,
           registrations: totalRegs,
+          engageRate: totalLandings > 0 ? (totalClicks / totalLandings) * 100 : 0,
           conversionRate: totalLandings > 0 ? (totalRegs / totalLandings) * 100 : 0,
         },
       };
