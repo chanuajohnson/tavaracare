@@ -189,3 +189,41 @@ function KpiCard({ label, value }: { label: string; value: number | string }) {
     </Card>
   );
 }
+
+function Sparkline({ points }: { points: { date: string; landings: number }[] }) {
+  if (points.length === 0) {
+    return <p className="text-sm text-muted-foreground">No landings yet.</p>;
+  }
+  const width = 600;
+  const height = 60;
+  const padding = 4;
+  const max = Math.max(1, ...points.map((p) => p.landings));
+  const stepX = (width - padding * 2) / Math.max(1, points.length - 1);
+  const coords = points.map((p, i) => {
+    const x = padding + i * stepX;
+    const y = height - padding - (p.landings / max) * (height - padding * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const path = `M ${coords.join(" L ")}`;
+  const last = points[points.length - 1];
+  const total = points.reduce((acc, p) => acc + p.landings, 0);
+  return (
+    <div className="flex items-center gap-4">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+        className="flex-1 h-16 w-full text-primary"
+        role="img"
+        aria-label="30-day landings sparkline"
+      >
+        <path d={path} fill="none" stroke="currentColor" strokeWidth={2} />
+      </svg>
+      <div className="text-right shrink-0">
+        <div className="text-2xl font-bold">{total}</div>
+        <div className="text-xs text-muted-foreground">
+          30d total · {last.landings} today
+        </div>
+      </div>
+    </div>
+  );
+}
