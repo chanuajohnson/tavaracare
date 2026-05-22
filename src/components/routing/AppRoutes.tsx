@@ -25,6 +25,7 @@ import AdminPricingCatalogPage from "@/pages/admin/AdminPricingCatalogPage";
 import AdminBlogPage from "@/pages/admin/AdminBlogPage";
 import AdminBlogEditorPage from "@/pages/admin/AdminBlogEditorPage";
 import BlogAnalyticsPage from "@/pages/admin/BlogAnalyticsPage";
+import BlogAnalyticsLeaderboardPage from "@/pages/admin/BlogAnalyticsLeaderboardPage";
 import AdminLanguageGuardrailsPage from "@/pages/admin/AdminLanguageGuardrailsPage";
 import MobileScreeningPage from "@/pages/screening/MobileScreeningPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
