@@ -145,12 +145,18 @@ export const AppRoutes = () => {
       <Route path="/blog" element={<BlogIndexPage />} />
       <Route path="/blog/:slug" element={<BlogPostPage />} />
 
-      {/* SEO Landing Pages — Locations */}
+      {/* SEO Landing Pages — Locations (canonical under /care/*) */}
       <Route path="/care/port-of-spain" element={<PortOfSpainPage />} />
       <Route path="/care/san-fernando" element={<SanFernandoPage />} />
       <Route path="/care/arima" element={<ArimaPage />} />
       <Route path="/care/tobago" element={<TobagoPage />} />
       <Route path="/care/diamond-vale" element={<DiamondValePage />} />
+      {/* Aliases under /locations/* so guessed URLs resolve */}
+      <Route path="/locations/port-of-spain" element={<PortOfSpainPage />} />
+      <Route path="/locations/san-fernando" element={<SanFernandoPage />} />
+      <Route path="/locations/arima" element={<ArimaPage />} />
+      <Route path="/locations/tobago" element={<TobagoPage />} />
+      <Route path="/locations/diamond-vale" element={<DiamondValePage />} />
 
       {/* SEO Landing Pages — Services */}
       <Route path="/services/elder-care" element={<ElderCarePage />} />

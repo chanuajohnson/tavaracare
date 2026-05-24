@@ -1,58 +1,39 @@
+## Two bugs found
 
-# Diamond Vale landing page + "Know someone who can benefit from Tavara?" referral post
+### 1. Diamond Vale 404 — route lives at `/care/diamond-vale`, not `/locations/diamond-vale`
 
-Two shareable assets your friend (and anyone else) can drop into a WhatsApp group. One is location-anchored to Diamond Vale; the other is evergreen and works for every community.
+All location pages are registered under `/care/*` (e.g. `/care/arima`, `/care/tobago`, `/care/port-of-spain`). But `NotFound.tsx` advertises the suggested paths as `/locations/diamond-vale`, which is the wrong prefix. The preview iframe is loading `/locations/diamond-vale` and 404'ing.
 
-## 1. New location page: `/care/diamond-vale`
+The friendly intuition ("locations") is reasonable — the sitemap should support both. Fix:
 
-Mirror the existing Arima / Tobago / Port of Spain / San Fernando pattern exactly — no new components, no routing changes beyond one line, no new conventions.
+- **`src/components/routing/AppRoutes.tsx`** — add alias routes for all five location pages so both `/locations/<slug>` and `/care/<slug>` resolve to the same component:
+  - `/locations/port-of-spain`, `/locations/san-fernando`, `/locations/arima`, `/locations/tobago`, `/locations/diamond-vale`
+  - Canonical share URL stays `/care/diamond-vale` (already in sitemap, already in memory rules, already what the share blurb uses). Aliases just stop the 404 for anyone who guesses `/locations/*`.
 
-**Files**
-- `src/pages/locations/locationsData.ts` — append a `diamondVale: LandingPageData` export, same shape as `arima`/`tobago`. Slug `care/diamond-vale`, kicker "Diamond Vale · Diego Martin", H1 "In-home care in Diamond Vale". Copy covers: Diamond Vale + surrounding Diego Martin pockets (Petit Valley, Glencoe, Westmoorings, Carenage), aging-in-place for parents/grandparents, neighbour-to-neighbour trust, care team continuity, urgent coverage, $40/$45/$50+ care rates only (per financial-privacy guardrail), 4 FAQs.
-- `src/pages/locations/DiamondValePage.tsx` — 5-line scaffold wrapper, identical to `ArimaPage.tsx`.
-- `src/components/routing/AppRoutes.tsx` — one import line + one `<Route path="/care/diamond-vale" element={<DiamondValePage />} />` next to the other four. This is the only routing touch.
-- `public/sitemap.xml` — add `<url><loc>https://tavara.care/care/diamond-vale</loc>…</url>` next to the other care locations.
-- `src/pages/NotFound.tsx` — add `/locations/diamond-vale` to the suggested-paths array (matches existing convention).
+No changes to canonical slugs, sitemap, or share copy.
 
-Editorial guardrails honoured: no em/en-dashes, no banned AI words, no "hire / agency / client / patient", uses "arrange care / loved one / care team / household / match", per-hour rate only ("care rate", not "wage"), no subscription dollar amounts.
+### 2. Blog audio: "Audio is taking longer than usual. Tap play to retry."
 
-## 2. New blog post: "Know someone who can benefit from Tavara? Start here."
+`useBlogAudio.prepare()` invokes the `blog-tts-generate` edge function and awaits the response. First-time generation for a fresh post (the Diamond Vale referral post has never been narrated) takes longer than the Supabase functions.invoke fetch window, so the client sees a fetch error and shows the retry copy — but the edge function is still running and will eventually write to `blog_audio`.
 
-Evergreen, location-agnostic, designed for neighbour-to-neighbour WhatsApp sharing. Uses the existing blog system (DB row + `/blog/<slug>` + `blog-share` edge function for rich previews) — no new components.
+Edge-function logs confirm repeated boots/shutdowns at the time of the user's attempt with no errors logged, consistent with a client-side timeout rather than a generation failure.
 
-**File / data**
-- `scripts/seed_blog.ts` — add a new entry (or insert directly via admin /admin/blog/new). Slug: `know-someone-who-needs-care-trinidad-tobago`. Category: `Cultural & Community`. Author: Chanua Johnson. Cover image: existing community/family image already in `src/assets` (no new image generated unless you ask).
+Fix in **`src/hooks/useBlogAudio.ts`** only (no edge-function changes):
 
-**Body structure (short, scan-friendly, WhatsApp-readable)**
-1. Opening hook — "Everybody knows somebody." Aging parent, post-stroke recovery, family overseas trying to coordinate from afar.
-2. What Tavara actually does — coordinate the match, hold the schedule, daily log, back-up coverage. Platform, not agency.
-3. Split CTA section with two clear paths:
-   - **For families** — "If your loved one needs care" → button → family quiz `/family-readiness-quiz?utm_source=blog&utm_medium=referral&utm_campaign=know-someone&utm_content=family-cta`
-   - **For caregivers** — "If you do this work" → button → `/registration/professional?utm_source=blog&utm_medium=referral&utm_campaign=know-someone&utm_content=caregiver-cta`
-4. "Why share this" — neighbour-to-neighbour trust, faster than searching, no obligation.
-5. Short FAQ (3 items): Is it free to start? What does it cost? What if the match isn't right?
+1. After `invokeOnce()` throws a fetch/network/timeout error, do not surface the error immediately. Instead, poll `blog_audio` for this `post_id` every 2s for up to 90s.
+2. If a row appears, set it as the audio and return success (the user just sees a longer "preparing" state, then playback works).
+3. Only after the poll window expires with no row do we set the friendly "taking longer than usual, tap play to retry" error.
+4. Keep the existing one-shot retry for the truly transient case (instant fetch failure within first ~1s).
 
-**Split-CTA rendering** — the blog body already supports markdown links and the existing `cta_label`/`cta_href` single-CTA field. Use the body for both inline CTAs (markdown buttons / styled links handled by current blog renderer) and set the post-level `cta_label`/`cta_href` to the family quiz (the higher-intent path). No blog renderer changes.
-
-**Sitemap** — add the new blog URL to `public/sitemap.xml`.
-
-## 3. Wire the two together
-
-- The Diamond Vale page's existing scaffold already has CTAs (family + professional). No changes.
-- The blog post body includes one short line: "Caregivers and families in Diamond Vale, [Diamond Vale page link]." So your friend can share *either* URL and the reader can hop between them.
-- Both URLs work with the existing `getBlogShareUrl` / location-page share buttons for rich WhatsApp previews via the `blog-share` edge function (blog post only) and per-route `Helmet` meta (location page).
+This is a minimal frontend-only resilience improvement — no edge function, schema, or design changes.
 
 ## Out of scope
 
-- No changes to `App.tsx` root, `AuthProvider`, registration flows, chat flows, or any protected component.
-- No new shared components, no design system changes, no new edge functions.
-- No image generation unless you ask after reviewing — we'll reuse an existing asset.
-- No changes to other location pages.
+- No changes to `AuthProvider`, `App.tsx`, registration flows, or chat flow files.
+- No changes to canonical URLs, sitemap, OG/share copy, or the Diamond Vale page content.
+- No changes to the `blog-tts-generate` edge function itself.
 
-## What you'll be able to do after
+## Files touched
 
-Send your friend two URLs:
-- `https://tavara.care/care/diamond-vale` — for Diamond Vale specifically
-- `https://tavara.care/blog/know-someone-who-needs-care-trinidad-tobago` — evergreen, split CTA, works in any group chat
-
-Both render rich previews when pasted into WhatsApp (blog uses the share edge function; location page uses Helmet meta which previews well in JS-executing crawlers and falls back to the sitewide OG card elsewhere).
+1. `src/components/routing/AppRoutes.tsx` — add 5 alias `<Route>` lines under `/locations/*`.
+2. `src/hooks/useBlogAudio.ts` — wrap the invoke in a poll-on-timeout pattern.
