@@ -84,8 +84,8 @@ export const LandingPageScaffold: React.FC<{ data: LandingPageData }> = ({ data 
 
   const primaryCtaHref = data.primaryCtaHref ?? '/family/readiness-quiz';
   const primaryCtaLabel = data.primaryCtaLabel ?? 'Start arranging care';
-  const secondaryCtaHref = data.secondaryCtaHref ?? '/urgent-caregivers';
-  const secondaryCtaLabel = data.secondaryCtaLabel ?? 'Browse available caregivers';
+  const secondaryCtaHref = data.secondaryCtaHref ?? '/registration/professional';
+  const secondaryCtaLabel = data.secondaryCtaLabel ?? 'Join a coordinated care team';
 
   return (
     <>
