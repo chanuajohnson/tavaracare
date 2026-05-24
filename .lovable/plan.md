@@ -1,46 +1,66 @@
+
+## Problem
+
+When a reader clicks the "For caregivers — Join a coordinated care team" CTA on a blog post:
+
+1. They land on `/registration/professional?utm_*` (with UTM params from `BlogTopCTA`).
+2. If not signed in, they see a bare "Authentication Required / Sign In" screen — no Tavara branding, no explanation of what they're signing up for, no UTM forwarding.
+3. Clicking Sign In drops them on `/auth` with a generic "Welcome / Sign in to your account or create a new one" card. There's already a `QuizContextBanner` for `?from=quiz` family flows, but nothing equivalent for professionals coming from the blog.
+
+Net effect: a caregiver who was interested mid-article hits two cold, contextless screens and bounces.
+
 ## Goal
-Close the two anon tracking gaps on the readiness quiz so `/admin/blog/analytics` can show a real funnel: view → questions answered → completed → CTA clicked → lead captured → signed up.
 
-## Changes
+Make the professional-from-blog path feel like one continuous experience: branded, informative, and clear about what signing up gets them — without touching the protected core auth/registration logic, routing, or form fields.
 
-### 1. New engagement event: `quiz_cta_click`
-Fire from `src/components/family/quiz/QuizResultCard.tsx` inside the "good next step" button `onClick`, **before** navigation. Payload:
-- `step_label` (button text)
-- `step_href` (intended destination)
-- `client_stage` (1–4)
-- `is_anonymous` (boolean)
-- `redirected_to_auth` (boolean — true for anon)
-- UTM params from URL
+## Scope (presentation-only)
 
-Works for both anon and signed-in users. Uses existing `useTracking().trackEngagement` (user_id may be null).
+### 1. Upgrade the auth gate on `src/pages/registration/ProfessionalRegistration.tsx` (lines ~568–581 only)
 
-### 2. New engagement event: `quiz_question_answered`
-Fire from the quiz question handler in `src/pages/family/FamilyReadinessQuizPage.tsx` (or wherever an answer is recorded) once per answered question. Payload:
-- `question_id`
-- `question_index` (0-based)
-- `total_questions`
-- `answer_value`
-- UTM params
+Replace the bare "Authentication Required" block with a branded card that:
 
-Guard with a `useRef<Set<string>>` so the same question can't double-fire on re-renders. Anon-safe.
+- Shows Tavara framing: "Join Tavara as a caregiver" + the "It takes a village to care" tone.
+- Explains in 3 short bullets what the sign-up unlocks (profile, vetting, matched families).
+- Has a clear primary CTA → `/auth?tab=signup&role=professional&from=blog` with **all current UTM params forwarded** (read from `useSearchParams`, append to the auth URL).
+- Has a secondary "I already have an account" link → `/auth?tab=login&from=blog` (UTMs forwarded).
+- A small "Why am I here?" line referencing they arrived from a Tavara article.
 
-### 3. Leaderboard funnel column
-Update `src/pages/admin/BlogAnalyticsLeaderboardPage.tsx` to also pull `quiz_cta_click` and (optionally) `quiz_question_answered`, and add two new columns to the per-post table:
-- **CTA clicks** (count of `quiz_cta_click` attributed to the post via UTM)
-- **Drop-off %** (1 − completed/views), computed client-side
+No changes to the auth check, redirect logic, form fields, or anything below line 583.
 
-Existing columns (Views, Quiz done, Leads, Signups) stay untouched.
+### 2. Add a `ProfessionalContextBanner` to `src/pages/auth/AuthPage.tsx`
 
-### 4. No DB migration required
-`cta_engagement_tracking` already accepts arbitrary `action_type` strings + JSONB `additional_data`. No schema change. RLS for anon inserts is already in place (the existing view/completed events work for anon).
+Mirror the existing `QuizContextBanner` pattern (same file, same visual language) — purely additive:
 
-## Out of scope
-- `quiz_leads` table changes
-- Auth redirect logic
-- Quiz scoring / question structure
-- Admin dashboard chrome beyond the two new columns
+- New small component `ProfessionalContextBanner` defined alongside `QuizContextBanner`.
+- Rendered in the same slot as the quiz banner, gated on `_params.get('role') === 'professional'` OR (`_params.get('from') === 'blog'` AND role=professional).
+- Content:
+  - Eyebrow: "Joining Tavara as a caregiver"
+  - Heading: "One quick step to start getting matched"
+  - 3 bullets (icons reusing already-imported `UserCheck`, `MessageCircle`, `Save` or add 1–2 from lucide-react): create profile, complete short vetting, get matched with families that fit your skills and schedule.
+  - Footer line: "New here? **Sign Up** takes about 30 seconds. Already registered? **Login** picks up where you left off."
+- Auto-select the Sign Up tab when `role=professional` arrives (extend the existing `useEffect` URL-param block — the file already does this for `role` generally on line ~86, just confirm professional path keeps signup selected; no logic rewrite).
 
-## Files touched
-- `src/components/family/quiz/QuizResultCard.tsx` — add `trackEngagement('quiz_cta_click', …)` before navigate
-- `src/pages/family/FamilyReadinessQuizPage.tsx` — add per-question tracking with ref-guard
-- `src/pages/admin/BlogAnalyticsLeaderboardPage.tsx` — extend action_type IN list, aggregate CTA clicks, render new columns
+No changes to `handleLogin`, `handleSignup`, `handleResetPassword`, `handleForgotPassword`, the Tabs structure, the suspended-account block, or routing.
+
+### 3. Forward UTM + context from `BlogTopCTA` through the gate
+
+`src/components/blog/BlogTopCTA.tsx` already builds `proHref` via `buildCtaDestination`. The auth gate (step 1) is the piece that currently drops UTMs when navigating to `/auth`. Fix is contained to step 1: read `location.search` and append to the auth URL so the AuthPage banner can render and analytics stays attributed.
+
+## Out of scope (explicitly not touching)
+
+- `src/App.tsx`, any routes, `AuthProvider`, the `SignupForm` / `LoginForm` internals.
+- The professional registration form fields, validation, or submission logic.
+- Tracking schema (existing `trackBlogCtaClick` and UTM forwarding are already wired).
+- Family/quiz banner behavior.
+
+## Files to edit
+
+- `src/pages/registration/ProfessionalRegistration.tsx` — replace lines ~568–581 only (the `!user` block).
+- `src/pages/auth/AuthPage.tsx` — add `ProfessionalContextBanner` component + one conditional render line + minor tweak to the existing URL-param `useEffect` if needed.
+
+## Acceptance check
+
+1. Clicking the caregivers CTA on a blog post and signing out → gate shows branded Tavara card with 3 value bullets and forwards UTMs.
+2. Clicking "Sign Up" on the gate → AuthPage shows the new professional banner, Sign Up tab is pre-selected.
+3. Clicking "I already have an account" → AuthPage shows the same banner with Login tab selected.
+4. Existing quiz-from-family flow, normal `/auth` visits, suspended-account state, and password reset all render unchanged.
