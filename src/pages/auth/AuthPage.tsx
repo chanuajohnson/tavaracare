@@ -12,6 +12,51 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { ensureUserProfile, updateUserProfile } from "@/lib/profile-utils";
 import { UserRole } from "@/types/database";
 import { clearAllAuthFlowFlags } from "@/utils/authFlowUtils";
+import { Sparkles, UserCheck, MessageCircle, Save } from "lucide-react";
+
+const STAGE_SUBLINE: Record<string, string> = {
+  "1": "You're exploring what care could look like. Save your result so you can pick up where you left off.",
+  "2": "You're getting clearer on what's needed. Create your account to see matched caregivers and next steps.",
+  "3": "You're ready to take action. Sign up so we can connect you with the right care team faster.",
+  "4": "Care is already in motion. Create your account to coordinate everything in one place.",
+};
+
+function QuizContextBanner({ stage }: { stage?: string | null }) {
+  const subline =
+    (stage && STAGE_SUBLINE[stage]) ||
+    "Save your quiz result and unlock your personalized next steps.";
+  return (
+    <div className="mb-5 rounded-lg border border-primary/20 bg-primary/5 p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <Sparkles className="h-4 w-4 text-primary" />
+        <span className="text-xs font-medium text-primary uppercase tracking-wide">
+          Continuing from your readiness quiz
+        </span>
+      </div>
+      <h3 className="text-base font-semibold text-foreground leading-snug">
+        One quick step to unlock your next move
+      </h3>
+      <p className="text-sm text-muted-foreground mt-1">{subline}</p>
+      <ul className="mt-3 space-y-1.5 text-sm text-foreground/85">
+        <li className="flex items-start gap-2">
+          <Save className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+          Save your quiz result to your profile
+        </li>
+        <li className="flex items-start gap-2">
+          <UserCheck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+          Get matched with the right caregivers
+        </li>
+        <li className="flex items-start gap-2">
+          <MessageCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+          Talk to TAV, your care coordinator
+        </li>
+      </ul>
+      <p className="text-xs text-muted-foreground mt-3">
+        New here? <span className="font-medium text-foreground">Sign Up</span> takes about 30 seconds. Already have an account? <span className="font-medium text-foreground">Login</span> picks up right where you left off.
+      </p>
+    </div>
+  );
+}
 
 export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
