@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { QuizReflectionField } from "./QuizReflectionField";
 import { AnonymousLeadCapture } from "./AnonymousLeadCapture";
 import { RetakeConfirmDialog } from "./RetakeConfirmDialog";
 import { PreviousAnswersPanel } from "./PreviousAnswersPanel";
+import { useTracking } from "@/hooks/useTracking";
 
 interface QuizResultCardProps {
   stageDef: StageDefinition;
@@ -40,6 +41,8 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
   assessedAt = null,
 }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { trackEngagement } = useTracking();
   const [reflectionText, setReflectionText] = useState<string>(
     initialReflection?.text || ""
   );
@@ -151,6 +154,23 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
               key={idx}
               variant={step.variant ?? "default"}
               onClick={() => {
+                const utm: Record<string, string> = {};
+                for (const k of [
+                  "utm_source", "utm_medium", "utm_campaign", "utm_content",
+                  "utm_term", "utm_referrer_source", "utm_referrer_campaign", "utm_referrer_content",
+                ]) {
+                  const v = searchParams.get(k);
+                  if (v) utm[k] = v;
+                }
+                trackEngagement("quiz_cta_click" as any, {
+                  ...utm,
+                  step_label: step.label,
+                  step_href: step.href,
+                  client_stage: stage,
+                  is_anonymous: isAnonymous,
+                  redirected_to_auth: isAnonymous,
+                }).catch((e) => console.warn("[QuizResult] cta track failed", e));
+
                 if (isAnonymous) {
                   navigate(
                     `/auth?tab=signup&role=family&from=quiz&stage=${stage}`

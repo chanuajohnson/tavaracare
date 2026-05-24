@@ -1,35 +1,46 @@
 ## Goal
-When a user lands on `/auth` from the readiness quiz (URL has `from=quiz` and a `stage`), show a friendly, reassuring context banner above the Login/Sign Up tabs so they understand:
-- Why they're here (continue their quiz result)
-- What they get by signing up (3 short benefits tied to their stage)
-- That signing in works too if they already have an account
+Close the two anon tracking gaps on the readiness quiz so `/admin/blog/analytics` can show a real funnel: view → questions answered → completed → CTA clicked → lead captured → signed up.
 
-No changes to auth logic, routes, or SignupForm fields.
+## Changes
 
-## Scope (single file)
-**`src/pages/auth/AuthPage.tsx`** — add a presentational banner rendered conditionally above the Tabs.
+### 1. New engagement event: `quiz_cta_click`
+Fire from `src/components/family/quiz/QuizResultCard.tsx` inside the "good next step" button `onClick`, **before** navigation. Payload:
+- `step_label` (button text)
+- `step_href` (intended destination)
+- `client_stage` (1–4)
+- `is_anonymous` (boolean)
+- `redirected_to_auth` (boolean — true for anon)
+- UTM params from URL
 
-## Behavior
-- Read `from`, `stage`, and `role` from URL params (already partially parsed).
-- If `from === 'quiz'`, render a `QuizContextBanner` block above the Tabs (inside `CardContent`, before the Tabs/ResetForm switch).
-- Banner content:
-  - Small badge: "Continuing from your readiness quiz"
-  - Heading: "One quick step to unlock your next move"
-  - Stage-aware subline (map stage 1–4 to the same short copy already used in `familyReadinessQuiz` next-step language — kept generic if stage missing).
-  - 3 bullet benefits with icons (lucide): 
-    - "Save your quiz result to your profile"
-    - "Get matched with the right caregivers"
-    - "Talk to TAV, your care coordinator"
-  - Helper line under the tabs trigger area: "New here? **Sign Up** takes ~30 seconds. Already have an account? **Login** picks up right where you left off."
-- Default active tab when `from=quiz` and no explicit `tab` param → `signup` (already handled when `role` is present; extend to also trigger on `from=quiz`).
-- Styled with existing design tokens (`bg-primary/5`, `border-primary/20`, `text-foreground`, `text-muted-foreground`). Mobile-first, rounded, comfortable padding.
+Works for both anon and signed-in users. Uses existing `useTracking().trackEngagement` (user_id may be null).
+
+### 2. New engagement event: `quiz_question_answered`
+Fire from the quiz question handler in `src/pages/family/FamilyReadinessQuizPage.tsx` (or wherever an answer is recorded) once per answered question. Payload:
+- `question_id`
+- `question_index` (0-based)
+- `total_questions`
+- `answer_value`
+- UTM params
+
+Guard with a `useRef<Set<string>>` so the same question can't double-fire on re-renders. Anon-safe.
+
+### 3. Leaderboard funnel column
+Update `src/pages/admin/BlogAnalyticsLeaderboardPage.tsx` to also pull `quiz_cta_click` and (optionally) `quiz_question_answered`, and add two new columns to the per-post table:
+- **CTA clicks** (count of `quiz_cta_click` attributed to the post via UTM)
+- **Drop-off %** (1 − completed/views), computed client-side
+
+Existing columns (Views, Quiz done, Leads, Signups) stay untouched.
+
+### 4. No DB migration required
+`cta_engagement_tracking` already accepts arbitrary `action_type` strings + JSONB `additional_data`. No schema change. RLS for anon inserts is already in place (the existing view/completed events work for anon).
 
 ## Out of scope
-- SignupForm internals, role selector, admin code, validation.
-- AuthProvider, routing, redirect logic.
-- Quiz code (already navigates with `?tab=signup&role=family&from=quiz&stage=X`).
+- `quiz_leads` table changes
+- Auth redirect logic
+- Quiz scoring / question structure
+- Admin dashboard chrome beyond the two new columns
 
-## Technical notes
-- New small inline component `QuizContextBanner` defined in same file (or co-located) — pure presentational, props: `{ stage?: string }`.
-- Extend the existing `useEffect` URL-param branch: add `else if (urlParams.get('from') === 'quiz') setActiveTab('signup');`.
-- No new dependencies.
+## Files touched
+- `src/components/family/quiz/QuizResultCard.tsx` — add `trackEngagement('quiz_cta_click', …)` before navigate
+- `src/pages/family/FamilyReadinessQuizPage.tsx` — add per-question tracking with ref-guard
+- `src/pages/admin/BlogAnalyticsLeaderboardPage.tsx` — extend action_type IN list, aggregate CTA clicks, render new columns

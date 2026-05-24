@@ -237,6 +237,8 @@ const FamilyReadinessQuizPage: React.FC = () => {
     }
   };
 
+  const trackedQuestionsRef = useRef<Set<string>>(new Set());
+
   const handleSelect = (score: ReadinessStage) => {
     const next = [...answers];
     next[currentIndex] = score;
@@ -244,6 +246,28 @@ const FamilyReadinessQuizPage: React.FC = () => {
 
     // Persist in-progress on every selection
     writeQuizProgress(next, currentIndex);
+
+    // Fire per-question tracking once per question per mount (anon-safe)
+    const qKey = `${currentQuestion.id}:${currentIndex}`;
+    if (!trackedQuestionsRef.current.has(qKey)) {
+      trackedQuestionsRef.current.add(qKey);
+      const utm: Record<string, string> = {};
+      for (const k of [
+        "utm_source", "utm_medium", "utm_campaign", "utm_content",
+        "utm_term", "utm_referrer_source", "utm_referrer_campaign", "utm_referrer_content",
+      ]) {
+        const v = searchParams.get(k);
+        if (v) utm[k] = v;
+      }
+      trackEngagement("quiz_question_answered" as any, {
+        ...utm,
+        question_id: currentQuestion.id,
+        question_index: currentIndex,
+        total_questions: totalQuestions,
+        answer_value: score,
+        is_anonymous: isAnonymous,
+      }).catch((e) => console.warn("[ReadinessQuiz] question track failed", e));
+    }
 
     setTimeout(() => {
       if (currentIndex < totalQuestions - 1) {
