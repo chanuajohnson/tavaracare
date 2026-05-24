@@ -30,6 +30,7 @@ const AUTO_ADVANCE_MS = 250;
 const FamilyReadinessQuizPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { trackEngagement } = useTracking();
   const [searchParams] = useSearchParams();
   const viewParam = searchParams.get("view");
   const retakeParam = searchParams.get("retake");
