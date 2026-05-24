@@ -462,13 +462,13 @@ const Index = () => {
         <div className="absolute inset-0 bg-black/40 z-20"></div>
 
         {/* Content Overlay */}
-        <div className="relative z-30 flex flex-col items-center justify-center h-full text-center px-4 pt-8 md:pt-0">
+        <div className="relative z-30 flex flex-col items-center justify-start md:justify-center min-h-[calc(100vh-56px)] md:min-h-screen text-center px-4 pt-24 pb-12 md:pt-0 md:pb-0">
           {/* Main Heading — keyword-rich H1 for SEO */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 max-w-4xl leading-tight"
+            className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 max-w-4xl leading-tight"
           >
             Find a Caregiver — Care Coordination for Families &amp; Communities
           </motion.h1>
