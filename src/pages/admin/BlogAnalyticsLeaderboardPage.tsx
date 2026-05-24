@@ -51,6 +51,7 @@ function useLeaderboard(posts: { id: string; slug: string; title: string }[]) {
           "blog_cta_click",
           "readiness_quiz_view",
           "readiness_quiz_completed",
+          "quiz_cta_click",
           "family_registration_page_view",
           "professional_registration_page_view",
         ])
@@ -61,6 +62,7 @@ function useLeaderboard(posts: { id: string; slug: string; title: string }[]) {
       const clicks = new Map<string, number>();
       const quizStarts = new Map<string, number>();
       const quizCompletions = new Map<string, number>();
+      const quizCtaClicks = new Map<string, number>();
       const regs = new Map<string, number>();
 
       const slugFromCampaign = (d: Record<string, unknown>): string => {
@@ -82,6 +84,9 @@ function useLeaderboard(posts: { id: string; slug: string; title: string }[]) {
         } else if (ev.action_type === "readiness_quiz_completed") {
           const s = slugFromCampaign(d);
           if (s) quizCompletions.set(s, (quizCompletions.get(s) ?? 0) + 1);
+        } else if (ev.action_type === "quiz_cta_click") {
+          const s = slugFromCampaign(d);
+          if (s) quizCtaClicks.set(s, (quizCtaClicks.get(s) ?? 0) + 1);
         } else if (
           ev.action_type === "family_registration_page_view" ||
           ev.action_type === "professional_registration_page_view"
@@ -98,6 +103,7 @@ function useLeaderboard(posts: { id: string; slug: string; title: string }[]) {
         const c = clicks.get(p.slug) ?? 0;
         const qs = quizStarts.get(p.slug) ?? 0;
         const qc = quizCompletions.get(p.slug) ?? 0;
+        const qcta = quizCtaClicks.get(p.slug) ?? 0;
         const r = regs.get(p.slug) ?? 0;
         return {
           postId: p.id,
@@ -107,8 +113,10 @@ function useLeaderboard(posts: { id: string; slug: string; title: string }[]) {
           ctaClicks: c,
           quizStarts: qs,
           quizCompletions: qc,
+          quizCtaClicks: qcta,
           registrations: r,
           convertRate: l > 0 ? (r / l) * 100 : 0,
+          dropOffRate: qs > 0 ? (1 - qc / qs) * 100 : 0,
         };
       });
       rows.sort(
