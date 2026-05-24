@@ -66,6 +66,7 @@ export const AnonymousLeadCapture: React.FC<AnonymousLeadCaptureProps> = ({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [captured, setCaptured] = useState<"email" | "whatsapp" | null>(null);
 
   const closeModal = () => {
     setMode(null);
@@ -73,6 +74,7 @@ export const AnonymousLeadCapture: React.FC<AnonymousLeadCaptureProps> = ({
     setEmail("");
     setPhone("");
   };
+
 
   const buildSummary = () => {
     const lines = [
@@ -143,8 +145,10 @@ export const AnonymousLeadCapture: React.FC<AnonymousLeadCaptureProps> = ({
       const summary = encodeURIComponent(buildSummary());
       window.open(`https://wa.me/${TAVARA_WHATSAPP}?text=${summary}`, "_blank");
 
+      setCaptured("whatsapp");
       closeModal();
     } finally {
+
       setSubmitting(false);
     }
   };
@@ -191,7 +195,9 @@ export const AnonymousLeadCapture: React.FC<AnonymousLeadCaptureProps> = ({
       toast.success(
         "Saved. We'll be in touch — and your result is preserved on this device."
       );
+      setCaptured("email");
       closeModal();
+
     } finally {
       setSubmitting(false);
     }
@@ -209,71 +215,107 @@ export const AnonymousLeadCapture: React.FC<AnonymousLeadCaptureProps> = ({
     <>
       <Card className="border-primary/20">
         <CardContent className="p-5 space-y-4">
-          <div className="flex items-start gap-3">
-            <Sparkles className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-            <div>
-              <p className="text-sm font-semibold text-foreground">
-                Want to keep this?
+          {captured ? (
+            <>
+              <div className="flex items-start gap-3">
+                <Sparkles className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    Saved. Here's your next step.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {captured === "whatsapp"
+                      ? "We've got your details. Create your free account to tie this result to you and continue your next steps."
+                      : "We've got your email. Create your free account to keep your result tied to you and unlock your next steps."}
+                  </p>
+                </div>
+              </div>
+
+              <Button onClick={handleCreateAccount} className="w-full">
+                <Lock className="h-4 w-4 mr-2" />
+                Create my account
+              </Button>
+
+              <p className="text-xs text-muted-foreground text-center">
+                Already have an account?{" "}
+                <button
+                  onClick={handleSignIn}
+                  className="underline underline-offset-2 hover:text-foreground"
+                >
+                  Sign in
+                </button>
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Your results are saved on this device — but if you'd like them tied
-                to you (and gentle check-ins as things change), pick one:
+            </>
+          ) : (
+            <>
+              <div className="flex items-start gap-3">
+                <Sparkles className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    Want to keep this?
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Your results are saved on this device — but if you'd like them tied
+                    to you (and gentle check-ins as things change), pick one:
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setMode("whatsapp")}
+                  className="h-auto py-3 px-3 flex-col items-start gap-1 text-left whitespace-normal"
+                >
+                  <div className="flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">WhatsApp my result</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground font-normal">
+                    Send it to Tavara
+                  </span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => setMode("email")}
+                  className="h-auto py-3 px-3 flex-col items-start gap-1 text-left whitespace-normal"
+                >
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Email me my result</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground font-normal">
+                    Just my name + email
+                  </span>
+                </Button>
+
+                <Button
+                  onClick={handleCreateAccount}
+                  className="h-auto py-3 px-3 flex-col items-start gap-1 text-left whitespace-normal"
+                >
+                  <div className="flex items-center gap-2">
+                    <Lock className="h-4 w-4" />
+                    <span className="text-sm font-medium">Create account</span>
+                  </div>
+                  <span className="text-xs opacity-90 font-normal">
+                    Full dashboard
+                  </span>
+                </Button>
+              </div>
+
+              <p className="text-xs text-muted-foreground text-center">
+                Already have an account?{" "}
+                <button
+                  onClick={handleSignIn}
+                  className="underline underline-offset-2 hover:text-foreground"
+                >
+                  Sign in
+                </button>
               </p>
-            </div>
-          </div>
+            </>
+          )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setMode("whatsapp")}
-              className="h-auto py-3 px-3 flex-col items-start gap-1 text-left whitespace-normal"
-            >
-              <div className="flex items-center gap-2">
-                <MessageCircle className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">WhatsApp my result</span>
-              </div>
-              <span className="text-xs text-muted-foreground font-normal">
-                Send it to Tavara
-              </span>
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => setMode("email")}
-              className="h-auto py-3 px-3 flex-col items-start gap-1 text-left whitespace-normal"
-            >
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">Email me my result</span>
-              </div>
-              <span className="text-xs text-muted-foreground font-normal">
-                Just my name + email
-              </span>
-            </Button>
-
-            <Button
-              onClick={handleCreateAccount}
-              className="h-auto py-3 px-3 flex-col items-start gap-1 text-left whitespace-normal"
-            >
-              <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4" />
-                <span className="text-sm font-medium">Create account</span>
-              </div>
-              <span className="text-xs opacity-90 font-normal">
-                Full dashboard
-              </span>
-            </Button>
-          </div>
-
-          <p className="text-xs text-muted-foreground text-center">
-            Already have an account?{" "}
-            <button
-              onClick={handleSignIn}
-              className="underline underline-offset-2 hover:text-foreground"
-            >
-              Sign in
-            </button>
-          </p>
         </CardContent>
       </Card>
 

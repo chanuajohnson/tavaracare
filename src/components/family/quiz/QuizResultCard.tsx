@@ -150,7 +150,15 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
             <Button
               key={idx}
               variant={step.variant ?? "default"}
-              onClick={() => navigate(step.href)}
+              onClick={() => {
+                if (isAnonymous) {
+                  navigate(
+                    `/auth?tab=signup&role=family&from=quiz&stage=${stage}`
+                  );
+                } else {
+                  navigate(step.href);
+                }
+              }}
               className="justify-between h-auto py-3 px-4 text-left"
             >
               <span className="truncate">{step.label}</span>
@@ -158,7 +166,13 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
             </Button>
           ))}
         </div>
+        {isAnonymous && (
+          <p className="text-xs text-muted-foreground">
+            Create your free account to unlock these next steps.
+          </p>
+        )}
       </div>
+
 
       {/* Open-text reflection field — for ALL users, signed in or anonymous */}
       <QuizReflectionField
