@@ -230,15 +230,13 @@ export const BlogAudioPlayer = ({ postId, className }: Props) => {
     const next = SPEEDS[(idx + 1) % SPEEDS.length];
     setSpeed(next);
     if (audioRef.current) audioRef.current.playbackRate = next;
-    if (usingBrowserTTS && speechRef.current) {
-      // Restart utterance at new rate
-      const text = speechRef.current.text;
-      stopBrowserTTS();
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.rate = next;
-      utter.onend = () => setIsPlaying(false);
-      speechRef.current = utter;
-      window.speechSynthesis.speak(utter);
+    if (usingBrowserTTS) {
+      // Restart queued utterances at new rate from the remaining text
+      const remaining = utteranceQueueRef.current.map((u) => u.text).join(" ");
+      if (remaining) {
+        stopBrowserTTS();
+        startBrowserTTS(remaining);
+      }
     }
   };
 
