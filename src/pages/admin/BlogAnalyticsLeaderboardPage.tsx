@@ -31,8 +31,10 @@ interface LeaderboardRow {
   ctaClicks: number;
   quizStarts: number;
   quizCompletions: number;
+  quizCtaClicks: number;
   registrations: number;
   convertRate: number;
+  dropOffRate: number;
 }
 
 function useLeaderboard(posts: { id: string; slug: string; title: string }[]) {
