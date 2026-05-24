@@ -41,7 +41,8 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
   assessedAt = null,
 }) => {
   const navigate = useNavigate();
-  const [reflectionText, setReflectionText] = useState<string>(
+  const [searchParams] = useSearchParams();
+  const { trackEngagement } = useTracking();
     initialReflection?.text || ""
   );
   const [retakeConfirmOpen, setRetakeConfirmOpen] = useState(false);
