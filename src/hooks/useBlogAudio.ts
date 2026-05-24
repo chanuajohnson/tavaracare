@@ -33,6 +33,24 @@ export const useBlogAudio = (postId: string | undefined) => {
     load();
   }, [load]);
 
+  const pollForAudio = useCallback(
+    async (timeoutMs = 90000, intervalMs = 2000): Promise<BlogAudio | null> => {
+      if (!postId) return null;
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        const { data } = await supabase
+          .from("blog_audio" as any)
+          .select("*")
+          .eq("post_id", postId)
+          .maybeSingle();
+        if (data) return data as unknown as BlogAudio;
+        await new Promise((r) => setTimeout(r, intervalMs));
+      }
+      return null;
+    },
+    [postId],
+  );
+
   const prepare = useCallback(
     async (opts?: { force?: boolean }) => {
       if (!postId) return;
@@ -51,19 +69,32 @@ export const useBlogAudio = (postId: string | undefined) => {
         });
       };
 
+      const isTransient = (msg: string) =>
+        /fetch|network|send a request|timeout|timed out|failed to/i.test(msg);
+
       try {
         let { data, error: invokeErr } = await invokeOnce();
         // Retry once on transient network/fetch failures
-        if (invokeErr && /fetch|network|send a request/i.test(invokeErr.message ?? "")) {
+        if (invokeErr && isTransient(invokeErr.message ?? "")) {
           await new Promise((r) => setTimeout(r, 800));
           ({ data, error: invokeErr } = await invokeOnce());
+        }
+        // If still a transient error, the edge function may still be running.
+        // Poll blog_audio for up to 90s before surfacing an error.
+        if (invokeErr && isTransient(invokeErr.message ?? "")) {
+          const polled = await pollForAudio();
+          if (polled) {
+            setAudio(polled);
+            return polled;
+          }
+          throw new Error("Audio is taking longer than usual. Tap play to retry.");
         }
         if (invokeErr) throw invokeErr;
         if (data?.error) throw new Error(data.error);
         setAudio(data as BlogAudio);
         return data as BlogAudio;
       } catch (e: any) {
-        const friendly = /fetch|network|send a request/i.test(e?.message ?? "")
+        const friendly = isTransient(e?.message ?? "")
           ? "Audio is taking longer than usual. Tap play to retry."
           : e?.message ?? "Could not prepare audio";
         setError(friendly);
@@ -72,7 +103,7 @@ export const useBlogAudio = (postId: string | undefined) => {
         setIsPreparing(false);
       }
     },
-    [postId],
+    [postId, pollForAudio],
   );
 
   return { audio, isLoading, isPreparing, error, prepare, refresh: load };
