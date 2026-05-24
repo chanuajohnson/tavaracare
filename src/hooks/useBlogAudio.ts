@@ -38,17 +38,36 @@ export const useBlogAudio = (postId: string | undefined) => {
       if (!postId) return;
       setIsPreparing(true);
       setError(null);
-      try {
-        const { data, error: invokeErr } = await supabase.functions.invoke("blog-tts-generate", {
-          body: { post_id: postId, force: opts?.force ?? false },
+
+      const invokeOnce = async () => {
+        const { data: post } = await supabase
+          .from("blog_posts" as any)
+          .select("slug")
+          .eq("id", postId)
+          .maybeSingle();
+        const slug = (post as any)?.slug;
+        return supabase.functions.invoke("blog-tts-generate", {
+          body: { post_id: postId, slug, force: opts?.force ?? false },
         });
+      };
+
+      try {
+        let { data, error: invokeErr } = await invokeOnce();
+        // Retry once on transient network/fetch failures
+        if (invokeErr && /fetch|network|send a request/i.test(invokeErr.message ?? "")) {
+          await new Promise((r) => setTimeout(r, 800));
+          ({ data, error: invokeErr } = await invokeOnce());
+        }
         if (invokeErr) throw invokeErr;
         if (data?.error) throw new Error(data.error);
         setAudio(data as BlogAudio);
         return data as BlogAudio;
       } catch (e: any) {
-        setError(e?.message ?? "Could not prepare audio");
-        throw e;
+        const friendly = /fetch|network|send a request/i.test(e?.message ?? "")
+          ? "Audio is taking longer than usual. Tap play to retry."
+          : e?.message ?? "Could not prepare audio";
+        setError(friendly);
+        throw new Error(friendly);
       } finally {
         setIsPreparing(false);
       }

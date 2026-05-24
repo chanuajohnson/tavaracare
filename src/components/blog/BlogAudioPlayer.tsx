@@ -66,7 +66,7 @@ export const BlogAudioPlayer = ({ postId, className }: Props) => {
       });
     } catch (e: any) {
       console.error("[BlogAudioPlayer] prepare failed:", e);
-      toast.error(e?.message || "Could not generate audio. Please try again.");
+      // Inline error message already shown via `error` state; no duplicate toast.
     }
   };
 

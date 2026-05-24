@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useTracking } from "@/hooks/useTracking";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ const AUTO_ADVANCE_MS = 250;
 const FamilyReadinessQuizPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { trackEngagement } = useTracking();
   const [searchParams] = useSearchParams();
   const viewParam = searchParams.get("view");
   const retakeParam = searchParams.get("retake");
@@ -67,6 +69,34 @@ const FamilyReadinessQuizPage: React.FC = () => {
   }, [answers, viewResultMode, resultFirstMode, savedStage]);
 
   const stageDef = readinessStages[finalStage];
+
+  // Fire readiness_quiz_completed exactly once per mount when results appear.
+  // PageViewTracker only re-fires on URL changes, so completion events were missed.
+  const completionTrackedRef = useRef(false);
+  useEffect(() => {
+    if (!showResult || completionTrackedRef.current) return;
+    completionTrackedRef.current = true;
+    const utm: Record<string, string> = {};
+    for (const k of [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_content",
+      "utm_term",
+      "utm_referrer_source",
+      "utm_referrer_campaign",
+      "utm_referrer_content",
+    ]) {
+      const v = searchParams.get(k);
+      if (v) utm[k] = v;
+    }
+    trackEngagement("readiness_quiz_completed" as any, {
+      ...utm,
+      stage: finalStage,
+      viewMode: viewResultMode ? "result" : resultFirstMode ? "result_first" : "fresh",
+    }).catch((e) => console.warn("[ReadinessQuiz] completion track failed", e));
+  }, [showResult, finalStage, viewResultMode, resultFirstMode, searchParams, trackEngagement]);
+
 
   // On mount: handle ?retake=1 (clear in-progress, start fresh, no resume prompt)
   useEffect(() => {
