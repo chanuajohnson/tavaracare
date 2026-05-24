@@ -1,40 +1,46 @@
-## Goal
+## Plan to restore blog audio playback
 
-Stop overstating caregiver supply on the five location pages. Be candid that we're in active outreach, invite readers to share the app link with potential caregivers they know, and point the cost FAQ to the detailed blog post.
+The screenshot shows the browser blocking the `blog-tts-generate` edge function before audio generation starts. The preflight request fails because the frontend Supabase client sends `x-app-version`, but the audio edge function only allows `authorization, x-client-info, apikey, content-type`.
 
-## Files
+### What I will change
 
-### 1. `src/pages/locations/locationsData.ts`
+1. **Update `supabase/functions/blog-tts-generate/index.ts` CORS headers**
+   - Add the headers the current Supabase client sends:
+     - `x-app-version`
+     - `x-client-env`
+     - Supabase runtime/client platform headers used by newer clients
+   - Keep `POST` and `OPTIONS` support unchanged.
 
-Rewrite the FAQ answers (and one question) on all five locations: Port of Spain, San Fernando, Arima, Tobago, Diamond Vale. Keep the existing 4-FAQ structure per page. Three patterns:
+2. **Keep the existing audio behavior intact**
+   - No changes to the blog audio UI.
+   - No changes to blog routes or navigation.
+   - No changes to ElevenLabs generation logic, caching, or storage upload.
 
-**"Do you have caregivers in [area]?" — candid outreach answer**
-Replace the "Yes. Many of our caregivers live in…" claims with honest copy. Example pattern (tailored per location, neighbourhoods kept):
+3. **Validate the fix**
+   - Confirm the edge function source now allows the request headers that caused the CORS failure.
+   - The expected result is that clicking play can reach `blog-tts-generate`, generate or fetch the cached MP3, and then play it in the existing audio player.
 
-> We're actively building our caregiver community across [area neighbourhoods]. If you're a nurse, caregiver, or know someone reliable in the area, we'd love for you to share Tavara with them — every introduction helps us match families faster. Caregivers can join at tavara.care.
+### Technical details
 
-**"How quickly can care start?" — candid about pool depth**
-Replace the "few days / 24-48 hours" promises with honest framing:
+Current failure:
 
-> It depends on how deep our caregiver pool is in your area right now. We're on an active outreach drive in [area], so timing varies. Urgent situations go into our priority queue and we work the network hard. The fastest way to help us help you: share the app with any caregivers you know.
+```text
+Request header field x-app-version is not allowed by Access-Control-Allow-Headers in preflight response.
+```
 
-**"What does it cost?" — link to blog post**
-Keep the rate summary, add a line pointing to `/blog/senior-care-costs-trinidad-tobago-2026` for the full breakdown. Add an optional `linkHref` + `linkLabel` field to `LandingFAQ` so the answer can render a real link.
+Cause:
 
-The fourth FAQ on each page (re-match, live-in, diaspora, agency difference) stays as-is — those are accurate.
+```text
+src/integrations/supabase/client.ts sends:
+x-client-env, x-app-version
 
-### 2. `src/components/landing/LandingPageScaffold.tsx`
+supabase/functions/blog-tts-generate/index.ts currently allows only:
+authorization, x-client-info, apikey, content-type
+```
 
-- Extend `LandingFAQ` interface with optional `linkHref?: string` and `linkLabel?: string`.
-- In the `AccordionContent` render, append a `<Link to={linkHref}>{linkLabel}</Link>` underneath the answer text when those fields are present.
-- FAQPage JSON-LD schema unchanged — answer text stays as the `acceptedAnswer.text` (link is a UI affordance, not part of the structured answer).
+Fix:
 
-## Out of scope
-
-- CTAs, hero copy, sections — only FAQ block changes
-- Other pages, sitemap, routes
-- Tone guardrails respected: no "hire", use "arrange care / caregiver / family", no em-dashes, no AI buzzwords
-
-## Verification
-
-Load `/care/port-of-spain` and `/care/diamond-vale`, expand all four FAQs, confirm honest outreach copy and that the cost FAQ shows a working link to the blog post.
+```text
+Access-Control-Allow-Headers should include:
+authorization, x-client-info, apikey, content-type, x-app-version, x-client-env, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version
+```
