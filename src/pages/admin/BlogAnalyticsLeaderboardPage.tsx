@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useAllPosts } from "@/lib/blog/api";
 import { supabase } from "@/integrations/supabase/client";
+import { BlogAudioBackfillButton } from "@/components/admin/BlogAudioBackfillButton";
 
 interface LeaderboardRow {
   postId: string;
@@ -159,6 +160,8 @@ export default function BlogAnalyticsLeaderboardPage() {
             Last 90 days, sorted by landings.
           </p>
         </div>
+
+        <BlogAudioBackfillButton posts={lite.filter((p) => (posts.find((pp) => pp.id === p.id) as any)?.status === "published")} />
 
         <Card>
           <CardHeader>
