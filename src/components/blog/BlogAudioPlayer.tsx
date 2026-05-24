@@ -47,6 +47,7 @@ export const BlogAudioPlayer = ({ postId, className }: Props) => {
   }, [audio, duration]);
 
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const utteranceQueueRef = useRef<SpeechSynthesisUtterance[]>([]);
   const [usingBrowserTTS, setUsingBrowserTTS] = useState(false);
 
   const stopBrowserTTS = () => {
@@ -54,26 +55,100 @@ export const BlogAudioPlayer = ({ postId, className }: Props) => {
       window.speechSynthesis.cancel();
     }
     speechRef.current = null;
+    utteranceQueueRef.current = [];
   };
 
-  const startBrowserTTS = (text: string) => {
+  // Wait for voices to populate (Chrome loads them asynchronously).
+  const getVoicesAsync = (): Promise<SpeechSynthesisVoice[]> =>
+    new Promise((resolve) => {
+      const synth = window.speechSynthesis;
+      const existing = synth.getVoices();
+      if (existing.length > 0) return resolve(existing);
+      const handler = () => {
+        synth.removeEventListener("voiceschanged", handler);
+        resolve(synth.getVoices());
+      };
+      synth.addEventListener("voiceschanged", handler);
+      // Safety timeout
+      setTimeout(() => resolve(synth.getVoices()), 1500);
+    });
+
+  const pickBestVoice = (voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null => {
+    const preferred = [
+      "Samantha",
+      "Google UK English Female",
+      "Microsoft Aria Online (Natural) - English (United States)",
+      "Microsoft Jenny Online (Natural) - English (United States)",
+      "Karen",
+      "Moira",
+      "Google US English",
+    ];
+    for (const name of preferred) {
+      const v = voices.find((vv) => vv.name === name);
+      if (v) return v;
+    }
+    // Any en-* "natural" / female-sounding voice
+    const natural = voices.find((v) => /en[-_]/i.test(v.lang) && /natural|female|samantha|aria|jenny/i.test(v.name));
+    if (natural) return natural;
+    // Any English voice
+    return voices.find((v) => /^en/i.test(v.lang)) ?? voices[0] ?? null;
+  };
+
+  // Split text into ~200-char chunks at sentence boundaries to avoid Chrome's
+  // ~15-second cutoff that produces a clipped/harsh effect.
+  const chunkText = (text: string, maxLen = 220): string[] => {
+    const sentences = text.replace(/\s+/g, " ").match(/[^.!?]+[.!?]+|\S+$/g) ?? [text];
+    const chunks: string[] = [];
+    let current = "";
+    for (const s of sentences) {
+      const piece = s.trim();
+      if (!piece) continue;
+      if ((current + " " + piece).trim().length > maxLen && current) {
+        chunks.push(current.trim());
+        current = piece;
+      } else {
+        current = (current + " " + piece).trim();
+      }
+    }
+    if (current) chunks.push(current.trim());
+    return chunks;
+  };
+
+  const startBrowserTTS = async (text: string) => {
     if (typeof window === "undefined" || !window.speechSynthesis) {
       toast.error("Your browser does not support read-aloud.");
       return;
     }
     stopBrowserTTS();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = speed;
-    utter.onend = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-    utter.onerror = () => setIsPlaying(false);
-    speechRef.current = utter;
+    const voices = await getVoicesAsync();
+    const voice = pickBestVoice(voices);
+    const chunks = chunkText(text);
+    const synth = window.speechSynthesis;
+
     setUsingBrowserTTS(true);
-    window.speechSynthesis.speak(utter);
     setIsPlaying(true);
     if (audio?.duration_seconds) setDuration(audio.duration_seconds);
+
+    chunks.forEach((chunk, idx) => {
+      const utter = new SpeechSynthesisUtterance(chunk);
+      if (voice) utter.voice = voice;
+      utter.lang = voice?.lang ?? "en-US";
+      utter.rate = Math.max(0.7, Math.min(1.2, speed * 0.95));
+      utter.pitch = 1.0;
+      utter.volume = 1.0;
+      utter.onerror = () => {
+        if (idx === chunks.length - 1) setIsPlaying(false);
+      };
+      utter.onend = () => {
+        if (idx === chunks.length - 1) {
+          setIsPlaying(false);
+          setCurrentTime(0);
+        }
+      };
+      utteranceQueueRef.current.push(utter);
+      synth.speak(utter);
+    });
+    speechRef.current = utteranceQueueRef.current[0] ?? null;
   };
 
   const ensureReady = async () => {
