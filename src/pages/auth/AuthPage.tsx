@@ -352,6 +352,9 @@ if (action === 'verification-pending') {
           {!showResetForm && _params.get('from') === 'quiz' && (
             <QuizContextBanner stage={_params.get('stage')} />
           )}
+          {!showResetForm && _params.get('role') === 'professional' && (
+            <ProfessionalContextBanner from={_params.get('from')} />
+          )}
           {showResetForm ? (
             <ResetPasswordForm 
               onSubmit={handleResetPassword} 
