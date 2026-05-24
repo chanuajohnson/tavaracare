@@ -79,7 +79,7 @@ export const LandingPageScaffold: React.FC<{ data: LandingPageData }> = ({ data 
           areaServed: 'Trinidad and Tobago',
         };
 
-  const primaryCtaHref = data.primaryCtaHref ?? '/registration/family';
+  const primaryCtaHref = data.primaryCtaHref ?? '/family/readiness-quiz';
   const primaryCtaLabel = data.primaryCtaLabel ?? 'Start arranging care';
   const secondaryCtaHref = data.secondaryCtaHref ?? '/urgent-caregivers';
   const secondaryCtaLabel = data.secondaryCtaLabel ?? 'Browse available caregivers';
