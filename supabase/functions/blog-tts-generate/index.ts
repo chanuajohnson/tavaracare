@@ -140,6 +140,26 @@ Deno.serve(async (req) => {
 
     if (!ttsRes.ok) {
       const errTxt = await ttsRes.text();
+      const isBlocked =
+        ttsRes.status === 401 ||
+        ttsRes.status === 403 ||
+        ttsRes.status === 429 ||
+        /unusual_activity|quota|free tier|detected_unusual/i.test(errTxt);
+      if (isBlocked) {
+        // Return a graceful fallback so the client can use browser speechSynthesis.
+        return new Response(
+          JSON.stringify({
+            provider_unavailable: true,
+            reason: "tts_provider_blocked",
+            fallback_text: fullText,
+            post_id: post.id,
+            voice_id,
+            duration_seconds: Math.round(fullText.length / CHARS_PER_SECOND),
+            char_count: fullText.length,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+        );
+      }
       throw new Error(`ElevenLabs ${ttsRes.status}: ${errTxt}`);
     }
 

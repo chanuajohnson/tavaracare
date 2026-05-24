@@ -27,7 +27,18 @@ export const BlogAudioPlayer = ({ postId, className }: Props) => {
     setIsPlaying(false);
     setCurrentTime(0);
     setDuration(0);
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
   }, [postId]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (audio?.duration_seconds && !duration) {
@@ -35,26 +46,72 @@ export const BlogAudioPlayer = ({ postId, className }: Props) => {
     }
   }, [audio, duration]);
 
+  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const [usingBrowserTTS, setUsingBrowserTTS] = useState(false);
+
+  const stopBrowserTTS = () => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    speechRef.current = null;
+  };
+
+  const startBrowserTTS = (text: string) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) {
+      toast.error("Your browser does not support read-aloud.");
+      return;
+    }
+    stopBrowserTTS();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = speed;
+    utter.onend = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+    utter.onerror = () => setIsPlaying(false);
+    speechRef.current = utter;
+    setUsingBrowserTTS(true);
+    window.speechSynthesis.speak(utter);
+    setIsPlaying(true);
+    if (audio?.duration_seconds) setDuration(audio.duration_seconds);
+  };
+
   const ensureReady = async () => {
-    if (audio?.audio_url) return audio.audio_url;
+    if (audio?.audio_url) return { url: audio.audio_url as string };
     const fresh = await prepare();
-    return fresh?.audio_url;
+    if (fresh?.provider_unavailable && fresh.fallback_text) {
+      return { fallbackText: fresh.fallback_text };
+    }
+    return { url: fresh?.audio_url };
   };
 
   const handlePlayPause = async () => {
     const el = audioRef.current;
-    if (isPlaying && el) {
-      el.pause();
+    if (isPlaying) {
+      if (usingBrowserTTS) {
+        window.speechSynthesis.pause();
+      } else if (el) {
+        el.pause();
+      }
       setIsPlaying(false);
       return;
     }
+    if (usingBrowserTTS && speechRef.current && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+      setIsPlaying(true);
+      return;
+    }
     try {
-      const url = await ensureReady();
+      const ready = await ensureReady();
+      if (ready?.fallbackText) {
+        startBrowserTTS(ready.fallbackText);
+        return;
+      }
+      const url = ready?.url;
       if (!url) {
         toast.error("Audio not ready yet — please try again in a moment.");
         return;
       }
-      // Need to wait a tick for src to be applied
       requestAnimationFrame(() => {
         const a = audioRef.current;
         if (!a) return;
@@ -66,11 +123,17 @@ export const BlogAudioPlayer = ({ postId, className }: Props) => {
       });
     } catch (e: any) {
       console.error("[BlogAudioPlayer] prepare failed:", e);
-      // Inline error message already shown via `error` state; no duplicate toast.
     }
   };
 
   const handleStop = () => {
+    if (usingBrowserTTS) {
+      stopBrowserTTS();
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setUsingBrowserTTS(false);
+      return;
+    }
     const el = audioRef.current;
     if (!el) return;
     el.pause();
@@ -81,7 +144,7 @@ export const BlogAudioPlayer = ({ postId, className }: Props) => {
 
   const handleSeek = (vals: number[]) => {
     const el = audioRef.current;
-    if (!el || !duration) return;
+    if (!el || !duration || usingBrowserTTS) return;
     const t = vals[0];
     el.currentTime = t;
     setCurrentTime(t);
@@ -92,6 +155,16 @@ export const BlogAudioPlayer = ({ postId, className }: Props) => {
     const next = SPEEDS[(idx + 1) % SPEEDS.length];
     setSpeed(next);
     if (audioRef.current) audioRef.current.playbackRate = next;
+    if (usingBrowserTTS && speechRef.current) {
+      // Restart utterance at new rate
+      const text = speechRef.current.text;
+      stopBrowserTTS();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = next;
+      utter.onend = () => setIsPlaying(false);
+      speechRef.current = utter;
+      window.speechSynthesis.speak(utter);
+    }
   };
 
   return (

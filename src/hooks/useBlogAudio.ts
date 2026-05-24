@@ -2,13 +2,15 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface BlogAudio {
-  id: string;
+  id?: string;
   post_id: string;
   voice_id: string;
-  audio_url: string;
+  audio_url?: string;
   duration_seconds: number;
   char_count: number;
-  generated_at: string;
+  generated_at?: string;
+  provider_unavailable?: boolean;
+  fallback_text?: string;
 }
 
 export const useBlogAudio = (postId: string | undefined) => {
