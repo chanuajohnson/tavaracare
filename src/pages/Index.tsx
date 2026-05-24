@@ -417,7 +417,7 @@ const Index = () => {
         ]}
       />
       {/* Hero Video Section - No top padding, starts immediately */}
-      <section className="relative h-[calc(100vh-56px)] md:h-screen w-full overflow-hidden">
+      <section className="relative min-h-[calc(100vh-56px)] md:min-h-screen w-full overflow-hidden">
         {/* Primary Video */}
         <video
           ref={primaryVideoRef}
