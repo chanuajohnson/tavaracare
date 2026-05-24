@@ -128,8 +128,9 @@ export function UTMLinkGenerator() {
   // Medium options when platform changes
   useEffect(() => {
     const preset = UTM_PLATFORM_PRESETS[platform];
-    if (preset && !preset.mediums.includes(medium as any)) {
-      setMedium(preset.mediums[0]);
+    const mediums = preset?.mediums as readonly string[] | undefined;
+    if (mediums && !mediums.includes(medium)) {
+      setMedium(mediums[0]);
     }
   }, [platform]);
 
