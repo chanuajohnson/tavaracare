@@ -145,8 +145,10 @@ export const AnonymousLeadCapture: React.FC<AnonymousLeadCaptureProps> = ({
       const summary = encodeURIComponent(buildSummary());
       window.open(`https://wa.me/${TAVARA_WHATSAPP}?text=${summary}`, "_blank");
 
+      setCaptured("whatsapp");
       closeModal();
     } finally {
+
       setSubmitting(false);
     }
   };
