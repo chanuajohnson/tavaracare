@@ -309,6 +309,9 @@ if (action === 'verification-pending') {
               </a>
             </div>
           )}
+          {!showResetForm && _params.get('from') === 'quiz' && (
+            <QuizContextBanner stage={_params.get('stage')} />
+          )}
           {showResetForm ? (
             <ResetPasswordForm 
               onSubmit={handleResetPassword} 
