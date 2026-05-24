@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useTracking } from "@/hooks/useTracking";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { Button } from "@/components/ui/button";
