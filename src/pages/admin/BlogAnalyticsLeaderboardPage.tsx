@@ -180,6 +180,8 @@ export default function BlogAnalyticsLeaderboardPage() {
                     <TableHead className="text-right">CTA clicks</TableHead>
                     <TableHead className="text-right">Quiz starts</TableHead>
                     <TableHead className="text-right">Quiz done</TableHead>
+                    <TableHead className="text-right">Drop-off %</TableHead>
+                    <TableHead className="text-right">Quiz CTA</TableHead>
                     <TableHead className="text-right">Registrations</TableHead>
                     <TableHead className="text-right">Convert %</TableHead>
                     <TableHead />
@@ -195,6 +197,10 @@ export default function BlogAnalyticsLeaderboardPage() {
                       <TableCell className="text-right">{row.ctaClicks}</TableCell>
                       <TableCell className="text-right">{row.quizStarts}</TableCell>
                       <TableCell className="text-right">{row.quizCompletions}</TableCell>
+                      <TableCell className="text-right">
+                        {row.quizStarts > 0 ? `${row.dropOffRate.toFixed(0)}%` : "—"}
+                      </TableCell>
+                      <TableCell className="text-right">{row.quizCtaClicks}</TableCell>
                       <TableCell className="text-right">{row.registrations}</TableCell>
                       <TableCell className="text-right">
                         {row.convertRate.toFixed(1)}%
