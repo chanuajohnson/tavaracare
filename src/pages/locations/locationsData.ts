@@ -28,16 +28,18 @@ export const portOfSpain: LandingPageData = {
   ],
   faqs: [
     {
-      q: 'Do you have caregivers based in Port of Spain?',
-      a: 'Yes. Many of our caregivers live in or near POS, including Woodbrook, Belmont, St Ann\'s, Newtown, and Cascade. We match based on proximity, skills, and the schedule you need.',
+      q: 'Are you actively matching caregivers in Port of Spain?',
+      a: 'We are on an active outreach drive to grow our caregiver community across POS — Woodbrook, Belmont, St Ann\'s, Newtown, Cascade, and surrounding areas. If you are a nurse or caregiver, or you know someone reliable in the area, please share Tavara with them. Every introduction helps us match families faster. Caregivers can join at tavara.care.',
     },
     {
       q: 'How quickly can care start in Port of Spain?',
-      a: 'For non urgent matches we usually have caregiver introductions within a few days. Urgent situations can often be covered in 24 to 48 hours through our urgent care queue.',
+      a: 'Honest answer: it depends on how deep our caregiver pool is in your area at the moment you reach out. We are building that pool actively. Urgent situations move into a priority queue and we work the network hard. The single fastest way to help us help you is to share the app with any caregivers you know.',
     },
     {
       q: 'What does it cost?',
-      a: 'Care rates are $40 per hour Standard, $45 per hour Full Service, $50 plus per hour Premium. Care subscription tier details are shared privately during onboarding.',
+      a: 'Care rates are $40 per hour Standard, $45 per hour Full Service, $50 plus per hour Premium. We wrote a full guide that walks through what care actually costs in Trinidad and Tobago, including live-in arrangements and what families typically spend monthly.',
+      linkHref: '/blog/senior-care-costs-trinidad-tobago-2026',
+      linkLabel: 'Read the full 2026 cost guide',
     },
     {
       q: 'Can we change caregivers if the match is not right?',
@@ -76,16 +78,18 @@ export const sanFernando: LandingPageData = {
   ],
   faqs: [
     {
-      q: 'Do you have caregivers in San Fernando and South Trinidad?',
-      a: 'Yes. We actively recruit caregivers across the South, including San Fernando, Marabella, Gasparillo, Penal, Princes Town, and surrounding areas.',
+      q: 'Are you actively matching caregivers in San Fernando and South Trinidad?',
+      a: 'We are on an active outreach drive across the South — San Fernando, Marabella, Gasparillo, Penal, Princes Town, Debe, and surrounding villages. If you are a nurse or caregiver in the South, or you know someone reliable, please share Tavara with them. Every introduction helps us match families faster. Caregivers can join at tavara.care.',
     },
     {
-      q: 'Can Tavara support live in care in South Trinidad?',
-      a: 'Yes. Live in is available for households that need 24 hour coverage. We coordinate rotation so one caregiver is not on shift round the clock.',
+      q: 'How quickly can care start in the South?',
+      a: 'Honest answer: it depends on how deep our caregiver pool is in your part of the South right now. We are building it actively. Urgent situations move into a priority queue. The single fastest way to help us help you is to share the app with any caregivers you know in the area.',
     },
     {
       q: 'What does care cost in San Fernando?',
-      a: 'Care rates are $40 per hour Standard, $45 per hour Full Service, $50 plus per hour Premium. Subscription tier details are shared during onboarding.',
+      a: 'Care rates are $40 per hour Standard, $45 per hour Full Service, $50 plus per hour Premium. We wrote a full guide that walks through what care actually costs in Trinidad and Tobago, including live-in arrangements and what families typically spend monthly.',
+      linkHref: '/blog/senior-care-costs-trinidad-tobago-2026',
+      linkLabel: 'Read the full 2026 cost guide',
     },
     {
       q: 'How is this different from a placement agency?',
@@ -124,16 +128,18 @@ export const arima: LandingPageData = {
   ],
   faqs: [
     {
-      q: 'Do you have caregivers in Arima?',
-      a: 'Yes. We have caregivers based in Arima, Sangre Grande, Tunapuna, and Arouca who serve the East corridor.',
+      q: 'Are you actively matching caregivers in Arima?',
+      a: 'We are on an active outreach drive along the East corridor — Arima, Sangre Grande, Tunapuna, Arouca, Valencia, and surrounding villages. If you are a nurse or caregiver in the East, or you know someone reliable, please share Tavara with them. Every introduction helps us match families faster. Caregivers can join at tavara.care.',
     },
     {
       q: 'How fast can care start?',
-      a: 'Standard matches usually within a few days after intake. Urgent care queue moves faster when timing is critical.',
+      a: 'Honest answer: it depends on how deep our caregiver pool is in your part of the East at the moment. We are building it actively. Urgent situations move into a priority queue. The fastest way to help us help you is to share the app with any caregivers you know.',
     },
     {
       q: 'What does care cost in Arima?',
-      a: 'Care rates are $40 per hour Standard, $45 per hour Full Service, $50 plus per hour Premium. Subscription details are shared during onboarding.',
+      a: 'Care rates are $40 per hour Standard, $45 per hour Full Service, $50 plus per hour Premium. We wrote a full guide that walks through what care actually costs in Trinidad and Tobago, including live-in arrangements and what families typically spend monthly.',
+      linkHref: '/blog/senior-care-costs-trinidad-tobago-2026',
+      linkLabel: 'Read the full 2026 cost guide',
     },
     {
       q: 'Can family in the diaspora see what is happening?',
@@ -172,20 +178,22 @@ export const tobago: LandingPageData = {
   ],
   faqs: [
     {
-      q: 'Do you have caregivers in Tobago?',
-      a: 'Yes. We have caregivers based in Tobago and actively recruit across the island when new families come on board.',
+      q: 'Are you actively matching caregivers in Tobago?',
+      a: 'We are on an active outreach drive across Tobago — Scarborough, Crown Point, Lowlands, Mt Pleasant, Plymouth, Black Rock, Roxborough, Speyside, and Charlotteville. If you are a nurse or caregiver on the island, or you know someone reliable, please share Tavara with them. In a smaller community, every introduction matters. Caregivers can join at tavara.care.',
+    },
+    {
+      q: 'How quickly can care start in Tobago?',
+      a: 'Honest answer: it depends on how deep our caregiver pool is in your part of the island right now. We are building it actively. Urgent situations move into a priority queue. The fastest way to help us help you is to share the app with any caregivers you know.',
+    },
+    {
+      q: 'What does care cost in Tobago?',
+      a: 'Care rates are $40 per hour Standard, $45 per hour Full Service, $50 plus per hour Premium. We wrote a full guide that walks through what care actually costs in Trinidad and Tobago, including live-in arrangements and what families typically spend monthly.',
+      linkHref: '/blog/senior-care-costs-trinidad-tobago-2026',
+      linkLabel: 'Read the full 2026 cost guide',
     },
     {
       q: 'Can family abroad use Tavara?',
       a: 'Yes. The dashboard is built for family in the diaspora to stay in the loop without micromanaging the caregiver.',
-    },
-    {
-      q: 'What does care cost in Tobago?',
-      a: 'Care rates are $40 per hour Standard, $45 per hour Full Service, $50 plus per hour Premium. Subscription details are shared during onboarding.',
-    },
-    {
-      q: 'Can Tavara support live in care in Tobago?',
-      a: 'Yes. Live in is available when continuous coverage is needed. We rotate caregivers so no one is on shift around the clock.',
     },
   ],
   schemaType: 'LocalBusiness',
@@ -220,16 +228,18 @@ export const diamondVale: LandingPageData = {
   ],
   faqs: [
     {
-      q: 'Do you have caregivers in Diamond Vale and Diego Martin?',
-      a: 'Yes. We actively match families in Diamond Vale, Petit Valley, Glencoe, Westmoorings, and Carenage with caregivers who live nearby.',
+      q: 'Are you actively matching caregivers in Diamond Vale and Diego Martin?',
+      a: 'We are on an active outreach drive across the Diego Martin valley — Diamond Vale, Petit Valley, Glencoe, Westmoorings, Cocorite, and Carenage. If you are a nurse or caregiver in the valley, or you know a neighbour who is reliable and looking for work, please share Tavara with them. In a close-knit community like Diamond Vale, a personal introduction goes a long way. Caregivers can join at tavara.care.',
     },
     {
       q: 'How quickly can care start?',
-      a: 'Standard matches usually within a few days after intake. Urgent situations can often be covered in 24 to 48 hours through our urgent care queue.',
+      a: 'Honest answer: it depends on how deep our caregiver pool is in the valley at the moment you reach out. We are building it actively. Urgent situations move into a priority queue. The fastest way to help us help you is to share the app with any caregivers you know in the area.',
     },
     {
       q: 'What does care cost in Diamond Vale?',
-      a: 'Care rates are $40 per hour Standard, $45 per hour Full Service, $50 plus per hour Premium. Subscription details are shared privately during onboarding.',
+      a: 'Care rates are $40 per hour Standard, $45 per hour Full Service, $50 plus per hour Premium. We wrote a full guide that walks through what care actually costs in Trinidad and Tobago, including live-in arrangements and what families typically spend monthly.',
+      linkHref: '/blog/senior-care-costs-trinidad-tobago-2026',
+      linkLabel: 'Read the full 2026 cost guide',
     },
     {
       q: 'Can family abroad stay in the loop?',

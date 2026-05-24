@@ -11,6 +11,8 @@ import { HowMatchingWorksCard } from '@/components/about/HowMatchingWorksCard';
 export interface LandingFAQ {
   q: string;
   a: string;
+  linkHref?: string;
+  linkLabel?: string;
 }
 
 export interface LandingSection {
@@ -163,7 +165,16 @@ export const LandingPageScaffold: React.FC<{ data: LandingPageData }> = ({ data 
             {data.faqs.map((f, i) => (
               <AccordionItem key={i} value={`item-${i}`}>
                 <AccordionTrigger className="text-left">{f.q}</AccordionTrigger>
-                <AccordionContent className="text-muted-foreground leading-relaxed">{f.a}</AccordionContent>
+                <AccordionContent className="text-muted-foreground leading-relaxed">
+                  {f.a}
+                  {f.linkHref && f.linkLabel && (
+                    <div className="mt-3">
+                      <Link to={f.linkHref} className="text-primary underline underline-offset-4 hover:no-underline">
+                        {f.linkLabel}
+                      </Link>
+                    </div>
+                  )}
+                </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
