@@ -12,7 +12,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { ensureUserProfile, updateUserProfile } from "@/lib/profile-utils";
 import { UserRole } from "@/types/database";
 import { clearAllAuthFlowFlags } from "@/utils/authFlowUtils";
-import { Sparkles, UserCheck, MessageCircle, Save } from "lucide-react";
+import { Sparkles, UserCheck, MessageCircle, Save, HeartHandshake, ShieldCheck, Users } from "lucide-react";
 
 const STAGE_SUBLINE: Record<string, string> = {
   "1": "You're exploring what care could look like. Save your result so you can pick up where you left off.",
@@ -53,6 +53,46 @@ function QuizContextBanner({ stage }: { stage?: string | null }) {
       </ul>
       <p className="text-xs text-muted-foreground mt-3">
         New here? <span className="font-medium text-foreground">Sign Up</span> takes about 30 seconds. Already have an account? <span className="font-medium text-foreground">Login</span> picks up right where you left off.
+      </p>
+    </div>
+  );
+}
+
+function ProfessionalContextBanner({ from }: { from?: string | null }) {
+  const sourceLine =
+    from === "blog"
+      ? "You arrived from a Tavara article."
+      : "You're joining Tavara as a caregiver.";
+  return (
+    <div className="mb-5 rounded-lg border border-primary/20 bg-primary/5 p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <HeartHandshake className="h-4 w-4 text-primary" />
+        <span className="text-xs font-medium text-primary uppercase tracking-wide">
+          Joining Tavara as a caregiver
+        </span>
+      </div>
+      <h3 className="text-base font-semibold text-foreground leading-snug">
+        One quick step to start getting matched
+      </h3>
+      <p className="text-sm text-muted-foreground mt-1">
+        {sourceLine} Create your free account to build your profile, complete short vetting, and get matched with families in Trinidad &amp; Tobago.
+      </p>
+      <ul className="mt-3 space-y-1.5 text-sm text-foreground/85">
+        <li className="flex items-start gap-2">
+          <UserCheck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+          Build your caregiver profile in about 2 minutes
+        </li>
+        <li className="flex items-start gap-2">
+          <ShieldCheck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+          Complete short vetting — references and documents
+        </li>
+        <li className="flex items-start gap-2">
+          <Users className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+          Get matched with families that fit your skills and schedule
+        </li>
+      </ul>
+      <p className="text-xs text-muted-foreground mt-3">
+        New here? <span className="font-medium text-foreground">Sign Up</span> takes about 30 seconds. Already registered? <span className="font-medium text-foreground">Login</span> picks up where you left off.
       </p>
     </div>
   );
@@ -311,6 +351,9 @@ if (action === 'verification-pending') {
           )}
           {!showResetForm && _params.get('from') === 'quiz' && (
             <QuizContextBanner stage={_params.get('stage')} />
+          )}
+          {!showResetForm && _params.get('role') === 'professional' && (
+            <ProfessionalContextBanner from={_params.get('from')} />
           )}
           {showResetForm ? (
             <ResetPasswordForm 
