@@ -154,6 +154,23 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
               key={idx}
               variant={step.variant ?? "default"}
               onClick={() => {
+                const utm: Record<string, string> = {};
+                for (const k of [
+                  "utm_source", "utm_medium", "utm_campaign", "utm_content",
+                  "utm_term", "utm_referrer_source", "utm_referrer_campaign", "utm_referrer_content",
+                ]) {
+                  const v = searchParams.get(k);
+                  if (v) utm[k] = v;
+                }
+                trackEngagement("quiz_cta_click" as any, {
+                  ...utm,
+                  step_label: step.label,
+                  step_href: step.href,
+                  client_stage: stage,
+                  is_anonymous: isAnonymous,
+                  redirected_to_auth: isAnonymous,
+                }).catch((e) => console.warn("[QuizResult] cta track failed", e));
+
                 if (isAnonymous) {
                   navigate(
                     `/auth?tab=signup&role=family&from=quiz&stage=${stage}`
