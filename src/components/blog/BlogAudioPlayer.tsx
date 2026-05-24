@@ -27,7 +27,18 @@ export const BlogAudioPlayer = ({ postId, className }: Props) => {
     setIsPlaying(false);
     setCurrentTime(0);
     setDuration(0);
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
   }, [postId]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (audio?.duration_seconds && !duration) {
