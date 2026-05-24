@@ -66,6 +66,7 @@ export const AnonymousLeadCapture: React.FC<AnonymousLeadCaptureProps> = ({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [captured, setCaptured] = useState<"email" | "whatsapp" | null>(null);
 
   const closeModal = () => {
     setMode(null);
@@ -73,6 +74,7 @@ export const AnonymousLeadCapture: React.FC<AnonymousLeadCaptureProps> = ({
     setEmail("");
     setPhone("");
   };
+
 
   const buildSummary = () => {
     const lines = [
