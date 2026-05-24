@@ -70,6 +70,34 @@ const FamilyReadinessQuizPage: React.FC = () => {
 
   const stageDef = readinessStages[finalStage];
 
+  // Fire readiness_quiz_completed exactly once per mount when results appear.
+  // PageViewTracker only re-fires on URL changes, so completion events were missed.
+  const completionTrackedRef = useRef(false);
+  useEffect(() => {
+    if (!showResult || completionTrackedRef.current) return;
+    completionTrackedRef.current = true;
+    const utm: Record<string, string> = {};
+    for (const k of [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_content",
+      "utm_term",
+      "utm_referrer_source",
+      "utm_referrer_campaign",
+      "utm_referrer_content",
+    ]) {
+      const v = searchParams.get(k);
+      if (v) utm[k] = v;
+    }
+    trackEngagement("readiness_quiz_completed" as any, {
+      ...utm,
+      stage: finalStage,
+      viewMode: viewResultMode ? "result" : resultFirstMode ? "result_first" : "fresh",
+    }).catch((e) => console.warn("[ReadinessQuiz] completion track failed", e));
+  }, [showResult, finalStage, viewResultMode, resultFirstMode, searchParams, trackEngagement]);
+
+
   // On mount: handle ?retake=1 (clear in-progress, start fresh, no resume prompt)
   useEffect(() => {
     if (isRetakeRequested) {
