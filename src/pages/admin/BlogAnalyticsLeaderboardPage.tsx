@@ -29,6 +29,8 @@ interface LeaderboardRow {
   title: string;
   landings: number;
   ctaClicks: number;
+  quizStarts: number;
+  quizCompletions: number;
   registrations: number;
   convertRate: number;
 }
@@ -45,6 +47,8 @@ function useLeaderboard(posts: { id: string; slug: string; title: string }[]) {
         .in("action_type", [
           "blog_utm_landed",
           "blog_cta_click",
+          "readiness_quiz_view",
+          "readiness_quiz_completed",
           "family_registration_page_view",
           "professional_registration_page_view",
         ])
@@ -53,7 +57,15 @@ function useLeaderboard(posts: { id: string; slug: string; title: string }[]) {
 
       const landings = new Map<string, number>();
       const clicks = new Map<string, number>();
+      const quizStarts = new Map<string, number>();
+      const quizCompletions = new Map<string, number>();
       const regs = new Map<string, number>();
+
+      const slugFromCampaign = (d: Record<string, unknown>): string => {
+        const campaign = String(d.utm_campaign ?? "");
+        const refContent = String(d.utm_referrer_content ?? "");
+        return campaign.startsWith("blog-") ? campaign.slice(5) : refContent;
+      };
 
       for (const ev of data ?? []) {
         const d = (ev.additional_data as Record<string, unknown>) ?? {};
@@ -62,16 +74,17 @@ function useLeaderboard(posts: { id: string; slug: string; title: string }[]) {
           landings.set(slug, (landings.get(slug) ?? 0) + 1);
         } else if (ev.action_type === "blog_cta_click" && slug) {
           clicks.set(slug, (clicks.get(slug) ?? 0) + 1);
+        } else if (ev.action_type === "readiness_quiz_view") {
+          const s = slugFromCampaign(d);
+          if (s) quizStarts.set(s, (quizStarts.get(s) ?? 0) + 1);
+        } else if (ev.action_type === "readiness_quiz_completed") {
+          const s = slugFromCampaign(d);
+          if (s) quizCompletions.set(s, (quizCompletions.get(s) ?? 0) + 1);
         } else if (
           ev.action_type === "family_registration_page_view" ||
           ev.action_type === "professional_registration_page_view"
         ) {
-          const campaign = String(d.utm_campaign ?? "");
-          const refContent = String(d.utm_referrer_content ?? "");
-          // campaign format: blog-<slug>
-          const matchSlug = campaign.startsWith("blog-")
-            ? campaign.slice(5)
-            : refContent;
+          const matchSlug = slugFromCampaign(d);
           if (matchSlug) {
             regs.set(matchSlug, (regs.get(matchSlug) ?? 0) + 1);
           }
@@ -81,6 +94,8 @@ function useLeaderboard(posts: { id: string; slug: string; title: string }[]) {
       const rows: LeaderboardRow[] = posts.map((p) => {
         const l = landings.get(p.slug) ?? 0;
         const c = clicks.get(p.slug) ?? 0;
+        const qs = quizStarts.get(p.slug) ?? 0;
+        const qc = quizCompletions.get(p.slug) ?? 0;
         const r = regs.get(p.slug) ?? 0;
         return {
           postId: p.id,
@@ -88,6 +103,8 @@ function useLeaderboard(posts: { id: string; slug: string; title: string }[]) {
           title: p.title,
           landings: l,
           ctaClicks: c,
+          quizStarts: qs,
+          quizCompletions: qc,
           registrations: r,
           convertRate: l > 0 ? (r / l) * 100 : 0,
         };
@@ -137,7 +154,8 @@ export default function BlogAnalyticsLeaderboardPage() {
           <CardHeader>
             <CardTitle className="text-base">All posts</CardTitle>
             <CardDescription>
-              Click a row to open per-platform analytics for that post.
+              Click a row to open per-platform analytics for that post. Convert %
+              measures landings that become registrations (via the quiz).
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -150,6 +168,8 @@ export default function BlogAnalyticsLeaderboardPage() {
                     <TableHead>Post</TableHead>
                     <TableHead className="text-right">Landings</TableHead>
                     <TableHead className="text-right">CTA clicks</TableHead>
+                    <TableHead className="text-right">Quiz starts</TableHead>
+                    <TableHead className="text-right">Quiz done</TableHead>
                     <TableHead className="text-right">Registrations</TableHead>
                     <TableHead className="text-right">Convert %</TableHead>
                     <TableHead />
@@ -163,6 +183,8 @@ export default function BlogAnalyticsLeaderboardPage() {
                       </TableCell>
                       <TableCell className="text-right">{row.landings}</TableCell>
                       <TableCell className="text-right">{row.ctaClicks}</TableCell>
+                      <TableCell className="text-right">{row.quizStarts}</TableCell>
+                      <TableCell className="text-right">{row.quizCompletions}</TableCell>
                       <TableCell className="text-right">{row.registrations}</TableCell>
                       <TableCell className="text-right">
                         {row.convertRate.toFixed(1)}%
