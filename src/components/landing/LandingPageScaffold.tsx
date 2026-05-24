@@ -7,6 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Check, MapPin, Heart, Phone } from 'lucide-react';
 import { SEO } from '@/components/seo/SEO';
 import { HowMatchingWorksCard } from '@/components/about/HowMatchingWorksCard';
+import { RecommendedReadingStrip } from './RecommendedReadingStrip';
 
 export interface LandingFAQ {
   q: string;
@@ -118,6 +119,9 @@ export const LandingPageScaffold: React.FC<{ data: LandingPageData }> = ({ data 
             </div>
           </div>
         </section>
+
+        {/* Rotating blog recommendations */}
+        <RecommendedReadingStrip seedSlug={data.slug} areaServed={data.areaServed} />
 
         {/* Care rates strip */}
         <section className="border-b bg-muted/30">
