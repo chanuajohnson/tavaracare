@@ -8,7 +8,7 @@ import { Heart, Stethoscope, ArrowRight, MessageCircle, Home, BookOpen, MapPin, 
 const KNOWN_ROUTES = [
   "/", "/about", "/faq", "/blog", "/auth",
   "/services", "/services/elder-care", "/services/dementia-care", "/services/live-in-care", "/services/post-surgery-care",
-  "/locations", "/locations/port-of-spain", "/locations/san-fernando", "/locations/arima", "/locations/tobago",
+  "/locations", "/locations/port-of-spain", "/locations/san-fernando", "/locations/arima", "/locations/tobago", "/locations/diamond-vale",
   "/dashboard/family", "/dashboard/professional", "/dashboard/community", "/dashboard/admin",
 ];
 

@@ -1,66 +1,58 @@
 
-## Problem
+# Diamond Vale landing page + "Know someone who can benefit from Tavara?" referral post
 
-When a reader clicks the "For caregivers — Join a coordinated care team" CTA on a blog post:
+Two shareable assets your friend (and anyone else) can drop into a WhatsApp group. One is location-anchored to Diamond Vale; the other is evergreen and works for every community.
 
-1. They land on `/registration/professional?utm_*` (with UTM params from `BlogTopCTA`).
-2. If not signed in, they see a bare "Authentication Required / Sign In" screen — no Tavara branding, no explanation of what they're signing up for, no UTM forwarding.
-3. Clicking Sign In drops them on `/auth` with a generic "Welcome / Sign in to your account or create a new one" card. There's already a `QuizContextBanner` for `?from=quiz` family flows, but nothing equivalent for professionals coming from the blog.
+## 1. New location page: `/care/diamond-vale`
 
-Net effect: a caregiver who was interested mid-article hits two cold, contextless screens and bounces.
+Mirror the existing Arima / Tobago / Port of Spain / San Fernando pattern exactly — no new components, no routing changes beyond one line, no new conventions.
 
-## Goal
+**Files**
+- `src/pages/locations/locationsData.ts` — append a `diamondVale: LandingPageData` export, same shape as `arima`/`tobago`. Slug `care/diamond-vale`, kicker "Diamond Vale · Diego Martin", H1 "In-home care in Diamond Vale". Copy covers: Diamond Vale + surrounding Diego Martin pockets (Petit Valley, Glencoe, Westmoorings, Carenage), aging-in-place for parents/grandparents, neighbour-to-neighbour trust, care team continuity, urgent coverage, $40/$45/$50+ care rates only (per financial-privacy guardrail), 4 FAQs.
+- `src/pages/locations/DiamondValePage.tsx` — 5-line scaffold wrapper, identical to `ArimaPage.tsx`.
+- `src/components/routing/AppRoutes.tsx` — one import line + one `<Route path="/care/diamond-vale" element={<DiamondValePage />} />` next to the other four. This is the only routing touch.
+- `public/sitemap.xml` — add `<url><loc>https://tavara.care/care/diamond-vale</loc>…</url>` next to the other care locations.
+- `src/pages/NotFound.tsx` — add `/locations/diamond-vale` to the suggested-paths array (matches existing convention).
 
-Make the professional-from-blog path feel like one continuous experience: branded, informative, and clear about what signing up gets them — without touching the protected core auth/registration logic, routing, or form fields.
+Editorial guardrails honoured: no em/en-dashes, no banned AI words, no "hire / agency / client / patient", uses "arrange care / loved one / care team / household / match", per-hour rate only ("care rate", not "wage"), no subscription dollar amounts.
 
-## Scope (presentation-only)
+## 2. New blog post: "Know someone who can benefit from Tavara? Start here."
 
-### 1. Upgrade the auth gate on `src/pages/registration/ProfessionalRegistration.tsx` (lines ~568–581 only)
+Evergreen, location-agnostic, designed for neighbour-to-neighbour WhatsApp sharing. Uses the existing blog system (DB row + `/blog/<slug>` + `blog-share` edge function for rich previews) — no new components.
 
-Replace the bare "Authentication Required" block with a branded card that:
+**File / data**
+- `scripts/seed_blog.ts` — add a new entry (or insert directly via admin /admin/blog/new). Slug: `know-someone-who-needs-care-trinidad-tobago`. Category: `Cultural & Community`. Author: Chanua Johnson. Cover image: existing community/family image already in `src/assets` (no new image generated unless you ask).
 
-- Shows Tavara framing: "Join Tavara as a caregiver" + the "It takes a village to care" tone.
-- Explains in 3 short bullets what the sign-up unlocks (profile, vetting, matched families).
-- Has a clear primary CTA → `/auth?tab=signup&role=professional&from=blog` with **all current UTM params forwarded** (read from `useSearchParams`, append to the auth URL).
-- Has a secondary "I already have an account" link → `/auth?tab=login&from=blog` (UTMs forwarded).
-- A small "Why am I here?" line referencing they arrived from a Tavara article.
+**Body structure (short, scan-friendly, WhatsApp-readable)**
+1. Opening hook — "Everybody knows somebody." Aging parent, post-stroke recovery, family overseas trying to coordinate from afar.
+2. What Tavara actually does — coordinate the match, hold the schedule, daily log, back-up coverage. Platform, not agency.
+3. Split CTA section with two clear paths:
+   - **For families** — "If your loved one needs care" → button → family quiz `/family-readiness-quiz?utm_source=blog&utm_medium=referral&utm_campaign=know-someone&utm_content=family-cta`
+   - **For caregivers** — "If you do this work" → button → `/registration/professional?utm_source=blog&utm_medium=referral&utm_campaign=know-someone&utm_content=caregiver-cta`
+4. "Why share this" — neighbour-to-neighbour trust, faster than searching, no obligation.
+5. Short FAQ (3 items): Is it free to start? What does it cost? What if the match isn't right?
 
-No changes to the auth check, redirect logic, form fields, or anything below line 583.
+**Split-CTA rendering** — the blog body already supports markdown links and the existing `cta_label`/`cta_href` single-CTA field. Use the body for both inline CTAs (markdown buttons / styled links handled by current blog renderer) and set the post-level `cta_label`/`cta_href` to the family quiz (the higher-intent path). No blog renderer changes.
 
-### 2. Add a `ProfessionalContextBanner` to `src/pages/auth/AuthPage.tsx`
+**Sitemap** — add the new blog URL to `public/sitemap.xml`.
 
-Mirror the existing `QuizContextBanner` pattern (same file, same visual language) — purely additive:
+## 3. Wire the two together
 
-- New small component `ProfessionalContextBanner` defined alongside `QuizContextBanner`.
-- Rendered in the same slot as the quiz banner, gated on `_params.get('role') === 'professional'` OR (`_params.get('from') === 'blog'` AND role=professional).
-- Content:
-  - Eyebrow: "Joining Tavara as a caregiver"
-  - Heading: "One quick step to start getting matched"
-  - 3 bullets (icons reusing already-imported `UserCheck`, `MessageCircle`, `Save` or add 1–2 from lucide-react): create profile, complete short vetting, get matched with families that fit your skills and schedule.
-  - Footer line: "New here? **Sign Up** takes about 30 seconds. Already registered? **Login** picks up where you left off."
-- Auto-select the Sign Up tab when `role=professional` arrives (extend the existing `useEffect` URL-param block — the file already does this for `role` generally on line ~86, just confirm professional path keeps signup selected; no logic rewrite).
+- The Diamond Vale page's existing scaffold already has CTAs (family + professional). No changes.
+- The blog post body includes one short line: "Caregivers and families in Diamond Vale, [Diamond Vale page link]." So your friend can share *either* URL and the reader can hop between them.
+- Both URLs work with the existing `getBlogShareUrl` / location-page share buttons for rich WhatsApp previews via the `blog-share` edge function (blog post only) and per-route `Helmet` meta (location page).
 
-No changes to `handleLogin`, `handleSignup`, `handleResetPassword`, `handleForgotPassword`, the Tabs structure, the suspended-account block, or routing.
+## Out of scope
 
-### 3. Forward UTM + context from `BlogTopCTA` through the gate
+- No changes to `App.tsx` root, `AuthProvider`, registration flows, chat flows, or any protected component.
+- No new shared components, no design system changes, no new edge functions.
+- No image generation unless you ask after reviewing — we'll reuse an existing asset.
+- No changes to other location pages.
 
-`src/components/blog/BlogTopCTA.tsx` already builds `proHref` via `buildCtaDestination`. The auth gate (step 1) is the piece that currently drops UTMs when navigating to `/auth`. Fix is contained to step 1: read `location.search` and append to the auth URL so the AuthPage banner can render and analytics stays attributed.
+## What you'll be able to do after
 
-## Out of scope (explicitly not touching)
+Send your friend two URLs:
+- `https://tavara.care/care/diamond-vale` — for Diamond Vale specifically
+- `https://tavara.care/blog/know-someone-who-needs-care-trinidad-tobago` — evergreen, split CTA, works in any group chat
 
-- `src/App.tsx`, any routes, `AuthProvider`, the `SignupForm` / `LoginForm` internals.
-- The professional registration form fields, validation, or submission logic.
-- Tracking schema (existing `trackBlogCtaClick` and UTM forwarding are already wired).
-- Family/quiz banner behavior.
-
-## Files to edit
-
-- `src/pages/registration/ProfessionalRegistration.tsx` — replace lines ~568–581 only (the `!user` block).
-- `src/pages/auth/AuthPage.tsx` — add `ProfessionalContextBanner` component + one conditional render line + minor tweak to the existing URL-param `useEffect` if needed.
-
-## Acceptance check
-
-1. Clicking the caregivers CTA on a blog post and signing out → gate shows branded Tavara card with 3 value bullets and forwards UTMs.
-2. Clicking "Sign Up" on the gate → AuthPage shows the new professional banner, Sign Up tab is pre-selected.
-3. Clicking "I already have an account" → AuthPage shows the same banner with Login tab selected.
-4. Existing quiz-from-family flow, normal `/auth` visits, suspended-account state, and password reset all render unchanged.
+Both render rich previews when pasted into WhatsApp (blog uses the share edge function; location page uses Helmet meta which previews well in JS-executing crawlers and falls back to the sitewide OG card elsewhere).

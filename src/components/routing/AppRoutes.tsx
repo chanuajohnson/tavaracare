@@ -37,6 +37,7 @@ import PortOfSpainPage from "@/pages/locations/PortOfSpainPage";
 import SanFernandoPage from "@/pages/locations/SanFernandoPage";
 import ArimaPage from "@/pages/locations/ArimaPage";
 import TobagoPage from "@/pages/locations/TobagoPage";
+import DiamondValePage from "@/pages/locations/DiamondValePage";
 import ElderCarePage from "@/pages/services/ElderCarePage";
 import DementiaCarePage from "@/pages/services/DementiaCarePage";
 import PostSurgeryCarePage from "@/pages/services/PostSurgeryCarePage";
@@ -149,6 +150,7 @@ export const AppRoutes = () => {
       <Route path="/care/san-fernando" element={<SanFernandoPage />} />
       <Route path="/care/arima" element={<ArimaPage />} />
       <Route path="/care/tobago" element={<TobagoPage />} />
+      <Route path="/care/diamond-vale" element={<DiamondValePage />} />
 
       {/* SEO Landing Pages — Services */}
       <Route path="/services/elder-care" element={<ElderCarePage />} />
