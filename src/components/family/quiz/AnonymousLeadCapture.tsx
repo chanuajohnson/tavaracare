@@ -195,7 +195,9 @@ export const AnonymousLeadCapture: React.FC<AnonymousLeadCaptureProps> = ({
       toast.success(
         "Saved. We'll be in touch — and your result is preserved on this device."
       );
+      setCaptured("email");
       closeModal();
+
     } finally {
       setSubmitting(false);
     }
