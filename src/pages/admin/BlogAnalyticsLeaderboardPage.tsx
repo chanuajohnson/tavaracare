@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useAllPosts } from "@/lib/blog/api";
 import { supabase } from "@/integrations/supabase/client";
+import { BlogAudioBackfillButton } from "@/components/admin/BlogAudioBackfillButton";
 
 interface LeaderboardRow {
   postId: string;
@@ -137,6 +138,13 @@ export default function BlogAnalyticsLeaderboardPage() {
     () => posts.map((p) => ({ id: p.id, slug: p.slug, title: p.title })),
     [posts],
   );
+  const publishedLite = useMemo(
+    () =>
+      posts
+        .filter((p) => (p as any).status === "published")
+        .map((p) => ({ id: p.id, slug: p.slug, title: p.title })),
+    [posts],
+  );
   const { data: rows = [], isLoading: loading } = useLeaderboard(lite);
 
   if (isLoading) return <div className="container py-12">Loading…</div>;
@@ -159,6 +167,8 @@ export default function BlogAnalyticsLeaderboardPage() {
             Last 90 days, sorted by landings.
           </p>
         </div>
+
+        <BlogAudioBackfillButton posts={publishedLite} />
 
         <Card>
           <CardHeader>

@@ -140,17 +140,33 @@ Deno.serve(async (req) => {
 
     if (!ttsRes.ok) {
       const errTxt = await ttsRes.text();
+      console.error(`[blog-tts] ElevenLabs ${ttsRes.status} for post ${post.id}: ${errTxt}`);
       const isBlocked =
         ttsRes.status === 401 ||
         ttsRes.status === 403 ||
         ttsRes.status === 429 ||
         /unusual_activity|quota|free tier|detected_unusual/i.test(errTxt);
       if (isBlocked) {
-        // Return a graceful fallback so the client can use browser speechSynthesis.
+        // Probe the account so we can log what's wrong (quota vs locked).
+        try {
+          const probe = await fetch("https://api.elevenlabs.io/v1/user/subscription", {
+            headers: { "xi-api-key": apiKey },
+          });
+          const probeJson = await probe.json().catch(() => ({}));
+          console.error(`[blog-tts] EL subscription probe:`, JSON.stringify(probeJson));
+        } catch (_) { /* ignore */ }
+
+        const reason = /unusual_activity|detected_unusual/i.test(errTxt)
+          ? "unusual_activity_lock"
+          : /quota|free tier/i.test(errTxt) || ttsRes.status === 429
+            ? "quota_exceeded"
+            : "tts_provider_blocked";
+
         return new Response(
           JSON.stringify({
             provider_unavailable: true,
-            reason: "tts_provider_blocked",
+            reason,
+            provider_status: ttsRes.status,
             fallback_text: fullText,
             post_id: post.id,
             voice_id,
