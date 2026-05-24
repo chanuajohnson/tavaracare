@@ -183,6 +183,8 @@ export default function BlogAnalyticsLeaderboardPage() {
                       </TableCell>
                       <TableCell className="text-right">{row.landings}</TableCell>
                       <TableCell className="text-right">{row.ctaClicks}</TableCell>
+                      <TableCell className="text-right">{row.quizStarts}</TableCell>
+                      <TableCell className="text-right">{row.quizCompletions}</TableCell>
                       <TableCell className="text-right">{row.registrations}</TableCell>
                       <TableCell className="text-right">
                         {row.convertRate.toFixed(1)}%
