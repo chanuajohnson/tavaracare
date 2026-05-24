@@ -12,7 +12,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { ensureUserProfile, updateUserProfile } from "@/lib/profile-utils";
 import { UserRole } from "@/types/database";
 import { clearAllAuthFlowFlags } from "@/utils/authFlowUtils";
-import { Sparkles, UserCheck, MessageCircle, Save } from "lucide-react";
+import { Sparkles, UserCheck, MessageCircle, Save, HeartHandshake, ShieldCheck, Users } from "lucide-react";
 
 const STAGE_SUBLINE: Record<string, string> = {
   "1": "You're exploring what care could look like. Save your result so you can pick up where you left off.",
