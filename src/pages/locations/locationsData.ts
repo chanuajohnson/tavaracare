@@ -192,4 +192,52 @@ export const tobago: LandingPageData = {
   areaServed: 'Tobago',
 };
 
-export const locations = [portOfSpain, sanFernando, arima, tobago];
+export const diamondVale: LandingPageData = {
+  slug: 'care/diamond-vale',
+  pageTitle: 'Caregivers in Diamond Vale | Tavara Care',
+  metaDescription:
+    'Arrange in-home care in Diamond Vale and Diego Martin with vetted caregivers. Tavara coordinates matching, scheduling, and daily care for your loved one.',
+  h1: 'In-home care in Diamond Vale',
+  kicker: 'Diamond Vale · Diego Martin',
+  intro:
+    'Diamond Vale is a tight community where neighbours still know one another. Families here use Tavara to arrange care for a parent or grandparent at home, with caregivers based in and around the Diego Martin valley. We coordinate the match, the schedule, and the daily details so families stay close without burning out.',
+  sections: [
+    {
+      heading: 'Diego Martin valley coverage',
+      body:
+        'Our caregiver network reaches across Diamond Vale, Petit Valley, Glencoe, Westmoorings, Cocorite, Carenage, and the surrounding pockets. Proximity matters when school traffic on Diego Martin Main Road can shift a 30 minute drive into something much longer. We match families with caregivers who can reach the home reliably.',
+    },
+    {
+      heading: 'Care that fits a close knit neighbourhood',
+      body:
+        'Companion supervision through the day.\nPersonal care: bathing, dressing, toileting, mobility.\nMedication reminders and administration logs.\nMeal preparation and feeding.\nSafe transfers and fall prevention.\nDementia friendly routines.\nPost hospital recovery support.\nLive in coverage for households that need it.',
+    },
+    {
+      heading: 'Why neighbours share Tavara with each other',
+      body:
+        'In a community like Diamond Vale, one family figuring out care for an aging parent usually means three or four other households are quietly facing the same thing. Tavara turns a stressful private search into a coordinated arrangement. A care team, not one stretched person. A schedule that holds when life happens. A daily log the whole family can see, including the relatives abroad.',
+    },
+  ],
+  faqs: [
+    {
+      q: 'Do you have caregivers in Diamond Vale and Diego Martin?',
+      a: 'Yes. We actively match families in Diamond Vale, Petit Valley, Glencoe, Westmoorings, and Carenage with caregivers who live nearby.',
+    },
+    {
+      q: 'How quickly can care start?',
+      a: 'Standard matches usually within a few days after intake. Urgent situations can often be covered in 24 to 48 hours through our urgent care queue.',
+    },
+    {
+      q: 'What does care cost in Diamond Vale?',
+      a: 'Care rates are $40 per hour Standard, $45 per hour Full Service, $50 plus per hour Premium. Subscription details are shared privately during onboarding.',
+    },
+    {
+      q: 'Can family abroad stay in the loop?',
+      a: 'Yes. Relatives in the diaspora can view the dashboard, see the schedule, and read daily care logs so the conversation about Mummy or Daddy is grounded in real information.',
+    },
+  ],
+  schemaType: 'LocalBusiness',
+  areaServed: 'Diamond Vale',
+};
+
+export const locations = [portOfSpain, sanFernando, arima, tobago, diamondVale];
