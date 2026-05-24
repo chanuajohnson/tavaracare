@@ -565,17 +565,64 @@ const ProfessionalRegistration = () => {
     );
   }
 
-  // Show auth required state if no user
+  // Show branded sign-up gate if no user
   if (!user) {
+    const incomingParams = new URLSearchParams(searchParams);
+    incomingParams.set('role', 'professional');
+    incomingParams.set('from', incomingParams.get('from') || 'blog');
+    const signupParams = new URLSearchParams(incomingParams);
+    signupParams.set('tab', 'signup');
+    const loginParams = new URLSearchParams(incomingParams);
+    loginParams.set('tab', 'login');
+    const signupHref = `/auth?${signupParams.toString()}`;
+    const loginHref = `/auth?${loginParams.toString()}`;
+
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
-          <p className="text-gray-600 mb-6">You must be logged in to complete your professional registration.</p>
-          <Button onClick={() => navigate('/auth')}>
-            Sign In
-          </Button>
-        </div>
+      <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
+        <Card className="w-full max-w-lg">
+          <CardHeader className="text-center space-y-2">
+            <div className="text-xs font-semibold uppercase tracking-wide text-primary">
+              Join Tavara as a caregiver
+            </div>
+            <CardTitle className="text-2xl">
+              Create your free caregiver account
+            </CardTitle>
+            <CardDescription>
+              You arrived from a Tavara article. Sign up to build your profile, complete our short vetting, and get matched with families that fit your skills and schedule.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <ul className="space-y-3 text-sm text-foreground/85">
+              <li className="flex items-start gap-3">
+                <span className="mt-0.5 h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">1</span>
+                <span><span className="font-medium text-foreground">Create your profile</span> — about 2 minutes. Tell us your experience, certifications, and availability.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="mt-0.5 h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">2</span>
+                <span><span className="font-medium text-foreground">Complete short vetting</span> — references and documents. Our team guides you through it.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="mt-0.5 h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">3</span>
+                <span><span className="font-medium text-foreground">Get matched</span> with families that fit your skills, location, and the hours you want to work.</span>
+              </li>
+            </ul>
+            <div className="space-y-2 pt-2">
+              <Button className="w-full" onClick={() => navigate(signupHref)}>
+                Sign up as a caregiver
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => navigate(loginHref)}
+              >
+                I already have an account — Log in
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              Free to join. Tavara is a care coordination platform — families engage caregivers directly, and we help with matching, vetting, and payment coordination.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
