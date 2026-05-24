@@ -154,7 +154,8 @@ export default function BlogAnalyticsLeaderboardPage() {
           <CardHeader>
             <CardTitle className="text-base">All posts</CardTitle>
             <CardDescription>
-              Click a row to open per-platform analytics for that post.
+              Click a row to open per-platform analytics for that post. Convert %
+              measures landings that become registrations (via the quiz).
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -167,6 +168,8 @@ export default function BlogAnalyticsLeaderboardPage() {
                     <TableHead>Post</TableHead>
                     <TableHead className="text-right">Landings</TableHead>
                     <TableHead className="text-right">CTA clicks</TableHead>
+                    <TableHead className="text-right">Quiz starts</TableHead>
+                    <TableHead className="text-right">Quiz done</TableHead>
                     <TableHead className="text-right">Registrations</TableHead>
                     <TableHead className="text-right">Convert %</TableHead>
                     <TableHead />
