@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -19,10 +19,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ArrowRight } from "lucide-react";
 import { useAllPosts } from "@/lib/blog/api";
 import { supabase } from "@/integrations/supabase/client";
 import { BlogAudioBackfillButton } from "@/components/admin/BlogAudioBackfillButton";
+import {
+  RangeDays,
+  useBlogAnalyticsRange,
+} from "@/hooks/admin/useBlogAnalyticsRange";
+import { KpiStrip } from "@/components/admin/blog-analytics/KpiStrip";
+import { CampaignBreakdownCard } from "@/components/admin/blog-analytics/CampaignBreakdownCard";
+import { DailyTrendChart } from "@/components/admin/blog-analytics/DailyTrendChart";
+import { SourceMediumCard } from "@/components/admin/blog-analytics/SourceMediumCard";
+import { LocationLandingsCard } from "@/components/admin/blog-analytics/LocationLandingsCard";
+import {
+  AnnotationsCard,
+  useAnnotations,
+} from "@/components/admin/blog-analytics/AnnotationsCard";
+
 
 interface LeaderboardRow {
   postId: string;
