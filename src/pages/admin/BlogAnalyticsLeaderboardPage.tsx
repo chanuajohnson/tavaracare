@@ -53,12 +53,16 @@ interface LeaderboardRow {
   dropOffRate: number;
 }
 
-function useLeaderboard(posts: { id: string; slug: string; title: string }[]) {
+function useLeaderboard(
+  posts: { id: string; slug: string; title: string }[],
+  days: RangeDays,
+) {
   return useQuery<LeaderboardRow[]>({
-    queryKey: ["blog-analytics-leaderboard", posts.map((p) => p.id).join(",")],
+    queryKey: ["blog-analytics-leaderboard", days, posts.map((p) => p.id).join(",")],
     enabled: posts.length > 0,
     queryFn: async () => {
-      const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
       const { data, error } = await supabase
         .from("cta_engagement_tracking")
         .select("action_type, additional_data")
