@@ -62,8 +62,6 @@ const Frame: React.FC<{ children: React.ReactNode; label: string }> = ({ childre
 
 const Preview: React.FC<{ scenes: Scenes }> = ({ scenes }) => {
   const ink = "#1E3A8A";
-  const inkSoft = "#274aa3";
-  const muted = "#475569";
   return (
     <div className="flex gap-3 flex-wrap justify-center">
       <Frame label="Scene 1">
@@ -78,7 +76,7 @@ const Preview: React.FC<{ scenes: Scenes }> = ({ scenes }) => {
       </Frame>
       <Frame label="Scene 3">
         <div className="flex flex-col items-center gap-2">
-          <div style={{ color: "#5C7E6A", fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase" }}>
+          <div style={{ color: ink, fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase" }}>
             {scenes.scene3.eyebrow}
           </div>
           <div style={{ color: ink, fontFamily: "Georgia, serif", fontSize: 48, fontStyle: "italic", lineHeight: 1 }}>
@@ -101,10 +99,10 @@ const Preview: React.FC<{ scenes: Scenes }> = ({ scenes }) => {
           <div style={{ color: ink, fontSize: 7, letterSpacing: "0.35em", textTransform: "uppercase" }}>
             Care, coordinated.
           </div>
-          <div style={{ color: inkSoft, fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: 10, marginTop: 6 }}>
+          <div style={{ color: ink, fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: 10, marginTop: 6 }}>
             {scenes.scene5.tagline}
           </div>
-          <div style={{ color: muted, fontSize: 7, marginTop: 6, lineHeight: 1.3 }}>
+          <div style={{ color: ink, opacity: 0.7, fontSize: 7, marginTop: 6, lineHeight: 1.3 }}>
             {scenes.scene5.footer}
           </div>
         </div>
@@ -112,6 +110,7 @@ const Preview: React.FC<{ scenes: Scenes }> = ({ scenes }) => {
     </div>
   );
 };
+
 
 const VideoStudioPage: React.FC = () => {
   const navigate = useNavigate();
