@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -19,10 +19,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ArrowRight } from "lucide-react";
 import { useAllPosts } from "@/lib/blog/api";
 import { supabase } from "@/integrations/supabase/client";
 import { BlogAudioBackfillButton } from "@/components/admin/BlogAudioBackfillButton";
+import {
+  RangeDays,
+  useBlogAnalyticsRange,
+} from "@/hooks/admin/useBlogAnalyticsRange";
+import { KpiStrip } from "@/components/admin/blog-analytics/KpiStrip";
+import { CampaignBreakdownCard } from "@/components/admin/blog-analytics/CampaignBreakdownCard";
+import { DailyTrendChart } from "@/components/admin/blog-analytics/DailyTrendChart";
+import { SourceMediumCard } from "@/components/admin/blog-analytics/SourceMediumCard";
+import { LocationLandingsCard } from "@/components/admin/blog-analytics/LocationLandingsCard";
+import {
+  AnnotationsCard,
+  useAnnotations,
+} from "@/components/admin/blog-analytics/AnnotationsCard";
+
 
 interface LeaderboardRow {
   postId: string;
@@ -38,12 +53,16 @@ interface LeaderboardRow {
   dropOffRate: number;
 }
 
-function useLeaderboard(posts: { id: string; slug: string; title: string }[]) {
+function useLeaderboard(
+  posts: { id: string; slug: string; title: string }[],
+  days: RangeDays,
+) {
   return useQuery<LeaderboardRow[]>({
-    queryKey: ["blog-analytics-leaderboard", posts.map((p) => p.id).join(",")],
+    queryKey: ["blog-analytics-leaderboard", days, posts.map((p) => p.id).join(",")],
     enabled: posts.length > 0,
     queryFn: async () => {
-      const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
       const { data, error } = await supabase
         .from("cta_engagement_tracking")
         .select("action_type, additional_data")
@@ -134,6 +153,8 @@ function useLeaderboard(posts: { id: string; slug: string; title: string }[]) {
 export default function BlogAnalyticsLeaderboardPage() {
   const { user, userRole, isLoading } = useAuth();
   const { data: posts = [] } = useAllPosts();
+  const [days, setDays] = useState<RangeDays>(7);
+
   const lite = useMemo(
     () => posts.map((p) => ({ id: p.id, slug: p.slug, title: p.title })),
     [posts],
@@ -145,7 +166,19 @@ export default function BlogAnalyticsLeaderboardPage() {
         .map((p) => ({ id: p.id, slug: p.slug, title: p.title })),
     [posts],
   );
-  const { data: rows = [], isLoading: loading } = useLeaderboard(lite);
+  const { data: rows = [], isLoading: loading } = useLeaderboard(lite, days);
+  const { data: range } = useBlogAnalyticsRange(days);
+  const { data: annotations = [] } = useAnnotations();
+
+  const chartAnnotations = useMemo(() => {
+    if (!range) return [];
+    return annotations
+      .filter((a) => {
+        const d = new Date(a.occurred_on);
+        return d >= range.rangeStart && d <= range.rangeEnd;
+      })
+      .map((a) => ({ occurred_on: a.occurred_on, label: a.label }));
+  }, [annotations, range]);
 
   if (isLoading) return <div className="container py-12">Loading…</div>;
   if (!user) return <Navigate to="/auth" replace />;
@@ -157,16 +190,50 @@ export default function BlogAnalyticsLeaderboardPage() {
         breadcrumbItems={[
           { label: "Admin", path: "/dashboard/admin" },
           { label: "Blog", path: "/admin/blog" },
-          { label: "Leaderboard", path: "/admin/blog/analytics" },
+          { label: "Analytics", path: "/admin/blog/analytics" },
         ]}
       />
-      <div className="container max-w-5xl py-8 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">Blog leaderboard</h1>
-          <p className="text-sm text-muted-foreground">
-            Last 90 days, sorted by landings.
-          </p>
+      <div className="container max-w-6xl py-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold">Blog & campaign analytics</h1>
+            <p className="text-sm text-muted-foreground">
+              Pulse, campaign attribution, and weekly review — in one view.
+            </p>
+          </div>
+          <ToggleGroup
+            type="single"
+            value={String(days)}
+            onValueChange={(v) => v && setDays(Number(v) as RangeDays)}
+            size="sm"
+          >
+            <ToggleGroupItem value="7">7d</ToggleGroupItem>
+            <ToggleGroupItem value="28">28d</ToggleGroupItem>
+            <ToggleGroupItem value="90">90d</ToggleGroupItem>
+          </ToggleGroup>
         </div>
+
+        {range && (
+          <KpiStrip current={range.current} previous={range.previous} />
+        )}
+
+        {range && (
+          <DailyTrendChart
+            events={range.current}
+            rangeStart={range.rangeStart}
+            rangeEnd={range.rangeEnd}
+            annotations={chartAnnotations}
+          />
+        )}
+
+        {range && <CampaignBreakdownCard events={range.current} />}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {range && <SourceMediumCard events={range.current} />}
+          {range && <LocationLandingsCard events={range.current} />}
+        </div>
+
+        <AnnotationsCard />
 
         <BlogAudioBackfillButton posts={publishedLite} />
 
@@ -174,8 +241,8 @@ export default function BlogAnalyticsLeaderboardPage() {
           <CardHeader>
             <CardTitle className="text-base">All posts</CardTitle>
             <CardDescription>
-              Click a row to open per-platform analytics for that post. Convert %
-              measures landings that become registrations (via the quiz).
+              Sorted by landings in the selected window. Click a row for
+              per-platform analytics. Convert % = registrations ÷ landings.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -232,4 +299,5 @@ export default function BlogAnalyticsLeaderboardPage() {
       </div>
     </div>
   );
+
 }

@@ -482,6 +482,30 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_analytics_annotations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          occurred_on: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          occurred_on: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          occurred_on?: string
+        }
+        Relationships: []
+      }
       blog_audio: {
         Row: {
           audio_url: string
