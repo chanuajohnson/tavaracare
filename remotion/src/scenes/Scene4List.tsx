@@ -2,6 +2,7 @@ import React from "react";
 import { AbsoluteFill, useCurrentFrame, interpolate } from "remotion";
 import { sansFamily } from "../fonts";
 import { SceneBackdrop } from "./SceneBackdrop";
+import { brand } from "../brand";
 
 const Line: React.FC<{ text: string; delay: number }> = ({ text, delay }) => {
   const frame = useCurrentFrame();
@@ -14,9 +15,9 @@ const Line: React.FC<{ text: string; delay: number }> = ({ text, delay }) => {
       style={{
         fontFamily: sansFamily,
         fontWeight: 400,
-        fontSize: 72,
+        fontSize: 68,
         lineHeight: 1.25,
-        color: "#1A1A1A",
+        color: brand.ink,
         opacity,
         transform: `translateY(${y}px)`,
         filter: `blur(${blur}px)`,
@@ -40,9 +41,10 @@ export const Scene4List: React.FC = () => {
           flexDirection: "column",
         }}
       >
-        <Line text="A care team that shows up." delay={0} />
-        <Line text="Daily logs you can trust." delay={14} />
-        <Line text="One number to call." delay={28} />
+        <Line text="A matched care team." delay={0} />
+        <Line text="A coordinator who knows" delay={14} />
+        <Line text="your loved one." delay={22} />
+        <Line text="One plan. One village." delay={36} />
       </AbsoluteFill>
     </SceneBackdrop>
   );

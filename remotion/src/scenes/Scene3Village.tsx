@@ -2,6 +2,7 @@ import React from "react";
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
 import { serifFamily, sansFamily } from "../fonts";
 import { SceneBackdrop } from "./SceneBackdrop";
+import { brand } from "../brand";
 
 export const Scene3Village: React.FC = () => {
   const frame = useCurrentFrame();
@@ -23,7 +24,7 @@ export const Scene3Village: React.FC = () => {
             fontFamily: sansFamily,
             fontSize: 32,
             letterSpacing: "0.32em",
-            color: "#87A878",
+            color: brand.sage,
             textTransform: "uppercase",
             marginBottom: 40,
             opacity: labelOpacity,
@@ -36,7 +37,7 @@ export const Scene3Village: React.FC = () => {
             fontFamily: serifFamily,
             fontSize: 360,
             lineHeight: 1,
-            color: "#1A1A1A",
+            color: brand.ink,
             opacity,
             filter: `blur(${blur}px)`,
             transform: `scale(${scale}) translateY(${drift}px)`,
