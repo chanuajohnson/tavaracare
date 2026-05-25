@@ -1,7 +1,5 @@
 import React from "react";
-import { AbsoluteFill } from "remotion";
-import { TransitionSeries, linearTiming } from "@remotion/transitions";
-import { fade } from "@remotion/transitions/fade";
+import { AbsoluteFill, Series } from "remotion";
 import { Scene1Line1 } from "./scenes/Scene1Line1";
 import { Scene2Line2 } from "./scenes/Scene2Line2";
 import { Scene3Village } from "./scenes/Scene3Village";
@@ -12,39 +10,23 @@ import "./fonts";
 export const MainVideo: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: "#ECE4D6" }}>
-      <TransitionSeries>
-        <TransitionSeries.Sequence durationInFrames={55}>
+      <Series>
+        <Series.Sequence durationInFrames={48}>
           <Scene1Line1 />
-        </TransitionSeries.Sequence>
-        <TransitionSeries.Transition
-          presentation={fade()}
-          timing={linearTiming({ durationInFrames: 10 })}
-        />
-        <TransitionSeries.Sequence durationInFrames={55}>
+        </Series.Sequence>
+        <Series.Sequence durationInFrames={48}>
           <Scene2Line2 />
-        </TransitionSeries.Sequence>
-        <TransitionSeries.Transition
-          presentation={fade()}
-          timing={linearTiming({ durationInFrames: 12 })}
-        />
-        <TransitionSeries.Sequence durationInFrames={65}>
+        </Series.Sequence>
+        <Series.Sequence durationInFrames={56}>
           <Scene3Village />
-        </TransitionSeries.Sequence>
-        <TransitionSeries.Transition
-          presentation={fade()}
-          timing={linearTiming({ durationInFrames: 12 })}
-        />
-        <TransitionSeries.Sequence durationInFrames={70}>
+        </Series.Sequence>
+        <Series.Sequence durationInFrames={56}>
           <Scene4List />
-        </TransitionSeries.Sequence>
-        <TransitionSeries.Transition
-          presentation={fade()}
-          timing={linearTiming({ durationInFrames: 10 })}
-        />
-        <TransitionSeries.Sequence durationInFrames={40}>
+        </Series.Sequence>
+        <Series.Sequence durationInFrames={32}>
           <Scene5Logo />
-        </TransitionSeries.Sequence>
-      </TransitionSeries>
+        </Series.Sequence>
+      </Series>
     </AbsoluteFill>
   );
 };
