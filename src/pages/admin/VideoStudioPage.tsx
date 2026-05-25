@@ -8,9 +8,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Save, Film, Copy } from "lucide-react";
+import { Loader2, Sparkles, Save, Film, Copy, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type Scenes = {
   scene1: string;
@@ -239,6 +250,19 @@ const VideoStudioPage: React.FC = () => {
     toast.success("Script JSON copied.");
   };
 
+  const handleDelete = async (id: string) => {
+    const prev = scripts;
+    setScripts((s) => s.filter((x) => x.id !== id));
+    const { error } = await supabase.from("video_scripts").delete().eq("id", id);
+    if (error) {
+      console.error(error);
+      toast.error("Could not delete script.");
+      setScripts(prev);
+    } else {
+      toast.success("Script deleted.");
+    }
+  };
+
   if (authLoading || isAdmin === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -438,6 +462,36 @@ const VideoStudioPage: React.FC = () => {
                           download
                         </a>
                       )}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label="Delete script"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete this script?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              "{s.title}" will be removed from the library. This can't be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(s.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 ))}
