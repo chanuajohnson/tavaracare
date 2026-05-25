@@ -157,6 +157,12 @@ export default function CampaignLinksPage() {
           <UTMLinkGenerator />
         </div>
 
+        {/* Visits by Campaign (link clicks, top of funnel) */}
+        <div className="mb-8">
+          <CampaignVisitsCard />
+        </div>
+
+
         {/* Signups by Source Table */}
         <Card>
           <CardHeader>
