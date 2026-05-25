@@ -1,66 +1,43 @@
-# Upgrade `/admin/blog/analytics` to mirror your daily routine
+# TikTok video — what I'll make
 
-Right now the page is a single 90-day leaderboard table. Your daily routine has three rhythms (pulse / campaign / weekly depth) and an annotation practice. The page should make those rhythms one-click instead of one-tab-in-GA4.
+**Format:** 8 seconds, 1080x1920 (9:16 vertical), 30fps, MP4 — TikTok-safe (min 3s, they prefer 9-15s for reach).
 
-All upgrades stay inside `BlogAnalyticsLeaderboardPage.tsx` plus a few new components and one tiny table. Data comes from `cta_engagement_tracking` (already capturing `blog_utm_landed`, `location_utm_landed`, `blog_cta_click`, quiz events, registration page views).
+**Most impactful concept for Tavara on TikTok:**
+A quiet, emotional "It takes a village" piece. TikTok rewards human pause + a clear line. Slick brand-ad style underperforms; raw, typographic, emotional outperforms.
 
-## What gets added (top to bottom on the page)
+## Storyboard (8s / 240 frames)
 
-**1. Time-range toggle — 7d / 28d / 90d**
-Default 7d (the pulse view). All cards below respect it. Comparison vs previous equal-length window for delta arrows.
+1. **0.0–1.5s** — Black frame. Soft type fades in: *"Caring for someone you love…"*
+2. **1.5–3.0s** — Type shifts up. Second line: *"…shouldn't mean carrying it alone."*
+3. **3.0–5.0s** — Cut to soft warm gradient (Tavara cream + sage). Large serif word **"village."** scales in with subtle drift.
+4. **5.0–7.0s** — Three short stacked lines stagger in: *A coordinated care team. / Daily logs you can trust. / One number to call.*
+5. **7.0–8.0s** — Logo lockup: **tavara.care** + tagline *"Care, coordinated."*
 
-**2. KPI strip (5 tiles)**
-- Landings (blog + location combined)
-- CTA clicks
-- Quiz starts → completions (with drop-off %)
-- Registrations attributed to blog/location
-- Engagement = clicks ÷ landings
-Each tile shows the period delta (↑/↓ % vs previous window) — your "is the trend line moving?" answer at a glance.
+## Visual direction
 
-**3. Campaign performance card** — *the Scully view*
-Groups all UTM-landings (blog + location) by `utm_campaign → utm_source → utm_content`. Columns: campaign, source, destination, landings, CTA clicks, registrations, last seen. Sorted by landings. This is the "go to Traffic Acquisition → Session Campaign" step, but as a saved view that pre-filters to *your* live campaigns.
+- Palette: warm cream `#F5F0E8`, deep ink `#1A1A1A`, sage accent `#87A878`, soft clay `#C4654A` (sparingly).
+- Type: Instrument Serif (display) + Work Sans (body) via `@remotion/google-fonts`.
+- Motion: slow blur-in + gentle upward drift. No spinning, no neon, no stock-ad energy. Editorial / cinematic minimal.
+- Vertical-safe margins so nothing gets clipped by TikTok UI (caption, like button, profile).
 
-**4. Daily trend chart** — landings per day across the selected window, two series: blog landings vs location landings. Tiny `recharts` area chart. Lets you spot the spike Scully creates without leaving the page.
+## Language guardrails applied
 
-**5. Source / medium breakdown** — table of `utm_source` × `utm_medium` (whatsapp/dm, facebook/social, tiktok/social, direct, etc.) with landings, engagement rate, registrations. Lets you see at a glance which channel is doing the work.
+No "hire," "agency," "staff," "client." Uses "loved one," "care team," "coordinated." No em-dashes. No AI buzzwords. No pricing on the public clip.
 
-**6. Location pages strip** — separate small card listing every `/locations/*` slug with landings + last visit in the window. Mirrors your "Pages & Screens → /locations/ filter" routine. Becomes more useful as more locations go live.
+## Build steps
 
-**7. Existing All-posts leaderboard** — kept as is, but respects the time-range toggle (not always 90d).
+1. Scaffold `remotion/` project (Bun, Remotion + transitions + google-fonts, fix musl compositor binary, symlink ffmpeg/ffprobe).
+2. Create vertical Composition (1080x1920, 30fps, 240 frames).
+3. Build 5 scene components under `src/scenes/` + a persistent warm-gradient background layer.
+4. Wire with `<TransitionSeries>` using soft fades.
+5. Spot-check frames ~45, ~120, ~210 with `bunx remotion still`.
+6. Render to `/mnt/documents/tavara-tiktok-village.mp4` via the programmatic render script (muted, chrome-for-testing).
+7. Deliver as `<presentation-artifact>` so you can download and upload to TikTok.
 
-**8. Annotations log** — new small card at the bottom. Admins type a one-liner ("Scully outreach – Diamond Vale wave 1") with a date; it persists and renders inline markers on the daily-trend chart. This is the in-app version of your GA4 annotation practice so the dashboard tells the story 90 days from now without you having to remember.
+## What I won't do
 
-## Data + storage
+- No edits to app code, routing, registration, dashboards, or pricing surfaces.
+- No auto-publish to TikTok (you said manual post).
+- No voiceover / no music (TikTok lets you add trending audio on upload, which performs better than baked-in audio).
 
-- All charts and tables read existing `cta_engagement_tracking` rows. No schema changes for #1–#7.
-- Annotations (#8) need a tiny table:
-  - `blog_analytics_annotations(id, occurred_on date, label text, created_by uuid, created_at timestamptz)`
-  - Admin-only RLS (`has_role(auth.uid(), 'admin')`).
-
-## Files to touch
-
-- `src/pages/admin/BlogAnalyticsLeaderboardPage.tsx` — add range toggle, compose the new cards above the existing leaderboard, thread the range into `useLeaderboard`.
-- `src/components/admin/blog-analytics/KpiStrip.tsx` *(new)*
-- `src/components/admin/blog-analytics/CampaignBreakdownCard.tsx` *(new)*
-- `src/components/admin/blog-analytics/DailyTrendChart.tsx` *(new)* — uses `recharts` (already in deps).
-- `src/components/admin/blog-analytics/SourceMediumCard.tsx` *(new)*
-- `src/components/admin/blog-analytics/LocationLandingsCard.tsx` *(new)*
-- `src/components/admin/blog-analytics/AnnotationsCard.tsx` *(new)*
-- `src/hooks/admin/useBlogAnalyticsRange.ts` *(new)* — one fetch of `cta_engagement_tracking` for the chosen window, shared by all cards (avoid 5 separate queries).
-- Migration: create `blog_analytics_annotations` + admin RLS.
-
-No changes to App.tsx, routing, or any registration/dashboard files. The route `/admin/blog/analytics` keeps the same component entry point.
-
-## What it gives you operationally
-
-- Morning pulse: open the page, glance at KPI strip on 7d. Done in 30 seconds.
-- Campaign check: scroll to Campaign card, find `scully_outreach`, click the `utm_content` row that's winning.
-- Weekly depth: switch toggle to 28d, scan all cards, drop an annotation for what you launched.
-- 90-day storytelling: switch to 90d, annotations sit on the trend chart, the growth narrative tells itself.
-
-## Not in scope (mention only)
-
-- Pulling GA4 directly via the Data API. Possible later if you connect a service account, but everything above runs on data you already own in Supabase and doesn't depend on GA4 sampling or 24–48h delays.
-- Per-ambassador rollup (Scully vs next person). Falls out naturally from the Campaign card grouping by `utm_campaign` once you tag each ambassador with `{name}_outreach`.
-
-Approve and I'll build it.
+Approve and I'll build + render.
