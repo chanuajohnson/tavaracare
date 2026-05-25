@@ -250,6 +250,19 @@ const VideoStudioPage: React.FC = () => {
     toast.success("Script JSON copied.");
   };
 
+  const handleDelete = async (id: string) => {
+    const prev = scripts;
+    setScripts((s) => s.filter((x) => x.id !== id));
+    const { error } = await supabase.from("video_scripts").delete().eq("id", id);
+    if (error) {
+      console.error(error);
+      toast.error("Could not delete script.");
+      setScripts(prev);
+    } else {
+      toast.success("Script deleted.");
+    }
+  };
+
   if (authLoading || isAdmin === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
