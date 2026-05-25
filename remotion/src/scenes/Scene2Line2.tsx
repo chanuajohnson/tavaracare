@@ -2,6 +2,7 @@ import React from "react";
 import { AbsoluteFill, useCurrentFrame, interpolate } from "remotion";
 import { serifFamily } from "../fonts";
 import { SceneBackdrop } from "./SceneBackdrop";
+import { brand } from "../brand";
 
 export const Scene2Line2: React.FC = () => {
   const frame = useCurrentFrame();
@@ -19,7 +20,7 @@ export const Scene2Line2: React.FC = () => {
             fontFamily: serifFamily,
             fontSize: 110,
             lineHeight: 1.15,
-            color: "#1A1A1A",
+            color: brand.ink,
             textAlign: "center",
             opacity,
             filter: `blur(${blur}px)`,
@@ -30,7 +31,7 @@ export const Scene2Line2: React.FC = () => {
           shouldn't mean
           <br />
           carrying it{" "}
-          <span style={{ fontStyle: "italic", color: "#C4654A" }}>alone.</span>
+          <span style={{ fontStyle: "italic", color: brand.inkSoft }}>alone.</span>
         </div>
       </AbsoluteFill>
     </SceneBackdrop>
