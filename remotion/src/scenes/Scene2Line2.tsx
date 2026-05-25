@@ -1,0 +1,38 @@
+import React from "react";
+import { AbsoluteFill, useCurrentFrame, interpolate } from "remotion";
+import { serifFamily } from "../fonts";
+import { SceneBackdrop } from "./SceneBackdrop";
+
+export const Scene2Line2: React.FC = () => {
+  const frame = useCurrentFrame();
+  const opacity = interpolate(frame, [0, 18, 45, 55], [0, 1, 1, 0.9], {
+    extrapolateRight: "clamp",
+  });
+  const blur = interpolate(frame, [0, 22], [14, 0], { extrapolateRight: "clamp" });
+  const y = interpolate(frame, [0, 30], [30, 0], { extrapolateRight: "clamp" });
+
+  return (
+    <SceneBackdrop>
+      <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", padding: "0 110px" }}>
+        <div
+          style={{
+            fontFamily: serifFamily,
+            fontSize: 110,
+            lineHeight: 1.15,
+            color: "#1A1A1A",
+            textAlign: "center",
+            opacity,
+            filter: `blur(${blur}px)`,
+            transform: `translateY(${y}px)`,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          shouldn't mean
+          <br />
+          carrying it{" "}
+          <span style={{ fontStyle: "italic", color: "#C4654A" }}>alone.</span>
+        </div>
+      </AbsoluteFill>
+    </SceneBackdrop>
+  );
+};
