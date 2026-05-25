@@ -13,35 +13,25 @@ export const Scene1Line1: React.FC = () => {
 
   return (
     <SceneBackdrop>
-    <AbsoluteFill
-      style={{
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "0 110px",
-      }}
-    >
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "0 110px",
-      }}
-    >
-      <div
-        style={{
-          fontFamily: serifFamily,
-          fontSize: 110,
-          lineHeight: 1.15,
-          color: "#1A1A1A",
-          textAlign: "center",
-          opacity,
-          filter: `blur(${blur}px)`,
-          transform: `translateY(${y}px)`,
-          letterSpacing: "-0.01em",
-        }}
-      >
-        Caring for someone
-        <br />
-        you love…
-      </div>
-    </AbsoluteFill>
+      <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", padding: "0 110px" }}>
+        <div
+          style={{
+            fontFamily: serifFamily,
+            fontSize: 110,
+            lineHeight: 1.15,
+            color: "#1A1A1A",
+            textAlign: "center",
+            opacity,
+            filter: `blur(${blur}px)`,
+            transform: `translateY(${y}px)`,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          Caring for someone
+          <br />
+          you love…
+        </div>
+      </AbsoluteFill>
+    </SceneBackdrop>
   );
 };
