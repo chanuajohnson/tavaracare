@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame, interpolate } from "remotion";
 import { serifFamily } from "../fonts";
+import { SceneBackdrop } from "./SceneBackdrop";
 
 export const Scene1Line1: React.FC = () => {
   const frame = useCurrentFrame();
@@ -11,8 +12,14 @@ export const Scene1Line1: React.FC = () => {
   const y = interpolate(frame, [0, 30], [30, 0], { extrapolateRight: "clamp" });
 
   return (
+    <SceneBackdrop>
     <AbsoluteFill
       style={{
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "0 110px",
+      }}
+    >
         justifyContent: "center",
         alignItems: "center",
         padding: "0 110px",
