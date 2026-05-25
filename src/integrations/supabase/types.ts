@@ -6131,7 +6131,13 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          render_bucket_name: string | null
+          render_completed_at: string | null
+          render_function_name: string | null
+          render_id: string | null
           render_notes: string | null
+          render_progress: number | null
+          render_started_at: string | null
           render_status: string
           rendered_url: string | null
           scenes: Json
@@ -6144,7 +6150,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          render_bucket_name?: string | null
+          render_completed_at?: string | null
+          render_function_name?: string | null
+          render_id?: string | null
           render_notes?: string | null
+          render_progress?: number | null
+          render_started_at?: string | null
           render_status?: string
           rendered_url?: string | null
           scenes: Json
@@ -6157,7 +6169,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          render_bucket_name?: string | null
+          render_completed_at?: string | null
+          render_function_name?: string | null
+          render_id?: string | null
           render_notes?: string | null
+          render_progress?: number | null
+          render_started_at?: string | null
           render_status?: string
           rendered_url?: string | null
           scenes?: Json
