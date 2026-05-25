@@ -31,7 +31,7 @@ export const Scene2Line2: React.FC = () => {
           shouldn't mean
           <br />
           carrying it{" "}
-          <span style={{ fontStyle: "italic", color: brand.inkSoft }}>alone.</span>
+          <span style={{ fontStyle: "italic", color: brand.accent }}>alone.</span>
         </div>
       </AbsoluteFill>
     </SceneBackdrop>

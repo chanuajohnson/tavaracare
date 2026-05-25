@@ -4,7 +4,12 @@ import { sansFamily } from "../fonts";
 import { SceneBackdrop } from "./SceneBackdrop";
 import { brand } from "../brand";
 
-const Line: React.FC<{ text: string; delay: number }> = ({ text, delay }) => {
+const Line: React.FC<{ text: string; delay: number; color?: string; italic?: boolean }> = ({
+  text,
+  delay,
+  color = brand.ink,
+  italic = false,
+}) => {
   const frame = useCurrentFrame();
   const f = frame - delay;
   const opacity = interpolate(f, [0, 18], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
@@ -17,11 +22,12 @@ const Line: React.FC<{ text: string; delay: number }> = ({ text, delay }) => {
         fontWeight: 400,
         fontSize: 68,
         lineHeight: 1.25,
-        color: brand.ink,
+        color,
         opacity,
         transform: `translateY(${y}px)`,
         filter: `blur(${blur}px)`,
         textAlign: "left",
+        fontStyle: italic ? "italic" : "normal",
       }}
     >
       {text}
@@ -44,7 +50,7 @@ export const Scene4List: React.FC = () => {
         <Line text="A matched care team." delay={0} />
         <Line text="A coordinator who knows" delay={14} />
         <Line text="your loved one." delay={22} />
-        <Line text="One plan. One village." delay={36} />
+        <Line text="One plan. One village." delay={36} color={brand.accent} />
       </AbsoluteFill>
     </SceneBackdrop>
   );

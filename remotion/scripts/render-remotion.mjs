@@ -28,7 +28,7 @@ await renderMedia({
   composition,
   serveUrl: bundled,
   codec: "h264",
-  outputLocation: "/mnt/documents/tavara-tiktok-village-v3.mp4",
+  outputLocation: "/mnt/documents/tavara-tiktok-village-v4.mp4",
   puppeteerInstance: browser,
   muted: true,
   concurrency: 1,

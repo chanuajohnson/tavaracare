@@ -27,7 +27,7 @@ export const Scene5Logo: React.FC = () => {
             letterSpacing: "-0.02em",
           }}
         >
-          tavara<span style={{ color: brand.ink }}>.care</span>
+          tavara<span style={{ color: brand.accent }}>.care</span>
         </div>
         <div
           style={{
@@ -48,7 +48,7 @@ export const Scene5Logo: React.FC = () => {
             fontFamily: serifFamily,
             fontStyle: "italic",
             fontSize: 44,
-            color: brand.inkSoft,
+            color: brand.accent,
             marginTop: 38,
             opacity: taglineOpacity,
             letterSpacing: "-0.005em",
@@ -61,7 +61,7 @@ export const Scene5Logo: React.FC = () => {
             fontFamily: sansFamily,
             fontWeight: 400,
             fontSize: 26,
-            color: brand.muted,
+            color: brand.ink,
             marginTop: 60,
             opacity: footerOpacity,
             textAlign: "center",
