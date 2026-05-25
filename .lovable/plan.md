@@ -1,89 +1,91 @@
-# Scully outreach — three tracked links (corrected)
+# Track Scully's sends + prep your Facebook & TikTok push
 
-Destinations confirmed:
-1. Blog: `/blog/know-someone-who-needs-care-trinidad-tobago`
-2. Blog: `/blog/senior-care-costs-trinidad-tobago-2026`
-3. Location page: `/locations/diamond-vale` (file: `src/pages/locations/DiamondValePage.tsx`)
+Two parts: (1) make tracking visible so you can watch Scully's links come in, (2) hand you paste-ready Facebook and TikTok assets tagged separately so you can tell each channel apart in the dashboard.
 
-All links use the existing `generateUTMLink` convention in `src/utils/utmTracking.ts`, so they will show up in `/admin/campaign-links` under the "Signups by Source" table once anyone registers from them.
+## Part 1 — Tracking Scully's WhatsApp sends
 
-## UTM convention used
+Already live on `/admin/campaign-links`:
+- "Signups by Source" table aggregates by `utm_source` / `utm_medium` / `utm_campaign`.
+- Scully's three links all carry `utm_campaign=scully_outreach`, so anything that converts rolls up under one row per channel.
 
-- `utm_source` = channel (`whatsapp`, `facebook`, `tiktok`)
-- `utm_medium` = `dm` for one-to-one, `social` for feed/story/bio
-- `utm_campaign` = `scully_outreach` (one campaign, so all three links roll up together in the dashboard)
-- `utm_content` = what was sent: `know-someone-needs-care`, `senior-care-costs-2026`, `diamond-vale-location`
+What I'll add so you can actually see Scully's funnel (not just signups):
 
-## WhatsApp links for Scully (utm_source=whatsapp, utm_medium=dm)
+1. **Link-click counter for Scully's three URLs.** Add a small "Recent Visits by Campaign" card on `/admin/campaign-links` that reads `cta_engagement_tracking` for any row whose `additional_data->>utm_campaign = 'scully_outreach'`, grouped by `utm_content` (so you see `diamond-vale-location` vs `know-someone-needs-care` vs `senior-care-costs-2026` separately). Shows: visits, signups, last hit.
+2. **Confirm UTM capture fires on first landing.** Quick check that `captureUTMParams()` from `src/utils/utmTracking.ts` is invoked on `/blog/*` and `/locations/*` routes, not only the homepage. If not, wire it into the landing page scaffolds so Scully's clicks register.
+3. **Surface "Top campaigns last 7 days" tile** on the same page so Scully's run shows up next to anything else you push.
 
-**Blog 1 — Know Someone Who Needs Care:**
-`https://tavara.care/blog/know-someone-who-needs-care-trinidad-tobago?utm_source=whatsapp&utm_medium=dm&utm_campaign=scully_outreach&utm_content=know-someone-needs-care`
+No schema changes — `cta_engagement_tracking.additional_data` already holds UTMs.
 
-**Blog 2 — Senior Care Costs 2026:**
-`https://tavara.care/blog/senior-care-costs-trinidad-tobago-2026?utm_source=whatsapp&utm_medium=dm&utm_campaign=scully_outreach&utm_content=senior-care-costs-2026`
+## Part 2 — Facebook assets (paste-ready)
 
-**Diamond Vale location page:**
-`https://tavara.care/locations/diamond-vale?utm_source=whatsapp&utm_medium=dm&utm_campaign=scully_outreach&utm_content=diamond-vale-location`
+Tagged `utm_source=facebook`, `utm_medium=social`, `utm_campaign=tavara_oct26_launch` (separate campaign from Scully's so attribution stays clean — your channel, not his).
 
-## WhatsApp message to Scully (paste-ready, now includes Diamond Vale)
+**The three links:**
+- `https://tavara.care/locations/diamond-vale?utm_source=facebook&utm_medium=social&utm_campaign=tavara_oct26_launch&utm_content=diamond-vale-location`
+- `https://tavara.care/blog/know-someone-who-needs-care-trinidad-tobago?utm_source=facebook&utm_medium=social&utm_campaign=tavara_oct26_launch&utm_content=know-someone-needs-care`
+- `https://tavara.care/blog/senior-care-costs-trinidad-tobago-2026?utm_source=facebook&utm_medium=social&utm_campaign=tavara_oct26_launch&utm_content=senior-care-costs-2026`
 
-> Scully, thanks for sharing what you did. That was real, and not easy to sit with. I've helped pick up an adult before, more than once, including my own mommy. It's something else. The part about being unfamiliar with the elders at the home, or not having anyone to call, that's exactly the gap a lot of families in T&T fall into. Some of what we're building at Tavara sits right in that gap.
+**Post 1 — Personal voice, anchor post (pin this)**
+> Building Tavara has meant sitting with families in T&T who are trying to arrange care for a parent, a grandparent, someone at home who needs support, and don't know where to start.
 >
-> Three links for you to share with your community. Each one is tagged so I can see on my side how many people came through from you.
+> If that's you, or someone you know, three reads:
 >
-> Your area page — Diamond Vale. This is the one to send to neighbours and anyone Diego Martin side:
-> https://tavara.care/locations/diamond-vale?utm_source=whatsapp&utm_medium=dm&utm_campaign=scully_outreach&utm_content=diamond-vale-location
+> Diego Martin side, here's our area page: https://tavara.care/locations/diamond-vale?utm_source=facebook&utm_medium=social&utm_campaign=tavara_oct26_launch&utm_content=diamond-vale-location
 >
-> For anyone who knows somebody who needs care and isn't sure where to start:
-> https://tavara.care/blog/know-someone-who-needs-care-trinidad-tobago?utm_source=whatsapp&utm_medium=dm&utm_campaign=scully_outreach&utm_content=know-someone-needs-care
+> Where to start when someone close to you needs care: https://tavara.care/blog/know-someone-who-needs-care-trinidad-tobago?utm_source=facebook&utm_medium=social&utm_campaign=tavara_oct26_launch&utm_content=know-someone-needs-care
 >
-> What care actually costs in T&T in 2026, broken down plainly so families can plan:
-> https://tavara.care/blog/senior-care-costs-trinidad-tobago-2026?utm_source=whatsapp&utm_medium=dm&utm_campaign=scully_outreach&utm_content=senior-care-costs-2026
+> What care actually costs in T&T in 2026: https://tavara.care/blog/senior-care-costs-trinidad-tobago-2026?utm_source=facebook&utm_medium=social&utm_campaign=tavara_oct26_launch&utm_content=senior-care-costs-2026
 >
-> Quick thing on how Tavara works, because your community sits on both sides. It's a two-sided care coordination platform. One side is families arranging care for a loved one, usually a younger relative coordinating for a parent or grandparent. The other side is caregivers and care professionals who sign up, upload their Certificate of Character and practice certificates, and get vetted and screened by us. Families register, do a care assessment, and share their legacy story. Then we match the two sides — more like a careful introduction than a job board.
+> Share with anyone it could help.
+
+**Post 2 — Single-link share, costs blog (run 2 days after Post 1)**
+> Most families I talk to in T&T have no idea what care actually costs until they're in the middle of it. So we wrote it down.
 >
-> If you share these in your community, both sides start finding each other. That's when it actually works.
+> https://tavara.care/blog/senior-care-costs-trinidad-tobago-2026?utm_source=facebook&utm_medium=social&utm_campaign=tavara_oct26_launch&utm_content=senior-care-costs-2026
+
+**Post 3 — Diamond Vale local share (community groups)**
+> If you family side Diamond Vale or anywhere Diego Martin, this page is for us.
 >
-> Anything you want me to add or change before you forward, tell me.
+> https://tavara.care/locations/diamond-vale?utm_source=facebook&utm_medium=social&utm_campaign=tavara_oct26_launch&utm_content=diamond-vale-location
 
-## Facebook (your personal feed) — utm_source=facebook, utm_medium=social
+## Part 3 — TikTok assets (paste-ready)
 
-Same three URLs, different tags:
+TikTok strips query params on most surfaces, so the strategy is: **one tracked bio link per video**, rotated. All tagged `utm_source=tiktok`, `utm_medium=social`, `utm_campaign=tavara_oct26_launch`.
 
-- `https://tavara.care/locations/diamond-vale?utm_source=facebook&utm_medium=social&utm_campaign=scully_outreach&utm_content=diamond-vale-location`
-- `https://tavara.care/blog/know-someone-who-needs-care-trinidad-tobago?utm_source=facebook&utm_medium=social&utm_campaign=scully_outreach&utm_content=know-someone-needs-care`
-- `https://tavara.care/blog/senior-care-costs-trinidad-tobago-2026?utm_source=facebook&utm_medium=social&utm_campaign=scully_outreach&utm_content=senior-care-costs-2026`
+**Video 1 bio link — Diamond Vale:**
+`https://tavara.care/locations/diamond-vale?utm_source=tiktok&utm_medium=social&utm_campaign=tavara_oct26_launch&utm_content=diamond-vale-location`
 
-Suggested caption:
+Caption:
+> If you family side Diego Martin and trying to arrange care for a loved one at home, this page is for us. Link in bio 🏡 #DiamondVale #DiegoMartin #TrinidadAndTobago #CareInTT
 
-> If you know a family in T&T trying to figure out care for a loved one, these are for you. A page for Diamond Vale, a piece on where to start, and what care actually costs in 2026. Share with anyone who needs it.
+**Video 2 bio link — Costs blog:**
+`https://tavara.care/blog/senior-care-costs-trinidad-tobago-2026?utm_source=tiktok&utm_medium=social&utm_campaign=tavara_oct26_launch&utm_content=senior-care-costs-2026`
 
-## TikTok bio links — utm_source=tiktok, utm_medium=social
+Caption:
+> What care actually costs in T&T in 2026. No vague numbers. Link in bio. #SeniorCareTT #Trinidad #Tobago #CareInTT
 
-TikTok strips query params on most clickable surfaces, so rotate one tracked link in your bio per video:
+**Video 3 bio link — Know Someone:**
+`https://tavara.care/blog/know-someone-who-needs-care-trinidad-tobago?utm_source=tiktok&utm_medium=social&utm_campaign=tavara_oct26_launch&utm_content=know-someone-needs-care`
 
-- Diamond Vale screen-roll bio link:
-  `https://tavara.care/locations/diamond-vale?utm_source=tiktok&utm_medium=social&utm_campaign=scully_outreach&utm_content=diamond-vale-location`
-- Blog screen-roll bio link (pick one per video):
-  `https://tavara.care/blog/senior-care-costs-trinidad-tobago-2026?utm_source=tiktok&utm_medium=social&utm_campaign=scully_outreach&utm_content=senior-care-costs-2026`
+Caption:
+> Somebody you love needs care and you don't know where to start. Read this. Link in bio 💙 #CaregiverTT #Trinidad #Tobago #FamilyCare
 
-Captions:
-- Diamond Vale: "If you family side Diego Martin and looking to arrange care for a loved one, this page is for you. Link in bio. #DiamondVale #DiegoMartin #TrinidadAndTobago"
-- Costs: "What care actually costs in T&T in 2026. No vague numbers. Link in bio. #SeniorCareTT #Trinidad #Tobago"
+Suggest 48 hours per bio link, swap on a schedule so each video's analytics map to one `utm_content`.
 
-## Reusable workflow for other locations this week
+## Files to change (Part 1 only)
 
-You're already on `/admin/campaign-links`. The generator there builds links with the same UTM structure. For each new location or person:
+- `src/pages/admin/CampaignLinksPage.tsx` — add "Visits by Campaign" card above the existing "Signups by Source" table, filtered to `utm_campaign IN ('scully_outreach','tavara_oct26_launch')` for now, with a campaign picker for future runs.
+- `src/components/admin/CampaignVisitsCard.tsx` (new) — small component that queries `cta_engagement_tracking` for `action_type='page_view'` rows whose `additional_data->>utm_source` is set, groups by `utm_campaign` + `utm_content`.
+- `src/utils/utmTracking.ts` — confirm `captureUTMParams()` is called on every route change (likely already via a top-level effect; if not, hook into the router).
+- `src/components/landing/LandingPageScaffold.tsx` — verify it calls `captureUTMParams()` on mount so `/locations/diamond-vale` hits are recorded.
 
-- `utm_source` = channel: `whatsapp`, `facebook`, `tiktok`, `instagram`, `email`
-- `utm_medium` = `dm` (one-to-one), `social` (feed/story/bio)
-- `utm_campaign` = person or location slug: `scully_outreach`, `diamond_vale_oct26`, `diego_martin_oct26`, `chaguanas_oct26`
-- `utm_content` = destination slug: blog slug, location slug, or asset name
+No DB migrations. No new tables. Read-only addition to an existing admin page.
 
-Pick the destination URL, fill the four fields, generate, copy, send. The Campaign Links table then shows signups attributed back to each person and each location separately.
+## What you do after I build it
 
-## What happens on approval
+1. Send the Facebook anchor post today. Pin it.
+2. Record TikTok Video 1 (Diamond Vale), set the bio link, post.
+3. Check `/admin/campaign-links` over the next 48 hours. You'll see `scully_outreach` and `tavara_oct26_launch` as separate rows, with `utm_content` breakdowns so you know which link did the work.
+4. Tell me which channel is winning and we double down.
 
-1. I confirm the three WhatsApp links and the message above are final.
-2. No code changes required — the generator and analytics page already exist.
-3. Optional follow-up if you want it: add three preset buttons in `UTMLinkGenerator.tsx` for "Scully WhatsApp", "Facebook personal", "TikTok bio" so the next sends are one click. Say the word and I'll scope that as a small build task.
+Approve and I'll build Part 1.
