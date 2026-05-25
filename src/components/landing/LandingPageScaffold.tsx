@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,9 @@ import { Check, MapPin, Heart, Phone } from 'lucide-react';
 import { SEO } from '@/components/seo/SEO';
 import { HowMatchingWorksCard } from '@/components/about/HowMatchingWorksCard';
 import { RecommendedReadingStrip } from './RecommendedReadingStrip';
+import { supabase } from '@/integrations/supabase/client';
+import { captureUTMParams } from '@/utils/utmTracking';
+
 
 export interface LandingFAQ {
   q: string;
