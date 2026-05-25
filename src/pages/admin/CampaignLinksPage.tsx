@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { UTMLinkGenerator } from '@/components/admin/UTMLinkGenerator';
+import { CampaignVisitsCard } from '@/components/admin/CampaignVisitsCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -155,6 +156,12 @@ export default function CampaignLinksPage() {
         <div className="mb-8">
           <UTMLinkGenerator />
         </div>
+
+        {/* Visits by Campaign (link clicks, top of funnel) */}
+        <div className="mb-8">
+          <CampaignVisitsCard />
+        </div>
+
 
         {/* Signups by Source Table */}
         <Card>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,9 @@ import { Check, MapPin, Heart, Phone } from 'lucide-react';
 import { SEO } from '@/components/seo/SEO';
 import { HowMatchingWorksCard } from '@/components/about/HowMatchingWorksCard';
 import { RecommendedReadingStrip } from './RecommendedReadingStrip';
+import { supabase } from '@/integrations/supabase/client';
+import { captureUTMParams } from '@/utils/utmTracking';
+
 
 export interface LandingFAQ {
   q: string;
@@ -44,6 +47,34 @@ const BASE_URL = 'https://tavara.care';
 export const LandingPageScaffold: React.FC<{ data: LandingPageData }> = ({ data }) => {
   const canonical = `/${data.slug}`;
   const url = `${BASE_URL}${canonical}`;
+
+  // Capture inbound UTM params for location landings and fire a one-shot
+  // engagement event so the admin campaign-links dashboard can attribute visits.
+  useEffect(() => {
+    const utm = captureUTMParams();
+    if (!utm?.utm_source) return;
+    const sentKey = `tavara_loc_utm_landed_${data.slug}`;
+    try {
+      if (sessionStorage.getItem(sentKey)) return;
+      sessionStorage.setItem(sentKey, '1');
+    } catch { /* ignore */ }
+    supabase.from('cta_engagement_tracking').insert({
+      user_id: null,
+      action_type: 'location_utm_landed',
+      additional_data: {
+        location_slug: data.slug,
+        utm_source: utm.utm_source,
+        utm_medium: utm.utm_medium,
+        utm_campaign: utm.utm_campaign,
+        utm_content: utm.utm_content,
+        utm_term: utm.utm_term,
+        page_url: typeof window !== 'undefined' ? window.location.href : null,
+      },
+    }).then(({ error }) => {
+      if (error) console.warn('[LandingPageScaffold] utm landed insert failed', error);
+    });
+  }, [data.slug]);
+
 
   const faqSchema = {
     '@context': 'https://schema.org',
