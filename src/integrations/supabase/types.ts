@@ -6096,6 +6096,122 @@ export type Database = {
           },
         ]
       }
+      video_brand_snippets: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      video_scripts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          render_notes: string | null
+          render_status: string
+          rendered_url: string | null
+          scenes: Json
+          template_id: string
+          title: string
+          topic: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          render_notes?: string | null
+          render_status?: string
+          rendered_url?: string | null
+          scenes: Json
+          template_id: string
+          title: string
+          topic?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          render_notes?: string | null
+          render_status?: string
+          rendered_url?: string | null
+          scenes?: Json
+          template_id?: string
+          title?: string
+          topic?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_scripts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "video_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_seconds: number
+          id: string
+          is_active: boolean
+          name: string
+          scene_schema: Json
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_seconds: number
+          id?: string
+          is_active?: boolean
+          name: string
+          scene_schema: Json
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          scene_schema?: Json
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       visit_bookings: {
         Row: {
           admin_notes: string | null
