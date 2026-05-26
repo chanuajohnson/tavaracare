@@ -145,6 +145,14 @@ const markdownComponents: Components = {
 
 const BASE_URL = "https://tavara.care";
 
+// Renders nothing; resets the karaoke word counter before each markdown render
+// so word indices stay aligned with the audio timings array.
+const CounterReset = () => {
+  const reading = useBlogReading();
+  if (reading?.enabled) reading.counterRef.current = reading.bodyOffset;
+  return null;
+};
+
 const BlogPostPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data: post, isLoading } = usePublishedPost(slug);
