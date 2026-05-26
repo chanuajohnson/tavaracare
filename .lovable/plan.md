@@ -1,58 +1,44 @@
-## Goal
+## Problem
 
-Take the 3 rows currently sitting in `video_scripts` with `render_status='queued'` and produce real MP4s in the `video-renders` storage bucket, with each row flipped to `render_status='ready'` and `rendered_url` populated. The existing render pipeline (`remotion/scripts/render-remotion.mjs` + `upload-video-render` edge function) is wired correctly, but the Remotion scenes are currently hardcoded to one specific script. We need to make them read script data, then loop over the queued rows.
+`/blog/*` shows toasts "Comment failed to post" and the heart button fails to toggle. Console shows:
 
-## Queued scripts to render
+> Access to fetch at '…/functions/v1/submit-blog-comment' from origin '…lovableproject.com' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not have HTTP ok status.
 
-1. **Registering for Tavara** — `26a9e011…` — "How to register"
-2. **Care for your loved ones** — `e69223bb…` — landing video
-3. **Diamond Vale Family Care** — `a0dccdfa…` — locations video
+Same error for `/functions/v1/toggle-blog-reaction`.
 
-(Confirmed via DB query against `video_scripts` where `render_status='queued'`.)
+## Root cause
 
-## What changes
+Both edge functions import CORS headers from a non-existent module path:
 
-### 1. Parameterize the Remotion composition
+```ts
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+```
 
-- `remotion/src/MainVideo.tsx` — accept a `scenes` prop matching the `village-8s` template schema:
-  ```
-  { scene1: string, scene2: string, scene3: { eyebrow, word },
-    scene4: string[], scene5: { tagline, footer } }
-  ```
-  Pass through to scene components.
-- `remotion/src/scenes/Scene1Line1.tsx` and `Scene2Line2.tsx` — accept `text` prop, split on `\n` for the two-line layout instead of hardcoded copy.
-- `remotion/src/scenes/Scene3Village.tsx` — accept `eyebrow` and `word` props.
-- `remotion/src/scenes/Scene4List.tsx` — accept a `bullets: string[]` prop, render N staggered lines (last bullet in accent color).
-- `remotion/src/scenes/Scene5Logo.tsx` — accept `tagline` and `footer` props (footer rendered as small line under the lockup).
-- `remotion/src/Root.tsx` — register the composition with `defaultProps` and a `calculateMetadata` (or just static defaultProps) so the existing template still renders standalone.
+`@supabase/supabase-js` has no `/cors` subpath export. The import resolves to `undefined`, so the OPTIONS preflight response (`new Response('ok', { headers: corsHeaders })`) has no `Access-Control-Allow-Origin` / `-Headers` / `-Methods`. The browser rejects the preflight and never sends the real POST.
 
-Visual design, animations, fonts, brand colors, durations — all unchanged.
+## Fix (scoped, edge-function-only)
 
-### 2. Make the render script script-aware
+In both `supabase/functions/submit-blog-comment/index.ts` and `supabase/functions/toggle-blog-reaction/index.ts`:
 
-- Update `remotion/scripts/render-remotion.mjs` to:
-  - Read `VIDEO_SCRIPT_ID` from env, fetch that row from Supabase using the service role key, and pass `inputProps: { scenes }` into `selectComposition` + `renderMedia`.
-  - Use the row's `title` (slugified) as `VIDEO_SLUG` when not explicitly provided.
-  - Keep the existing upload-to-edge-function path so each render finishes by flipping the row to `ready`.
+1. Remove the bad import.
+2. Define `corsHeaders` locally:
 
-### 3. Render & upload all 3 queued scripts
+```ts
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+```
 
-- Add a small driver script `remotion/scripts/render-queue.mjs` that queries `video_scripts` for `render_status='queued'` and invokes the render pipeline once per row (sequentially, to stay within sandbox memory).
-- Run it once. Each render takes ~30-60s, so 3 scripts ≈ 2-3 minutes total.
-- Verify each row ends with `render_status='ready'` and a populated `rendered_url`, and that the Script library in `/admin/video-studio` shows "ready" + working Download MP4 buttons.
+No other behavior changes. Edge functions auto-deploy.
 
-### 4. Secrets check
+## Verify
 
-The `upload-video-render` function requires `RENDER_UPLOAD_TOKEN`. I will confirm it's set before running; if it isn't I'll stop and ask you to add it (same token both sides). `SUPABASE_SERVICE_ROLE_KEY` is auto-available to edge functions.
+- Submit a test comment on `/blog/know-someone-who-needs-care-trinidad-tobago` — expect success toast and pending state.
+- Click the heart — expect count to increment and stay toggled.
+- Confirm no CORS error in console for either endpoint.
 
-## What does NOT change
+## Out of scope
 
-- No DB schema changes, no new migrations.
-- No UI changes to `/admin/video-studio` — the existing Script library already polls `render_status` and surfaces the Download MP4 button.
-- The `upload-video-render` edge function stays as-is.
-- No routing, auth, or registration code is touched.
-
-## Risk / rollback
-
-- Scene parameterization is additive (default props preserve current behavior), so the standalone `bunx remotion render` still works.
-- If a single script fails to render, the driver continues with the next one and reports which IDs succeeded/failed. Failed rows stay `queued` and can be retried.
+No DB changes, no UI changes, no auth changes, no other functions touched. The video-studio work is paused per your request.
