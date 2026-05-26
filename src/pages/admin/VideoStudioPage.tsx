@@ -631,6 +631,25 @@ const VideoStudioPage: React.FC = () => {
                           download
                         </a>
                       )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8"
+                        disabled={uploadingId === s.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          triggerUpload(s.id);
+                        }}
+                      >
+                        {uploadingId === s.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <>
+                            <Upload className="h-3.5 w-3.5 mr-1" />
+                            {s.rendered_url ? "Replace" : "Upload MP4"}
+                          </>
+                        )}
+                      </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
