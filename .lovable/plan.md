@@ -1,68 +1,63 @@
-## Round 2: actually move bounce rate on the two leaking URLs
+## Above-the-fold copy stack on `/blog/senior-care-costs-trinidad-tobago-2026`
 
-Round 1 polished CTAs and added instrumentation. The real leak is the first 100 words on these two pages don't answer the search intent fast enough. This round rewrites that copy and ships the missing `LocationHeroCTA` so Diamond Vale gets the same hero treatment as the cost blog.
+Add three tight blocks between the H1 and CostHeroCTA on this slug only. Other blog posts unchanged. No body rewrites. No new files. All presentation.
 
-Scope is still frontend / presentation only. No routing, no `FamilyRegistration.tsx`, no protected files.
+### What renders, in order, after the change
 
----
+```
+[ category badge · date ]
+[ H1: Senior Care Costs in Trinidad & Tobago (2026 Guide) ]
+[ Subhead (NEW, slug-specific) ]
+[ Trust strip (NEW, slug-specific) ]
+[ Avatar + byline ]
+[ Quick-jump pill nav (NEW, slug-specific) ]
+[ CostHeroCTA (existing) ]
+[ BlogTopCTA (existing) ]
+[ Audio player + body... ]
+```
 
-### Fix A — Ship the missing `LocationHeroCTA`
+### The copy (final, no em/en-dashes, language-guardrail clean)
 
-**New file:** `src/components/blog/hero-cta/LocationHeroCTA.tsx` (~60 lines)
-- Mirrors `CostHeroCTA` visual treatment so the funnel card can compare them honestly.
-- Props: `slug`, `areaServed`, `primaryCtaHref`.
-- Eyebrow: "Care in {areaServed}". Body: one line confirming caregivers reach that area + "matched in days, not weeks". Single primary CTA → `/family/readiness-quiz`.
-- Fires `trackBlogCtaClick` with placement `hero-location` (already added to the union in round 1).
+**1. Subhead (replaces `post.description` for this slug only at render time)**
+> In-home care in T&T runs $40 to $50+ per hour. Live-in starts from $2,400 per week. Here is the full 2026 breakdown, with what each tier includes and the quiet costs nobody mentions.
 
-**Edit:** `src/components/landing/LandingPageScaffold.tsx`
-- Mount `<LocationHeroCTA />` directly under the hero `<p>` intro, above the existing button row. The current hero is text-heavy with the CTA buttons buried below the fold on a 390px viewport.
+**2. Trust strip (3 inline items, separated by middle dots)**
+> Vetted caregivers · Most families matched in days · Transparent care rates
 
-### Fix B — Rewrite the Diamond Vale above-the-fold so the 9s bounce has a reason to stay
+**3. Quick-jump pills (4 anchor links, horizontal, wrap on mobile)**
+> Hourly rates · Live-in care · What drives cost up · Hidden costs
 
-**Edit:** `src/pages/locations/locationsData.ts` (`diamondVale` only, other locations untouched)
-- **H1** stays "In-home care in Diamond Vale" — already specific.
-- **Kicker** stays.
-- **Intro rewrite** — currently 3 sentences of community color before any answer. New intro leads with: caregivers reach Diamond Vale / Petit Valley / Glencoe, three-line answer to the implicit question ("is care actually available here, how fast, what does it cost"), then the community sentence. Roughly 60 words, no em-dashes, no banned words.
-- **metaDescription** tightened to lead with the area + outcome so the SERP snippet matches the new intro.
+Pills are real anchor links that scroll to the corresponding `##` headings already present in the post body. The mapping uses the existing slug-from-heading rule (`react-markdown` + `remark-gfm` already generates these IDs).
 
-### Fix C — Rewrite the cost blog above-the-fold so the 19s bounce sees the number immediately
+### Where the code change lands
 
-**Edit:** `src/content/blog/posts.ts` (`careCosts` post only)
-- **Lead paragraph rewrite** — currently opens with "nobody wants to give you a straight number" then makes the reader wait for the table. New lead: one sentence acknowledging the search intent, then the three rates inline ($40 / $45 / $50+) in the first two sentences, then the "rest of this article explains why" transition into the existing table. The reader sees the answer before they scroll.
-- No changes to the table, the tier explanations, or anything below "The short answer".
-- Language pass on the lead only: remove any em/en-dashes, keep "care rate" language, do not touch the existing subscription pricing table (out of scope, see note below).
+**File:** `src/pages/blog/BlogPostPage.tsx`, single render block between lines 359 and 377. Three new conditional renders gated on `post.slug === "senior-care-costs-trinidad-tobago-2026"`.
 
-### Fix D — Verify the readiness quiz fires `family_registration_page_view`
+- **Subhead override.** Instead of editing `post.description`, render a slug-specific `<p>` and skip the generic description for this one slug. The SEO meta description (which is read from `post.description` elsewhere) stays untouched so the SERP snippet does not change.
+- **Trust strip.** A `<ul>` with 3 `<li>` items, each prefixed with a `Check` icon (lucide-react, already imported across the codebase). Muted text, small, single line on desktop, wraps cleanly on 390px.
+- **Quick-jump pills.** Plain `<a href="#hourly-rates">` style anchors styled as small rounded pills (`bg-primary/10 text-primary border border-primary/20`). On click, fire one `cta_engagement_tracking` insert with `action_type: "blog_jumplink_click"` and `additional_data: { post_slug, anchor }` so the funnel card can see whether jump-link readers convert better than scroll-readers.
 
-Read-only check on `FamilyReadinessQuizPage` (and its `PageViewTracker` usage if present). If it already fires the event, do nothing. If it does not, add a single `<PageViewTracker actionType="family_registration_page_view" />` mount on the quiz landing. No form logic changes.
+### Tracking detail
 
----
+One new event type, `blog_jumplink_click`, fired only from this slug. Not added to the `TRACKED` array in `useBlogAnalyticsRange.ts` for now since the funnel card does not need it as a step; it lives in `cta_engagement_tracking` raw so we can query it directly if jump links underperform and we want to kill them.
 
-### Out of scope, flagged for a separate decision
-
-The existing cost blog at lines 188–195 publishes the **Active Care $699/wk and Premium $899/wk subscription dollar amounts**. Per `mem://constraints/financial-privacy-public-surfaces`, subscription dollar amounts are **never** supposed to appear on public surfaces — only tier names and the per-hour care rates. This is a pre-existing violation that predates this conversation. I will NOT touch it in this round because it is a content/policy decision, not a conversion fix, and you should make the call deliberately. Flag it and I will plan a separate cleanup.
-
-### Files touched in this plan
+### Files touched
 
 | File | Change | Lines |
 | --- | --- | --- |
-| `src/components/blog/hero-cta/LocationHeroCTA.tsx` | New | ~60 |
-| `src/components/landing/LandingPageScaffold.tsx` | Mount LocationHeroCTA in hero | ~5 |
-| `src/pages/locations/locationsData.ts` | Rewrite `diamondVale.intro` + `metaDescription` | ~6 |
-| `src/content/blog/posts.ts` | Rewrite `careCosts` body lead paragraph only | ~6 |
-| `src/pages/family/FamilyReadinessQuizPage.tsx` (read-only check; only edit if event missing) | Conditional 1-line | 0–1 |
+| `src/pages/blog/BlogPostPage.tsx` | Insert 3-block slug-specific stack between H1 and CostHeroCTA, suppress default `post.description` `<p>` on this slug | ~30 added, 1 line guarded |
 
-### What we will see in the funnel card within 48h
-
-- `hero-location` row appears with its own click count, isolating Diamond Vale's CTA performance from the generic location buttons.
-- `blog_utm_landed` → `blog_cta_click` ratio on the cost blog slug should improve if the rate-anchored lead works. If it doesn't move, the lever isn't copy, it's traffic intent mismatch and the next step is keyword-level work, not more page edits.
-- `location_cta_click` count on Diamond Vale rises out of zero (or stays flat, which is itself a useful signal that the page needs a different angle entirely).
+One file. No new components, no new exports.
 
 ### What this plan deliberately does NOT do
 
-- No `FamilyRegistration.tsx`, `App.tsx`, routing, or auth changes
-- No subscription pricing edits on the cost blog (see flagged item above)
-- No new tables, edge functions, migrations, env vars, or dependencies
-- No GA4 wiring
-- No body-copy rewrites below the fold on either URL
-- No new location pages, no SEO meta overhaul beyond the two `metaDescription` tweaks
+- No edits to `post.description` in `posts.ts` — keeps SERP snippet stable
+- No changes to other blog posts
+- No changes to body copy, table, audio player, or comments
+- No new files, components, or hooks
+- No subscription-pricing edits (still flagged separately)
+- No `FamilyRegistration.tsx`, routing, or auth changes
+
+### Trade-off you should know about
+
+Stacking subhead + trust strip + pills pushes the audio player and the BlogTopCTA further down. On 390×567 the BlogTopCTA almost certainly drops below the fold after this change. The bet is that the CostHeroCTA (the primary action) plus the rate anchor in the subhead carry conversion above the fold, and BlogTopCTA becomes the second-scroll catch. If the funnel card shows `top-family` clicks drop sharply after shipping, we tighten the spacing or drop the trust strip.

@@ -11,6 +11,7 @@ import { captureInboundAttribution, trackBlogCtaClick } from "@/lib/blog/attribu
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Copy, Check } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
@@ -132,7 +133,14 @@ const markdownComponents: Components = {
   p: ({ children }) => <p>{wrapText(children)}</p>,
   li: ({ children }) => <li>{wrapText(children)}</li>,
   h1: ({ children }) => <h1>{wrapText(children)}</h1>,
-  h2: ({ children }) => <h2>{wrapText(children)}</h2>,
+  h2: ({ children }) => {
+    const id = extractFirstText(children)
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-");
+    return <h2 id={id}>{wrapText(children)}</h2>;
+  },
   h3: ({ children }) => <h3>{wrapText(children)}</h3>,
   h4: ({ children }) => <h4>{wrapText(children)}</h4>,
   h5: ({ children }) => <h5>{wrapText(children)}</h5>,
@@ -357,7 +365,27 @@ const BlogPostPage = () => {
                 )}
               </div>
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight">{post.title}</h1>
-              <p className="text-lg text-muted-foreground">{post.description}</p>
+              {post.slug === "senior-care-costs-trinidad-tobago-2026" ? (
+                <>
+                  <p className="text-lg text-foreground/90 leading-relaxed">
+                    In-home care in T&amp;T runs $40 to $50+ per hour. Live-in starts from $2,400 per week. Here is the full 2026 breakdown, with what each tier includes and the quiet costs nobody mentions.
+                  </p>
+                  <ul className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                    {[
+                      "Vetted caregivers",
+                      "Most families matched in days",
+                      "Transparent care rates",
+                    ].map((item) => (
+                      <li key={item} className="flex items-center gap-1.5">
+                        <Check className="h-4 w-4 text-primary shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="text-lg text-muted-foreground">{post.description}</p>
+              )}
               <div className="flex items-center gap-3 pt-2">
                 <Avatar className="h-10 w-10 border border-border">
                   <AvatarImage src={avatarSrc} alt={post.author_name} className="object-cover" />
@@ -373,8 +401,43 @@ const BlogPostPage = () => {
             </header>
 
             {post.slug === "senior-care-costs-trinidad-tobago-2026" && (
+              <nav
+                aria-label="Jump to section"
+                className="not-prose mb-6 flex flex-wrap gap-2"
+              >
+                {[
+                  { label: "Hourly rates", anchor: "the-short-answer" },
+                  { label: "Live-in care", anchor: "live-in-care-how-its-actually-priced" },
+                  { label: "What drives cost up", anchor: "what-drives-the-price-up" },
+                  { label: "Hidden costs", anchor: "the-cost-nobody-puts-on-the-spreadsheet" },
+                ].map(({ label, anchor }) => (
+                  <a
+                    key={anchor}
+                    href={`#${anchor}`}
+                    onClick={() => {
+                      void supabase.from("cta_engagement_tracking").insert({
+                        user_id: null,
+                        action_type: "blog_jumplink_click",
+                        additional_data: {
+                          post_slug: post.slug,
+                          anchor,
+                          label,
+                          page_url: typeof window !== "undefined" ? window.location.href : null,
+                        },
+                      });
+                    }}
+                    className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/15 transition-colors"
+                  >
+                    {label}
+                  </a>
+                ))}
+              </nav>
+            )}
+
+            {post.slug === "senior-care-costs-trinidad-tobago-2026" && (
               <CostHeroCTA postSlug={post.slug} />
             )}
+
 
             <BlogTopCTA postSlug={post.slug} />
 
