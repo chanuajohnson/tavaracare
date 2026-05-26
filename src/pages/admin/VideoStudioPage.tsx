@@ -658,13 +658,6 @@ const VideoStudioPage: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="video/mp4"
-        className="hidden"
-        onChange={handleUploadFile}
-      />
     </div>
   );
 };
