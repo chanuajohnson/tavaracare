@@ -9,7 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const SCRIPT_ID = process.env.VIDEO_SCRIPT_ID || "";
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
-const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const RENDER_UPLOAD_TOKEN = process.env.RENDER_UPLOAD_TOKEN || "";
 const TITLE_SLUG = (process.env.VIDEO_SLUG || "tavara-tiktok-village-v5")
   .toLowerCase()
   .replace(/[^a-z0-9]+/g, "-")
