@@ -343,6 +343,15 @@ const FamilyReadinessQuizPage: React.FC = () => {
           showResult ? { stage: finalStage, viewMode: viewResultMode ? "result" : "fresh" } : undefined
         }
       />
+      {/* Funnel attribution: the readiness quiz is the soft on-ramp for family
+          registration, so we also emit family_registration_page_view here so the
+          admin Acquisition Funnel Card counts quiz landers as registration-page
+          intent. Fires once per mount. */}
+      <PageViewTracker
+        actionType="family_registration_page_view"
+        journeyStage="registration"
+        additionalData={{ source: "readiness_quiz" }}
+      />
 
       <div className="container max-w-2xl px-4 py-8 sm:py-12">
         {/* Header */}
