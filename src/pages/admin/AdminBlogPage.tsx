@@ -258,7 +258,14 @@ export default function AdminBlogPage() {
             </TableBody>
           </Table>
         </div>
+          </TabsContent>
+
+          <TabsContent value="comments">
+            <BlogCommentsModeration />
+          </TabsContent>
+        </Tabs>
       </div>
+
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <AlertDialogContent>
