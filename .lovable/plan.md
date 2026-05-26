@@ -1,38 +1,30 @@
-## Why the Download button does nothing
+## Root cause
 
-I queried `video_scripts` and only one row exists:
-- `render_status = queued`
-- `rendered_url = null`
+The browser preflight to `generate-video-script` is rejected:
 
-So the button is **`disabled`** (per `disabled={!s.rendered_url}`). Disabled buttons swallow clicks silently — they don't fire `onClick`, so `e.stopPropagation()` never runs. The click registers on the **row** behind the button, which fires `handleLoadScript(s)` and loads that script into the editor card at the top of the page. To you that looks like "it scrolled to the top and nothing downloaded." It didn't scroll — the editor card above just refreshed with the loaded script.
+> Request header field `x-client-env` is not allowed by Access-Control-Allow-Headers in preflight response.
 
-Underneath that, the real problem is: **no render ever lands in storage.** `render-remotion.mjs` writes the MP4 to `/mnt/documents/` on the build sandbox and never uploads it to the `video-renders` bucket or sets `rendered_url` in the DB. So every queued script stays at `rendered_url = null` forever, which is why the button is always disabled.
+The Supabase JS client adds `x-client-env` (alongside `x-client-info`, `apikey`, `authorization`, `content-type`) on every `functions.invoke` call. The edge function's `Access-Control-Allow-Headers` doesn't list it, so the preflight 4xx's and the POST never fires. The UI then shows the generic toast "AI generation failed. Try a different topic."
 
-## Fix — three small, scoped changes
+This is purely a CORS header allow-list issue in the edge function — the AI logic itself is fine.
 
-### 1. `remotion/scripts/render-remotion.mjs` — upload + flip the DB row
-After the faststart remux pass, if env vars `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `VIDEO_SCRIPT_ID` are set:
-- Upload `FINAL_OUT` to `video-renders/{scriptId}/{slug}.mp4` (bucket already exists and is public).
-- Get the public URL.
-- `update video_scripts set rendered_url = <publicUrl>, render_status = 'ready' where id = <scriptId>`.
-- Log the public URL.
+## Fix — one edge function, one line
 
-If those env vars aren't set, behave exactly as today (just write the local MP4). This keeps the existing one-shot render workflow intact.
+### `supabase/functions/generate-video-script/index.ts`
+Add `x-client-env` to the `Access-Control-Allow-Headers` list in `corsHeaders`:
 
-I'll re-run the script for the one queued row (`c7559279-...`) so the user has a real `rendered_url` to test the Download button against.
+```
+"Access-Control-Allow-Headers":
+  "authorization, x-client-info, apikey, content-type, x-app-version, x-client-env",
+```
 
-### 2. `src/pages/admin/VideoStudioPage.tsx` — never let the row swallow the download click
-Two small UX fixes on the per-row Download button:
-- Remove `disabled={!s.rendered_url ...}`. Keep it visually muted via `variant="outline"` + opacity when there's no render, but **always handle the click** so the row's `handleLoadScript` never fires from a download attempt. `handleDownload` already toasts `"No render attached yet."` when `rendered_url` is null — that becomes visible feedback instead of the silent row-load.
-- Wrap the Download button + Delete button in a small `<div onClick={(e) => e.stopPropagation()}>` so any click inside that action cluster never bubbles to the row.
+Nothing else in the function changes. The OPTIONS handler already returns `corsHeaders`, so the preflight will start passing immediately after redeploy.
 
-No change to `handleDownload`'s fetch → blob → fallback `window.open` logic. That part is correct; it just never had a non-null URL to work with.
-
-### 3. Verify
-- Re-render the one queued script with the upload path on, confirm `rendered_url` is set in `video_scripts` and the file is in `video-renders/`.
-- In the UI, the row's Download button becomes active, downloads `<slug>.mp4` to the browser, and clicking it does **not** scroll or reload the editor.
+### Verify
+1. Redeploy `generate-video-script`.
+2. On `/admin/video-studio`, enter a topic and click **Generate copy**. The preflight should return 204 with the updated allow-list, the POST should hit the function, and the 5-scene JSON should populate the editor.
+3. Confirm no `x-client-env` CORS error in the console for that request.
 
 ## Out of scope
-- No changes to `App.tsx`, auth, registration, or any chat-flow files.
-- No bucket policy changes (`video-renders` is already public).
-- No change to the AI generate-copy path (already fixed).
+- No changes to the Download flow, `upload-video-render`, the render script, or `VideoStudioPage.tsx`.
+- No changes to any other edge function (none of the others are being called from this page right now). If a future CORS-blocked function shows up, we apply the same one-line allow-list fix there.
