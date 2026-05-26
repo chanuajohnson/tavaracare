@@ -10,6 +10,7 @@ import { HowMatchingWorksCard } from '@/components/about/HowMatchingWorksCard';
 import { RecommendedReadingStrip } from './RecommendedReadingStrip';
 import { supabase } from '@/integrations/supabase/client';
 import { captureUTMParams } from '@/utils/utmTracking';
+import { LocationHeroCTA } from '@/components/blog/hero-cta/LocationHeroCTA';
 
 
 export interface LandingFAQ {
@@ -153,7 +154,14 @@ export const LandingPageScaffold: React.FC<{ data: LandingPageData }> = ({ data 
             </p>
             <h1 className="mt-3 text-3xl md:text-5xl font-bold leading-tight">{data.h1}</h1>
             <p className="mt-5 text-lg text-muted-foreground leading-relaxed">{data.intro}</p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+            <div className="mt-6">
+              <LocationHeroCTA
+                slug={data.slug}
+                areaServed={data.areaServed}
+                primaryCtaHref={primaryCtaHref}
+              />
+            </div>
+            <div className="mt-4 flex flex-col sm:flex-row gap-3">
               <Button asChild size="lg">
                 <Link to={primaryCtaHref} onClick={() => trackLocationCtaClick('hero-family', primaryCtaHref)}>
                   {primaryCtaLabel}

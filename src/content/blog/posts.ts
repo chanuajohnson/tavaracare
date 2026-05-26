@@ -168,9 +168,9 @@ const careCosts: BlogPost = {
   author: "Chanua Johnson, Tavara Care Coordinator & Founder",
   readingTime: "10 min read",
   cta: { label: "Talk to Tavara About Care Costs", href: "/family" },
-  body: `If you've started looking into senior care in Trinidad and Tobago, you've probably noticed something: nobody wants to give you a straight number.
+  body: `Here is the straight answer most families are searching for. In Trinidad and Tobago in 2026, in-home senior care runs **\$40 per hour for Standard care, \$45 per hour for Full Service, and \$50+ per hour for Premium / specialised** care. Live-in arrangements start from **\$2,400 per week**, quoted by complexity.
 
-We're going to. This guide lays out what in-home senior care actually costs in T&T in 2026, hourly rates, live-in arrangements, coordination fees, and the quiet costs nobody warns you about. We'd rather you go in with clear eyes than discover the real number after you've already committed.
+That is the headline. The rest of this guide explains what each tier actually includes, why the number moves, and the quiet costs nobody warns you about so you can budget without being blindsided.
 
 ## The short answer
 

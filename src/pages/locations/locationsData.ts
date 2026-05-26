@@ -202,13 +202,13 @@ export const tobago: LandingPageData = {
 
 export const diamondVale: LandingPageData = {
   slug: 'care/diamond-vale',
-  pageTitle: 'Caregivers in Diamond Vale | Tavara Care',
+  pageTitle: 'In-home Care in Diamond Vale & Diego Martin | Tavara',
   metaDescription:
-    'Arrange in-home care in Diamond Vale and Diego Martin with vetted caregivers. Tavara coordinates matching, scheduling, and daily care for your loved one.',
+    'In-home care in Diamond Vale and the Diego Martin valley. Vetted caregivers, most families matched in days, care rates from $40/hr. Coordinated by Tavara.',
   h1: 'In-home care in Diamond Vale',
   kicker: 'Diamond Vale · Diego Martin',
   intro:
-    'Diamond Vale is a tight community where neighbours still know one another. Families here use Tavara to arrange care for a parent or grandparent at home, with caregivers based in and around the Diego Martin valley. We coordinate the match, the schedule, and the daily details so families stay close without burning out.',
+    'Yes, we cover Diamond Vale and the wider Diego Martin valley. Most families here are matched with a caregiver in days, not weeks. Care rates start at $40 per hour, with a small team built around your loved one so coverage holds when life happens. Diamond Vale is a tight community where neighbours still know one another, and a coordinated care arrangement keeps it that way.',
   sections: [
     {
       heading: 'Diego Martin valley coverage',
