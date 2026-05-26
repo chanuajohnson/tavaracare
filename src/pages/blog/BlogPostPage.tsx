@@ -372,6 +372,10 @@ const BlogPostPage = () => {
               </div>
             </header>
 
+            {post.slug === "senior-care-costs-trinidad-tobago-2026" && (
+              <CostHeroCTA postSlug={post.slug} />
+            )}
+
             <BlogTopCTA postSlug={post.slug} />
 
             <BlogReadingProvider
