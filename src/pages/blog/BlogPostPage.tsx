@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { BlogInlineCTA } from "@/components/blog/BlogInlineCTA";
 import { BlogTopCTA } from "@/components/blog/BlogTopCTA";
@@ -19,6 +19,9 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BlogCard } from "@/components/blog/BlogCard";
 import { BlogAudioPlayer } from "@/components/blog/BlogAudioPlayer";
+import { BlogReadingProvider, useBlogReading } from "@/components/blog/BlogReadingContext";
+import { useBlogAudio } from "@/hooks/useBlogAudio";
+import { cn } from "@/lib/utils";
 import chanuaAvatar from "@/assets/chanua-johnson.jpg";
 import {
   PullQuote,
