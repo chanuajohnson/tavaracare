@@ -63,18 +63,84 @@ const stripDirective = (children: any, tag: string): any => {
   return visit(children);
 };
 
+// Wraps each whitespace-separated word in a span and assigns it an index from
+// the shared reading counter, so the audio player can highlight the active word.
+const HighlightedText = ({ value }: { value: string }) => {
+  const reading = useBlogReading();
+  if (!reading?.enabled) return <>{value}</>;
+  const parts = value.split(/(\s+)/);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part === "" || /^\s+$/.test(part)) {
+          return <React.Fragment key={i}>{part}</React.Fragment>;
+        }
+        const idx = reading.counterRef.current++;
+        const isActive = idx === reading.currentIndex;
+        const isRead = reading.currentIndex >= 0 && idx < reading.currentIndex;
+        return (
+          <span
+            key={i}
+            data-word-idx={idx}
+            className={cn(
+              "transition-colors duration-150 rounded-sm",
+              isActive && "bg-primary/20 text-primary font-semibold px-0.5",
+              isRead && !isActive && "text-muted-foreground/80",
+            )}
+          >
+            {part}
+          </span>
+        );
+      })}
+    </>
+  );
+};
+
+// Recursively walks ReactNode children, wrapping every raw string in HighlightedText.
+const wrapText = (children: ReactNode): ReactNode => {
+  return React.Children.map(children, (child, i) => {
+    if (typeof child === "string") {
+      return <HighlightedText key={i} value={child} />;
+    }
+    if (typeof child === "number") {
+      return <HighlightedText key={i} value={String(child)} />;
+    }
+    if (React.isValidElement(child)) {
+      const el = child as React.ReactElement<{ children?: ReactNode }>;
+      const inner = el.props?.children;
+      if (inner !== undefined) {
+        return React.cloneElement(el, { ...el.props, children: wrapText(inner) });
+      }
+    }
+    return child;
+  });
+};
+
 const markdownComponents: Components = {
   hr: () => <SectionDivider />,
   blockquote: ({ children }) => {
     const text = extractFirstText(children).trimStart();
     if (text.startsWith("[!LEARNED]")) {
-      return <TavaraLearned>{stripDirective(children, "LEARNED")}</TavaraLearned>;
+      return <TavaraLearned>{wrapText(stripDirective(children, "LEARNED"))}</TavaraLearned>;
     }
     if (text.startsWith("[!OBSERVATION]")) {
-      return <Observation>{stripDirective(children, "OBSERVATION")}</Observation>;
+      return <Observation>{wrapText(stripDirective(children, "OBSERVATION"))}</Observation>;
     }
-    return <PullQuote>{children}</PullQuote>;
+    return <PullQuote>{wrapText(children)}</PullQuote>;
   },
+  p: ({ children }) => <p>{wrapText(children)}</p>,
+  li: ({ children }) => <li>{wrapText(children)}</li>,
+  h1: ({ children }) => <h1>{wrapText(children)}</h1>,
+  h2: ({ children }) => <h2>{wrapText(children)}</h2>,
+  h3: ({ children }) => <h3>{wrapText(children)}</h3>,
+  h4: ({ children }) => <h4>{wrapText(children)}</h4>,
+  h5: ({ children }) => <h5>{wrapText(children)}</h5>,
+  h6: ({ children }) => <h6>{wrapText(children)}</h6>,
+  em: ({ children }) => <em>{wrapText(children)}</em>,
+  strong: ({ children }) => <strong>{wrapText(children)}</strong>,
+  td: ({ children }) => <td>{wrapText(children)}</td>,
+  th: ({ children }) => <th>{wrapText(children)}</th>,
+  a: ({ children, href }) => <a href={href}>{wrapText(children)}</a>,
 };
 
 const BASE_URL = "https://tavara.care";
