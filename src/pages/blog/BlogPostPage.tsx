@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState, type ReactNode } from "rea
 import { useParams, Link, Navigate } from "react-router-dom";
 import { BlogInlineCTA } from "@/components/blog/BlogInlineCTA";
 import { BlogTopCTA } from "@/components/blog/BlogTopCTA";
+import { CostHeroCTA } from "@/components/blog/hero-cta/CostHeroCTA";
 import { BlogEndCTABlock } from "@/components/blog/BlogEndCTABlock";
 import { BlogStickyMobileCTA } from "@/components/blog/BlogStickyMobileCTA";
 import { BlogCommentsPrompt } from "@/components/blog/BlogCommentsPrompt";
