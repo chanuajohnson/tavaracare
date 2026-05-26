@@ -17,6 +17,7 @@ const SPEEDS = [1, 1.25, 1.5, 1.75];
 
 export const BlogAudioPlayer = ({ postId, className }: Props) => {
   const { audio, isPreparing, error, prepare } = useBlogAudio(postId);
+  const reading = useBlogReading();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
