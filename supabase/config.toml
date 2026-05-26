@@ -69,3 +69,6 @@ verify_jwt = false
 
 [functions.blog-tts-generate]
 verify_jwt = false
+
+[functions.upload-video-render]
+verify_jwt = false
