@@ -1,51 +1,50 @@
-# Karaoke word highlight in the blog audio player
+## Goal
 
-Drop the video-render pipeline. Instead, make the existing "Listen to this article" player highlight each word in the post body as it's spoken — you screen-record the page to get short video clips.
+Add a single-post **Regenerate audio (with word timings)** control to the admin blog editor page (`/admin/blog/:id`) so you can refresh narration one post at a time — starting with `know-someone-who-needs-care-trinidad-tobago` — without burning ElevenLabs quota on the other 10 posts.
 
-## What changes
+No changes to the edge function, the bulk backfill button, or the public reader.
 
-**1. Capture word-level timings during TTS generation**
-Extend `supabase/functions/blog-tts-generate/index.ts` to call ElevenLabs' `/text-to-speech/{voice}/with-timestamps` endpoint instead of the plain TTS endpoint. The response includes a per-character `alignment` block (`characters[]`, `character_start_times_seconds[]`, `character_end_times_seconds[]`). Group characters into words on whitespace → array of `{ word, start, end, charStart, charEnd }`.
+## Scope
 
-**2. Store the timings**
-Add `word_timings jsonb` column to existing `blog_audio` table (no new table). Backfill happens naturally on next generation; old rows without timings just don't highlight (graceful fallback).
+**Files touched (1 new, 1 edited):**
 
-**3. Highlight in the player**
-`BlogAudioPlayer` already tracks `currentTime`. When `word_timings` is present:
-- Maintain a `currentWordIndex` derived from `currentTime` (binary search the timings array each `timeupdate`).
-- Emit the index via a lightweight context/store (e.g. `BlogReadingContext`) scoped to the post page.
+1. **NEW** `src/components/admin/BlogAudioRegenButton.tsx` — small card-style control
+2. **EDIT** `src/pages/admin/AdminBlogEditorPage.tsx` — mount the new control once
 
-**4. Render the highlight on the article body**
-`BlogPostPage` renders the body through `ReactMarkdown`. Add a custom `text` renderer in `markdownComponents` that:
-- Splits the text node into words, wraps each in `<span data-word-index={globalIdx}>`.
-- Each span subscribes to the reading context; when `globalIdx === currentWordIndex` it gets a highlight class (e.g. soft accent background + slightly bolder weight); when `< currentWordIndex` it stays "read" tone (muted); unstarted words are normal.
-- Auto-scrolls the active word into view (`scrollIntoView({ block: 'center', behavior: 'smooth' })`) with throttling so the screen recording follows along.
+**Untouched:** edge function `blog-tts-generate`, `BlogAudioBackfillButton`, `BlogAudioPlayer`, `BlogReadingContext`, `BlogPostPage`, routing, schema.
 
-Global word indexing is built once per render by walking the text in source order and matching against the timings array. The narration text used for TTS (title + description + stripped body) must be matched against the rendered body — easiest: store the exact `narration_text` alongside `word_timings`, then the renderer matches body words to a sub-range of that array (skip the title/description prefix words). Falls back to no-highlight on mismatch.
+## What the new control does
 
-**5. Admin control**
-In `/admin/blog` (or wherever the existing "Regenerate audio" button lives), the same button now regenerates with timings. Add a small "Highlight: on/off" toggle on the player itself for the reader — defaults on when timings exist.
+A compact panel on the editor page showing:
 
-## What stays untouched
+- Current audio status (pulled from `blog_audio` row for this post): "Audio ready · generated <date>" / "Has word timings: yes/no" / "No audio yet"
+- A **Regenerate audio** button → calls the existing `blog-tts-generate` edge function with `{ post_id, slug, force: true }`
+- Inline result: ✓ "Generated · X words timed" or ⚠ reason (`quota_exceeded`, `unusual_activity_lock`, etc.) returned verbatim from the function
+- Loading spinner while in flight
+- A "Play preview" link that opens the post's public URL in a new tab so you can verify the karaoke highlight works
 
-- Routing, auth, registration flows, chat engine — none touched.
-- Existing `blog_audio` rows keep working; missing `word_timings` just disables highlight.
-- No new tables, no new edge function, no Remotion, no GitHub Actions, no video rendering.
-- `BlogAudioPlayer` UI stays the same; only adds timing-driven state.
+No new tables, no new edge function, no schema changes. It reuses the exact same invocation contract the bulk button already uses, so the existing `word_timings` + `narration_text` persistence path is identical.
 
-## Out of scope (say so if you want any of these later)
+## Placement
 
-- Pre-rendering MP4 videos (the earlier Remotion/GH-Actions plan).
-- Auto-clipping the post into 15–30s excerpts.
-- Burned-in captions for downloaded videos.
+Top of the editor page, just under the page title / breadcrumbs. Single card, full width on mobile, capped width on desktop. Uses semantic tokens (`bg-card`, `border-border`, `text-muted-foreground`, `text-primary`) — no hard-coded colors.
 
-## Files touched
+## How you'll test
 
-- `supabase/functions/blog-tts-generate/index.ts` — switch to `with-timestamps`, derive word timings, persist them.
-- Migration: `alter table blog_audio add column word_timings jsonb, add column narration_text text`.
-- `src/components/blog/BlogAudioPlayer.tsx` — expose `currentTime`/`currentWordIndex` via context.
-- New `src/components/blog/BlogReadingContext.tsx`.
-- `src/pages/blog/BlogPostPage.tsx` — wrap article in provider; add `text` renderer to `markdownComponents` that wraps words in spans.
-- `src/index.css` — `.blog-word-active` / `.blog-word-read` styles using semantic tokens.
+1. Open `/admin/blog/<id of know-someone-who-needs-care-trinidad-tobago>`
+2. Click **Regenerate audio** → wait for ✓
+3. Open `/blog/know-someone-who-needs-care-trinidad-tobago` → press Play on the audio player → confirm words highlight as they're read
+4. If ElevenLabs still returns `quota_exceeded`/`unusual_activity_lock`, the control surfaces that reason clearly so you know it's an account issue, not a code issue
 
-Approve and I'll ship it as one migration + the code changes. Screen recording then gives you the short clips with the karaoke effect, no render infra needed.
+## Out of scope
+
+- Auto-skip of already-done posts in the bulk button (your earlier option b) — not doing it this round
+- Any change to the highlight rendering itself
+- Any change to chat flow, routing, registration, or other protected areas
+
+## Technical notes
+
+- The new component reads one row from `blog_audio` filtered by `post_id` to show status — single `.select().eq().maybeSingle()`, no listing
+- Invokes `supabase.functions.invoke("blog-tts-generate", { body: { post_id, slug, force: true } })` — same call shape as bulk button
+- After success, re-reads the `blog_audio` row so the status line reflects the new `word_timings` length
+- Uses sonner toast for success/error consistent with the rest of admin
