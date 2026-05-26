@@ -373,32 +373,39 @@ const BlogPostPage = () => {
 
             <BlogTopCTA postSlug={post.slug} />
 
-            <BlogAudioPlayer postId={post.id} className="mb-10" />
+            <BlogReadingProvider
+              timings={wordTimings}
+              bodyOffset={bodyOffset}
+              enabled={highlightEnabled}
+            >
+              <BlogAudioPlayer postId={post.id} className="mb-10" />
 
-            <div className="prose-editorial prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-table:text-sm">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                {bodyA || post.body}
-              </ReactMarkdown>
-
-              {(bodyB || bodyC) && <BlogCommentsPrompt postSlug={post.slug} />}
-
-              {bodyB && (
+              <div className="prose-editorial prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-table:text-sm">
+                <CounterReset />
                 <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                  {bodyB}
+                  {bodyA || post.body}
                 </ReactMarkdown>
-              )}
 
-              {bodyC && <BlogInlineCTA postSlug={post.slug} />}
-              {bodyC && <BlogCommentsPrompt postSlug={post.slug} />}
+                {(bodyB || bodyC) && <BlogCommentsPrompt postSlug={post.slug} />}
 
-              {bodyC && (
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                  {bodyC}
-                </ReactMarkdown>
-              )}
+                {bodyB && (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                    {bodyB}
+                  </ReactMarkdown>
+                )}
 
-              {!bodyC && bodyB && <BlogInlineCTA postSlug={post.slug} />}
-            </div>
+                {bodyC && <BlogInlineCTA postSlug={post.slug} />}
+                {bodyC && <BlogCommentsPrompt postSlug={post.slug} />}
+
+                {bodyC && (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                    {bodyC}
+                  </ReactMarkdown>
+                )}
+
+                {!bodyC && bodyB && <BlogInlineCTA postSlug={post.slug} />}
+              </div>
+            </BlogReadingProvider>
 
             <BlogEndCTABlock postSlug={post.slug} />
 
