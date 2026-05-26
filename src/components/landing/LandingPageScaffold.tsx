@@ -118,6 +118,19 @@ export const LandingPageScaffold: React.FC<{ data: LandingPageData }> = ({ data 
   const secondaryCtaHref = data.secondaryCtaHref ?? '/registration/professional';
   const secondaryCtaLabel = data.secondaryCtaLabel ?? 'Join a coordinated care team';
 
+  const trackLocationCtaClick = (placement: 'hero-family' | 'hero-professional' | 'closing-family' | 'closing-whatsapp', destination: string) => {
+    void supabase.from('cta_engagement_tracking').insert({
+      user_id: null,
+      action_type: 'location_cta_click',
+      additional_data: {
+        location_slug: data.slug,
+        placement,
+        destination,
+        page_url: typeof window !== 'undefined' ? window.location.href : null,
+      },
+    });
+  };
+
   return (
     <>
       <SEO
