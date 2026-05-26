@@ -1,7 +1,9 @@
 // Generates and caches an MP3 narration for a blog post via ElevenLabs.
+// Now uses the `with-timestamps` endpoint so we can persist per-word timings
+// for in-page karaoke-style highlight in the blog reader.
 // Public-callable. `force: true` requires admin role.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { decode as base64Decode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,6 +37,40 @@ function stripMarkdown(md: string): string {
     .trim();
 }
 
+// Convert ElevenLabs character-level alignment into word-level timings.
+// alignment: { characters: string[], character_start_times_seconds: number[], character_end_times_seconds: number[] }
+function deriveWordTimings(alignment: any): Array<{ word: string; start: number; end: number }> {
+  if (!alignment?.characters?.length) return [];
+  const chars: string[] = alignment.characters;
+  const starts: number[] = alignment.character_start_times_seconds;
+  const ends: number[] = alignment.character_end_times_seconds;
+
+  const words: Array<{ word: string; start: number; end: number }> = [];
+  let buf = "";
+  let wordStart = 0;
+  let wordEnd = 0;
+
+  const flush = () => {
+    if (buf.length > 0) {
+      words.push({ word: buf, start: wordStart, end: wordEnd });
+      buf = "";
+    }
+  };
+
+  for (let i = 0; i < chars.length; i++) {
+    const c = chars[i];
+    if (/\s/.test(c)) {
+      flush();
+      continue;
+    }
+    if (buf.length === 0) wordStart = starts[i] ?? wordEnd;
+    buf += c;
+    wordEnd = ends[i] ?? wordEnd;
+  }
+  flush();
+  return words;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -56,7 +92,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // If forcing regeneration, require admin
     if (force) {
       const authHeader = req.headers.get("Authorization");
       if (!authHeader) {
@@ -87,7 +122,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Load post
     const postQuery = admin.from("blog_posts").select("id,title,description,body,status,published_at");
     const { data: post, error: postErr } = post_id
       ? await postQuery.eq("id", post_id).maybeSingle()
@@ -101,7 +135,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check cache
     if (!force) {
       const { data: existing } = await admin
         .from("blog_audio")
@@ -116,14 +149,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Build narration text
     const intro = `${post.title}. ${post.description}. `;
     const plain = stripMarkdown(post.body || "");
     const fullText = (intro + plain).slice(0, MAX_CHARS);
 
-    // Call ElevenLabs
+    // Use with-timestamps endpoint to get per-character alignment for karaoke highlight.
     const ttsRes = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voice_id}?output_format=mp3_44100_128`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${voice_id}/with-timestamps?output_format=mp3_44100_128`,
       {
         method: "POST",
         headers: {
@@ -147,7 +179,6 @@ Deno.serve(async (req) => {
         ttsRes.status === 429 ||
         /unusual_activity|quota|free tier|detected_unusual/i.test(errTxt);
       if (isBlocked) {
-        // Probe the account so we can log what's wrong (quota vs locked).
         try {
           const probe = await fetch("https://api.elevenlabs.io/v1/user/subscription", {
             headers: { "xi-api-key": apiKey },
@@ -179,10 +210,15 @@ Deno.serve(async (req) => {
       throw new Error(`ElevenLabs ${ttsRes.status}: ${errTxt}`);
     }
 
-    const audioBuffer = await ttsRes.arrayBuffer();
-    const audioBytes = new Uint8Array(audioBuffer);
+    // with-timestamps returns JSON: { audio_base64, alignment, normalized_alignment }
+    const payload = await ttsRes.json();
+    const audioB64: string = payload.audio_base64;
+    if (!audioB64) throw new Error("ElevenLabs response missing audio_base64");
+    const audioBytes = base64Decode(audioB64);
 
-    // Upload to storage
+    const wordTimings = deriveWordTimings(payload.normalized_alignment ?? payload.alignment);
+    const lastWordEnd = wordTimings.length > 0 ? wordTimings[wordTimings.length - 1].end : 0;
+
     const path = `${post.id}/${voice_id}.mp3`;
     const { error: upErr } = await admin.storage
       .from("blog-audio")
@@ -191,9 +227,10 @@ Deno.serve(async (req) => {
 
     const { data: pub } = admin.storage.from("blog-audio").getPublicUrl(path);
     const audioUrl = `${pub.publicUrl}?v=${Date.now()}`;
-    const durationEstimate = Math.round(fullText.length / CHARS_PER_SECOND);
+    const durationEstimate = lastWordEnd > 0
+      ? Math.ceil(lastWordEnd)
+      : Math.round(fullText.length / CHARS_PER_SECOND);
 
-    // Upsert row
     const { data: row, error: rowErr } = await admin
       .from("blog_audio")
       .upsert(
@@ -204,6 +241,8 @@ Deno.serve(async (req) => {
           duration_seconds: durationEstimate,
           char_count: fullText.length,
           generated_at: new Date().toISOString(),
+          word_timings: wordTimings,
+          narration_text: fullText,
         },
         { onConflict: "post_id,voice_id" },
       )
