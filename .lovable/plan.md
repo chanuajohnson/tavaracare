@@ -1,30 +1,38 @@
-## Root cause
+## What you're asking
 
-The browser preflight to `generate-video-script` is rejected:
-
-> Request header field `x-client-env` is not allowed by Access-Control-Allow-Headers in preflight response.
-
-The Supabase JS client adds `x-client-env` (alongside `x-client-info`, `apikey`, `authorization`, `content-type`) on every `functions.invoke` call. The edge function's `Access-Control-Allow-Headers` doesn't list it, so the preflight 4xx's and the POST never fires. The UI then shows the generic toast "AI generation failed. Try a different topic."
-
-This is purely a CORS header allow-list issue in the edge function — the AI logic itself is fine.
-
-## Fix — one edge function, one line
-
-### `supabase/functions/generate-video-script/index.ts`
-Add `x-client-env` to the `Access-Control-Allow-Headers` list in `corsHeaders`:
+Render the two queued scripts in `video_scripts` so their rows flip to `render_status='ready'` with a downloadable MP4 in the `video-renders` bucket.
 
 ```
-"Access-Control-Allow-Headers":
-  "authorization, x-client-info, apikey, content-type, x-app-version, x-client-env",
+queued: d3469acc-...  "Need a village for care?"  (2026-05-26 01:56)
+queued: f4b0f91b-...  "Need a village for care?"  (2026-05-26 01:54)
+ready:  c7559279-...  "Untitled village script"   already done
 ```
 
-Nothing else in the function changes. The OPTIONS handler already returns `corsHeaders`, so the preflight will start passing immediately after redeploy.
+## Important caveat — read before approving
 
-### Verify
-1. Redeploy `generate-video-script`.
-2. On `/admin/video-studio`, enter a topic and click **Generate copy**. The preflight should return 204 with the updated allow-list, the POST should hit the function, and the 5-scene JSON should populate the editor.
-3. Confirm no `x-client-env` CORS error in the console for that request.
+The current Remotion composition (`remotion/src/MainVideo.tsx`) uses **hardcoded scene content**. It does NOT read scene copy from the `video_scripts` row identified by `VIDEO_SCRIPT_ID`. The env var is only used by `render-remotion.mjs` to choose which DB row to upload to and flip to `ready`.
 
-## Out of scope
-- No changes to the Download flow, `upload-video-render`, the render script, or `VideoStudioPage.tsx`.
-- No changes to any other edge function (none of the others are being called from this page right now). If a future CORS-blocked function shows up, we apply the same one-line allow-list fix there.
+So if I render both queued rows right now, both will get the **same MP4** (the hardcoded village script), just stored under each row's storage path. The titles in DB stay as the AI-generated "Need a village for care?" but the visual content is the legacy hardcoded copy.
+
+If that's fine for now (you just want the queued rows resolved so the Download buttons work), proceed with the plan below. If you actually want each queued row rendered with **its own AI-generated scenes**, that's a separate, larger piece of work — making `MainVideo` parametric, fetching the row's `scenes` JSON in the render script, and passing it as `inputProps` to `renderMedia`. Say the word and I'll plan that instead.
+
+## Plan (assumes "render them as-is for now")
+
+1. For each queued script id:
+   - Run `node remotion/scripts/render-remotion.mjs` with env:
+     - `VIDEO_SCRIPT_ID=<id>`
+     - `VIDEO_SLUG=<slug-of-title>`
+     - `SUPABASE_URL` (already in env)
+     - `RENDER_UPLOAD_TOKEN` (already in env)
+   - The script bundles, renders 9s @ 1080x1920, remuxes with `+faststart`, POSTs to the `upload-video-render` edge function, which uploads to `video-renders/{id}/{slug}.mp4` and updates the row to `render_status='ready'`.
+2. Verify both rows by querying `video_scripts` for `render_status` and `rendered_url`.
+3. Report the public URLs so you can hit Download on each row in `/admin/video-studio` and confirm.
+
+Each render takes roughly 60-120 seconds in the sandbox, so this is two sequential renders (~3-4 min total). I'll run them one after the other and confirm at each step.
+
+## What this does NOT do
+
+- Does not change `MainVideo.tsx`, `Root.tsx`, scene components, or the render script.
+- Does not change the edge function or any UI.
+- Does not parametrize the composition (that's the larger follow-up I flagged above).
+- Does not touch the existing `ready` row.
