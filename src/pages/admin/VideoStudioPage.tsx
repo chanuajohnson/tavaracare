@@ -256,6 +256,9 @@ const VideoStudioPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [scripts, setScripts] = useState<ScriptRow[]>([]);
   const [loadingScripts, setLoadingScripts] = useState(true);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const uploadTargetRef = useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
