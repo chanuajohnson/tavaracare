@@ -4,6 +4,8 @@ import { BlogInlineCTA } from "@/components/blog/BlogInlineCTA";
 import { BlogTopCTA } from "@/components/blog/BlogTopCTA";
 import { BlogEndCTABlock } from "@/components/blog/BlogEndCTABlock";
 import { BlogStickyMobileCTA } from "@/components/blog/BlogStickyMobileCTA";
+import { BlogCommentsPrompt } from "@/components/blog/BlogCommentsPrompt";
+import { BlogCommentsThread } from "@/components/blog/BlogCommentsThread";
 import { captureInboundAttribution, trackBlogCtaClick } from "@/lib/blog/attribution";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -89,13 +91,24 @@ const BlogPostPage = () => {
     }
   }, [post?.slug]);
 
-  // Split body roughly in half on a paragraph boundary so we can inject an inline CTA
-  const [bodyFirstHalf, bodySecondHalf] = useMemo(() => {
-    if (!post?.body) return ["", ""];
+  // Split body into thirds on paragraph boundaries so we can inject CTAs and
+  // comment prompts at the 1/3 and 2/3 points. Falls back to halves (then whole)
+  // for shorter posts.
+  const [bodyA, bodyB, bodyC] = useMemo(() => {
+    if (!post?.body) return ["", "", ""];
     const paras = post.body.split(/\n\n+/);
-    if (paras.length < 4) return [post.body, ""];
-    const mid = Math.floor(paras.length / 2);
-    return [paras.slice(0, mid).join("\n\n"), paras.slice(mid).join("\n\n")];
+    if (paras.length < 6) {
+      if (paras.length < 4) return [post.body, "", ""];
+      const mid = Math.floor(paras.length / 2);
+      return [paras.slice(0, mid).join("\n\n"), paras.slice(mid).join("\n\n"), ""];
+    }
+    const a = Math.floor(paras.length / 3);
+    const b = Math.floor((2 * paras.length) / 3);
+    return [
+      paras.slice(0, a).join("\n\n"),
+      paras.slice(a, b).join("\n\n"),
+      paras.slice(b).join("\n\n"),
+    ];
   }, [post?.body]);
 
   const handleCopyArticle = async () => {
@@ -273,19 +286,33 @@ const BlogPostPage = () => {
 
             <div className="prose-editorial prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-table:text-sm">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                {bodyFirstHalf || post.body}
+                {bodyA || post.body}
               </ReactMarkdown>
 
-              {bodySecondHalf && <BlogInlineCTA postSlug={post.slug} />}
+              {(bodyB || bodyC) && <BlogCommentsPrompt postSlug={post.slug} />}
 
-              {bodySecondHalf && (
+              {bodyB && (
                 <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                  {bodySecondHalf}
+                  {bodyB}
                 </ReactMarkdown>
               )}
+
+              {bodyC && <BlogInlineCTA postSlug={post.slug} />}
+              {bodyC && <BlogCommentsPrompt postSlug={post.slug} />}
+
+              {bodyC && (
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                  {bodyC}
+                </ReactMarkdown>
+              )}
+
+              {!bodyC && bodyB && <BlogInlineCTA postSlug={post.slug} />}
             </div>
 
             <BlogEndCTABlock postSlug={post.slug} />
+
+            <BlogCommentsThread postSlug={post.slug} />
+
 
             {post.cta_label && post.cta_href && (
               <aside className="mt-8 p-5 rounded-lg bg-muted/40 border border-border">

@@ -32,6 +32,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Eye, EyeOff, Trash2, Copy } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { BlogCommentsModeration } from "@/components/admin/BlogCommentsModeration";
 import {
   useAllPosts,
   useDeletePost,
@@ -126,6 +128,13 @@ export default function AdminBlogPage() {
           </div>
         </div>
 
+        <Tabs defaultValue="posts" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="comments">Comments</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="posts" className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
           <Input
             placeholder="Search by title…"
@@ -249,7 +258,14 @@ export default function AdminBlogPage() {
             </TableBody>
           </Table>
         </div>
+          </TabsContent>
+
+          <TabsContent value="comments">
+            <BlogCommentsModeration />
+          </TabsContent>
+        </Tabs>
       </div>
+
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <AlertDialogContent>
