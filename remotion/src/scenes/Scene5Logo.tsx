@@ -45,7 +45,3 @@ export const Scene5Logo: React.FC = () => {
     </SceneBackdrop>
   );
 };
-      </AbsoluteFill>
-    </SceneBackdrop>
-  );
-};
