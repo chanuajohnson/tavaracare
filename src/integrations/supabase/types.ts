@@ -544,6 +544,66 @@ export type Database = {
           },
         ]
       }
+      blog_comments: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          author_email: string
+          author_name: string
+          body: string
+          created_at: string
+          id: string
+          ip_hash: string | null
+          post_slug: string
+          status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          author_email: string
+          author_name: string
+          body: string
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          post_slug: string
+          status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          author_email?: string
+          author_name?: string
+          body?: string
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          post_slug?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      blog_post_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          post_slug: string
+          reaction_hash: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_slug: string
+          reaction_hash: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_slug?: string
+          reaction_hash?: string
+        }
+        Relationships: []
+      }
       blog_posts: {
         Row: {
           author_avatar_url: string | null
@@ -6879,7 +6939,37 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      blog_comments_public: {
+        Row: {
+          author_name: string | null
+          body: string | null
+          created_at: string | null
+          id: string | null
+          post_slug: string | null
+        }
+        Insert: {
+          author_name?: string | null
+          body?: string | null
+          created_at?: string | null
+          id?: string | null
+          post_slug?: string | null
+        }
+        Update: {
+          author_name?: string | null
+          body?: string | null
+          created_at?: string | null
+          id?: string | null
+          post_slug?: string | null
+        }
+        Relationships: []
+      }
+      blog_post_likes: {
+        Row: {
+          like_count: number | null
+          post_slug: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_delete_user: { Args: { target_user_id: string }; Returns: Json }
