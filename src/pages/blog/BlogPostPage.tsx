@@ -188,6 +188,20 @@ const BlogPostPage = () => {
     ];
   }, [post?.body]);
 
+  // Karaoke highlight: load the cached audio row (if any) and compute where
+  // the body text starts inside the full narration word-timings array.
+  const { audio: blogAudio } = useBlogAudio(post?.id);
+  const wordTimings = useMemo(
+    () => (Array.isArray(blogAudio?.word_timings) ? blogAudio!.word_timings! : []),
+    [blogAudio?.word_timings],
+  );
+  const bodyOffset = useMemo(() => {
+    if (!post || wordTimings.length === 0) return 0;
+    const intro = `${post.title}. ${post.description}. `;
+    return intro.trim().split(/\s+/).filter(Boolean).length;
+  }, [post?.title, post?.description, wordTimings.length]);
+  const highlightEnabled = wordTimings.length > 0;
+
   const handleCopyArticle = async () => {
     if (!post) return;
     const faqText = post.faqs.length
