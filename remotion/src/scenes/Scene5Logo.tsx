@@ -11,8 +11,6 @@ export const Scene5Logo: React.FC = () => {
   const scale = interpolate(s, [0, 1], [0.94, 1]);
   const opacity = interpolate(frame, [0, 16], [0, 1], { extrapolateRight: "clamp" });
   const lineOpacity = interpolate(frame, [12, 26], [0, 1], { extrapolateRight: "clamp" });
-  const taglineOpacity = interpolate(frame, [20, 36], [0, 1], { extrapolateRight: "clamp" });
-  const footerOpacity = interpolate(frame, [30, 46], [0, 1], { extrapolateRight: "clamp" });
 
   return (
     <SceneBackdrop>
