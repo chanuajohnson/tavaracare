@@ -4,7 +4,7 @@ import { serifFamily, sansFamily } from "../fonts";
 import { SceneBackdrop } from "./SceneBackdrop";
 import { brand } from "../brand";
 
-export const Scene3Village: React.FC = () => {
+export const Scene3Village: React.FC<{ eyebrow: string; word: string }> = ({ eyebrow, word }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const s = spring({ frame, fps, config: { damping: 20, stiffness: 90 } });
@@ -16,9 +16,13 @@ export const Scene3Village: React.FC = () => {
   const drift = interpolate(frame, [0, 65], [0, -14]);
   const labelOpacity = interpolate(frame, [20, 38], [0, 1], { extrapolateRight: "clamp" });
 
+  // Scale down the word size if it's long, so it fits the 1080 width
+  const wordLen = word.length;
+  const wordFontSize = wordLen <= 8 ? 360 : wordLen <= 12 ? 260 : wordLen <= 18 ? 190 : 140;
+
   return (
     <SceneBackdrop>
-      <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
+      <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", flexDirection: "column", padding: "0 80px" }}>
         <div
           style={{
             fontFamily: sansFamily,
@@ -28,14 +32,15 @@ export const Scene3Village: React.FC = () => {
             textTransform: "uppercase",
             marginBottom: 40,
             opacity: labelOpacity,
+            textAlign: "center",
           }}
         >
-          It takes a
+          {eyebrow}
         </div>
         <div
           style={{
             fontFamily: serifFamily,
-            fontSize: 360,
+            fontSize: wordFontSize,
             lineHeight: 1,
             color: brand.accent,
             opacity,
@@ -43,9 +48,10 @@ export const Scene3Village: React.FC = () => {
             transform: `scale(${scale}) translateY(${drift}px)`,
             fontStyle: "italic",
             letterSpacing: "-0.02em",
+            textAlign: "center",
           }}
         >
-          village.
+          {word}
         </div>
       </AbsoluteFill>
     </SceneBackdrop>
