@@ -513,8 +513,10 @@ export type Database = {
           duration_seconds: number
           generated_at: string
           id: string
+          narration_text: string | null
           post_id: string
           voice_id: string
+          word_timings: Json | null
         }
         Insert: {
           audio_url: string
@@ -522,8 +524,10 @@ export type Database = {
           duration_seconds: number
           generated_at?: string
           id?: string
+          narration_text?: string | null
           post_id: string
           voice_id?: string
+          word_timings?: Json | null
         }
         Update: {
           audio_url?: string
@@ -531,8 +535,10 @@ export type Database = {
           duration_seconds?: number
           generated_at?: string
           id?: string
+          narration_text?: string | null
           post_id?: string
           voice_id?: string
+          word_timings?: Json | null
         }
         Relationships: [
           {

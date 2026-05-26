@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { BlogInlineCTA } from "@/components/blog/BlogInlineCTA";
 import { BlogTopCTA } from "@/components/blog/BlogTopCTA";
@@ -19,6 +19,9 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BlogCard } from "@/components/blog/BlogCard";
 import { BlogAudioPlayer } from "@/components/blog/BlogAudioPlayer";
+import { BlogReadingProvider, useBlogReading } from "@/components/blog/BlogReadingContext";
+import { useBlogAudio } from "@/hooks/useBlogAudio";
+import { cn } from "@/lib/utils";
 import chanuaAvatar from "@/assets/chanua-johnson.jpg";
 import {
   PullQuote,
@@ -60,21 +63,95 @@ const stripDirective = (children: any, tag: string): any => {
   return visit(children);
 };
 
+// Wraps each whitespace-separated word in a span and assigns it an index from
+// the shared reading counter, so the audio player can highlight the active word.
+const HighlightedText = ({ value }: { value: string }) => {
+  const reading = useBlogReading();
+  if (!reading?.enabled) return <>{value}</>;
+  const parts = value.split(/(\s+)/);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part === "" || /^\s+$/.test(part)) {
+          return <React.Fragment key={i}>{part}</React.Fragment>;
+        }
+        const idx = reading.counterRef.current++;
+        const isActive = idx === reading.currentIndex;
+        const isRead = reading.currentIndex >= 0 && idx < reading.currentIndex;
+        return (
+          <span
+            key={i}
+            data-word-idx={idx}
+            className={cn(
+              "transition-colors duration-150 rounded-sm",
+              isActive && "bg-primary/20 text-primary font-semibold px-0.5",
+              isRead && !isActive && "text-muted-foreground/80",
+            )}
+          >
+            {part}
+          </span>
+        );
+      })}
+    </>
+  );
+};
+
+// Recursively walks ReactNode children, wrapping every raw string in HighlightedText.
+const wrapText = (children: ReactNode): ReactNode => {
+  return React.Children.map(children, (child, i) => {
+    if (typeof child === "string") {
+      return <HighlightedText key={i} value={child} />;
+    }
+    if (typeof child === "number") {
+      return <HighlightedText key={i} value={String(child)} />;
+    }
+    if (React.isValidElement(child)) {
+      const el = child as React.ReactElement<{ children?: ReactNode }>;
+      const inner = el.props?.children;
+      if (inner !== undefined) {
+        return React.cloneElement(el, { ...el.props, children: wrapText(inner) });
+      }
+    }
+    return child;
+  });
+};
+
 const markdownComponents: Components = {
   hr: () => <SectionDivider />,
   blockquote: ({ children }) => {
     const text = extractFirstText(children).trimStart();
     if (text.startsWith("[!LEARNED]")) {
-      return <TavaraLearned>{stripDirective(children, "LEARNED")}</TavaraLearned>;
+      return <TavaraLearned>{wrapText(stripDirective(children, "LEARNED"))}</TavaraLearned>;
     }
     if (text.startsWith("[!OBSERVATION]")) {
-      return <Observation>{stripDirective(children, "OBSERVATION")}</Observation>;
+      return <Observation>{wrapText(stripDirective(children, "OBSERVATION"))}</Observation>;
     }
-    return <PullQuote>{children}</PullQuote>;
+    return <PullQuote>{wrapText(children)}</PullQuote>;
   },
+  p: ({ children }) => <p>{wrapText(children)}</p>,
+  li: ({ children }) => <li>{wrapText(children)}</li>,
+  h1: ({ children }) => <h1>{wrapText(children)}</h1>,
+  h2: ({ children }) => <h2>{wrapText(children)}</h2>,
+  h3: ({ children }) => <h3>{wrapText(children)}</h3>,
+  h4: ({ children }) => <h4>{wrapText(children)}</h4>,
+  h5: ({ children }) => <h5>{wrapText(children)}</h5>,
+  h6: ({ children }) => <h6>{wrapText(children)}</h6>,
+  em: ({ children }) => <em>{wrapText(children)}</em>,
+  strong: ({ children }) => <strong>{wrapText(children)}</strong>,
+  td: ({ children }) => <td>{wrapText(children)}</td>,
+  th: ({ children }) => <th>{wrapText(children)}</th>,
+  a: ({ children, href }) => <a href={href}>{wrapText(children)}</a>,
 };
 
 const BASE_URL = "https://tavara.care";
+
+// Renders nothing; resets the karaoke word counter before each markdown render
+// so word indices stay aligned with the audio timings array.
+const CounterReset = () => {
+  const reading = useBlogReading();
+  if (reading?.enabled) reading.counterRef.current = reading.bodyOffset;
+  return null;
+};
 
 const BlogPostPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -110,6 +187,20 @@ const BlogPostPage = () => {
       paras.slice(b).join("\n\n"),
     ];
   }, [post?.body]);
+
+  // Karaoke highlight: load the cached audio row (if any) and compute where
+  // the body text starts inside the full narration word-timings array.
+  const { audio: blogAudio } = useBlogAudio(post?.id);
+  const wordTimings = useMemo(
+    () => (Array.isArray(blogAudio?.word_timings) ? blogAudio!.word_timings! : []),
+    [blogAudio?.word_timings],
+  );
+  const bodyOffset = useMemo(() => {
+    if (!post || wordTimings.length === 0) return 0;
+    const intro = `${post.title}. ${post.description}. `;
+    return intro.trim().split(/\s+/).filter(Boolean).length;
+  }, [post?.title, post?.description, wordTimings.length]);
+  const highlightEnabled = wordTimings.length > 0;
 
   const handleCopyArticle = async () => {
     if (!post) return;
@@ -282,32 +373,39 @@ const BlogPostPage = () => {
 
             <BlogTopCTA postSlug={post.slug} />
 
-            <BlogAudioPlayer postId={post.id} className="mb-10" />
+            <BlogReadingProvider
+              timings={wordTimings}
+              bodyOffset={bodyOffset}
+              enabled={highlightEnabled}
+            >
+              <BlogAudioPlayer postId={post.id} className="mb-10" />
 
-            <div className="prose-editorial prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-table:text-sm">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                {bodyA || post.body}
-              </ReactMarkdown>
-
-              {(bodyB || bodyC) && <BlogCommentsPrompt postSlug={post.slug} />}
-
-              {bodyB && (
+              <div className="prose-editorial prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-table:text-sm">
+                <CounterReset />
                 <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                  {bodyB}
+                  {bodyA || post.body}
                 </ReactMarkdown>
-              )}
 
-              {bodyC && <BlogInlineCTA postSlug={post.slug} />}
-              {bodyC && <BlogCommentsPrompt postSlug={post.slug} />}
+                {(bodyB || bodyC) && <BlogCommentsPrompt postSlug={post.slug} />}
 
-              {bodyC && (
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                  {bodyC}
-                </ReactMarkdown>
-              )}
+                {bodyB && (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                    {bodyB}
+                  </ReactMarkdown>
+                )}
 
-              {!bodyC && bodyB && <BlogInlineCTA postSlug={post.slug} />}
-            </div>
+                {bodyC && <BlogInlineCTA postSlug={post.slug} />}
+                {bodyC && <BlogCommentsPrompt postSlug={post.slug} />}
+
+                {bodyC && (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                    {bodyC}
+                  </ReactMarkdown>
+                )}
+
+                {!bodyC && bodyB && <BlogInlineCTA postSlug={post.slug} />}
+              </div>
+            </BlogReadingProvider>
 
             <BlogEndCTABlock postSlug={post.slug} />
 

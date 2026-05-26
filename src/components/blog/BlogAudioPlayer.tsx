@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useBlogAudio } from "@/hooks/useBlogAudio";
+import { useBlogReading } from "@/components/blog/BlogReadingContext";
 import { formatTime } from "@/lib/blog/formatTime";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ const SPEEDS = [1, 1.25, 1.5, 1.75];
 
 export const BlogAudioPlayer = ({ postId, className }: Props) => {
   const { audio, isPreparing, error, prepare } = useBlogAudio(postId);
+  const reading = useBlogReading();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -328,13 +330,25 @@ export const BlogAudioPlayer = ({ postId, className }: Props) => {
           const d = (e.target as HTMLAudioElement).duration;
           if (isFinite(d) && d > 0) setDuration(d);
         }}
-        onTimeUpdate={(e) => setCurrentTime((e.target as HTMLAudioElement).currentTime)}
+        onTimeUpdate={(e) => {
+          const t = (e.target as HTMLAudioElement).currentTime;
+          setCurrentTime(t);
+          reading?.setCurrentTime(t);
+        }}
         onEnded={() => {
           setIsPlaying(false);
           setCurrentTime(0);
+          reading?.setIsPlaying(false);
+          reading?.setCurrentTime(0);
         }}
-        onPause={() => setIsPlaying(false)}
-        onPlay={() => setIsPlaying(true)}
+        onPause={() => {
+          setIsPlaying(false);
+          reading?.setIsPlaying(false);
+        }}
+        onPlay={() => {
+          setIsPlaying(true);
+          reading?.setIsPlaying(true);
+        }}
       />
     </div>
   );
