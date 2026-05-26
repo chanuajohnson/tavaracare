@@ -74,6 +74,22 @@ export const BlogReadingProvider = ({
     counterRef.current = bodyOffset;
   }, [bodyOffset]);
 
+  // Auto-scroll the active word into view during playback so the highlight
+  // stays visible while screen-recording.
+  const lastScrollRef = useRef(0);
+  useEffect(() => {
+    if (!enabled || !isPlaying || currentIndex < 0) return;
+    const now = Date.now();
+    if (now - lastScrollRef.current < 400) return;
+    lastScrollRef.current = now;
+    const el = document.querySelector(`[data-word-idx="${currentIndex}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [currentIndex, enabled, isPlaying]);
+
+
+
   const value = useMemo(
     () => ({
       enabled,
