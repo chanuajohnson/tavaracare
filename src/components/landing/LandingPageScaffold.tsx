@@ -155,10 +155,14 @@ export const LandingPageScaffold: React.FC<{ data: LandingPageData }> = ({ data 
             <p className="mt-5 text-lg text-muted-foreground leading-relaxed">{data.intro}</p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Button asChild size="lg">
-                <Link to={primaryCtaHref}>{primaryCtaLabel}</Link>
+                <Link to={primaryCtaHref} onClick={() => trackLocationCtaClick('hero-family', primaryCtaHref)}>
+                  {primaryCtaLabel}
+                </Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link to={secondaryCtaHref}>{secondaryCtaLabel}</Link>
+                <Link to={secondaryCtaHref} onClick={() => trackLocationCtaClick('hero-professional', secondaryCtaHref)}>
+                  {secondaryCtaLabel}
+                </Link>
               </Button>
             </div>
           </div>
