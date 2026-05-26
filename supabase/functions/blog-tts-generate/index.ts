@@ -38,12 +38,35 @@ function stripMarkdown(md: string): string {
 }
 
 // Convert ElevenLabs character-level alignment into word-level timings.
-// alignment: { characters: string[], character_start_times_seconds: number[], character_end_times_seconds: number[] }
-function deriveWordTimings(alignment: any): Array<{ word: string; start: number; end: number }> {
-  if (!alignment?.characters?.length) return [];
-  const chars: string[] = alignment.characters;
-  const starts: number[] = alignment.character_start_times_seconds;
-  const ends: number[] = alignment.character_end_times_seconds;
+// Accepts multiple known shapes:
+//   { characters, character_start_times_seconds, character_end_times_seconds }  (current)
+//   { chars, char_start_times_seconds, char_end_times_seconds }                 (older)
+//   nested { alignment: { ... } } or { normalized_alignment: { ... } }          (double-wrapped)
+function deriveWordTimings(alignmentInput: any): Array<{ word: string; start: number; end: number }> {
+  if (!alignmentInput) return [];
+  const candidates = [
+    alignmentInput,
+    alignmentInput.alignment,
+    alignmentInput.normalized_alignment,
+  ].filter(Boolean);
+
+  let chars: string[] | undefined;
+  let starts: number[] | undefined;
+  let ends: number[] | undefined;
+
+  for (const c of candidates) {
+    const cc = c.characters ?? c.chars;
+    const ss = c.character_start_times_seconds ?? c.char_start_times_seconds ?? c.characterStartTimesSeconds;
+    const ee = c.character_end_times_seconds ?? c.char_end_times_seconds ?? c.characterEndTimesSeconds;
+    if (Array.isArray(cc) && cc.length > 0 && Array.isArray(ss) && Array.isArray(ee)) {
+      chars = cc;
+      starts = ss;
+      ends = ee;
+      break;
+    }
+  }
+
+  if (!chars || !starts || !ends) return [];
 
   const words: Array<{ word: string; start: number; end: number }> = [];
   let buf = "";
@@ -216,8 +239,26 @@ Deno.serve(async (req) => {
     if (!audioB64) throw new Error("ElevenLabs response missing audio_base64");
     const audioBytes = base64Decode(audioB64);
 
-    const wordTimings = deriveWordTimings(payload.normalized_alignment ?? payload.alignment);
+    // Diagnostic: inspect alignment shape so we know if EL changed keys.
+    try {
+      const alignKeys = payload.alignment ? Object.keys(payload.alignment) : null;
+      const normKeys = payload.normalized_alignment ? Object.keys(payload.normalized_alignment) : null;
+      const alignCharsLen = payload.alignment?.characters?.length ?? payload.alignment?.chars?.length ?? null;
+      const normCharsLen = payload.normalized_alignment?.characters?.length ?? payload.normalized_alignment?.chars?.length ?? null;
+      console.log(`[blog-tts] payload keys=${JSON.stringify(Object.keys(payload))} alignKeys=${JSON.stringify(alignKeys)} alignChars=${alignCharsLen} normKeys=${JSON.stringify(normKeys)} normChars=${normCharsLen}`);
+    } catch (_) { /* ignore */ }
+
+    let wordTimings = deriveWordTimings(payload.normalized_alignment ?? payload.alignment);
+    if (wordTimings.length === 0) {
+      // try the other shape
+      wordTimings = deriveWordTimings(payload.alignment ?? payload.normalized_alignment);
+    }
+    if (wordTimings.length === 0) {
+      // try the whole payload (in case alignment is at top level)
+      wordTimings = deriveWordTimings(payload);
+    }
     const lastWordEnd = wordTimings.length > 0 ? wordTimings[wordTimings.length - 1].end : 0;
+    console.log(`[blog-tts] derived ${wordTimings.length} word timings for post ${post.id}`);
 
     const path = `${post.id}/${voice_id}.mp3`;
     const { error: upErr } = await admin.storage

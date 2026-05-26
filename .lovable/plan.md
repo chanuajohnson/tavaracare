@@ -1,50 +1,41 @@
-## Goal
+## Problem
 
-Add a single-post **Regenerate audio (with word timings)** control to the admin blog editor page (`/admin/blog/:id`) so you can refresh narration one post at a time — starting with `know-someone-who-needs-care-trinidad-tobago` — without burning ElevenLabs quota on the other 10 posts.
+Regenerate succeeded — `Audio ready · 11:32:50` — but `Done — 0 words timed`. Audio file uploaded fine, but `word_timings` saved as `[]`, so the karaoke highlight on the public page will not work.
 
-No changes to the edge function, the bulk backfill button, or the public reader.
+The edge function calls ElevenLabs `/v1/text-to-speech/{voice}/with-timestamps` and expects:
+```
+{ audio_base64, alignment: { characters, character_start_times_seconds, character_end_times_seconds }, normalized_alignment }
+```
+We're getting `audio_base64` (audio works) but `alignment` / `normalized_alignment` are arriving empty or under different keys, so `deriveWordTimings` returns `[]`.
 
-## Scope
+## Plan
 
-**Files touched (1 new, 1 edited):**
+### Step 1 — Add diagnostic logging to the edge function (one deploy)
+In `supabase/functions/blog-tts-generate/index.ts`, right after `const payload = await ttsRes.json()`:
+- Log `Object.keys(payload)` and the shape of `payload.alignment` / `payload.normalized_alignment` (lengths only, not full arrays).
+- Keep behavior identical otherwise so we don't burn another ElevenLabs credit unnecessarily.
 
-1. **NEW** `src/components/admin/BlogAudioRegenButton.tsx` — small card-style control
-2. **EDIT** `src/pages/admin/AdminBlogEditorPage.tsx` — mount the new control once
+### Step 2 — Make the parser tolerant of all known response shapes
+Update `deriveWordTimings` + its caller so it accepts the three shapes ElevenLabs has used across model/endpoint versions:
+1. `{ characters, character_start_times_seconds, character_end_times_seconds }` (current)
+2. `{ chars, char_start_times_seconds, char_end_times_seconds }` (older variant)
+3. Per-char arrays nested under `payload.alignment.alignment` (turbo variants sometimes double-wrap)
 
-**Untouched:** edge function `blog-tts-generate`, `BlogAudioBackfillButton`, `BlogAudioPlayer`, `BlogReadingContext`, `BlogPostPage`, routing, schema.
+Pick whichever has a non-empty `characters`-like array.
 
-## What the new control does
+### Step 3 — Surface the failure clearly in the admin card
+In `BlogAudioRegenButton.tsx`, when the function returns success but `word_timings.length === 0`, show an amber warning instead of a green "Done" — so we don't silently ship audio without timings again. Already partly there (`Regenerated (no word timings returned)`), just promote it visually.
 
-A compact panel on the editor page showing:
-
-- Current audio status (pulled from `blog_audio` row for this post): "Audio ready · generated <date>" / "Has word timings: yes/no" / "No audio yet"
-- A **Regenerate audio** button → calls the existing `blog-tts-generate` edge function with `{ post_id, slug, force: true }`
-- Inline result: ✓ "Generated · X words timed" or ⚠ reason (`quota_exceeded`, `unusual_activity_lock`, etc.) returned verbatim from the function
-- Loading spinner while in flight
-- A "Play preview" link that opens the post's public URL in a new tab so you can verify the karaoke highlight works
-
-No new tables, no new edge function, no schema changes. It reuses the exact same invocation contract the bulk button already uses, so the existing `word_timings` + `narration_text` persistence path is identical.
-
-## Placement
-
-Top of the editor page, just under the page title / breadcrumbs. Single card, full width on mobile, capped width on desktop. Uses semantic tokens (`bg-card`, `border-border`, `text-muted-foreground`, `text-primary`) — no hard-coded colors.
-
-## How you'll test
-
-1. Open `/admin/blog/<id of know-someone-who-needs-care-trinidad-tobago>`
-2. Click **Regenerate audio** → wait for ✓
-3. Open `/blog/know-someone-who-needs-care-trinidad-tobago` → press Play on the audio player → confirm words highlight as they're read
-4. If ElevenLabs still returns `quota_exceeded`/`unusual_activity_lock`, the control surfaces that reason clearly so you know it's an account issue, not a code issue
+### Step 4 — One more Regenerate click to verify
+Click **Regenerate audio** once. Open the edge function logs to read what alignment keys ElevenLabs actually returned. If step 2's tolerant parser already picked them up, we'll see `Done — N words timed` and the karaoke highlight will work on the public page. If logs reveal a totally new shape, patch the parser to match in a tiny follow-up.
 
 ## Out of scope
+- Bulk backfill button
+- Public-page highlight rendering (already implemented, just needs timings to render)
+- Voice / model change
 
-- Auto-skip of already-done posts in the bulk button (your earlier option b) — not doing it this round
-- Any change to the highlight rendering itself
-- Any change to chat flow, routing, registration, or other protected areas
+## Files touched
+- `supabase/functions/blog-tts-generate/index.ts` (logging + tolerant parser)
+- `src/components/admin/BlogAudioRegenButton.tsx` (clearer "no timings" warning)
 
-## Technical notes
-
-- The new component reads one row from `blog_audio` filtered by `post_id` to show status — single `.select().eq().maybeSingle()`, no listing
-- Invokes `supabase.functions.invoke("blog-tts-generate", { body: { post_id, slug, force: true } })` — same call shape as bulk button
-- After success, re-reads the `blog_audio` row so the status line reflects the new `word_timings` length
-- Uses sonner toast for success/error consistent with the rest of admin
+Total: ~30 lines across 2 files, no schema changes, no new tables, no routing changes.
