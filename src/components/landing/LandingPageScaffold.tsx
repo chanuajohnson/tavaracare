@@ -241,10 +241,12 @@ export const LandingPageScaffold: React.FC<{ data: LandingPageData }> = ({ data 
             </p>
             <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild size="lg">
-                <Link to={primaryCtaHref}>{primaryCtaLabel}</Link>
+                <Link to={primaryCtaHref} onClick={() => trackLocationCtaClick('closing-family', primaryCtaHref)}>
+                  {primaryCtaLabel}
+                </Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <a href="https://wa.me/18687865357">
+                <a href="https://wa.me/18687865357" onClick={() => trackLocationCtaClick('closing-whatsapp', 'https://wa.me/18687865357')}>
                   <Phone className="h-4 w-4 mr-2" />
                   WhatsApp us
                 </a>
