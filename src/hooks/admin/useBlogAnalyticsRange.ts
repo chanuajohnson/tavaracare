@@ -28,6 +28,9 @@ const TRACKED = [
   "family_registration_complete",
   "professional_registration_complete",
   "community_registration_complete",
+  "subscription_started",
+  "whatsapp_click",
+  "caregiver_match_request",
 ];
 
 export function useBlogAnalyticsRange(days: RangeDays) {

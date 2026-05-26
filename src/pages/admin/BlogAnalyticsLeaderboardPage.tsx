@@ -33,6 +33,7 @@ import { CampaignBreakdownCard } from "@/components/admin/blog-analytics/Campaig
 import { DailyTrendChart } from "@/components/admin/blog-analytics/DailyTrendChart";
 import { SourceMediumCard } from "@/components/admin/blog-analytics/SourceMediumCard";
 import { LocationLandingsCard } from "@/components/admin/blog-analytics/LocationLandingsCard";
+import { AcquisitionFunnelCard } from "@/components/admin/blog-analytics/AcquisitionFunnelCard";
 import {
   AnnotationsCard,
   useAnnotations,
@@ -216,6 +217,8 @@ export default function BlogAnalyticsLeaderboardPage() {
         {range && (
           <KpiStrip current={range.current} previous={range.previous} />
         )}
+
+        {range && <AcquisitionFunnelCard events={range.current} />}
 
         {range && (
           <DailyTrendChart
