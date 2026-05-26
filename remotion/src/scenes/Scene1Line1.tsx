@@ -4,13 +4,14 @@ import { serifFamily } from "../fonts";
 import { SceneBackdrop } from "./SceneBackdrop";
 import { brand } from "../brand";
 
-export const Scene1Line1: React.FC = () => {
+export const Scene1Line1: React.FC<{ text: string }> = ({ text }) => {
   const frame = useCurrentFrame();
   const opacity = interpolate(frame, [0, 18, 45, 55], [0, 1, 1, 0.85], {
     extrapolateRight: "clamp",
   });
   const blur = interpolate(frame, [0, 22], [14, 0], { extrapolateRight: "clamp" });
   const y = interpolate(frame, [0, 30], [30, 0], { extrapolateRight: "clamp" });
+  const lines = text.split("\n");
 
   return (
     <SceneBackdrop>
@@ -28,9 +29,12 @@ export const Scene1Line1: React.FC = () => {
             letterSpacing: "-0.01em",
           }}
         >
-          Caring for someone
-          <br />
-          you love…
+          {lines.map((line, i) => (
+            <React.Fragment key={i}>
+              {line}
+              {i < lines.length - 1 ? <br /> : null}
+            </React.Fragment>
+          ))}
         </div>
       </AbsoluteFill>
     </SceneBackdrop>

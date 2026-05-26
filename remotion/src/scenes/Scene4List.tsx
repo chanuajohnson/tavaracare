@@ -4,11 +4,12 @@ import { sansFamily } from "../fonts";
 import { SceneBackdrop } from "./SceneBackdrop";
 import { brand } from "../brand";
 
-const Line: React.FC<{ text: string; delay: number; color?: string; italic?: boolean }> = ({
+const Line: React.FC<{ text: string; delay: number; color?: string; italic?: boolean; fontSize: number }> = ({
   text,
   delay,
   color = brand.ink,
   italic = false,
+  fontSize,
 }) => {
   const frame = useCurrentFrame();
   const f = frame - delay;
@@ -20,7 +21,7 @@ const Line: React.FC<{ text: string; delay: number; color?: string; italic?: boo
       style={{
         fontFamily: sansFamily,
         fontWeight: 400,
-        fontSize: 68,
+        fontSize,
         lineHeight: 1.25,
         color,
         opacity,
@@ -35,7 +36,13 @@ const Line: React.FC<{ text: string; delay: number; color?: string; italic?: boo
   );
 };
 
-export const Scene4List: React.FC = () => {
+export const Scene4List: React.FC<{ bullets: string[] }> = ({ bullets }) => {
+  const n = bullets.length;
+  // Scale type/gap so 3-5 bullets all fit comfortably in 1920px
+  const fontSize = n <= 3 ? 78 : n === 4 ? 68 : 58;
+  const gap = n <= 3 ? 46 : n === 4 ? 38 : 30;
+  const stagger = Math.max(8, Math.floor(40 / Math.max(n - 1, 1)));
+
   return (
     <SceneBackdrop>
       <AbsoluteFill
@@ -43,14 +50,19 @@ export const Scene4List: React.FC = () => {
           justifyContent: "center",
           alignItems: "flex-start",
           padding: "0 130px",
-          gap: 38,
+          gap,
           flexDirection: "column",
         }}
       >
-        <Line text="A matched care team." delay={0} />
-        <Line text="A coordinator who knows" delay={14} />
-        <Line text="your loved one." delay={22} />
-        <Line text="One plan. One village." delay={36} color={brand.accent} />
+        {bullets.map((b, i) => (
+          <Line
+            key={i}
+            text={b}
+            delay={i * stagger}
+            fontSize={fontSize}
+            color={i === n - 1 ? brand.accent : brand.ink}
+          />
+        ))}
       </AbsoluteFill>
     </SceneBackdrop>
   );

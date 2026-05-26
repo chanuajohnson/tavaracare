@@ -4,13 +4,15 @@ import { serifFamily } from "../fonts";
 import { SceneBackdrop } from "./SceneBackdrop";
 import { brand } from "../brand";
 
-export const Scene2Line2: React.FC = () => {
+export const Scene2Line2: React.FC<{ text: string }> = ({ text }) => {
   const frame = useCurrentFrame();
   const opacity = interpolate(frame, [0, 18, 45, 55], [0, 1, 1, 0.9], {
     extrapolateRight: "clamp",
   });
   const blur = interpolate(frame, [0, 22], [14, 0], { extrapolateRight: "clamp" });
   const y = interpolate(frame, [0, 30], [30, 0], { extrapolateRight: "clamp" });
+  const lines = text.split("\n");
+  const lastIdx = lines.length - 1;
 
   return (
     <SceneBackdrop>
@@ -28,10 +30,16 @@ export const Scene2Line2: React.FC = () => {
             letterSpacing: "-0.01em",
           }}
         >
-          shouldn't mean
-          <br />
-          carrying it{" "}
-          <span style={{ fontStyle: "italic", color: brand.accent }}>alone.</span>
+          {lines.map((line, i) => (
+            <React.Fragment key={i}>
+              {i === lastIdx ? (
+                <span style={{ fontStyle: "italic", color: brand.accent }}>{line}</span>
+              ) : (
+                line
+              )}
+              {i < lastIdx ? <br /> : null}
+            </React.Fragment>
+          ))}
         </div>
       </AbsoluteFill>
     </SceneBackdrop>
