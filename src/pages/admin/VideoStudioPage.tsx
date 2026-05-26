@@ -416,7 +416,7 @@ const VideoStudioPage: React.FC = () => {
       const publicUrl = `${pub.publicUrl}?v=${Date.now()}`;
       const { error: dbErr } = await supabase
         .from("video_scripts")
-        .update({ render_status: "ready", rendered_url: publicUrl, rendered_at: new Date().toISOString() })
+        .update({ render_status: "ready", rendered_url: publicUrl, render_completed_at: new Date().toISOString() })
         .eq("id", scriptId);
       if (dbErr) throw dbErr;
       setScripts((prev) =>
