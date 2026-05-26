@@ -1,30 +1,52 @@
-Replace the **Upload MP4** button on each script row in `/admin/video-studio` with a **Download MP4** button that fetches the rendered file from the Tavara build sandbox and saves it to the admin's computer.
+## Three bugs to fix
 
-### Problem
-The current button uploads a local file into Supabase Storage. You want the opposite: pull the freshly rendered MP4 (currently sitting at `/mnt/documents/tavara-tiktok-village-v5.mp4` in the build sandbox) down to your machine straight from the row.
+### 1. "AI generation failed" — CORS preflight blocks `x-app-version`
+Console shows: `Request header field x-app-version is not allowed by Access-Control-Allow-Headers in preflight response` for `generate-video-script`.
 
-### Constraint
-The browser cannot read `/mnt/documents/...` directly — that path only exists inside the Lovable build sandbox. The download has to come from somewhere reachable over HTTPS. Two viable sources:
+`supabase/functions/generate-video-script/index.ts` imports `corsHeaders` from `npm:@supabase/supabase-js@2/cors` (a non-existent path that resolves to a default that omits `x-app-version`). The Supabase JS client now sends `x-app-version`, so every call dies in preflight.
 
-1. **`s.rendered_url`** — once a render has been uploaded to the `video-renders` bucket, this is a public URL. Already used by the existing tiny "download" text link.
-2. **No `rendered_url` yet** (status `queued`) — there is nothing to download from the browser. The artifact in chat is the only copy.
+Fix: define a local `corsHeaders` constant in that edge function:
+```ts
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-app-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+```
+Audit the other video-studio edge functions (`render-video-script`, etc.) and apply the same fix where they import from the same bad path.
 
-### Plan
-1. **`src/pages/admin/VideoStudioPage.tsx`** — replace the Upload button block with a **Download MP4** button:
-   - If `s.rendered_url` exists: button is enabled. On click, fetch the URL as a blob and trigger a browser download with filename `${slug(s.title)}.mp4` (uses `URL.createObjectURL` + a temporary `<a download>`). This bypasses Chrome's "open in tab" behavior that the current plain anchor causes.
-   - If `s.rendered_url` is empty: button is disabled with tooltip text "Render not uploaded yet".
-   - Remove the small "download" text anchor (now redundant).
-   - Remove the file-input upload pathway entirely (the `triggerUpload`, `handleUploadFile`, hidden `<input type="file">`, `uploadingId`, `uploadTargetRef`, `fileInputRef` additions from the previous turn). Keep imports clean — drop `Upload` from lucide-react, add `Download`.
+### 2. Download MP4 button "scrolls to top, nothing downloads"
+In `src/pages/admin/VideoStudioPage.tsx` the Download button sits inside a clickable row (`onClick={() => handleLoadScript(s)}`). `e.stopPropagation()` is present but the button has no explicit `type`, and when `handleDownload` throws (or `rendered_url` is empty after a fresh queue without an upload) the click bubbles into a re-render that resets scroll. Also, `fetch(s.rendered_url)` against the Supabase storage URL can be blocked by storage CORS for cross-origin XHR, returning an opaque/failed response that the user perceives as "nothing happened."
 
-2. **No DB / storage / edge function changes.** No migration.
+Fix:
+- Add `type="button"` to the Download button and the Delete button.
+- Add `e.preventDefault()` alongside `stopPropagation()`.
+- In `handleDownload`, if `fetch` fails (CORS or network), fall back to opening `s.rendered_url` directly in a new tab with `window.open(s.rendered_url, "_blank", "noopener")` so the user still gets the file.
+- Show a clearer toast on success ("Download started") and on the "no render yet" case.
 
-### Out of scope
-- Pulling files directly out of the build sandbox (`/mnt/documents`) into the browser — not architecturally possible without an upload step first.
-- Any change to how renders get produced.
+No backend/storage CORS changes — fallback handles it.
 
-### How you'll use it after this change
-1. Ask the chat to render queued scripts (produces the artifact in chat).
-2. Download the artifact from the chat once, then upload it to the bucket manually (or I can re-add an upload affordance later if you want both).
-3. From then on, the Download MP4 button on the row pulls it down anywhere you want.
+### 3. Downloaded MP4 won't play in QuickTime
+QuickTime only plays H.264 MP4 with `yuv420p` pixel format and a `faststart`-positioned moov atom. The current render script (`remotion/scripts/render-remotion.mjs`) uses `codec: "h264"` but doesn't pin pixel format or faststart, so Remotion's default can produce a file QuickTime rejects (plays in Chrome/VLC fine, which matches "video preview works in the Files panel but not in QuickTime").
 
-If you'd rather keep BOTH buttons (Upload AND Download) side-by-side, say "keep upload too" and I'll do that instead.
+Fix: in the render script, pass:
+```ts
+pixelFormat: "yuv420p",
+x264Preset: "medium",
+muted: true,
+```
+and post-process with ffmpeg to move the moov atom:
+```bash
+ffmpeg -i out.mp4 -c copy -movflags +faststart out.faststart.mp4
+```
+Wire this into the render script so the final file written to `/mnt/documents/` is always QuickTime-compatible. Re-render `tavara-tiktok-village-v5` and replace it.
+
+## Files touched
+- `supabase/functions/generate-video-script/index.ts` (+ any sibling video functions using the same broken cors import)
+- `src/pages/admin/VideoStudioPage.tsx`
+- `remotion/scripts/render-remotion.mjs`
+
+## Out of scope
+- Changing storage bucket CORS policy (fallback `window.open` avoids it)
+- Refactoring the script-row click target

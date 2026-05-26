@@ -386,16 +386,19 @@ const VideoStudioPage: React.FC = () => {
   };
 
   const handleDownload = async (s: ScriptRow) => {
-    if (!s.rendered_url) return;
+    if (!s.rendered_url) {
+      toast.error("No render attached yet.");
+      return;
+    }
     setDownloadingId(s.id);
+    const slug = (s.title || "video")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "video";
     try {
       const res = await fetch(s.rendered_url);
       if (!res.ok) throw new Error(`Fetch failed (${res.status})`);
       const blob = await res.blob();
-      const slug = (s.title || "video")
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "") || "video";
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -404,13 +407,17 @@ const VideoStudioPage: React.FC = () => {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      toast.success("Download started.");
     } catch (err: any) {
       console.error(err);
-      toast.error(err?.message || "Download failed.");
+      // CORS or network — fall back to opening the file in a new tab
+      window.open(s.rendered_url, "_blank", "noopener");
+      toast.message("Opened render in a new tab (right-click → Save As).");
     } finally {
       setDownloadingId(null);
     }
   };
+
 
   if (authLoading || isAdmin === null) {
     return (
@@ -601,12 +608,14 @@ const VideoStudioPage: React.FC = () => {
                         {s.render_status}
                       </Badge>
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
                         className="h-8"
                         disabled={!s.rendered_url || downloadingId === s.id}
                         title={s.rendered_url ? "Download MP4" : "Render not uploaded yet"}
                         onClick={(e) => {
+                          e.preventDefault();
                           e.stopPropagation();
                           handleDownload(s);
                         }}
