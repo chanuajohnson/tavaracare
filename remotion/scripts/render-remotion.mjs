@@ -31,10 +31,15 @@ const browser = await openBrowser("chrome", {
   chromeMode: "chrome-for-testing",
 });
 
+const inputProps = process.env.VIDEO_SCENES_JSON
+  ? { scenes: JSON.parse(process.env.VIDEO_SCENES_JSON) }
+  : {};
+
 const composition = await selectComposition({
   serveUrl: bundled,
   id: "main",
   puppeteerInstance: browser,
+  inputProps,
 });
 
 await renderMedia({
@@ -47,6 +52,7 @@ await renderMedia({
   puppeteerInstance: browser,
   muted: true,
   concurrency: 1,
+  inputProps,
 });
 
 await browser.close({ silent: false });
