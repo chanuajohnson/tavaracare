@@ -57,13 +57,32 @@ type ScriptRow = {
   created_at: string;
 };
 
+// Brand tokens mirror remotion/src/brand.ts
+const INK = "#0B0B0B";       // near-black body text
+const ACCENT = "#1E3A8A";    // navy — highlights only
+const SERIF = "'Cormorant Garamond', Georgia, serif";
+const SANS = "'Karla', system-ui, sans-serif";
+
+const useTavaraFonts = () => {
+  useEffect(() => {
+    const id = "tavara-video-preview-fonts";
+    if (document.getElementById(id)) return;
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href =
+      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Karla:wght@300;400;500&display=swap";
+    document.head.appendChild(link);
+  }, []);
+};
+
 const Frame: React.FC<{ children: React.ReactNode; label: string }> = ({ children, label }) => (
   <div className="flex flex-col items-center gap-2">
     <div
       className="relative w-[180px] h-[320px] rounded-xl overflow-hidden shadow-md"
       style={{ background: "radial-gradient(120% 90% at 50% 38%, #F5F0E8 0%, #ECE4D6 60%, #D9CDB8 130%)" }}
     >
-      <div className="absolute inset-0 flex items-center justify-center p-3 text-center">
+      <div className="absolute inset-0 flex items-center justify-center p-4 text-center">
         {children}
       </div>
     </div>
@@ -71,49 +90,176 @@ const Frame: React.FC<{ children: React.ReactNode; label: string }> = ({ childre
   </div>
 );
 
+// Render a line with the last word in navy italic serif (matches Scene2/Scene4 final line)
+const LineWithAccentLastWord: React.FC<{ text: string; size: number }> = ({ text, size }) => {
+  const tokens = text.trim().split(/\s+/);
+  if (tokens.length === 0) return null;
+  const last = tokens.pop()!;
+  const head = tokens.join(" ");
+  return (
+    <span style={{ fontFamily: SERIF, fontSize: size, lineHeight: 1.15, color: INK }}>
+      {head ? head + " " : ""}
+      <span style={{ color: ACCENT, fontStyle: "italic" }}>{last}</span>
+    </span>
+  );
+};
+
 const Preview: React.FC<{ scenes: Scenes }> = ({ scenes }) => {
-  const ink = "#1E3A8A";
+  useTavaraFonts();
+
+  // Scene 2 lines: keep the final word navy italic
+  const scene2Lines = scenes.scene2.split("\n");
+
+  // Scene 5: split wordmark on the dot so ".<tld>" goes navy
+  const wordmark = "tavara.care";
+  const dotIdx = wordmark.indexOf(".");
+  const wmHead = dotIdx >= 0 ? wordmark.slice(0, dotIdx) : wordmark;
+  const wmTail = dotIdx >= 0 ? wordmark.slice(dotIdx) : "";
+
   return (
     <div className="flex gap-3 flex-wrap justify-center">
       <Frame label="Scene 1">
-        <div style={{ color: ink, fontFamily: "Georgia, serif", fontSize: 18, lineHeight: 1.2, whiteSpace: "pre-line" }}>
+        <div
+          style={{
+            color: INK,
+            fontFamily: SERIF,
+            fontSize: 22,
+            lineHeight: 1.15,
+            whiteSpace: "pre-line",
+            fontWeight: 400,
+          }}
+        >
           {scenes.scene1}
         </div>
       </Frame>
+
       <Frame label="Scene 2">
-        <div style={{ color: ink, fontFamily: "Georgia, serif", fontSize: 18, lineHeight: 1.2, whiteSpace: "pre-line" }}>
-          {scenes.scene2}
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {scene2Lines.map((line, i) => (
+            <div key={i}>
+              {i === scene2Lines.length - 1 ? (
+                <LineWithAccentLastWord text={line} size={22} />
+              ) : (
+                <span style={{ fontFamily: SERIF, fontSize: 22, lineHeight: 1.15, color: INK }}>
+                  {line}
+                </span>
+              )}
+            </div>
+          ))}
         </div>
       </Frame>
+
       <Frame label="Scene 3">
-        <div className="flex flex-col items-center gap-2">
-          <div style={{ color: ink, fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase" }}>
+        <div className="flex flex-col items-center gap-3">
+          <div
+            style={{
+              color: INK,
+              fontFamily: SANS,
+              fontSize: 9,
+              letterSpacing: "0.3em",
+              textTransform: "uppercase",
+              fontWeight: 500,
+            }}
+          >
             {scenes.scene3.eyebrow}
           </div>
-          <div style={{ color: ink, fontFamily: "Georgia, serif", fontSize: 48, fontStyle: "italic", lineHeight: 1 }}>
+          <div
+            style={{
+              color: ACCENT,
+              fontFamily: SERIF,
+              fontSize: 52,
+              fontStyle: "italic",
+              lineHeight: 1,
+              fontWeight: 400,
+            }}
+          >
             {scenes.scene3.word}
           </div>
         </div>
       </Frame>
+
       <Frame label="Scene 4">
-        <div className="flex flex-col gap-1.5 items-start text-left w-full">
-          {scenes.scene4.map((line, i) => (
-            <div key={i} style={{ color: ink, fontSize: 12, lineHeight: 1.25 }}>{line}</div>
-          ))}
+        <div className="flex flex-col gap-2 items-start text-left w-full">
+          {scenes.scene4.map((line, i) => {
+            const isLast = i === scenes.scene4.length - 1;
+            return (
+              <div
+                key={i}
+                style={
+                  isLast
+                    ? {
+                        color: ACCENT,
+                        fontFamily: SERIF,
+                        fontStyle: "italic",
+                        fontSize: 13,
+                        lineHeight: 1.25,
+                        marginTop: 6,
+                      }
+                    : {
+                        color: INK,
+                        fontFamily: SANS,
+                        fontSize: 12,
+                        lineHeight: 1.3,
+                        fontWeight: 400,
+                      }
+                }
+              >
+                {line}
+              </div>
+            );
+          })}
         </div>
       </Frame>
+
       <Frame label="Scene 5">
-        <div className="flex flex-col items-center gap-2">
-          <div style={{ color: ink, fontFamily: "Georgia, serif", fontSize: 24, letterSpacing: "-0.02em" }}>
-            tavara.care
+        <div className="flex flex-col items-center gap-1.5">
+          <div
+            style={{
+              fontFamily: SERIF,
+              fontSize: 26,
+              letterSpacing: "-0.02em",
+              lineHeight: 1,
+            }}
+          >
+            <span style={{ color: INK }}>{wmHead}</span>
+            <span style={{ color: ACCENT }}>{wmTail}</span>
           </div>
-          <div style={{ color: ink, fontSize: 7, letterSpacing: "0.35em", textTransform: "uppercase" }}>
+          <div
+            style={{
+              color: INK,
+              fontFamily: SANS,
+              fontSize: 7,
+              letterSpacing: "0.35em",
+              textTransform: "uppercase",
+              fontWeight: 500,
+              marginTop: 4,
+            }}
+          >
             Care, coordinated.
           </div>
-          <div style={{ color: ink, fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: 10, marginTop: 6 }}>
+          <div
+            style={{
+              color: ACCENT,
+              fontFamily: SERIF,
+              fontStyle: "italic",
+              fontSize: 11,
+              marginTop: 8,
+              lineHeight: 1.2,
+            }}
+          >
             {scenes.scene5.tagline}
           </div>
-          <div style={{ color: ink, opacity: 0.7, fontSize: 7, marginTop: 6, lineHeight: 1.3 }}>
+          <div
+            style={{
+              color: INK,
+              opacity: 0.7,
+              fontFamily: SANS,
+              fontSize: 7,
+              marginTop: 8,
+              lineHeight: 1.4,
+              padding: "0 6px",
+            }}
+          >
             {scenes.scene5.footer}
           </div>
         </div>
