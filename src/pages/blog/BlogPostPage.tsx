@@ -4,6 +4,8 @@ import { BlogInlineCTA } from "@/components/blog/BlogInlineCTA";
 import { BlogTopCTA } from "@/components/blog/BlogTopCTA";
 import { BlogEndCTABlock } from "@/components/blog/BlogEndCTABlock";
 import { BlogStickyMobileCTA } from "@/components/blog/BlogStickyMobileCTA";
+import { BlogCommentsPrompt } from "@/components/blog/BlogCommentsPrompt";
+import { BlogCommentsThread } from "@/components/blog/BlogCommentsThread";
 import { captureInboundAttribution, trackBlogCtaClick } from "@/lib/blog/attribution";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
