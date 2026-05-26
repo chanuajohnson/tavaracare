@@ -118,6 +118,19 @@ export const LandingPageScaffold: React.FC<{ data: LandingPageData }> = ({ data 
   const secondaryCtaHref = data.secondaryCtaHref ?? '/registration/professional';
   const secondaryCtaLabel = data.secondaryCtaLabel ?? 'Join a coordinated care team';
 
+  const trackLocationCtaClick = (placement: 'hero-family' | 'hero-professional' | 'closing-family' | 'closing-whatsapp', destination: string) => {
+    void supabase.from('cta_engagement_tracking').insert({
+      user_id: null,
+      action_type: 'location_cta_click',
+      additional_data: {
+        location_slug: data.slug,
+        placement,
+        destination,
+        page_url: typeof window !== 'undefined' ? window.location.href : null,
+      },
+    });
+  };
+
   return (
     <>
       <SEO
@@ -142,10 +155,14 @@ export const LandingPageScaffold: React.FC<{ data: LandingPageData }> = ({ data 
             <p className="mt-5 text-lg text-muted-foreground leading-relaxed">{data.intro}</p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Button asChild size="lg">
-                <Link to={primaryCtaHref}>{primaryCtaLabel}</Link>
+                <Link to={primaryCtaHref} onClick={() => trackLocationCtaClick('hero-family', primaryCtaHref)}>
+                  {primaryCtaLabel}
+                </Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link to={secondaryCtaHref}>{secondaryCtaLabel}</Link>
+                <Link to={secondaryCtaHref} onClick={() => trackLocationCtaClick('hero-professional', secondaryCtaHref)}>
+                  {secondaryCtaLabel}
+                </Link>
               </Button>
             </div>
           </div>
@@ -224,10 +241,12 @@ export const LandingPageScaffold: React.FC<{ data: LandingPageData }> = ({ data 
             </p>
             <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild size="lg">
-                <Link to={primaryCtaHref}>{primaryCtaLabel}</Link>
+                <Link to={primaryCtaHref} onClick={() => trackLocationCtaClick('closing-family', primaryCtaHref)}>
+                  {primaryCtaLabel}
+                </Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <a href="https://wa.me/18687865357">
+                <a href="https://wa.me/18687865357" onClick={() => trackLocationCtaClick('closing-whatsapp', 'https://wa.me/18687865357')}>
                   <Phone className="h-4 w-4 mr-2" />
                   WhatsApp us
                 </a>

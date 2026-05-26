@@ -119,7 +119,9 @@ export type BlogCtaPlacement =
   | "end-family"
   | "end-professional"
   | "sticky-mobile"
-  | "public-copy-share";
+  | "public-copy-share"
+  | "hero-cost"
+  | "hero-location";
 
 /**
  * Build a destination URL that forwards inbound attribution as `utm_referrer_*`
