@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useBlogAudio } from "@/hooks/useBlogAudio";
+import { useBlogReading } from "@/components/blog/BlogReadingContext";
 import { formatTime } from "@/lib/blog/formatTime";
 import { cn } from "@/lib/utils";
 
