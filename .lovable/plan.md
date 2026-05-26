@@ -1,38 +1,67 @@
-## What you're asking
+## Add comments + likes to blog posts
 
-Render the two queued scripts in `video_scripts` so their rows flip to `render_status='ready'` with a downloadable MP4 in the `video-renders` bucket.
+Per-post comment threads at 1/3, 2/3, and end of article + a single heart like count. Guest posting (name + email) with admin moderation.
+
+### Body splitting
+
+Change `BlogPostPage.tsx` body split from halves → thirds on paragraph boundaries:
 
 ```
-queued: d3469acc-...  "Need a village for care?"  (2026-05-26 01:56)
-queued: f4b0f91b-...  "Need a village for care?"  (2026-05-26 01:54)
-ready:  c7559279-...  "Untitled village script"   already done
+thirdA  ─┐
+         ├─ <BlogCommentsPrompt postSlug/>
+thirdB  ─┤
+         ├─ <BlogInlineCTA postSlug/> + <BlogCommentsPrompt postSlug/>
+thirdC  ─┘
+<BlogEndCTABlock postSlug/>
+<BlogCommentsThread postSlug id="comments"/>
 ```
 
-## Important caveat — read before approving
+`BlogCommentsPrompt` is a compact card (heart + approved-count + "Join the conversation" + single-line input that focuses-scrolls to `#comments`). `BlogCommentsThread` is the full list + post form anchored at the bottom. Fallback: if body has <6 paragraphs, fall back to halves (one prompt + end thread).
 
-The current Remotion composition (`remotion/src/MainVideo.tsx`) uses **hardcoded scene content**. It does NOT read scene copy from the `video_scripts` row identified by `VIDEO_SCRIPT_ID`. The env var is only used by `render-remotion.mjs` to choose which DB row to upload to and flip to `ready`.
+### Data model (new tables)
 
-So if I render both queued rows right now, both will get the **same MP4** (the hardcoded village script), just stored under each row's storage path. The titles in DB stay as the AI-generated "Need a village for care?" but the visual content is the legacy hardcoded copy.
+**`blog_comments`**
+- `id uuid pk`, `post_slug text not null`, `author_name text` (2-60), `author_email text` (≤120, validated, never rendered), `body text` (2-2000), `status text` default `'pending'` check in (`pending`,`approved`,`rejected`), `ip_hash text` (sha256 of IP + daily rotating salt), `created_at`, `approved_at`, `approved_by uuid`.
+- Indexes on `(post_slug, status, created_at desc)` and `(ip_hash, created_at)`.
 
-If that's fine for now (you just want the queued rows resolved so the Download buttons work), proceed with the plan below. If you actually want each queued row rendered with **its own AI-generated scenes**, that's a separate, larger piece of work — making `MainVideo` parametric, fetching the row's `scenes` JSON in the render script, and passing it as `inputProps` to `renderMedia`. Say the word and I'll plan that instead.
+**`blog_post_reactions`**
+- `id uuid pk`, `post_slug text not null`, `reaction_hash text not null` (sha256 of IP+UA+post_slug), `created_at`.
+- Unique on `(post_slug, reaction_hash)`.
 
-## Plan (assumes "render them as-is for now")
+**RLS:**
+- `blog_comments`: public has NO direct select/insert. Public reads through view `blog_comments_public` (`status='approved'`, returns `id, post_slug, author_name, body, created_at` — never email/ip_hash). Admin has full select/update/delete via `has_role(auth.uid(),'admin')`.
+- `blog_post_reactions`: no public select/insert; counts read through view `blog_post_likes (post_slug, like_count)`. Admin full access.
 
-1. For each queued script id:
-   - Run `node remotion/scripts/render-remotion.mjs` with env:
-     - `VIDEO_SCRIPT_ID=<id>`
-     - `VIDEO_SLUG=<slug-of-title>`
-     - `SUPABASE_URL` (already in env)
-     - `RENDER_UPLOAD_TOKEN` (already in env)
-   - The script bundles, renders 9s @ 1080x1920, remuxes with `+faststart`, POSTs to the `upload-video-render` edge function, which uploads to `video-renders/{id}/{slug}.mp4` and updates the row to `render_status='ready'`.
-2. Verify both rows by querying `video_scripts` for `render_status` and `rendered_url`.
-3. Report the public URLs so you can hit Download on each row in `/admin/video-studio` and confirm.
+### Edge functions (public, `verify_jwt=false`, CORS includes `x-client-env`)
 
-Each render takes roughly 60-120 seconds in the sandbox, so this is two sequential renders (~3-4 min total). I'll run them one after the other and confirm at each step.
+- **`submit-blog-comment`** — POST `{ postSlug, authorName, authorEmail, body }`. Zod-validates lengths/email. Hashes IP with daily salt. Rate-limit: reject if same `ip_hash` has >3 pending in last 24h, or >1 submission to same `post_slug` in last 60s. Inserts with `status='pending'`. Returns `{ ok: true, status: 'pending' }`.
+- **`toggle-blog-reaction`** — POST `{ postSlug }`. Computes `reaction_hash` from IP+UA+slug. Upsert/delete toggle. Returns `{ liked: boolean, like_count: number }`.
 
-## What this does NOT do
+Both use the service role internally; never expose service key to client.
 
-- Does not change `MainVideo.tsx`, `Root.tsx`, scene components, or the render script.
-- Does not change the edge function or any UI.
-- Does not parametrize the composition (that's the larger follow-up I flagged above).
-- Does not touch the existing `ready` row.
+### Frontend pieces
+
+- `src/hooks/useBlogComments.ts` — react-query: `useApprovedComments(slug)` (queries `blog_comments_public`), `useSubmitComment()` (calls edge fn, optimistic toast "Submitted for review").
+- `src/hooks/useBlogReactions.ts` — `useLikeCount(slug)` (queries `blog_post_likes`), `useToggleLike(slug)` (calls edge fn + localStorage `blog_liked_<slug>` for UI persistence across reloads).
+- `src/components/blog/BlogCommentsPrompt.tsx` — heart button + count + "Join the conversation" CTA that scroll-focuses `#comments`.
+- `src/components/blog/BlogCommentsThread.tsx` — heading, approved list (name + date + body, no avatars), and post form (name, email, body, submit). Shows "Awaiting moderation" success state.
+- Integrate in `src/pages/blog/BlogPostPage.tsx` (split into thirds + slot components).
+
+### Admin moderation
+
+Extend `src/pages/admin/AdminBlogPage.tsx` with a "Comments" tab:
+- Lists pending comments across all posts (slug, name, email, body, submitted at).
+- Per-row Approve / Reject / Delete buttons (writes through authenticated supabase client; RLS permits via `has_role`).
+- Optional filter by status (pending/approved/rejected).
+
+### Out of scope
+
+- Threaded replies / edit-after-post / author edit links / email notifications / gravatar
+- Multiple reaction types (only heart)
+- Anything in `src/App.tsx`, routing, auth flow, chat flow, registration files
+
+### Files touched
+
+- New: `supabase/functions/submit-blog-comment/index.ts`, `supabase/functions/toggle-blog-reaction/index.ts`, `src/hooks/useBlogComments.ts`, `src/hooks/useBlogReactions.ts`, `src/components/blog/BlogCommentsPrompt.tsx`, `src/components/blog/BlogCommentsThread.tsx`
+- Edited: `src/pages/blog/BlogPostPage.tsx` (thirds split + slot the new components), `src/pages/admin/AdminBlogPage.tsx` (Comments tab), `supabase/config.toml` (register the two new functions, no JWT)
+- Migration: create both tables, views, RLS policies, indexes
