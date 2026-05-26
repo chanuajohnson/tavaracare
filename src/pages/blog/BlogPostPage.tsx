@@ -132,7 +132,14 @@ const markdownComponents: Components = {
   p: ({ children }) => <p>{wrapText(children)}</p>,
   li: ({ children }) => <li>{wrapText(children)}</li>,
   h1: ({ children }) => <h1>{wrapText(children)}</h1>,
-  h2: ({ children }) => <h2>{wrapText(children)}</h2>,
+  h2: ({ children }) => {
+    const id = extractFirstText(children)
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-");
+    return <h2 id={id}>{wrapText(children)}</h2>;
+  },
   h3: ({ children }) => <h3>{wrapText(children)}</h3>,
   h4: ({ children }) => <h4>{wrapText(children)}</h4>,
   h5: ({ children }) => <h5>{wrapText(children)}</h5>,
