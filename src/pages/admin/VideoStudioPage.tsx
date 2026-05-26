@@ -237,31 +237,6 @@ const Preview: React.FC<{ scenes: Scenes }> = ({ scenes }) => {
           >
             Care, coordinated.
           </div>
-          <div
-            style={{
-              color: ACCENT,
-              fontFamily: SERIF,
-              fontStyle: "italic",
-              fontSize: 11,
-              marginTop: 8,
-              lineHeight: 1.2,
-            }}
-          >
-            {scenes.scene5.tagline}
-          </div>
-          <div
-            style={{
-              color: INK,
-              opacity: 0.7,
-              fontFamily: SANS,
-              fontSize: 7,
-              marginTop: 8,
-              lineHeight: 1.4,
-              padding: "0 6px",
-            }}
-          >
-            {scenes.scene5.footer}
-          </div>
         </div>
       </Frame>
     </div>
