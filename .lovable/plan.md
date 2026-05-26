@@ -1,75 +1,68 @@
+## Round 2: actually move bounce rate on the two leaking URLs
 
-## The actual problem
+Round 1 polished CTAs and added instrumentation. The real leak is the first 100 words on these two pages don't answer the search intent fast enough. This round rewrites that copy and ships the missing `LocationHeroCTA` so Diamond Vale gets the same hero treatment as the cost blog.
 
-Your analytics show 338 visitors → ~14 caregiver dashboard users. The Trinidad cost blog pulls 150 visitors but they leave in 19s. Diamond Vale: 75 visitors, 9s. SEO is working, the page is not.
+Scope is still frontend / presentation only. No routing, no `FamilyRegistration.tsx`, no protected files.
 
-The Acquisition Funnel Card we just built will confirm where the leak is, but the diagnosis is already obvious from the numbers you shared:
+---
 
-- **Top-of-funnel** (Google → blog landing): working
-- **Landing → first meaningful action**: broken — most visitors leave before scrolling past the hero
-- **CTA click → registration page view**: unknown, but irrelevant if step above is bleeding 90%
-- **Registration page view → completion**: unknown, suspected to drop on the long family form
+### Fix A — Ship the missing `LocationHeroCTA`
 
-This plan does NOT touch subscriptions. Goal is `family_registration_complete` + `professional_registration_complete` events going up.
+**New file:** `src/components/blog/hero-cta/LocationHeroCTA.tsx` (~60 lines)
+- Mirrors `CostHeroCTA` visual treatment so the funnel card can compare them honestly.
+- Props: `slug`, `areaServed`, `primaryCtaHref`.
+- Eyebrow: "Care in {areaServed}". Body: one line confirming caregivers reach that area + "matched in days, not weeks". Single primary CTA → `/family/readiness-quiz`.
+- Fires `trackBlogCtaClick` with placement `hero-location` (already added to the union in round 1).
 
-## Scope: three surgical fixes, in priority order
+**Edit:** `src/components/landing/LandingPageScaffold.tsx`
+- Mount `<LocationHeroCTA />` directly under the hero `<p>` intro, above the existing button row. The current hero is text-heavy with the CTA buttons buried below the fold on a 390px viewport.
 
-### Fix 1 — Above-the-fold conversion on every blog post (biggest lever)
+### Fix B — Rewrite the Diamond Vale above-the-fold so the 9s bounce has a reason to stay
 
-A 9–19s bounce means the visitor never saw `BlogTopCTA`. It currently sits *below* the article header, audio player, and reading context block. By the time it paints on mobile (997px viewport user is on counts as desktop, but most blog traffic is mobile), it is below the fold.
+**Edit:** `src/pages/locations/locationsData.ts` (`diamondVale` only, other locations untouched)
+- **H1** stays "In-home care in Diamond Vale" — already specific.
+- **Kicker** stays.
+- **Intro rewrite** — currently 3 sentences of community color before any answer. New intro leads with: caregivers reach Diamond Vale / Petit Valley / Glencoe, three-line answer to the implicit question ("is care actually available here, how fast, what does it cost"), then the community sentence. Roughly 60 words, no em-dashes, no banned words.
+- **metaDescription** tightened to lead with the area + outcome so the SERP snippet matches the new intro.
 
-**What changes in `src/pages/blog/BlogPostPage.tsx`:**
-- Move `<BlogTopCTA />` to render **immediately after the H1 + byline**, before audio player, reading context, and article body.
-- Add a one-line "social proof / outcome" strip directly under the H1 (e.g. "Families in Trinidad arranging care in under 7 days") — pulled from a small constant, no new data source.
-- Keep `BlogInlineCTA`, `BlogEndCTABlock`, `BlogStickyMobileCTA` exactly as-is.
+### Fix C — Rewrite the cost blog above-the-fold so the 19s bounce sees the number immediately
 
-**What changes in `src/components/blog/BlogTopCTA.tsx`:**
-- Visual upgrade only: make it look like a primary action, not a muted aside. Stronger contrast border, primary-tinted background, larger tap targets. Still two buttons (family + professional).
-- Copy tightened to outcome language: "Find care this week" / "Get matched with families".
-- No tracking changes — `trackBlogCtaClick` already fires.
+**Edit:** `src/content/blog/posts.ts` (`careCosts` post only)
+- **Lead paragraph rewrite** — currently opens with "nobody wants to give you a straight number" then makes the reader wait for the table. New lead: one sentence acknowledging the search intent, then the three rates inline ($40 / $45 / $50+) in the first two sentences, then the "rest of this article explains why" transition into the existing table. The reader sees the answer before they scroll.
+- No changes to the table, the tier explanations, or anything below "The short answer".
+- Language pass on the lead only: remove any em/en-dashes, keep "care rate" language, do not touch the existing subscription pricing table (out of scope, see note below).
 
-### Fix 2 — Trinidad cost blog & Diamond Vale location page get a dedicated hero CTA
+### Fix D — Verify the readiness quiz fires `family_registration_page_view`
 
-These two URLs are your top SEO entry points. They deserve a page-specific hero block (not just the generic `BlogTopCTA`) that answers the implicit query in the search:
-- Cost-of-care searchers want a number + a "see if you qualify" path
-- Location-page searchers want "is care available in my area" + a quick action
+Read-only check on `FamilyReadinessQuizPage` (and its `PageViewTracker` usage if present). If it already fires the event, do nothing. If it does not, add a single `<PageViewTracker actionType="family_registration_page_view" />` mount on the quiz landing. No form logic changes.
 
-**What changes:**
-- In `BlogPostPage.tsx`, add an optional `heroCta` slot driven by post slug. When slug matches `cost-of-care-trinidad` or `diamond-vale-*`, render a slug-specific hero component above `BlogTopCTA` with the relevant hook + single primary CTA (family quiz). Generic posts get nothing extra.
-- New file: `src/components/blog/hero-cta/CostHeroCTA.tsx` and `LocationHeroCTA.tsx`. ~50 lines each, no new data, reuses `buildCtaDestination` + `trackBlogCtaClick` with new placement IDs `hero-cost` and `hero-location` so the funnel card can isolate their performance.
+---
 
-### Fix 3 — Shorten the perceived registration form for the family quiz path
+### Out of scope, flagged for a separate decision
 
-The family quiz (`/family/readiness-quiz`) is the soft on-ramp. The full `FamilyRegistration.tsx` form is **protected and out of scope per your guardrail**, so we do not touch it. Instead:
+The existing cost blog at lines 188–195 publishes the **Active Care $699/wk and Premium $899/wk subscription dollar amounts**. Per `mem://constraints/financial-privacy-public-surfaces`, subscription dollar amounts are **never** supposed to appear on public surfaces — only tier names and the per-hour care rates. This is a pre-existing violation that predates this conversation. I will NOT touch it in this round because it is a content/policy decision, not a conversion fix, and you should make the call deliberately. Flag it and I will plan a separate cleanup.
 
-- Verify the quiz path actually exists and lands the user somewhere that fires `family_registration_page_view`. If it doesn't, we add the event fire on the quiz landing (one-line addition to existing page).
-- No form field changes. No `FamilyRegistration.tsx` edits.
+### Files touched in this plan
 
-## What we measure after shipping
+| File | Change | Lines |
+| --- | --- | --- |
+| `src/components/blog/hero-cta/LocationHeroCTA.tsx` | New | ~60 |
+| `src/components/landing/LandingPageScaffold.tsx` | Mount LocationHeroCTA in hero | ~5 |
+| `src/pages/locations/locationsData.ts` | Rewrite `diamondVale.intro` + `metaDescription` | ~6 |
+| `src/content/blog/posts.ts` | Rewrite `careCosts` body lead paragraph only | ~6 |
+| `src/pages/family/FamilyReadinessQuizPage.tsx` (read-only check; only edit if event missing) | Conditional 1-line | 0–1 |
 
-The Acquisition Funnel Card on `/admin/blog/analytics` will show, within 48 hours of traffic:
-- `blog_utm_landed` → `blog_cta_click` ratio should jump from ~19% to 30%+ if Fix 1 works
-- New placements `hero-cost` and `hero-location` get isolated rows so we can prove Fix 2's value
-- `family_registration_complete` count should rise even with the same top-of-funnel volume
+### What we will see in the funnel card within 48h
 
-If the landing→click rate doesn't move after Fix 1, the problem isn't the CTA position — it's page relevance, and the next plan would be content rewrites on those two specific URLs.
+- `hero-location` row appears with its own click count, isolating Diamond Vale's CTA performance from the generic location buttons.
+- `blog_utm_landed` → `blog_cta_click` ratio on the cost blog slug should improve if the rate-anchored lead works. If it doesn't move, the lever isn't copy, it's traffic intent mismatch and the next step is keyword-level work, not more page edits.
+- `location_cta_click` count on Diamond Vale rises out of zero (or stays flat, which is itself a useful signal that the page needs a different angle entirely).
 
-## What this plan deliberately does NOT do
+### What this plan deliberately does NOT do
 
-- No changes to `FamilyRegistration.tsx`, `App.tsx`, routing, navigation, or any protected file
-- No subscription / pricing changes
-- No GA4 wiring (separate follow-up)
-- No new tables, migrations, edge functions, env vars, or dependencies
-- No A/B testing infrastructure — we ship the better version and watch the funnel card
-- No copy rewrites on the actual blog post bodies — only the CTA surrounds
-
-## Files touched
-
-| File | Change |
-| --- | --- |
-| `src/pages/blog/BlogPostPage.tsx` | Reorder: TopCTA right after H1; add slug-based hero slot |
-| `src/components/blog/BlogTopCTA.tsx` | Visual + copy upgrade, same tracking |
-| `src/components/blog/hero-cta/CostHeroCTA.tsx` | New, ~50 lines |
-| `src/components/blog/hero-cta/LocationHeroCTA.tsx` | New, ~50 lines |
-
-Four files, two new, all frontend, all presentation. Funnel card already in place will tell us within days whether it worked.
+- No `FamilyRegistration.tsx`, `App.tsx`, routing, or auth changes
+- No subscription pricing edits on the cost blog (see flagged item above)
+- No new tables, edge functions, migrations, env vars, or dependencies
+- No GA4 wiring
+- No body-copy rewrites below the fold on either URL
+- No new location pages, no SEO meta overhaul beyond the two `metaDescription` tweaks
