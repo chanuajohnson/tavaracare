@@ -91,13 +91,24 @@ const BlogPostPage = () => {
     }
   }, [post?.slug]);
 
-  // Split body roughly in half on a paragraph boundary so we can inject an inline CTA
-  const [bodyFirstHalf, bodySecondHalf] = useMemo(() => {
-    if (!post?.body) return ["", ""];
+  // Split body into thirds on paragraph boundaries so we can inject CTAs and
+  // comment prompts at the 1/3 and 2/3 points. Falls back to halves (then whole)
+  // for shorter posts.
+  const [bodyA, bodyB, bodyC] = useMemo(() => {
+    if (!post?.body) return ["", "", ""];
     const paras = post.body.split(/\n\n+/);
-    if (paras.length < 4) return [post.body, ""];
-    const mid = Math.floor(paras.length / 2);
-    return [paras.slice(0, mid).join("\n\n"), paras.slice(mid).join("\n\n")];
+    if (paras.length < 6) {
+      if (paras.length < 4) return [post.body, "", ""];
+      const mid = Math.floor(paras.length / 2);
+      return [paras.slice(0, mid).join("\n\n"), paras.slice(mid).join("\n\n"), ""];
+    }
+    const a = Math.floor(paras.length / 3);
+    const b = Math.floor((2 * paras.length) / 3);
+    return [
+      paras.slice(0, a).join("\n\n"),
+      paras.slice(a, b).join("\n\n"),
+      paras.slice(b).join("\n\n"),
+    ];
   }, [post?.body]);
 
   const handleCopyArticle = async () => {
