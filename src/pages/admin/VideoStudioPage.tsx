@@ -603,7 +603,10 @@ const VideoStudioPage: React.FC = () => {
                         {s.topic ? s.topic : "no topic"} · {new Date(s.created_at).toLocaleString()}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div
+                      className="flex items-center gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Badge variant={s.render_status === "ready" ? "default" : "secondary"}>
                         {s.render_status}
                       </Badge>
@@ -611,8 +614,8 @@ const VideoStudioPage: React.FC = () => {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-8"
-                        disabled={!s.rendered_url || downloadingId === s.id}
+                        className={`h-8 ${!s.rendered_url ? "opacity-60" : ""}`}
+                        disabled={downloadingId === s.id}
                         title={s.rendered_url ? "Download MP4" : "Render not uploaded yet"}
                         onClick={(e) => {
                           e.preventDefault();
@@ -632,6 +635,7 @@ const VideoStudioPage: React.FC = () => {
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
+                            type="button"
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-destructive"
