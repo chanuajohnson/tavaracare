@@ -387,6 +387,51 @@ const VideoStudioPage: React.FC = () => {
     }
   };
 
+  const triggerUpload = (id: string) => {
+    uploadTargetRef.current = id;
+    fileInputRef.current?.click();
+  };
+
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const scriptId = uploadTargetRef.current;
+    e.target.value = "";
+    if (!file || !scriptId) return;
+    if (file.type !== "video/mp4") {
+      toast.error("Please choose an .mp4 file.");
+      return;
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error("File must be 100 MB or less.");
+      return;
+    }
+    setUploadingId(scriptId);
+    try {
+      const path = `village/${scriptId}.mp4`;
+      const { error: upErr } = await supabase.storage
+        .from("video-renders")
+        .upload(path, file, { upsert: true, contentType: "video/mp4" });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("video-renders").getPublicUrl(path);
+      const publicUrl = `${pub.publicUrl}?v=${Date.now()}`;
+      const { error: dbErr } = await supabase
+        .from("video_scripts")
+        .update({ render_status: "ready", rendered_url: publicUrl, rendered_at: new Date().toISOString() })
+        .eq("id", scriptId);
+      if (dbErr) throw dbErr;
+      setScripts((prev) =>
+        prev.map((s) => (s.id === scriptId ? { ...s, render_status: "ready", rendered_url: publicUrl } : s)),
+      );
+      toast.success("Render uploaded.");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "Upload failed.");
+    } finally {
+      setUploadingId(null);
+      uploadTargetRef.current = null;
+    }
+  };
+
   if (authLoading || isAdmin === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
