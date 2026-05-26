@@ -72,3 +72,9 @@ verify_jwt = false
 
 [functions.upload-video-render]
 verify_jwt = false
+
+[functions.submit-blog-comment]
+verify_jwt = false
+
+[functions.toggle-blog-reaction]
+verify_jwt = false
