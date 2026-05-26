@@ -43,35 +43,10 @@ export const Scene5Logo: React.FC = () => {
         >
           Care, coordinated.
         </div>
-        <div
-          style={{
-            fontFamily: serifFamily,
-            fontStyle: "italic",
-            fontSize: 44,
-            color: brand.accent,
-            marginTop: 38,
-            opacity: taglineOpacity,
-            letterSpacing: "-0.005em",
-          }}
-        >
-          It takes a village to care.
-        </div>
-        <div
-          style={{
-            fontFamily: sansFamily,
-            fontWeight: 400,
-            fontSize: 26,
-            color: brand.ink,
-            marginTop: 60,
-            opacity: footerOpacity,
-            textAlign: "center",
-            lineHeight: 1.4,
-          }}
-        >
-          All coordinated by your care coordinator.
-          <br />
-          Tavara.
-        </div>
+      </AbsoluteFill>
+    </SceneBackdrop>
+  );
+};
       </AbsoluteFill>
     </SceneBackdrop>
   );
