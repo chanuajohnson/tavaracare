@@ -1,12 +1,18 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version, x-supabase-api-version',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+function buildCorsHeaders(req: Request) {
+  const requested = req.headers.get('access-control-request-headers');
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers':
+      requested ?? 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Max-Age': '86400',
+  };
+}
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
