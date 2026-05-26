@@ -106,9 +106,9 @@ export const BlogAudioRegenButton = ({ postId, slug }: Props) => {
             <div className="flex items-center gap-1 text-foreground">
               <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
               Audio ready
-              {audio.updated_at && (
+              {audio.generated_at && (
                 <span className="text-muted-foreground">
-                  · updated {new Date(audio.updated_at).toLocaleString()}
+                  · generated {new Date(audio.generated_at).toLocaleString()}
                 </span>
               )}
             </div>
