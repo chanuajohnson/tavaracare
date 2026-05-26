@@ -286,19 +286,33 @@ const BlogPostPage = () => {
 
             <div className="prose-editorial prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-table:text-sm">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                {bodyFirstHalf || post.body}
+                {bodyA || post.body}
               </ReactMarkdown>
 
-              {bodySecondHalf && <BlogInlineCTA postSlug={post.slug} />}
+              {(bodyB || bodyC) && <BlogCommentsPrompt postSlug={post.slug} />}
 
-              {bodySecondHalf && (
+              {bodyB && (
                 <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                  {bodySecondHalf}
+                  {bodyB}
                 </ReactMarkdown>
               )}
+
+              {bodyC && <BlogInlineCTA postSlug={post.slug} />}
+              {bodyC && <BlogCommentsPrompt postSlug={post.slug} />}
+
+              {bodyC && (
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                  {bodyC}
+                </ReactMarkdown>
+              )}
+
+              {!bodyC && bodyB && <BlogInlineCTA postSlug={post.slug} />}
             </div>
 
             <BlogEndCTABlock postSlug={post.slug} />
+
+            <BlogCommentsThread postSlug={post.slug} />
+
 
             {post.cta_label && post.cta_href && (
               <aside className="mt-8 p-5 rounded-lg bg-muted/40 border border-border">
