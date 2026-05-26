@@ -239,8 +239,26 @@ Deno.serve(async (req) => {
     if (!audioB64) throw new Error("ElevenLabs response missing audio_base64");
     const audioBytes = base64Decode(audioB64);
 
-    const wordTimings = deriveWordTimings(payload.normalized_alignment ?? payload.alignment);
+    // Diagnostic: inspect alignment shape so we know if EL changed keys.
+    try {
+      const alignKeys = payload.alignment ? Object.keys(payload.alignment) : null;
+      const normKeys = payload.normalized_alignment ? Object.keys(payload.normalized_alignment) : null;
+      const alignCharsLen = payload.alignment?.characters?.length ?? payload.alignment?.chars?.length ?? null;
+      const normCharsLen = payload.normalized_alignment?.characters?.length ?? payload.normalized_alignment?.chars?.length ?? null;
+      console.log(`[blog-tts] payload keys=${JSON.stringify(Object.keys(payload))} alignKeys=${JSON.stringify(alignKeys)} alignChars=${alignCharsLen} normKeys=${JSON.stringify(normKeys)} normChars=${normCharsLen}`);
+    } catch (_) { /* ignore */ }
+
+    let wordTimings = deriveWordTimings(payload.normalized_alignment ?? payload.alignment);
+    if (wordTimings.length === 0) {
+      // try the other shape
+      wordTimings = deriveWordTimings(payload.alignment ?? payload.normalized_alignment);
+    }
+    if (wordTimings.length === 0) {
+      // try the whole payload (in case alignment is at top level)
+      wordTimings = deriveWordTimings(payload);
+    }
     const lastWordEnd = wordTimings.length > 0 ? wordTimings[wordTimings.length - 1].end : 0;
+    console.log(`[blog-tts] derived ${wordTimings.length} word timings for post ${post.id}`);
 
     const path = `${post.id}/${voice_id}.mp3`;
     const { error: upErr } = await admin.storage
