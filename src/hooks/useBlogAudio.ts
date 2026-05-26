@@ -1,6 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface WordTiming {
+  word: string;
+  start: number;
+  end: number;
+}
+
 export interface BlogAudio {
   id?: string;
   post_id: string;
@@ -11,6 +17,8 @@ export interface BlogAudio {
   generated_at?: string;
   provider_unavailable?: boolean;
   fallback_text?: string;
+  word_timings?: WordTiming[] | null;
+  narration_text?: string | null;
 }
 
 export const useBlogAudio = (postId: string | undefined) => {
