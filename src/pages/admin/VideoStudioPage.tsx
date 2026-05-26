@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Save, Film, Copy, Trash2, Upload } from "lucide-react";
+import { Loader2, Sparkles, Save, Film, Copy, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import {
@@ -256,9 +256,7 @@ const VideoStudioPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [scripts, setScripts] = useState<ScriptRow[]>([]);
   const [loadingScripts, setLoadingScripts] = useState(true);
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
-  const uploadTargetRef = useRef<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -387,48 +385,30 @@ const VideoStudioPage: React.FC = () => {
     }
   };
 
-  const triggerUpload = (id: string) => {
-    uploadTargetRef.current = id;
-    fileInputRef.current?.click();
-  };
-
-  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    const scriptId = uploadTargetRef.current;
-    e.target.value = "";
-    if (!file || !scriptId) return;
-    if (file.type !== "video/mp4") {
-      toast.error("Please choose an .mp4 file.");
-      return;
-    }
-    if (file.size > 100 * 1024 * 1024) {
-      toast.error("File must be 100 MB or less.");
-      return;
-    }
-    setUploadingId(scriptId);
+  const handleDownload = async (s: ScriptRow) => {
+    if (!s.rendered_url) return;
+    setDownloadingId(s.id);
     try {
-      const path = `village/${scriptId}.mp4`;
-      const { error: upErr } = await supabase.storage
-        .from("video-renders")
-        .upload(path, file, { upsert: true, contentType: "video/mp4" });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("video-renders").getPublicUrl(path);
-      const publicUrl = `${pub.publicUrl}?v=${Date.now()}`;
-      const { error: dbErr } = await supabase
-        .from("video_scripts")
-        .update({ render_status: "ready", rendered_url: publicUrl, render_completed_at: new Date().toISOString() })
-        .eq("id", scriptId);
-      if (dbErr) throw dbErr;
-      setScripts((prev) =>
-        prev.map((s) => (s.id === scriptId ? { ...s, render_status: "ready", rendered_url: publicUrl } : s)),
-      );
-      toast.success("Render uploaded.");
+      const res = await fetch(s.rendered_url);
+      if (!res.ok) throw new Error(`Fetch failed (${res.status})`);
+      const blob = await res.blob();
+      const slug = (s.title || "video")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || "video";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${slug}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error(err);
-      toast.error(err?.message || "Upload failed.");
+      toast.error(err?.message || "Download failed.");
     } finally {
-      setUploadingId(null);
-      uploadTargetRef.current = null;
+      setDownloadingId(null);
     }
   };
 
@@ -620,33 +600,23 @@ const VideoStudioPage: React.FC = () => {
                       <Badge variant={s.render_status === "ready" ? "default" : "secondary"}>
                         {s.render_status}
                       </Badge>
-                      {s.rendered_url && (
-                        <a
-                          href={s.rendered_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-xs underline"
-                        >
-                          download
-                        </a>
-                      )}
                       <Button
                         variant="outline"
                         size="sm"
                         className="h-8"
-                        disabled={uploadingId === s.id}
+                        disabled={!s.rendered_url || downloadingId === s.id}
+                        title={s.rendered_url ? "Download MP4" : "Render not uploaded yet"}
                         onClick={(e) => {
                           e.stopPropagation();
-                          triggerUpload(s.id);
+                          handleDownload(s);
                         }}
                       >
-                        {uploadingId === s.id ? (
+                        {downloadingId === s.id ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
                           <>
-                            <Upload className="h-3.5 w-3.5 mr-1" />
-                            {s.rendered_url ? "Replace" : "Upload MP4"}
+                            <Download className="h-3.5 w-3.5 mr-1" />
+                            Download MP4
                           </>
                         )}
                       </Button>
@@ -688,13 +658,6 @@ const VideoStudioPage: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="video/mp4"
-        className="hidden"
-        onChange={handleUploadFile}
-      />
     </div>
   );
 };
