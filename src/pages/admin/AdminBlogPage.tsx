@@ -128,6 +128,13 @@ export default function AdminBlogPage() {
           </div>
         </div>
 
+        <Tabs defaultValue="posts" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="comments">Comments</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="posts" className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
           <Input
             placeholder="Search by title…"
