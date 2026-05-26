@@ -1,52 +1,38 @@
-## Three bugs to fix
+## Why the Download button does nothing
 
-### 1. "AI generation failed" — CORS preflight blocks `x-app-version`
-Console shows: `Request header field x-app-version is not allowed by Access-Control-Allow-Headers in preflight response` for `generate-video-script`.
+I queried `video_scripts` and only one row exists:
+- `render_status = queued`
+- `rendered_url = null`
 
-`supabase/functions/generate-video-script/index.ts` imports `corsHeaders` from `npm:@supabase/supabase-js@2/cors` (a non-existent path that resolves to a default that omits `x-app-version`). The Supabase JS client now sends `x-app-version`, so every call dies in preflight.
+So the button is **`disabled`** (per `disabled={!s.rendered_url}`). Disabled buttons swallow clicks silently — they don't fire `onClick`, so `e.stopPropagation()` never runs. The click registers on the **row** behind the button, which fires `handleLoadScript(s)` and loads that script into the editor card at the top of the page. To you that looks like "it scrolled to the top and nothing downloaded." It didn't scroll — the editor card above just refreshed with the loaded script.
 
-Fix: define a local `corsHeaders` constant in that edge function:
-```ts
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-app-version",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-```
-Audit the other video-studio edge functions (`render-video-script`, etc.) and apply the same fix where they import from the same bad path.
+Underneath that, the real problem is: **no render ever lands in storage.** `render-remotion.mjs` writes the MP4 to `/mnt/documents/` on the build sandbox and never uploads it to the `video-renders` bucket or sets `rendered_url` in the DB. So every queued script stays at `rendered_url = null` forever, which is why the button is always disabled.
 
-### 2. Download MP4 button "scrolls to top, nothing downloads"
-In `src/pages/admin/VideoStudioPage.tsx` the Download button sits inside a clickable row (`onClick={() => handleLoadScript(s)}`). `e.stopPropagation()` is present but the button has no explicit `type`, and when `handleDownload` throws (or `rendered_url` is empty after a fresh queue without an upload) the click bubbles into a re-render that resets scroll. Also, `fetch(s.rendered_url)` against the Supabase storage URL can be blocked by storage CORS for cross-origin XHR, returning an opaque/failed response that the user perceives as "nothing happened."
+## Fix — three small, scoped changes
 
-Fix:
-- Add `type="button"` to the Download button and the Delete button.
-- Add `e.preventDefault()` alongside `stopPropagation()`.
-- In `handleDownload`, if `fetch` fails (CORS or network), fall back to opening `s.rendered_url` directly in a new tab with `window.open(s.rendered_url, "_blank", "noopener")` so the user still gets the file.
-- Show a clearer toast on success ("Download started") and on the "no render yet" case.
+### 1. `remotion/scripts/render-remotion.mjs` — upload + flip the DB row
+After the faststart remux pass, if env vars `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `VIDEO_SCRIPT_ID` are set:
+- Upload `FINAL_OUT` to `video-renders/{scriptId}/{slug}.mp4` (bucket already exists and is public).
+- Get the public URL.
+- `update video_scripts set rendered_url = <publicUrl>, render_status = 'ready' where id = <scriptId>`.
+- Log the public URL.
 
-No backend/storage CORS changes — fallback handles it.
+If those env vars aren't set, behave exactly as today (just write the local MP4). This keeps the existing one-shot render workflow intact.
 
-### 3. Downloaded MP4 won't play in QuickTime
-QuickTime only plays H.264 MP4 with `yuv420p` pixel format and a `faststart`-positioned moov atom. The current render script (`remotion/scripts/render-remotion.mjs`) uses `codec: "h264"` but doesn't pin pixel format or faststart, so Remotion's default can produce a file QuickTime rejects (plays in Chrome/VLC fine, which matches "video preview works in the Files panel but not in QuickTime").
+I'll re-run the script for the one queued row (`c7559279-...`) so the user has a real `rendered_url` to test the Download button against.
 
-Fix: in the render script, pass:
-```ts
-pixelFormat: "yuv420p",
-x264Preset: "medium",
-muted: true,
-```
-and post-process with ffmpeg to move the moov atom:
-```bash
-ffmpeg -i out.mp4 -c copy -movflags +faststart out.faststart.mp4
-```
-Wire this into the render script so the final file written to `/mnt/documents/` is always QuickTime-compatible. Re-render `tavara-tiktok-village-v5` and replace it.
+### 2. `src/pages/admin/VideoStudioPage.tsx` — never let the row swallow the download click
+Two small UX fixes on the per-row Download button:
+- Remove `disabled={!s.rendered_url ...}`. Keep it visually muted via `variant="outline"` + opacity when there's no render, but **always handle the click** so the row's `handleLoadScript` never fires from a download attempt. `handleDownload` already toasts `"No render attached yet."` when `rendered_url` is null — that becomes visible feedback instead of the silent row-load.
+- Wrap the Download button + Delete button in a small `<div onClick={(e) => e.stopPropagation()}>` so any click inside that action cluster never bubbles to the row.
 
-## Files touched
-- `supabase/functions/generate-video-script/index.ts` (+ any sibling video functions using the same broken cors import)
-- `src/pages/admin/VideoStudioPage.tsx`
-- `remotion/scripts/render-remotion.mjs`
+No change to `handleDownload`'s fetch → blob → fallback `window.open` logic. That part is correct; it just never had a non-null URL to work with.
+
+### 3. Verify
+- Re-render the one queued script with the upload path on, confirm `rendered_url` is set in `video_scripts` and the file is in `video-renders/`.
+- In the UI, the row's Download button becomes active, downloads `<slug>.mp4` to the browser, and clicking it does **not** scroll or reload the editor.
 
 ## Out of scope
-- Changing storage bucket CORS policy (fallback `window.open` avoids it)
-- Refactoring the script-row click target
+- No changes to `App.tsx`, auth, registration, or any chat-flow files.
+- No bucket policy changes (`video-renders` is already public).
+- No change to the AI generate-copy path (already fixed).
