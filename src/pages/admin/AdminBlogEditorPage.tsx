@@ -388,6 +388,9 @@ export default function AdminBlogEditorPage() {
           </div>
 
           <div className="space-y-6">
+            {existing && !isNew && (
+              <BlogAudioRegenButton postId={existing.id} slug={existing.slug} />
+            )}
             <Card>
               <CardHeader>
                 <CardTitle>Publishing</CardTitle>
