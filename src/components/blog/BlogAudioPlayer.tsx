@@ -330,13 +330,25 @@ export const BlogAudioPlayer = ({ postId, className }: Props) => {
           const d = (e.target as HTMLAudioElement).duration;
           if (isFinite(d) && d > 0) setDuration(d);
         }}
-        onTimeUpdate={(e) => setCurrentTime((e.target as HTMLAudioElement).currentTime)}
+        onTimeUpdate={(e) => {
+          const t = (e.target as HTMLAudioElement).currentTime;
+          setCurrentTime(t);
+          reading?.setCurrentTime(t);
+        }}
         onEnded={() => {
           setIsPlaying(false);
           setCurrentTime(0);
+          reading?.setIsPlaying(false);
+          reading?.setCurrentTime(0);
         }}
-        onPause={() => setIsPlaying(false)}
-        onPlay={() => setIsPlaying(true)}
+        onPause={() => {
+          setIsPlaying(false);
+          reading?.setIsPlaying(false);
+        }}
+        onPlay={() => {
+          setIsPlaying(true);
+          reading?.setIsPlaying(true);
+        }}
       />
     </div>
   );
