@@ -153,10 +153,16 @@ export const BlogAudioRegenButton = ({ postId, slug }: Props) => {
 
       {lastResult && !isRunning && (
         <div className="text-xs">
-          {lastResult.kind === "ok" && (
+          {lastResult.kind === "ok" && lastResult.words > 0 && (
             <span className="text-green-700 flex items-center gap-1">
               <CheckCircle2 className="h-3.5 w-3.5" />
               Done — {lastResult.words} words timed
+            </span>
+          )}
+          {lastResult.kind === "ok" && lastResult.words === 0 && (
+            <span className="text-amber-600 flex items-center gap-1">
+              <AlertCircle className="h-3.5 w-3.5" />
+              Audio saved but ElevenLabs returned no word timings — karaoke highlight will not work. Check edge function logs.
             </span>
           )}
           {lastResult.kind === "fallback" && (
