@@ -32,6 +32,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Eye, EyeOff, Trash2, Copy } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { BlogCommentsModeration } from "@/components/admin/BlogCommentsModeration";
 import {
   useAllPosts,
   useDeletePost,
