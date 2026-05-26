@@ -1,20 +1,30 @@
-Add an "Upload rendered MP4" control to `/admin/video-studio` so you can attach a locally-rendered video to a queued script row without managing a shared token.
+Replace the **Upload MP4** button on each script row in `/admin/video-studio` with a **Download MP4** button that fetches the rendered file from the Tavara build sandbox and saves it to the admin's computer.
 
-### Changes
-1. **`src/pages/admin/VideoStudioPage.tsx`** — for each script row whose `render_status` is `queued` or `failed` (and for `ready` rows, as "Replace"), add a small "Upload MP4" button next to the existing render/status controls. Clicking it opens a hidden `<input type="file" accept="video/mp4">`.
-2. **Upload handler (in the same page)** — on file pick:
-   - Validate type/size (≤ 100 MB, `video/mp4`).
-   - Upload directly via the admin's authenticated session to Supabase Storage bucket `video-renders` at path `village/${scriptId}.mp4` using `supabase.storage.from('video-renders').upload(path, file, { upsert: true, contentType: 'video/mp4' })`.
-   - Get the public URL with `getPublicUrl(path)`.
-   - Update the `video_scripts` row: `render_status = 'ready'`, `rendered_url = publicUrl`, `rendered_at = now()`.
-   - Toast success / error, then refresh the list.
-3. **Storage bucket sanity check (no schema change expected)** — `video-renders` already exists from prior work. If RLS on `storage.objects` blocks admin uploads, add a migration with an admin-only insert/update policy on that bucket. Confirmed only at implementation time by reading current policies; no preemptive migration in this plan.
-4. **Delete the unused edge function** `supabase/functions/upload-video-render/index.ts` since the token-based path is no longer needed.
+### Problem
+The current button uploads a local file into Supabase Storage. You want the opposite: pull the freshly rendered MP4 (currently sitting at `/mnt/documents/tavara-tiktok-village-v5.mp4` in the build sandbox) down to your machine straight from the row.
+
+### Constraint
+The browser cannot read `/mnt/documents/...` directly — that path only exists inside the Lovable build sandbox. The download has to come from somewhere reachable over HTTPS. Two viable sources:
+
+1. **`s.rendered_url`** — once a render has been uploaded to the `video-renders` bucket, this is a public URL. Already used by the existing tiny "download" text link.
+2. **No `rendered_url` yet** (status `queued`) — there is nothing to download from the browser. The artifact in chat is the only copy.
+
+### Plan
+1. **`src/pages/admin/VideoStudioPage.tsx`** — replace the Upload button block with a **Download MP4** button:
+   - If `s.rendered_url` exists: button is enabled. On click, fetch the URL as a blob and trigger a browser download with filename `${slug(s.title)}.mp4` (uses `URL.createObjectURL` + a temporary `<a download>`). This bypasses Chrome's "open in tab" behavior that the current plain anchor causes.
+   - If `s.rendered_url` is empty: button is disabled with tooltip text "Render not uploaded yet".
+   - Remove the small "download" text anchor (now redundant).
+   - Remove the file-input upload pathway entirely (the `triggerUpload`, `handleUploadFile`, hidden `<input type="file">`, `uploadingId`, `uploadTargetRef`, `fileInputRef` additions from the previous turn). Keep imports clean — drop `Upload` from lucide-react, add `Download`.
+
+2. **No DB / storage / edge function changes.** No migration.
 
 ### Out of scope
-- Server-side rendering / queue worker. You still render locally with `node remotion/scripts/render-remotion.mjs`, then upload via the new button.
-- Any change to the Remotion scenes, scripts, or video content.
+- Pulling files directly out of the build sandbox (`/mnt/documents`) into the browser — not architecturally possible without an upload step first.
+- Any change to how renders get produced.
 
-### Technical notes
-- Reuses the existing admin auth session — no new secret, no edge function, no service-role key on the client.
-- File path is deterministic (`village/${scriptId}.mp4`) and uses `upsert: true` so re-uploads just replace.
+### How you'll use it after this change
+1. Ask the chat to render queued scripts (produces the artifact in chat).
+2. Download the artifact from the chat once, then upload it to the bucket manually (or I can re-add an upload affordance later if you want both).
+3. From then on, the Download MP4 button on the row pulls it down anywhere you want.
+
+If you'd rather keep BOTH buttons (Upload AND Download) side-by-side, say "keep upload too" and I'll do that instead.
