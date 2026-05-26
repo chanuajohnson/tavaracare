@@ -11,7 +11,7 @@ interface Props {
 
 interface AudioRow {
   audio_url: string | null;
-  updated_at: string | null;
+  generated_at: string | null;
   word_timings: unknown | null;
   narration_text: string | null;
 }
@@ -31,10 +31,10 @@ export const BlogAudioRegenButton = ({ postId, slug }: Props) => {
     setLoadingStatus(true);
     const { data, error } = await supabase
       .from("blog_audio")
-      .select("audio_url, updated_at, word_timings, narration_text")
+      .select("audio_url, generated_at, word_timings, narration_text")
       .eq("post_id", postId)
       .maybeSingle();
-    if (!error) setAudio((data as AudioRow) ?? null);
+    if (!error) setAudio((data as unknown as AudioRow) ?? null);
     setLoadingStatus(false);
   };
 
