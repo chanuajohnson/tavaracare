@@ -1,44 +1,31 @@
-## Problem
-
-`/blog/*` shows toasts "Comment failed to post" and the heart button fails to toggle. Console shows:
-
-> Access to fetch at '…/functions/v1/submit-blog-comment' from origin '…lovableproject.com' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not have HTTP ok status.
-
-Same error for `/functions/v1/toggle-blog-reaction`.
+# Fix: blog comment + reaction blocked by CORS (x-app-version header)
 
 ## Root cause
+Browser console shows:
+> Request header field **x-app-version** is not allowed by Access-Control-Allow-Headers in preflight response.
 
-Both edge functions import CORS headers from a non-existent module path:
+The Supabase client in this project attaches an `x-app-version` header to every function call. Our previous CORS fix only allowed `authorization, x-client-info, apikey, content-type`, so the preflight `OPTIONS` rejects the POST → "Failed to send a request to the Edge Function" / "Could not register your like".
 
-```ts
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+## Change
+Update `Access-Control-Allow-Headers` in both edge functions to include `x-app-version` (and a few standard ones the Supabase JS client commonly sends).
+
+**Files:**
+- `supabase/functions/submit-blog-comment/index.ts`
+- `supabase/functions/toggle-blog-reaction/index.ts`
+
+**New value:**
+```
+'Access-Control-Allow-Headers':
+  'authorization, x-client-info, apikey, content-type, x-app-version, x-supabase-api-version'
 ```
 
-`@supabase/supabase-js` has no `/cors` subpath export. The import resolves to `undefined`, so the OPTIONS preflight response (`new Response('ok', { headers: corsHeaders })`) has no `Access-Control-Allow-Origin` / `-Headers` / `-Methods`. The browser rejects the preflight and never sends the real POST.
-
-## Fix (scoped, edge-function-only)
-
-In both `supabase/functions/submit-blog-comment/index.ts` and `supabase/functions/toggle-blog-reaction/index.ts`:
-
-1. Remove the bad import.
-2. Define `corsHeaders` locally:
-
-```ts
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-```
-
-No other behavior changes. Edge functions auto-deploy.
+No other logic changes. Edge functions auto-deploy.
 
 ## Verify
-
-- Submit a test comment on `/blog/know-someone-who-needs-care-trinidad-tobago` — expect success toast and pending state.
-- Click the heart — expect count to increment and stay toggled.
-- Confirm no CORS error in console for either endpoint.
+On `/blog/know-someone-who-needs-care-trinidad-tobago`:
+1. Submit the comment "I cannot wait to complete this registration." → expect success toast, no CORS error.
+2. Click the heart → count increments, stays toggled.
+3. Console shows no `Access-Control-Allow-Headers` preflight error.
 
 ## Out of scope
-
-No DB changes, no UI changes, no auth changes, no other functions touched. The video-studio work is paused per your request.
+No DB, UI, auth, or other function changes. Video-studio work stays paused.
