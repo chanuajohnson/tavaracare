@@ -38,12 +38,35 @@ function stripMarkdown(md: string): string {
 }
 
 // Convert ElevenLabs character-level alignment into word-level timings.
-// alignment: { characters: string[], character_start_times_seconds: number[], character_end_times_seconds: number[] }
-function deriveWordTimings(alignment: any): Array<{ word: string; start: number; end: number }> {
-  if (!alignment?.characters?.length) return [];
-  const chars: string[] = alignment.characters;
-  const starts: number[] = alignment.character_start_times_seconds;
-  const ends: number[] = alignment.character_end_times_seconds;
+// Accepts multiple known shapes:
+//   { characters, character_start_times_seconds, character_end_times_seconds }  (current)
+//   { chars, char_start_times_seconds, char_end_times_seconds }                 (older)
+//   nested { alignment: { ... } } or { normalized_alignment: { ... } }          (double-wrapped)
+function deriveWordTimings(alignmentInput: any): Array<{ word: string; start: number; end: number }> {
+  if (!alignmentInput) return [];
+  const candidates = [
+    alignmentInput,
+    alignmentInput.alignment,
+    alignmentInput.normalized_alignment,
+  ].filter(Boolean);
+
+  let chars: string[] | undefined;
+  let starts: number[] | undefined;
+  let ends: number[] | undefined;
+
+  for (const c of candidates) {
+    const cc = c.characters ?? c.chars;
+    const ss = c.character_start_times_seconds ?? c.char_start_times_seconds ?? c.characterStartTimesSeconds;
+    const ee = c.character_end_times_seconds ?? c.char_end_times_seconds ?? c.characterEndTimesSeconds;
+    if (Array.isArray(cc) && cc.length > 0 && Array.isArray(ss) && Array.isArray(ee)) {
+      chars = cc;
+      starts = ss;
+      ends = ee;
+      break;
+    }
+  }
+
+  if (!chars || !starts || !ends) return [];
 
   const words: Array<{ word: string; start: number; end: number }> = [];
   let buf = "";
