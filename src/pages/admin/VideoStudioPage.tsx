@@ -600,33 +600,23 @@ const VideoStudioPage: React.FC = () => {
                       <Badge variant={s.render_status === "ready" ? "default" : "secondary"}>
                         {s.render_status}
                       </Badge>
-                      {s.rendered_url && (
-                        <a
-                          href={s.rendered_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-xs underline"
-                        >
-                          download
-                        </a>
-                      )}
                       <Button
                         variant="outline"
                         size="sm"
                         className="h-8"
-                        disabled={uploadingId === s.id}
+                        disabled={!s.rendered_url || downloadingId === s.id}
+                        title={s.rendered_url ? "Download MP4" : "Render not uploaded yet"}
                         onClick={(e) => {
                           e.stopPropagation();
-                          triggerUpload(s.id);
+                          handleDownload(s);
                         }}
                       >
-                        {uploadingId === s.id ? (
+                        {downloadingId === s.id ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
                           <>
-                            <Upload className="h-3.5 w-3.5 mr-1" />
-                            {s.rendered_url ? "Replace" : "Upload MP4"}
+                            <Download className="h-3.5 w-3.5 mr-1" />
+                            Download MP4
                           </>
                         )}
                       </Button>
