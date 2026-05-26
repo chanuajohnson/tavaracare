@@ -6939,37 +6939,7 @@ export type Database = {
       }
     }
     Views: {
-      blog_comments_public: {
-        Row: {
-          author_name: string | null
-          body: string | null
-          created_at: string | null
-          id: string | null
-          post_slug: string | null
-        }
-        Insert: {
-          author_name?: string | null
-          body?: string | null
-          created_at?: string | null
-          id?: string | null
-          post_slug?: string | null
-        }
-        Update: {
-          author_name?: string | null
-          body?: string | null
-          created_at?: string | null
-          id?: string | null
-          post_slug?: string | null
-        }
-        Relationships: []
-      }
-      blog_post_likes: {
-        Row: {
-          like_count: number | null
-          post_slug: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       admin_delete_user: { Args: { target_user_id: string }; Returns: Json }
@@ -7116,6 +7086,17 @@ export type Database = {
       }
       generate_admin_configured_slots: { Args: never; Returns: undefined }
       generate_default_availability_slots: { Args: never; Returns: undefined }
+      get_blog_comments: {
+        Args: { _post_slug: string }
+        Returns: {
+          author_name: string
+          body: string
+          created_at: string
+          id: string
+          post_slug: string
+        }[]
+      }
+      get_blog_like_count: { Args: { _post_slug: string }; Returns: number }
       get_current_user_role: { Args: never; Returns: string }
       get_family_profiles_for_professional_chat: {
         Args: { professional_user_id: string }
