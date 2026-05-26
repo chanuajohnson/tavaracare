@@ -1,31 +1,28 @@
-# Fix: blog comment + reaction blocked by CORS (x-app-version header)
+# Fix: stop chasing CORS headers one at a time
 
 ## Root cause
-Browser console shows:
-> Request header field **x-app-version** is not allowed by Access-Control-Allow-Headers in preflight response.
-
-The Supabase client in this project attaches an `x-app-version` header to every function call. Our previous CORS fix only allowed `authorization, x-client-info, apikey, content-type`, so the preflight `OPTIONS` rejects the POST → "Failed to send a request to the Edge Function" / "Could not register your like".
+Each retry surfaces a new disallowed header (`x-app-version`, now `x-client-env`, likely more behind it). The Supabase JS client + Lovable preview attach several custom headers we cannot fully enumerate.
 
 ## Change
-Update `Access-Control-Allow-Headers` in both edge functions to include `x-app-version` (and a few standard ones the Supabase JS client commonly sends).
+In both `submit-blog-comment` and `toggle-blog-reaction` edge functions, dynamically reflect the headers the browser asks for in the preflight:
 
-**Files:**
-- `supabase/functions/submit-blog-comment/index.ts`
-- `supabase/functions/toggle-blog-reaction/index.ts`
-
-**New value:**
+```ts
+function buildCorsHeaders(req: Request) {
+  const requested = req.headers.get('access-control-request-headers');
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers':
+      requested ?? 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Max-Age': '86400',
+  };
+}
 ```
-'Access-Control-Allow-Headers':
-  'authorization, x-client-info, apikey, content-type, x-app-version, x-supabase-api-version'
-```
 
-No other logic changes. Edge functions auto-deploy.
+Use `buildCorsHeaders(req)` in the OPTIONS response and in every JSON response (success + error). This guarantees the allow-list always matches what the browser sent, ending the whack-a-mole.
 
 ## Verify
-On `/blog/know-someone-who-needs-care-trinidad-tobago`:
-1. Submit the comment "I cannot wait to complete this registration." → expect success toast, no CORS error.
-2. Click the heart → count increments, stays toggled.
-3. Console shows no `Access-Control-Allow-Headers` preflight error.
+On `/blog/know-someone-who-needs-care-trinidad-tobago`: tap the heart and submit a comment. Expect success toast, no CORS error in console.
 
-## Out of scope
-No DB, UI, auth, or other function changes. Video-studio work stays paused.
+## Scope
+Only those two edge functions. No DB, UI, auth, or other functions touched.
