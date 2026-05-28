@@ -58,7 +58,11 @@ function roleOf(ev: AnalyticsEvent): string | null {
   return r;
 }
 
-function buildSteps(events: AnalyticsEvent[], role: RoleFilter): Step[] {
+function buildSteps(
+  events: AnalyticsEvent[],
+  role: RoleFilter,
+  subscriptionsCount: number,
+): Step[] {
   const inScope = (ev: AnalyticsEvent) => {
     if (role === "combined") return true;
     const r = roleOf(ev);
@@ -79,7 +83,9 @@ function buildSteps(events: AnalyticsEvent[], role: RoleFilter): Step[] {
     "professional_registration_page_view",
   ]);
   const regCompleted = count(REG_COMPLETE_TYPES);
-  const subStarted = count(["subscription_started"]);
+  // Subscriptions are family-only (admin checklist post_onboarding_6).
+  // Show count on combined + family tabs, zero on professional.
+  const subAssigned = role === "professional" ? 0 : subscriptionsCount;
 
   const raw: { label: string; count: number; isPlaceholder?: boolean }[] = [
     { label: "Blog / location landing", count: landings },
@@ -87,9 +93,9 @@ function buildSteps(events: AnalyticsEvent[], role: RoleFilter): Step[] {
     { label: "Registration page view", count: regPageViews },
     { label: "Registration completed", count: regCompleted },
     {
-      label: "Subscription started",
-      count: subStarted,
-      isPlaceholder: subStarted === 0,
+      label: "Subscription assigned (admin)",
+      count: subAssigned,
+      isPlaceholder: role === "professional",
     },
   ];
 
@@ -107,6 +113,7 @@ function buildSteps(events: AnalyticsEvent[], role: RoleFilter): Step[] {
     };
   });
 }
+
 
 function dropColor(drop: number): string {
   if (drop < 0.4) return "text-emerald-600 dark:text-emerald-400";
