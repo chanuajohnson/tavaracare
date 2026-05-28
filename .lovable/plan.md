@@ -1,87 +1,70 @@
-## Why
+## Strategy
 
-Today's Acquisition Funnel only sees 5 steps. The DB confirms three measurement holes that are hiding real user drop-off:
+The spike is single-source: **`senior-care-costs-trinidad-tobago-2026`** caught fire via Facebook (`tavara_oct26_launch`, 199 landings) + WhatsApp (`scully_outreach`, 54). The audience clearly wants concrete T&T cost + "how to" answers. We ride that wave with 4 new posts that share its DNA (T&T-specific, practical, scannable), interlink them into a cluster anchored by the cost post, and add the SEO scaffolding that turns this from a campaign spike into ongoing organic traffic.
 
-1. **Quiz is dark.** `readiness_quiz_completed` and `quiz_cta_click` have never fired. `readiness_quiz_view` last fired 35+ days ago. None of the 3 new users touched the quiz.
-2. **Registration abandonment is invisible.** Krissy Luke landed on `/registration/family` twice and never completed — the funnel jumps straight from "page view" to "completed" with no signal in between.
-3. **Professional journey ends at "registered."** Shania completed registration 3 days ago but the funnel has no row for "documents uploaded" or "vetting passed" or "assigned to family" — she's invisible after step 4.
+We are **not** touching the conversion-funnel work right now (pin pulled).
 
-## Changes
+## The 4 posts
 
-### 1. Repair quiz instrumentation (family side)
+Each post: 7–10 min read, T&T-local, internal links to and from the cost post, FAQ block (for FAQ JSON-LD), and a soft CTA to the Readiness Quiz or `/registration/family`. Voice: mix — 2 practical guide, 2 founder-personal.
 
-Find the `FamilyReadinessQuiz` component (data lives in `src/data/familyReadinessQuiz.ts`). Add `trackEngagement` calls:
-- `readiness_quiz_view` — on mount (verify why it stopped firing on 2026-04-23; likely a refactor dropped the call)
-- `readiness_quiz_completed` — on final-question submit, with `additional_data: { result_tier, score }`
-- `quiz_cta_click` — on the post-quiz "Register now" / "Find caregivers" button
+### 1. `live-in-vs-hourly-care-trinidad-tobago` — Practical guide
+"Live-in vs Hourly Care in Trinidad & Tobago: Which One Actually Fits Your Family?" Compares the two arrangements with real weekly hours, what each looks like in a Caribbean household (extended family rhythms, multi-generation homes, weekend gatherings), and when each makes sense. Public-safe pricing only: per-hour rates and the "from $2,400/wk" live-in floor. Category: **Family Care Guides**. Internal link target for the cost post's "what's right for us?" moment.
 
-Include `post_slug` (from current URL/referrer) in `additional_data` so the leaderboard's slug-based attribution keeps working.
+### 2. `cost-of-dementia-care-trinidad-tobago` — Practical guide
+"What Dementia Care Costs in Trinidad & Tobago — and What You're Actually Paying For." Breaks down why dementia care sits at the Premium tier ($50+/hr), what skills/training the rate covers, night-shift considerations, and home preparation costs framed as bands not exact figures. Category: **Family Care Guides**. Captures a high-intent search segment the cost post mentions only briefly.
 
-### 2. Add registration form-started event
+### 3. `paying-for-care-without-going-broke-trinidad` — Founder-personal
+"Paying for Care Without Going Broke: An Honest Letter to Trinidad & Tobago Families." Chanua-voice. Acknowledges the real arithmetic families face, the guilt of "is this too much?", the family-meeting conversation, splitting costs between siblings, when to start vs when to wait. No new pricing — points readers to the cost post and the quiz. Category: **Emotional Realities of Care**. Designed to be the next FB/WhatsApp share after the cost post.
 
-Per the project guardrail, `FamilyRegistration.tsx` and `ProfessionalRegistration.tsx` are protected. **This change requires explicit user approval** before build. Scope, when approved:
-- One `useEffect` per file, fires `family_registration_form_started` / `professional_registration_form_started` once per session on first input focus (any field).
-- `additional_data: { utm_source, utm_campaign, post_slug, referrer }`.
+### 4. `finding-a-caregiver-in-port-of-spain-or-san-fernando` — Practical guide, location-flavored
+"Finding a Caregiver in Port of Spain, San Fernando, Arima, or Tobago: What's Different in Each Area." Practical: travel-time realities, who's available where, weekend coverage patterns by region, what to ask when interviewing. Pulls from existing `/locations/*` pages and links back to them. Category: **Family Care Guides**. Captures geo-modified searches and feeds the location pages.
 
-Without this, the page-view → complete gap (e.g., Krissy) stays unmeasurable.
+## SEO scaffolding (the long-tail engine)
 
-### 3. Extend `useBlogAnalyticsRange.ts`
+Done across all 11 existing posts + the 4 new ones:
 
-- Add new event names to `TRACKED`: `family_registration_form_started`, `professional_registration_form_started`.
-- Add a second supabase query for the professional terminal step. Pick the cheapest authoritative source:
-  - `professional_documents` — distinct `user_id` with rows created in range = "Documents uploaded"
-  - `care_team_members` — distinct `caregiver_id` with `created_at` in range = "Assigned to family"
-- Return `professionalDocsCurrent`, `professionalAssignedCurrent` (and previous-period equivalents for delta math).
+1. **Per-route meta** — verify every post sets `<title>` (<60 chars) and `<meta name="description">` (<160 chars) via `react-helmet-async` in `BlogPostPage`. Audit existing posts; rewrite any that fall back to the homepage default.
+2. **Canonical** — confirm each post emits `<link rel="canonical" href="https://tavara.care/blog/<slug>" />` and that `index.html` does not also emit one (avoid double-canonical).
+3. **Article + BreadcrumbList JSON-LD** — already partially present; standardize to include `headline`, `description`, `image` (cover_image_url), `datePublished`, `dateModified`, `author`, `publisher`, and a BreadcrumbList (Home → Blog → Category → Post).
+4. **FAQ JSON-LD** — for any post with a `faqs` array (the schema already supports it), emit `FAQPage` schema. Big win for People-Also-Ask snippets.
+5. **Internal linking** — add a small `RelatedPostsByCluster` block at the bottom of cost, dementia, live-in-vs-hourly, and paying-for-care posts so they pass authority to each other. Distinct from the existing `RecommendedReadingStrip` (which is randomized).
+6. **Sitemap freshness** — confirm `public/sitemap.xml` (or its generator) picks up new slugs on publish; if static, document the manual update step.
+7. **Image alt text** — ensure cover_image_url and inline images all have meaningful alts (currently many `alt=""`).
 
-### 4. Rebuild `AcquisitionFunnelCard.tsx` step list
+## How publishing works (technical)
 
-New step order (with role-aware visibility):
+Posts live in the `blog_posts` Supabase table (status, slug, title, description, body, category, reading_time, author_name, author_role, faqs[], cta_label, cta_href, cover_image_url, published_at). Two paths to add:
 
-| # | Step | Source | Visible on |
-|---|---|---|---|
-| 1 | Blog / location landing | `blog_utm_landed` + `location_utm_landed` | Combined |
-| 2 | CTA click | `blog_cta_click` | Combined |
-| 3 | Quiz viewed | `readiness_quiz_view` | Combined + Family (greyed on Professional) |
-| 4 | Quiz completed | `readiness_quiz_completed` | Combined + Family |
-| 5 | Quiz CTA clicked | `quiz_cta_click` | Combined + Family |
-| 6 | Registration page view | `family_/professional_registration_page_view` | All |
-| 7 | Registration form started | `*_registration_form_started` (if step 2 approved) | All |
-| 8 | Registration completed | `*_registration_complete` | All |
-| 9a | Documents uploaded (Pro) | `professional_documents` | Combined + Professional |
-| 9b | Subscription assigned (Family) | `onboarding_checklists.post_onboarding_6` | Combined + Family |
-| 10 | Caregiver assigned to family (Pro) | `care_team_members` | Combined + Professional |
+- **Preferred:** insert via migration so the 4 posts ship with the deploy and can be reviewed in PR. Body is markdown; `faqs` is `jsonb` array of `{question, answer}`.
+- Alternative: use `/admin/blog/new` UI after deploy.
 
-Steps 9a/9b render side-by-side on Combined; only the relevant one shows per role tab. Steps that don't apply to the active tab render greyed with a one-line "n/a for this role" caption (don't zero them silently — that misleads).
+I'll go with the migration path so each post is reviewable as text before going live. Cover images: I'll generate one per post (1200×630 JPG, premium quality since they carry the title overlay).
 
-### 5. Side-tile engagement signals
+## File touch list
 
-Below the funnel, add two small KPI tiles (current vs previous window) using events already fetched but unused:
-- WhatsApp clicks (`whatsapp_click`)
-- Match requests (`caregiver_match_request`)
+- **New migration** — insert 4 `blog_posts` rows (status='draft' initially so you can review in `/admin/blog` before publishing).
+- **4 new cover images** — `src/assets/blog/<slug>.jpg`, referenced via `cover_image_url`.
+- **`src/pages/blog/BlogPostPage.tsx`** — verify/extend SEO head (Article + FAQ + BreadcrumbList JSON-LD, canonical, og:image fallback).
+- **New `src/components/blog/RelatedPostsByCluster.tsx`** — deterministic cluster-aware related-links block, mounted at end of post body when the post belongs to a defined cluster.
+- **`src/lib/blog/clusters.ts`** (new) — small map: `slug → cluster` so cluster relationships are explicit, not guessed.
+- **Audit pass** — read all 11 existing posts' rendered head via the share endpoint and patch any missing description/canonical/og:image.
+- **`public/sitemap.xml`** — append new slugs if file is static; otherwise note the generator already handles it.
 
-These don't belong in the linear funnel (they happen at multiple stages) but are intent signals worth surfacing.
+## Out of scope (deliberately pinned)
 
-### 6. Methodology disclosure
+- `*_registration_form_started` event
+- `useStoredJourneyProgress.ts` fabricated-progress fix
+- Funnel card / `AcquisitionFunnelCard.tsx` changes
+- New campaigns or paid spend recommendations (this is content + SEO; the FB/WhatsApp campaigns continue as-is on their existing schedule)
 
-Collapsible "How this funnel is counted" block under the card, listing the event/table source for each row plus the known caveats (anonymous pre-reg steps can't split by role, subscription timestamp = last checklist edit, quiz attribution is directional only).
+## What you'll see when it's done
 
-## Files affected
+- 4 draft posts in `/admin/blog` ready to review/edit before publishing
+- A short internal-linking map showing how the cost cluster connects
+- Every existing post's social preview verified via the share URL
+- One Loom-style summary: "post → cluster → expected long-tail terms"
 
-- `src/components/admin/blog-analytics/AcquisitionFunnelCard.tsx` — new steps, new drill-downs, side tiles, methodology block
-- `src/hooks/admin/useBlogAnalyticsRange.ts` — extra queries, extended `TRACKED`
-- `src/pages/admin/BlogAnalyticsLeaderboardPage.tsx` — pass new arrays
-- `src/components/family/quiz/...` (locate exact path during build) — fix/add quiz tracking calls
-- *(Requires explicit approval)* `src/pages/registration/FamilyRegistration.tsx`, `src/pages/registration/ProfessionalRegistration.tsx` — single `useEffect` for form-started event
+## Open question
 
-## Explicitly out of scope
-
-- No anonymous-session-ID join to attribute pre-auth quiz takers to post-signup users (separate, larger piece).
-- No PayPal / checkout / GA4 `purchase` event.
-- No edits to `/admin/onboarding-checklist`.
-- No professional "quiz" equivalent — that doesn't exist as a product yet.
-
-## Three questions before I build
-
-1. **Form-started event in protected files:** do I have your approval to add a single, focus-triggered `*_registration_form_started` tracking call to `FamilyRegistration.tsx` and `ProfessionalRegistration.tsx`? Without this, Krissy-type abandonment stays invisible.
-2. **Professional terminal step:** one row ("Assigned to family team") or two ("Documents uploaded" → "Assigned")? Two is more diagnostic; one is cleaner.
-3. **Quiz on Professional tab:** grey the 3 quiz rows with "Family-only quiz" caption, or hide them entirely on the Professional tab?
+The 4 slugs above lean **cost + practical + T&T-geo**, which is what the data says is working. If you'd rather swap one for a **caregiver-side** post (e.g. "What it's like to work with Tavara as a caregiver in T&T") to seed the professional funnel too, say which of the 4 to drop and I'll swap it in before writing.

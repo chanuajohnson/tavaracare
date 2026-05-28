@@ -33,6 +33,7 @@ import {
 } from "@/components/blog/editorial";
 import { usePublishedPost, usePublishedPosts } from "@/lib/blog/api";
 import { getBlogShareUrlWithUtm } from "@/lib/blog/shareUrl";
+import { pickRelatedPosts } from "@/lib/blog/clusters";
 
 const extractFirstText = (node: any): string => {
   if (!node) return "";
@@ -274,7 +275,8 @@ const BlogPostPage = () => {
   }
 
   const url = `${BASE_URL}/blog/${post.slug}`;
-  const related = allPosts.filter((p) => p.slug !== post.slug).slice(0, 3);
+  // Cluster-aware related posts: prefers same-cluster posts, then fills with recents.
+  const related = pickRelatedPosts(post, allPosts, 3);
   const avatarSrc = post.author_avatar_url || chanuaAvatar;
   const initials = (post.author_name || "C")
     .split(" ")
