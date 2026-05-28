@@ -8,6 +8,7 @@ import {
   buildCtaDestination,
   trackBlogCtaClick,
 } from "@/lib/blog/attribution";
+import { trackWhatsAppClick } from "@/lib/analytics/gtag";
 
 interface Props {
   postSlug: string;
@@ -110,6 +111,9 @@ export function CostEstimator({ postSlug }: Props) {
         weekly_rate: weeklyRate,
       },
     });
+    if (action === "cost_estimator_whatsapp_click") {
+      trackWhatsAppClick("blog_cost_estimator", { post_slug: postSlug, tier });
+    }
   };
 
   return (
