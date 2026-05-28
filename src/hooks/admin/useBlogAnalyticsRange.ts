@@ -15,11 +15,20 @@ export interface SubscriptionAssignment {
   updated_at: string;
 }
 
+export interface ProfessionalMilestone {
+  professional_id: string;
+  created_at: string;
+}
+
 export interface BlogAnalyticsData {
   current: AnalyticsEvent[];
   previous: AnalyticsEvent[];
   subscriptionsCurrent: SubscriptionAssignment[];
   subscriptionsPrevious: SubscriptionAssignment[];
+  proDocsCurrent: ProfessionalMilestone[];
+  proDocsPrevious: ProfessionalMilestone[];
+  proAssignedCurrent: ProfessionalMilestone[];
+  proAssignedPrevious: ProfessionalMilestone[];
   rangeStart: Date;
   rangeEnd: Date;
 }
@@ -34,6 +43,8 @@ const TRACKED = [
   "quiz_cta_click",
   "family_registration_page_view",
   "professional_registration_page_view",
+  "family_registration_form_started",
+  "professional_registration_form_started",
   "family_registration_complete",
   "professional_registration_complete",
   "community_registration_complete",
@@ -50,7 +61,7 @@ export function useBlogAnalyticsRange(days: RangeDays) {
       const rangeStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
       const previousStart = new Date(now.getTime() - 2 * days * 24 * 60 * 60 * 1000);
 
-      const [{ data, error }, subResp] = await Promise.all([
+      const [{ data, error }, subResp, docsResp, teamResp] = await Promise.all([
         supabase
           .from("cta_engagement_tracking")
           .select("action_type, created_at, additional_data, user_id")
@@ -62,10 +73,20 @@ export function useBlogAnalyticsRange(days: RangeDays) {
           .from("onboarding_checklists")
           .select("family_id, updated_at, checked_items")
           .gte("updated_at", previousStart.toISOString()),
+        supabase
+          .from("professional_documents")
+          .select("user_id, created_at")
+          .gte("created_at", previousStart.toISOString()),
+        supabase
+          .from("care_team_members")
+          .select("caregiver_id, created_at")
+          .gte("created_at", previousStart.toISOString()),
       ]);
 
       if (error) throw error;
       if (subResp.error) throw subResp.error;
+      if (docsResp.error) throw docsResp.error;
+      if (teamResp.error) throw teamResp.error;
 
       const all = (data ?? []) as AnalyticsEvent[];
       const current: AnalyticsEvent[] = [];
@@ -87,11 +108,40 @@ export function useBlogAnalyticsRange(days: RangeDays) {
         else if (t >= previousStart) subscriptionsPrevious.push(entry);
       }
 
+      // Dedupe professional milestones to one row per professional per window.
+      const dedupePros = (
+        rows: any[],
+        idKey: string,
+      ): { current: ProfessionalMilestone[]; previous: ProfessionalMilestone[] } => {
+        const earliestCurrent = new Map<string, string>();
+        const earliestPrevious = new Map<string, string>();
+        for (const row of rows) {
+          const id = row[idKey];
+          if (!id) continue;
+          const t = new Date(row.created_at);
+          const bucket = t >= rangeStart ? earliestCurrent : t >= previousStart ? earliestPrevious : null;
+          if (!bucket) continue;
+          const existing = bucket.get(id);
+          if (!existing || row.created_at < existing) bucket.set(id, row.created_at);
+        }
+        return {
+          current: Array.from(earliestCurrent.entries()).map(([professional_id, created_at]) => ({ professional_id, created_at })),
+          previous: Array.from(earliestPrevious.entries()).map(([professional_id, created_at]) => ({ professional_id, created_at })),
+        };
+      };
+
+      const docs = dedupePros((docsResp.data ?? []) as any[], "user_id");
+      const team = dedupePros((teamResp.data ?? []) as any[], "caregiver_id");
+
       return {
         current,
         previous,
         subscriptionsCurrent,
         subscriptionsPrevious,
+        proDocsCurrent: docs.current,
+        proDocsPrevious: docs.previous,
+        proAssignedCurrent: team.current,
+        proAssignedPrevious: team.previous,
         rangeStart,
         rangeEnd: now,
       };
