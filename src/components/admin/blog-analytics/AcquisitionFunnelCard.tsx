@@ -393,15 +393,24 @@ function FunnelRows({
 }
 
 
-export function AcquisitionFunnelCard({ events }: Props) {
+export function AcquisitionFunnelCard({ events, subscriptions = [] }: Props) {
   const [tab, setTab] = useState<RoleFilter>("combined");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [subDialogOpen, setSubDialogOpen] = useState(false);
 
-  const combined = useMemo(() => buildSteps(events, "combined"), [events]);
-  const family = useMemo(() => buildSteps(events, "family"), [events]);
+  const subCount = subscriptions.length;
+
+  const combined = useMemo(
+    () => buildSteps(events, "combined", subCount),
+    [events, subCount],
+  );
+  const family = useMemo(
+    () => buildSteps(events, "family", subCount),
+    [events, subCount],
+  );
   const professional = useMemo(
-    () => buildSteps(events, "professional"),
-    [events],
+    () => buildSteps(events, "professional", subCount),
+    [events, subCount],
   );
 
   const active =
@@ -414,6 +423,7 @@ export function AcquisitionFunnelCard({ events }: Props) {
       : 0;
 
   const openUsers = () => setDialogOpen(true);
+  const openSubs = () => setSubDialogOpen(true);
 
   return (
     <Card>
@@ -432,13 +442,13 @@ export function AcquisitionFunnelCard({ events }: Props) {
             <TabsTrigger value="professional">Professional</TabsTrigger>
           </TabsList>
           <TabsContent value="combined" className="mt-4">
-            <FunnelRows steps={combined} onViewUsers={openUsers} />
+            <FunnelRows steps={combined} onViewUsers={openUsers} onViewSubscriptions={openSubs} />
           </TabsContent>
           <TabsContent value="family" className="mt-4">
-            <FunnelRows steps={family} onViewUsers={openUsers} />
+            <FunnelRows steps={family} onViewUsers={openUsers} onViewSubscriptions={openSubs} />
           </TabsContent>
           <TabsContent value="professional" className="mt-4">
-            <FunnelRows steps={professional} onViewUsers={openUsers} />
+            <FunnelRows steps={professional} onViewUsers={openUsers} onViewSubscriptions={openSubs} />
           </TabsContent>
         </Tabs>
 
@@ -466,7 +476,13 @@ export function AcquisitionFunnelCard({ events }: Props) {
           events={events}
           role={tab}
         />
+        <SubscriptionsDialog
+          open={subDialogOpen}
+          onOpenChange={setSubDialogOpen}
+          subscriptions={subscriptions}
+        />
       </CardContent>
     </Card>
+
   );
 }
