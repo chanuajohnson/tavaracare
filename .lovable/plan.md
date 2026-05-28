@@ -1,44 +1,56 @@
-## Part 1 — Fix the "View users" dialog (your screenshot)
+## Goal
 
-**Root cause (confirmed via DB):** The dialog query in `RegistrationUsersDialog` selects `id, full_name, email, role` from `profiles`, but the `profiles` table has **no `email` column**. PostgREST rejects the whole request, the catch shows a toast, and every row falls back to "(profile not found)".
+Replace the placeholder "Subscription started" step in the Acquisition Funnel with a real count sourced from where admins actually assign subscriptions: `/admin/onboarding-checklist`, Family tab, checklist item `post_onboarding_6` ("Tavara subscription: Family Care Plan (weekly)").
 
-Meanwhile the `cta_engagement_tracking` rows for both registrations DO have valid `user_id`s (`0ba80b6f…` Jennelle, `c5799b96…` Shania) and matching `profiles.full_name`. So once the query is valid, names will render.
+## Source of truth
 
-**Fix (scoped to `src/components/admin/blog-analytics/AcquisitionFunnelCard.tsx`):**
+- Table: `public.onboarding_checklists`
+- Columns used: `family_id`, `checked_items` (jsonb), `updated_at`
+- A family is "subscribed" when `checked_items->>'post_onboarding_6' = 'true'`
+- The date for in-range filtering is `updated_at` (no per-item timestamp exists; this is the best available signal and matches admin behavior)
+- These are **family-only** by definition (the checklist key lives on the family checklist). No professional equivalent.
 
-1. Change the profiles `select` to columns that actually exist: `id, full_name, role, phone_number, created_at`.
-2. Update `ProfileRow` type: drop `email`, add `phone_number: string | null` and `created_at: string | null`.
-3. In the row UI, replace the email line with phone number (when present) and a small "Account created {date}" line — this makes the "form completion ≠ auth signup" point concrete (Shania's profile was created 19:17, registration_complete event 19:23).
-4. Email is in `auth.users`, not `profiles`, and the client cannot read `auth.users`. If you want email in the dialog later, it needs an edge function — out of scope for this fix.
+## Changes
 
-That's the only file touched. No schema, no RLS, no routing, no chat flow.
+### 1. `src/hooks/admin/useBlogAnalyticsRange.ts`
+Add a second query alongside the existing `cta_engagement_tracking` fetch:
 
-## Part 2 — Which of the pasted GA4 plan is worth implementing now
+```ts
+const { data: subRows } = await supabase
+  .from("onboarding_checklists")
+  .select("family_id, updated_at, checked_items")
+  .gte("updated_at", previousStart.toISOString());
+```
 
-The pasted plan is **Next.js-shaped** (app router, `NEXT_PUBLIC_*`, server route handlers, `@google-analytics/data` SDK with a service-account JSON). This project is **Vite + React + Supabase edge functions**, so I cannot copy it verbatim. Here is the honest filter:
+Filter in-memory to rows where `checked_items?.post_onboarding_6 === true`, then split into `subscriptionsCurrent` / `subscriptionsPrevious` by `updated_at` vs `rangeStart`. Extend `BlogAnalyticsData` with these two arrays (shape: `{ family_id, updated_at }[]`).
 
-### Already done — skip
-- `readiness_quiz_completed` — already firing (`PageViewTracker` on FamilyReadinessQuizPage).
-- `family_registration_complete` / `professional_registration_complete` — already written to `cta_engagement_tracking` with `user_id` (proven by the DB rows above).
-- `blog_cta_click` — already tracked via `trackBlogCtaClick` in `src/lib/blog/attribution.ts`.
-- Acquisition funnel card on `/admin/blog/analytics` — already built and now reads from Supabase events (the very card in your screenshot).
+### 2. `src/components/admin/blog-analytics/AcquisitionFunnelCard.tsx`
+- Accept the new `subscriptions` prop (current range).
+- In `buildSteps`, replace the placeholder `subStarted` count:
+  - **Combined tab**: `subscriptions.length`
+  - **Family tab**: same count (these are all family rows)
+  - **Professional tab**: `0` with a small caption "Subscriptions are family-only"
+- Update label to **"Subscription assigned (admin)"**.
+- Drop `isPlaceholder` / "not yet tracked" footer when count source is real.
+- Keep the existing drop-off math intact.
 
-### Worth doing — small, fits this stack
-1. **Tiny `gtagEvent` helper** at `src/lib/analytics/gtag.ts` (window.gtag wrapper, SSR-safe). Mirrors the Supabase events we already fire so GA4 also sees them. Adds zero coupling — if `gtag` isn't on the page it no-ops.
-2. **Mirror the 4 events we already track to GA4** by calling `gtagEvent(...)` right next to the existing Supabase inserts:
-   - `family_registration_complete` (FamilyRegistration submit, after Supabase update — *additive only, no field changes*)
-   - `professional_registration_complete` (Professional registration submit — same pattern)
-   - `blog_cta_click` (inside `trackBlogCtaClick`)
-   - `readiness_quiz_completed` (in FamilyReadinessQuizPage where `showResult` flips true)
-3. **`whatsapp_click`** — add a small util `trackWhatsAppClick(location)` and call it from the existing WhatsApp links (CostEstimator, dashboard handoffs, etc.). One-line additions, no behavior change.
+### 3. Drill-down dialog parity
+Extend the existing "View users" pattern with a second link **"View subscriptions"** on the new step. It opens a dialog that:
+- Lists each family from `subscriptionsCurrent` (filtered by tab role — only shows on Combined/Family).
+- Resolves `family_id` → `profiles.full_name, phone_number, created_at` via the same in-memory profile fetch we already do.
+- Shows: family name, phone, "Assigned ~ {updated_at}" (with a note that the timestamp reflects the last checklist edit, not the exact tick moment).
+- Reuses the copy-id button and styling from `RegistrationUsersDialog`.
 
-### Skip / do later
-- **`caregiver_match_request`** — match flow is large and the AI guardrails forbid touching it without an explicit scoped ask. Not worth bundling into this change.
-- **`purchase` + `subscription_started`** — PayPal subscriptions here (not Stripe). Server-side Measurement Protocol from a PayPal webhook is a real piece of work and the pasted Stripe snippet doesn't apply. Park until subscriptions volume is non-zero.
-- **GA4 Data API server route + `@google-analytics/data` SDK** — that gives a *second* funnel sourced from GA4. We already have a working funnel from Supabase events, which is more accurate (no sampling, no ad-block loss). Adding the GA4 SDK requires a service-account JSON secret and a Supabase edge function. Recommend: do NOT build this now. The Supabase-sourced funnel is the better source of truth for product decisions.
+### 4. Parent wiring
+Whichever page renders `<AcquisitionFunnelCard events={...} />` (the admin blog analytics page) — pass the new `subscriptions` array through from the hook's return value. No new top-level fetch.
 
-### What I propose to build in the next build step
-- Fix the "(profile not found)" dialog (Part 1).
-- Add `src/lib/analytics/gtag.ts` and mirror the 4 already-tracked events + `whatsapp_click` to GA4 (additive only).
+## Explicitly out of scope
 
-Everything else from the pasted plan is parked with a clear reason above. Confirm and I'll implement.
+- No changes to `user_subscriptions`, PayPal flow, or any checkout wiring.
+- No GA4 event for subscription assignment (admin action, no browser context).
+- No edits to `/admin/onboarding-checklist` itself — read-only consumption.
+- No tier breakdown (Basic / Active Care / Premium) — the checklist key is binary. If you want tier splits later, that's a separate task tied to `care_plan_service_selections` or a new column.
+
+## Caveats called out in UI
+
+- Caption under the step: *"Counted from admin-marked onboarding checklist (Family tab → 'Tavara subscription'). Timestamp reflects last checklist edit."*

@@ -10,12 +10,20 @@ export interface AnalyticsEvent {
   user_id: string | null;
 }
 
+export interface SubscriptionAssignment {
+  family_id: string;
+  updated_at: string;
+}
+
 export interface BlogAnalyticsData {
   current: AnalyticsEvent[];
   previous: AnalyticsEvent[];
+  subscriptionsCurrent: SubscriptionAssignment[];
+  subscriptionsPrevious: SubscriptionAssignment[];
   rangeStart: Date;
   rangeEnd: Date;
 }
+
 
 const TRACKED = [
   "blog_utm_landed",
@@ -42,15 +50,22 @@ export function useBlogAnalyticsRange(days: RangeDays) {
       const rangeStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
       const previousStart = new Date(now.getTime() - 2 * days * 24 * 60 * 60 * 1000);
 
-      const { data, error } = await supabase
-        .from("cta_engagement_tracking")
-        .select("action_type, created_at, additional_data, user_id")
-        .in("action_type", TRACKED)
-        .gte("created_at", previousStart.toISOString())
-        .order("created_at", { ascending: true })
-        .limit(10000);
+      const [{ data, error }, subResp] = await Promise.all([
+        supabase
+          .from("cta_engagement_tracking")
+          .select("action_type, created_at, additional_data, user_id")
+          .in("action_type", TRACKED)
+          .gte("created_at", previousStart.toISOString())
+          .order("created_at", { ascending: true })
+          .limit(10000),
+        supabase
+          .from("onboarding_checklists")
+          .select("family_id, updated_at, checked_items")
+          .gte("updated_at", previousStart.toISOString()),
+      ]);
 
       if (error) throw error;
+      if (subResp.error) throw subResp.error;
 
       const all = (data ?? []) as AnalyticsEvent[];
       const current: AnalyticsEvent[] = [];
@@ -60,7 +75,27 @@ export function useBlogAnalyticsRange(days: RangeDays) {
         if (t >= rangeStart) current.push(ev);
         else if (t >= previousStart) previous.push(ev);
       }
-      return { current, previous, rangeStart, rangeEnd: now };
+
+      const subscriptionsCurrent: SubscriptionAssignment[] = [];
+      const subscriptionsPrevious: SubscriptionAssignment[] = [];
+      for (const row of (subResp.data ?? []) as any[]) {
+        const checked = row.checked_items;
+        if (!checked || checked.post_onboarding_6 !== true) continue;
+        const t = new Date(row.updated_at);
+        const entry = { family_id: row.family_id, updated_at: row.updated_at };
+        if (t >= rangeStart) subscriptionsCurrent.push(entry);
+        else if (t >= previousStart) subscriptionsPrevious.push(entry);
+      }
+
+      return {
+        current,
+        previous,
+        subscriptionsCurrent,
+        subscriptionsPrevious,
+        rangeStart,
+        rangeEnd: now,
+      };
+
     },
     staleTime: 60_000,
   });
