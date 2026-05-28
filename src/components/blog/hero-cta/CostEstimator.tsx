@@ -8,6 +8,7 @@ import {
   buildCtaDestination,
   trackBlogCtaClick,
 } from "@/lib/blog/attribution";
+import { trackWhatsAppClick } from "@/lib/analytics/gtag";
 
 interface Props {
   postSlug: string;
