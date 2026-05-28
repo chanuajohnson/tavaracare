@@ -334,15 +334,21 @@ const FamilyReadinessQuizPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Always-on quiz view event — fires exactly once per mount, independent
+          of result-state, so funnel analytics can see who actually lands here. */}
       <PageViewTracker
-        actionType={
-          showResult ? "readiness_quiz_completed" : "readiness_quiz_view"
-        }
+        actionType="readiness_quiz_view"
         journeyStage="pre-onboarding"
-        additionalData={
-          showResult ? { stage: finalStage, viewMode: viewResultMode ? "result" : "fresh" } : undefined
-        }
+        additionalData={{ initial_mode: resultFirstMode ? "result_first" : "fresh" }}
       />
+      {/* Separate completion event, only fired when results render. */}
+      {showResult && (
+        <PageViewTracker
+          actionType="readiness_quiz_completed"
+          journeyStage="pre-onboarding"
+          additionalData={{ stage: finalStage, viewMode: viewResultMode ? "result" : "fresh" }}
+        />
+      )}
       {/* Funnel attribution: the readiness quiz is the soft on-ramp for family
           registration, so we also emit family_registration_page_view here so the
           admin Acquisition Funnel Card counts quiz landers as registration-page
@@ -352,6 +358,7 @@ const FamilyReadinessQuizPage: React.FC = () => {
         journeyStage="registration"
         additionalData={{ source: "readiness_quiz" }}
       />
+
 
       <div className="container max-w-2xl px-4 py-8 sm:py-12">
         {/* Header */}
