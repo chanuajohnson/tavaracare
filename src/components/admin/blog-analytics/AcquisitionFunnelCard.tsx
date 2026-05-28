@@ -137,8 +137,9 @@ interface RegEvent {
 interface ProfileRow {
   id: string;
   full_name: string | null;
-  email: string | null;
   role: string | null;
+  phone_number: string | null;
+  created_at: string | null;
 }
 
 function RegistrationUsersDialog({
