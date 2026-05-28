@@ -221,7 +221,10 @@ export default function BlogAnalyticsLeaderboardPage() {
         {range && (
           <AcquisitionFunnelCard
             events={range.current}
+            previousEvents={range.previous}
             subscriptions={range.subscriptionsCurrent}
+            proDocs={range.proDocsCurrent}
+            proAssigned={range.proAssignedCurrent}
           />
         )}
 
