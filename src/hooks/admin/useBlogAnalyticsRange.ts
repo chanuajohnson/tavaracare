@@ -43,8 +43,8 @@ export function useBlogAnalyticsRange(days: RangeDays) {
       const previousStart = new Date(now.getTime() - 2 * days * 24 * 60 * 60 * 1000);
 
       const { data, error } = await supabase
+        .from("cta_engagement_tracking")
         .select("action_type, created_at, additional_data, user_id")
-        .select("action_type, created_at, additional_data")
         .in("action_type", TRACKED)
         .gte("created_at", previousStart.toISOString())
         .order("created_at", { ascending: true })
