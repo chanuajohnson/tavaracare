@@ -310,10 +310,14 @@ function RegistrationUsersDialog({
 
 function FunnelRows({
   steps,
+  onViewUsers,
+  onViewSubscriptions,
+}: {
   steps: Step[];
   onViewUsers: () => void;
   onViewSubscriptions: () => void;
 }) {
+
   return (
     <div className="space-y-3">
       {steps.map((s, i) => {
