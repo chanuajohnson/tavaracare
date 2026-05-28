@@ -10,12 +10,20 @@ export interface AnalyticsEvent {
   user_id: string | null;
 }
 
+export interface SubscriptionAssignment {
+  family_id: string;
+  updated_at: string;
+}
+
 export interface BlogAnalyticsData {
   current: AnalyticsEvent[];
   previous: AnalyticsEvent[];
+  subscriptionsCurrent: SubscriptionAssignment[];
+  subscriptionsPrevious: SubscriptionAssignment[];
   rangeStart: Date;
   rangeEnd: Date;
 }
+
 
 const TRACKED = [
   "blog_utm_landed",
