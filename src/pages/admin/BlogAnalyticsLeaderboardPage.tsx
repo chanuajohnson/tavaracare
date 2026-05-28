@@ -218,7 +218,13 @@ export default function BlogAnalyticsLeaderboardPage() {
           <KpiStrip current={range.current} previous={range.previous} />
         )}
 
-        {range && <AcquisitionFunnelCard events={range.current} />}
+        {range && (
+          <AcquisitionFunnelCard
+            events={range.current}
+            subscriptions={range.subscriptionsCurrent}
+          />
+        )}
+
 
         {range && (
           <DailyTrendChart
