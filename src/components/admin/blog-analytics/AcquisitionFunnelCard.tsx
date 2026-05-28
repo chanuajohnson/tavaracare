@@ -308,7 +308,132 @@ function RegistrationUsersDialog({
   );
 }
 
+function SubscriptionsDialog({
+  open,
+  onOpenChange,
+  subscriptions,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  subscriptions: SubscriptionAssignment[];
+}) {
+  const [profiles, setProfiles] = useState<Record<string, ProfileRow>>({});
+  const [loading, setLoading] = useState(false);
+
+  const sorted = useMemo(
+    () =>
+      [...subscriptions].sort((a, b) =>
+        a.updated_at < b.updated_at ? 1 : -1,
+      ),
+    [subscriptions],
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    const ids = Array.from(new Set(sorted.map((s) => s.family_id)));
+    if (ids.length === 0) {
+      setProfiles({});
+      return;
+    }
+    setLoading(true);
+    supabase
+      .from("profiles")
+      .select("id, full_name, role, phone_number, created_at")
+      .in("id", ids)
+      .then(({ data, error }) => {
+        if (error) {
+          toast.error("Could not load family profiles");
+          setProfiles({});
+        } else {
+          const map: Record<string, ProfileRow> = {};
+          (data ?? []).forEach((p: any) => {
+            map[p.id] = p as ProfileRow;
+          });
+          setProfiles(map);
+        }
+        setLoading(false);
+      });
+  }, [open, sorted]);
+
+  const copy = (txt: string) => {
+    navigator.clipboard.writeText(txt);
+    toast.success("Copied");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            Subscriptions assigned — families ({sorted.length})
+          </DialogTitle>
+          <DialogDescription>
+            Families marked with "Tavara subscription" on the admin onboarding
+            checklist within this window. Timestamp shows the most recent
+            checklist edit, not the exact moment the box was ticked.
+          </DialogDescription>
+        </DialogHeader>
+
+        {sorted.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">
+            No subscriptions assigned in this window.
+          </p>
+        ) : (
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+            {sorted.map((s, idx) => {
+              const p = profiles[s.family_id];
+              return (
+                <div
+                  key={`${s.family_id}-${idx}`}
+                  className="flex items-start justify-between gap-3 rounded-md border p-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium">
+                        {p?.full_name || "(profile not found)"}
+                      </span>
+                      <Badge variant="secondary">Family</Badge>
+                    </div>
+                    {p?.phone_number && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        {p.phone_number}
+                      </div>
+                    )}
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Assigned ~ {new Date(s.updated_at).toLocaleString()}
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <code className="text-[10px] font-mono text-muted-foreground">
+                        {s.family_id.slice(0, 8)}…{s.family_id.slice(-4)}
+                      </code>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-5 w-5"
+                        onClick={() => copy(s.family_id)}
+                        aria-label="Copy family id"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {loading && (
+              <p className="text-xs text-muted-foreground text-center py-2">
+                Loading profile details…
+              </p>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function FunnelRows({
+
   steps,
   onViewUsers,
   onViewSubscriptions,
