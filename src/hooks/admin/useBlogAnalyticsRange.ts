@@ -7,6 +7,7 @@ export interface AnalyticsEvent {
   action_type: string;
   created_at: string;
   additional_data: Record<string, any> | null;
+  user_id: string | null;
 }
 
 export interface BlogAnalyticsData {
@@ -43,7 +44,7 @@ export function useBlogAnalyticsRange(days: RangeDays) {
 
       const { data, error } = await supabase
         .from("cta_engagement_tracking")
-        .select("action_type, created_at, additional_data")
+        .select("action_type, created_at, additional_data, user_id")
         .in("action_type", TRACKED)
         .gte("created_at", previousStart.toISOString())
         .order("created_at", { ascending: true })
