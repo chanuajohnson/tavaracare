@@ -19,11 +19,13 @@ import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { AnalyticsEvent } from "@/hooks/admin/useBlogAnalyticsRange";
+import { AnalyticsEvent, SubscriptionAssignment } from "@/hooks/admin/useBlogAnalyticsRange";
 
 interface Props {
   events: AnalyticsEvent[];
+  subscriptions?: SubscriptionAssignment[];
 }
+
 
 type RoleFilter = "combined" | "family" | "professional";
 
