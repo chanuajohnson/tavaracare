@@ -10,7 +10,7 @@ type GtagParams = Record<string, string | number | boolean | null | undefined>;
 
 declare global {
   interface Window {
-    gtag?: (...args: unknown[]) => void;
+    gtag?: (...args: any[]) => void;
   }
 }
 
