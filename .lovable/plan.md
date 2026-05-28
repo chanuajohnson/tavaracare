@@ -1,63 +1,88 @@
-## Above-the-fold copy stack on `/blog/senior-care-costs-trinidad-tobago-2026`
+## Goal
 
-Add three tight blocks between the H1 and CostHeroCTA on this slug only. Other blog posts unchanged. No body rewrites. No new files. All presentation.
+Lift conversion on the post that's driving traffic right now (`senior-care-costs-trinidad-tobago-2026`) by giving first-time T&T visitors an immediate payoff instead of a 2-minute quiz gate, and fix the tracking gap that's hiding what's happening on the quiz page.
 
-### What renders, in order, after the change
+## Problem (verified in the data)
+
+Last 28 days of attributed traffic:
 
 ```
-[ category badge · date ]
-[ H1: Senior Care Costs in Trinidad & Tobago (2026 Guide) ]
-[ Subhead (NEW, slug-specific) ]
-[ Trust strip (NEW, slug-specific) ]
-[ Avatar + byline ]
-[ Quick-jump pill nav (NEW, slug-specific) ]
-[ CostHeroCTA (existing) ]
-[ BlogTopCTA (existing) ]
-[ Audio player + body... ]
+333 landings  →  39 CTA clicks  →  0 readiness_quiz_view  →  3 family_reg_view  →  1 reg complete
 ```
 
-### The copy (final, no em/en-dashes, language-guardrail clean)
+Two things are wrong:
 
-**1. Subhead (replaces `post.description` for this slug only at render time)**
-> In-home care in T&T runs $40 to $50+ per hour. Live-in starts from $2,400 per week. Here is the full 2026 breakdown, with what each tier includes and the quiet costs nobody mentions.
+1. **Heavy gate, no instant payoff.** The hero CTA on the cost post ("See what care fits my budget") points at `/family/readiness-quiz`, which is 5 questions before any answer is shown. Visitors arrived for a *price* and are asked to do a self-assessment first.
+2. **`readiness_quiz_view` events are missing from the table.** The quiz page mounts `PageViewTracker` with that actionType, but 0 rows exist for 28 days while we know ≥18 clicks were routed there. Without that event we can't see drop-off inside the quiz.
 
-**2. Trust strip (3 inline items, separated by middle dots)**
-> Vetted caregivers · Most families matched in days · Transparent care rates
+## What to build
 
-**3. Quick-jump pills (4 anchor links, horizontal, wrap on mobile)**
-> Hourly rates · Live-in care · What drives cost up · Hidden costs
+### 1. New "Instant Care Estimate" widget on the cost post
 
-Pills are real anchor links that scroll to the corresponding `##` headings already present in the post body. The mapping uses the existing slug-from-heading rule (`react-markdown` + `remark-gfm` already generates these IDs).
+A small interactive block placed where `CostHeroCTA` lives today, scoped to the cost-of-care post only. No new pages, no backend.
 
-### Where the code change lands
+Inputs (one screen, all on-page, no routing):
+- Care level: `Standard $40 · Full Service $45 · Premium $50+` (segmented control, defaults to Standard)
+- Hours per day: slider 4 → 12 (default 8)
+- Days per week: slider 1 → 7 (default 5)
 
-**File:** `src/pages/blog/BlogPostPage.tsx`, single render block between lines 359 and 377. Three new conditional renders gated on `post.slug === "senior-care-costs-trinidad-tobago-2026"`.
+Output (updates live, no submit):
+- "Estimated care rate: **$X / week**" using the per-hour figure × hours × days
+- Sub-line: "Live-in care starts from $2,400 / week" (allow-listed public figure)
+- One short reassurance line per the language guardrails (no "hire", "agency", "wage")
 
-- **Subhead override.** Instead of editing `post.description`, render a slug-specific `<p>` and skip the generic description for this one slug. The SEO meta description (which is read from `post.description` elsewhere) stays untouched so the SERP snippet does not change.
-- **Trust strip.** A `<ul>` with 3 `<li>` items, each prefixed with a `Check` icon (lucide-react, already imported across the codebase). Muted text, small, single line on desktop, wraps cleanly on 390px.
-- **Quick-jump pills.** Plain `<a href="#hourly-rates">` style anchors styled as small rounded pills (`bg-primary/10 text-primary border border-primary/20`). On click, fire one `cta_engagement_tracking` insert with `action_type: "blog_jumplink_click"` and `additional_data: { post_slug, anchor }` so the funnel card can see whether jump-link readers convert better than scroll-readers.
+Two CTAs underneath, in this order:
+- Primary: **WhatsApp us your situation** → `https://wa.me/18687865357` with a pre-filled message that includes the chosen tier + estimate (low-commitment, matches the "Direct traffic up 83%" trust signal)
+- Secondary: **See caregivers who fit** → existing `/family/readiness-quiz` link, kept for visitors who want the deeper path
 
-### Tracking detail
+Tracking:
+- `cost_estimator_interacted` when sliders change (debounced, once per session)
+- `cost_estimator_whatsapp_click` and `cost_estimator_quiz_click` for the two CTAs, with the chosen tier/hours/days in `additional_data`
 
-One new event type, `blog_jumplink_click`, fired only from this slug. Not added to the `TRACKED` array in `useBlogAnalyticsRange.ts` for now since the funnel card does not need it as a step; it lives in `cta_engagement_tracking` raw so we can query it directly if jump links underperform and we want to kill them.
+This keeps the existing quiz path intact (no chat-flow or registration changes) and adds a faster lane for the dominant intent (price).
 
-### Files touched
+### 2. Fix the missing `readiness_quiz_view` tracking
 
-| File | Change | Lines |
-| --- | --- | --- |
-| `src/pages/blog/BlogPostPage.tsx` | Insert 3-block slug-specific stack between H1 and CostHeroCTA, suppress default `post.description` `<p>` on this slug | ~30 added, 1 line guarded |
+Confirm `PageViewTracker` actually fires the insert on the quiz page (currently 0 events despite clicks). Likely culprits to check in order:
+- The conditional `actionType={showResult ? "readiness_quiz_completed" : "readiness_quiz_view"}` may flip on first render before the page mounts properly.
+- `PageViewTracker` only re-fires on URL changes — verify it fires at least once on mount.
 
-One file. No new components, no new exports.
+Fix so that every quiz page load logs `readiness_quiz_view` exactly once, independent of result state. Without this fix we can't tell whether the new estimator actually moves the needle.
 
-### What this plan deliberately does NOT do
+### 3. Pricing & language compliance
 
-- No edits to `post.description` in `posts.ts` — keeps SERP snippet stable
-- No changes to other blog posts
-- No changes to body copy, table, audio player, or comments
-- No new files, components, or hooks
-- No subscription-pricing edits (still flagged separately)
-- No `FamilyRegistration.tsx`, routing, or auth changes
+Per project memory:
+- Show only the per-hour tier figures and the single `$2,400/wk` live-in floor publicly. No subscription dollars, no monthly household totals, no Day 0 figures.
+- Call it "care rate", never "wage".
+- Avoid banned terms (hire, agency, patient, staff, etc.).
 
-### Trade-off you should know about
+## Technical details
 
-Stacking subhead + trust strip + pills pushes the audio player and the BlogTopCTA further down. On 390×567 the BlogTopCTA almost certainly drops below the fold after this change. The bet is that the CostHeroCTA (the primary action) plus the rate anchor in the subhead carry conversion above the fold, and BlogTopCTA becomes the second-scroll catch. If the funnel card shows `top-family` clicks drop sharply after shipping, we tighten the spacing or drop the trust strip.
+- **Files touched (scoped, no protected files):**
+  - `src/components/blog/hero-cta/CostHeroCTA.tsx` — replace static aside with the estimator widget
+  - `src/components/blog/hero-cta/CostEstimator.tsx` *(new)* — the interactive widget
+  - `src/pages/family/FamilyReadinessQuizPage.tsx` — ensure `readiness_quiz_view` fires on mount once
+  - Possibly `src/components/tracking/PageViewTracker.tsx` if its mount behavior is the bug
+- Pure React + Tailwind + existing shadcn primitives (`Slider`, `ToggleGroup`, `Button`). No new deps, no routing changes, no chat-flow changes.
+- `App.tsx`, navigation, registration pages, and dashboard files are not touched.
+- Mobile-first: 390px viewport is the current preview width — the widget renders as a single stacked column on mobile, two-column from `md:` up.
+- All copy reviewed against `mem://constraints/tavara-language-guardrails` and `mem://constraints/financial-privacy-public-surfaces`.
+
+## How we'll know it worked
+
+After deploy, watch in `cta_engagement_tracking` for 7 days:
+
+- `cost_estimator_interacted` count > 0 (proves the widget is being used at all)
+- `cost_estimator_whatsapp_click` + `cost_estimator_quiz_click` combined > current `hero-cost` blog_cta_click count
+- `readiness_quiz_view` count > 0 (proves tracking is fixed)
+- `family_registration_page_view` count up from 3
+
+If WhatsApp clicks dominate, we'll know low-commitment outreach is the real shape of demand and can extend the pattern to other posts in a follow-up.
+
+## Out of scope (intentionally)
+
+- Rewriting the quiz itself
+- Touching `/registration/family` or the chat flow
+- New T&T blog posts (separate priority the user deferred)
+- SEO / sitemap work (separate priority)
+- Any change to App.tsx, Navigation, AuthProvider, or dashboard routes
