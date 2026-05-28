@@ -254,14 +254,19 @@ function RegistrationUsersDialog({
                         {r}
                       </Badge>
                     </div>
-                    {p?.email && (
+                    {p?.phone_number && (
                       <div className="text-xs text-muted-foreground truncate">
-                        {p.email}
+                        {p.phone_number}
                       </div>
                     )}
                     <div className="text-xs text-muted-foreground mt-1">
                       Completed {new Date(ev.created_at).toLocaleString()}
                     </div>
+                    {p?.created_at && (
+                      <div className="text-[11px] text-muted-foreground italic">
+                        Account created {new Date(p.created_at).toLocaleString()}
+                      </div>
+                    )}
                     {ev.user_id && (
                       <div className="flex items-center gap-1 mt-1">
                         <code className="text-[10px] font-mono text-muted-foreground">
