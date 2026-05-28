@@ -7,6 +7,7 @@ export interface AnalyticsEvent {
   action_type: string;
   created_at: string;
   additional_data: Record<string, any> | null;
+  user_id: string | null;
 }
 
 export interface BlogAnalyticsData {
