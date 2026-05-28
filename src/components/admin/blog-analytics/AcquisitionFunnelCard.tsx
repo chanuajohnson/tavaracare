@@ -187,7 +187,7 @@ function RegistrationUsersDialog({
     setLoading(true);
     supabase
       .from("profiles")
-      .select("id, full_name, email, role")
+      .select("id, full_name, role, phone_number, created_at")
       .in("id", ids)
       .then(({ data, error }) => {
         if (error) {
