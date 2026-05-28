@@ -310,16 +310,16 @@ function RegistrationUsersDialog({
 
 function FunnelRows({
   steps,
-  onViewUsers,
-}: {
   steps: Step[];
   onViewUsers: () => void;
+  onViewSubscriptions: () => void;
 }) {
   return (
     <div className="space-y-3">
       {steps.map((s, i) => {
         const widthPct = Math.max(4, Math.round(s.pctOfTop * 100));
         const isRegCompleted = s.label === "Registration completed";
+        const isSubAssigned = s.label === "Subscription assigned (admin)";
         return (
           <div key={s.label} className="space-y-1">
             <div className="flex items-baseline justify-between gap-3 text-sm">
@@ -332,6 +332,15 @@ function FunnelRows({
                     className="text-xs text-primary underline-offset-2 hover:underline"
                   >
                     View users
+                  </button>
+                )}
+                {isSubAssigned && s.count > 0 && (
+                  <button
+                    type="button"
+                    onClick={onViewSubscriptions}
+                    className="text-xs text-primary underline-offset-2 hover:underline"
+                  >
+                    View subscriptions
                   </button>
                 )}
               </div>
@@ -365,10 +374,11 @@ function FunnelRows({
                 style={{ width: `${widthPct}%` }}
               />
             </div>
-            {s.isPlaceholder && s.count === 0 && i === steps.length - 1 && (
+            {isSubAssigned && (
               <p className="text-xs text-muted-foreground italic">
-                Not yet tracked — will populate once subscription_started event
-                is wired into the checkout flow.
+                {s.count === 0 && s.isPlaceholder
+                  ? "Subscriptions are family-only — switch to the Combined or Family tab."
+                  : "Counted from admin onboarding checklist (Family tab → 'Tavara subscription'). Timestamp reflects last checklist edit."}
               </p>
             )}
           </div>
@@ -377,6 +387,7 @@ function FunnelRows({
     </div>
   );
 }
+
 
 export function AcquisitionFunnelCard({ events }: Props) {
   const [tab, setTab] = useState<RoleFilter>("combined");
