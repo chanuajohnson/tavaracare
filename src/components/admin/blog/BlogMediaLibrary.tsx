@@ -10,9 +10,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Images, Copy, Loader2, Check } from "lucide-react";
+import { Images, Copy, Loader2, Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { BLOG_STYLE_ANCHORS, anchorPublicUrl } from "@/lib/blog/styleAnchors";
+import { generateAndStoreAiVariant } from "@/lib/blog/generateAiVariant";
 
 type MediaAsset = {
   id: string;
@@ -29,7 +31,15 @@ type Props = {
   onPick: (url: string) => void;
 };
 
-type Filter = "all" | "generated" | "uploaded" | "seeded";
+type Filter = "all" | "anchor_ai" | "generated" | "uploaded" | "seeded";
+
+const FILTER_LABELS: Record<Filter, string> = {
+  all: "All",
+  anchor_ai: "Anchor AI",
+  generated: "Generated",
+  uploaded: "Uploaded",
+  seeded: "Seeded",
+};
 
 /**
  * Reusable Media Library for blog covers. Lists every catalogued image so an
@@ -43,6 +53,59 @@ export function BlogMediaLibrary({ onPick }: Props) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillProgress, setBackfillProgress] = useState<{ done: number; total: number } | null>(null);
+
+  const reload = async () => {
+    const { data, error } = await supabase
+      .from("blog_media_assets")
+      .select("id, public_url, source, prompt, anchor_id, post_id, tags, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) toast.error(error.message);
+    setAssets((data ?? []) as MediaAsset[]);
+  };
+
+  const runAnchorBackfill = async () => {
+    if (backfilling) return;
+    setBackfilling(true);
+    const existing = new Set(
+      assets.filter((a) => a.source === "anchor_ai" && a.anchor_id).map((a) => a.anchor_id!),
+    );
+    const todo = BLOG_STYLE_ANCHORS.filter((a) => !existing.has(a.id));
+    setBackfillProgress({ done: 0, total: todo.length });
+    if (todo.length === 0) {
+      toast.success("All anchors already have AI baselines");
+      setBackfilling(false);
+      setBackfillProgress(null);
+      return;
+    }
+    let ok = 0;
+    let fail = 0;
+    for (let i = 0; i < todo.length; i++) {
+      const anchor = todo[i];
+      try {
+        const url = await generateAndStoreAiVariant({
+          referenceImageUrl: anchorPublicUrl(anchor.id, "https://tavara.care"),
+          prompt: anchor.subject,
+          anchor,
+          folder: "covers/anchor-ai",
+          source: "anchor_ai",
+          tags: ["anchor-baseline", anchor.id, ...anchor.topics],
+        });
+        if (url) ok++;
+        else fail++;
+      } catch (e) {
+        console.warn("[anchor backfill]", anchor.id, e);
+        fail++;
+      }
+      setBackfillProgress({ done: i + 1, total: todo.length });
+    }
+    await reload();
+    setBackfilling(false);
+    setBackfillProgress(null);
+    toast.success(`Anchor baselines: ${ok} generated, ${fail} failed`);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -53,7 +116,7 @@ export function BlogMediaLibrary({ onPick }: Props) {
         .from("blog_media_assets")
         .select("id, public_url, source, prompt, anchor_id, post_id, tags, created_at")
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(500);
       if (!cancelled) {
         if (error) toast.error(error.message);
         setAssets((data ?? []) as MediaAsset[]);
@@ -117,23 +180,44 @@ export function BlogMediaLibrary({ onPick }: Props) {
             placeholder="Search prompt, anchor, or tag..."
             className="max-w-sm"
           />
-          <div className="flex gap-1">
-            {(["all", "generated", "uploaded", "seeded"] as Filter[]).map((f) => (
+          <div className="flex flex-wrap gap-1">
+            {(Object.keys(FILTER_LABELS) as Filter[]).map((f) => (
               <Button
                 key={f}
                 size="sm"
                 variant={filter === f ? "default" : "outline"}
                 onClick={() => setFilter(f)}
-                className="capitalize"
               >
-                {f}
+                {FILTER_LABELS[f]}
               </Button>
             ))}
           </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={runAnchorBackfill}
+            disabled={backfilling}
+            title="Generate one AI baseline per style anchor that doesn't have one yet"
+          >
+            {backfilling ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                {backfillProgress
+                  ? `${backfillProgress.done}/${backfillProgress.total}`
+                  : "Working..."}
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-1" />
+                AI baselines
+              </>
+            )}
+          </Button>
           <span className="text-xs text-muted-foreground ml-auto">
             {filtered.length} of {assets.length}
           </span>
         </div>
+
 
         {loading ? (
           <div className="flex items-center justify-center py-12 text-muted-foreground">
@@ -167,13 +251,14 @@ export function BlogMediaLibrary({ onPick }: Props) {
                   <div className="flex items-center justify-between gap-2">
                     <span
                       className={cn(
-                        "px-1.5 py-0.5 rounded text-[10px] font-medium capitalize",
+                        "px-1.5 py-0.5 rounded text-[10px] font-medium",
+                        a.source === "anchor_ai" && "bg-primary text-primary-foreground",
                         a.source === "generated" && "bg-primary/10 text-primary",
                         a.source === "uploaded" && "bg-secondary text-secondary-foreground",
                         a.source === "seeded" && "bg-muted text-muted-foreground",
                       )}
                     >
-                      {a.source}
+                      {a.source === "anchor_ai" ? "Anchor AI" : a.source}
                     </span>
                     <button
                       type="button"
