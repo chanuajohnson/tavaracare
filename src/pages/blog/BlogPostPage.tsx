@@ -349,6 +349,17 @@ const BlogPostPage = () => {
           </nav>
 
           <article className="max-w-3xl mx-auto">
+            {post.cover_image_url && (
+              <figure className="mb-8 -mx-4 md:mx-0 overflow-hidden md:rounded-xl border-y md:border border-border bg-muted">
+                <img
+                  src={post.cover_image_url}
+                  alt={post.title}
+                  loading="eager"
+                  fetchPriority="high"
+                  className="w-full aspect-[16/9] object-cover"
+                />
+              </figure>
+            )}
             <header className="mb-10 space-y-4">
               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <Badge variant="secondary">{post.category}</Badge>
