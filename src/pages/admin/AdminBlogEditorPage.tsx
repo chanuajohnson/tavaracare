@@ -41,6 +41,7 @@ import { getBlogShareUrl } from "@/lib/blog/shareUrl";
 import { SocialSharePanel } from "@/components/admin/blog/SocialSharePanel";
 import { BlogAudioRegenButton } from "@/components/admin/BlogAudioRegenButton";
 import { BlogCoverGenerator } from "@/components/admin/blog/BlogCoverGenerator";
+import { BlogMediaLibrary } from "@/components/admin/blog/BlogMediaLibrary";
 
 export default function AdminBlogEditorPage() {
   const { id } = useParams<{ id: string }>();
