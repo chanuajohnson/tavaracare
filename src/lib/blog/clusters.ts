@@ -21,6 +21,7 @@ export const BLOG_CLUSTERS: Record<string, BlogCluster> = {
   "live-in-vs-hourly-care-trinidad-tobago": "cost-and-planning",
   "cost-of-dementia-care-trinidad-tobago": "cost-and-planning",
   "paying-for-care-without-going-broke-trinidad": "cost-and-planning",
+  "preparing-your-home-for-care-trinidad-tobago": "cost-and-planning",
 
   // Finding care cluster — practical "how do I start" posts
   "how-to-find-trusted-caregiver-trinidad-tobago": "finding-care",
