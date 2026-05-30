@@ -142,7 +142,7 @@ export function BlogMediaLibrary({ onPick }: Props) {
       setLoading(true);
       const { data, error } = await supabase
         .from("blog_media_assets")
-        .select("id, public_url, source, prompt, anchor_id, post_id, tags, created_at")
+        .select("id, public_url, storage_path, source, prompt, anchor_id, post_id, tags, created_at")
         .order("created_at", { ascending: false })
         .limit(500);
       if (!cancelled) {
