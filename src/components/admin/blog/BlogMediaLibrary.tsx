@@ -180,23 +180,44 @@ export function BlogMediaLibrary({ onPick }: Props) {
             placeholder="Search prompt, anchor, or tag..."
             className="max-w-sm"
           />
-          <div className="flex gap-1">
-            {(["all", "generated", "uploaded", "seeded"] as Filter[]).map((f) => (
+          <div className="flex flex-wrap gap-1">
+            {(Object.keys(FILTER_LABELS) as Filter[]).map((f) => (
               <Button
                 key={f}
                 size="sm"
                 variant={filter === f ? "default" : "outline"}
                 onClick={() => setFilter(f)}
-                className="capitalize"
               >
-                {f}
+                {FILTER_LABELS[f]}
               </Button>
             ))}
           </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={runAnchorBackfill}
+            disabled={backfilling}
+            title="Generate one AI baseline per style anchor that doesn't have one yet"
+          >
+            {backfilling ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                {backfillProgress
+                  ? `${backfillProgress.done}/${backfillProgress.total}`
+                  : "Working..."}
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-1" />
+                AI baselines
+              </>
+            )}
+          </Button>
           <span className="text-xs text-muted-foreground ml-auto">
             {filtered.length} of {assets.length}
           </span>
         </div>
+
 
         {loading ? (
           <div className="flex items-center justify-center py-12 text-muted-foreground">
