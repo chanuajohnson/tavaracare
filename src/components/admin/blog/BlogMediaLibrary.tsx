@@ -389,6 +389,89 @@ export function BlogMediaLibrary({ onPick }: Props) {
           </div>
         )}
       </DialogContent>
+
+      <Dialog
+        open={!!rejectTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setRejectTarget(null);
+            setRejectReason("");
+            setRejectCategory("off-brand");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete and tell the AI why</DialogTitle>
+            <DialogDescription>
+              Your reason is saved against this anchor and added as an "avoid"
+              clause on the next generation, so the AI learns from rejections.
+            </DialogDescription>
+          </DialogHeader>
+          {rejectTarget && (
+            <div className="space-y-3">
+              <div className="aspect-[16/9] overflow-hidden rounded border bg-muted">
+                <img
+                  src={rejectTarget.public_url}
+                  alt={rejectTarget.prompt ?? "Asset preview"}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="reject-category">Category</Label>
+                <Select value={rejectCategory} onValueChange={setRejectCategory}>
+                  <SelectTrigger id="reject-category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REJECTION_CATEGORIES.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="reject-reason">
+                  Why is this not a good fit?
+                </Label>
+                <Textarea
+                  id="reject-reason"
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="e.g. Subject is cropped, doesn't show a caregiver, too clinical for a family-facing piece..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRejectTarget(null)}
+              disabled={rejecting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={submitRejection}
+              disabled={rejecting}
+            >
+              {rejecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Saving...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-1" /> Delete and teach AI
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
