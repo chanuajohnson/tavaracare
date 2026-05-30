@@ -53,6 +53,59 @@ export function BlogMediaLibrary({ onPick }: Props) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillProgress, setBackfillProgress] = useState<{ done: number; total: number } | null>(null);
+
+  const reload = async () => {
+    const { data, error } = await supabase
+      .from("blog_media_assets")
+      .select("id, public_url, source, prompt, anchor_id, post_id, tags, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) toast.error(error.message);
+    setAssets((data ?? []) as MediaAsset[]);
+  };
+
+  const runAnchorBackfill = async () => {
+    if (backfilling) return;
+    setBackfilling(true);
+    const existing = new Set(
+      assets.filter((a) => a.source === "anchor_ai" && a.anchor_id).map((a) => a.anchor_id!),
+    );
+    const todo = BLOG_STYLE_ANCHORS.filter((a) => !existing.has(a.id));
+    setBackfillProgress({ done: 0, total: todo.length });
+    if (todo.length === 0) {
+      toast.success("All anchors already have AI baselines");
+      setBackfilling(false);
+      setBackfillProgress(null);
+      return;
+    }
+    let ok = 0;
+    let fail = 0;
+    for (let i = 0; i < todo.length; i++) {
+      const anchor = todo[i];
+      try {
+        const url = await generateAndStoreAiVariant({
+          referenceImageUrl: anchorPublicUrl(anchor.id, "https://tavara.care"),
+          prompt: anchor.subject,
+          anchor,
+          folder: "covers/anchor-ai",
+          source: "anchor_ai",
+          tags: ["anchor-baseline", anchor.id, ...anchor.topics],
+        });
+        if (url) ok++;
+        else fail++;
+      } catch (e) {
+        console.warn("[anchor backfill]", anchor.id, e);
+        fail++;
+      }
+      setBackfillProgress({ done: i + 1, total: todo.length });
+    }
+    await reload();
+    setBackfilling(false);
+    setBackfillProgress(null);
+    toast.success(`Anchor baselines: ${ok} generated, ${fail} failed`);
+  };
 
   useEffect(() => {
     if (!open) return;
