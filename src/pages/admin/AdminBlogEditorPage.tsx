@@ -546,6 +546,7 @@ export default function AdminBlogEditorPage() {
                     category={category}
                     onGenerated={(url) => setCoverImageUrl(url)}
                   />
+                  <BlogMediaLibrary onPick={(url) => setCoverImageUrl(url)} />
                   {coverImageUrl && (
                     <Button
                       size="sm"
