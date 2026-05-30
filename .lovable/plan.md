@@ -1,97 +1,71 @@
+# Reusable Media Library for generated covers
+
+## What's happening today
+
+The "Generate from prompt" tool already uploads the chosen image to the `blog-assets` Supabase storage bucket (`uploadBlogAsset(file, "covers")`) and writes that URL into `blog_posts.cover_image_url`. The file IS persisted — but only the post it was generated from knows about it. There's no index, no thumbnail grid, no way to reuse the same image on a different post or grab it for a social repost.
+
 ## Goal
 
-Stop the AI-looking blog covers. Use your 16 real Trinidad photos as the source-of-truth style anchors, recreate each post's cover by editing from the topically-matching anchor, drop the cover in as a hero on every article page, and add a prompt-driven cover generator in the admin editor that always inherits from these anchors. Share previews (WhatsApp/Facebook/LinkedIn unfurls) keep working — they already pull per-post title + image via the `blog-share` edge function, so the new images flow through automatically.
+Every generated cover gets catalogued the moment it's saved, and shows up in a Media Library the admin can browse from any post (and later, from any social-post tool).
 
-## What I see in your 16 references (the Tavara photo rulebook)
+## Implementation
 
-Baked into every prompt and into the admin generator's hidden style preamble:
+### 1. New table `blog_media_assets` (migration)
 
-- iPhone-documentary feel. Slight grain. Neutral-to-cool white balance, never warm orange. Soft natural daylight from a window, no studio lighting, no stock-photo bokeh.
-- Caribbean architectural cues. Decorative concrete-block screens, burglar-bar windows, white plastered walls, mahogany/teak rails and doors, parquet or terracotta floors, white subway or marble tile, drop ceilings, galvanized roofs, bougainvillea, pothos.
-- Real wear. Cracks, scuffs, mismatched objects, dated fixtures, lived-in untidiness. Never magazine-staged.
-- Care realism. Grab bars, mobility poles, commode chairs, home hospital beds with bed pads and mosquito nets, hand-holding, walking sticks, basins. Shown matter-of-factly, never glamorized.
-- People. When hands or figures appear: dark-skinned T&T hands, ordinary cotton clothes. No scrubs, no Pinterest "caregiver in white" cliché.
-- Avoid. Golden-hour beach shots, lab coats, glossy skin, drone palms, magazine staging, generic "tropical" shorthand.
+Tracks every generated/uploaded image with metadata so it's searchable and reusable.
 
-## Anchor library — committed to the repo
+Fields (besides standard id/created_at/updated_at):
+- `storage_path` text — path inside `blog-assets` bucket
+- `public_url` text — full public URL
+- `width`, `height` int
+- `mime_type` text
+- `source` text — `generated` | `uploaded` | `seeded`
+- `prompt` text nullable — the prompt used (for generated)
+- `anchor_id` text nullable — which style anchor was used
+- `post_id` uuid nullable — the post it was first attached to
+- `tags` text[] — slug, topic keywords, "social", etc.
+- `created_by` uuid — admin who created it
 
-Convert all 16 HEICs to JPG and store at `public/blog-style-refs/` (1000px-wide ~120-180 KB each, plus 400px thumbnails for the admin picker). These are the style anchors for both the one-time cover recreation and the admin generator going forward.
+RLS: admin-only select/insert/update/delete (uses existing `has_role(auth.uid(), 'admin')`).
+Grants: `authenticated` + `service_role`.
 
-| Anchor | Subject |
-| --- | --- |
-| `ref-kitchen-window` | Hanging pothos + bougainvillea, subway tile, sink |
-| `ref-stairwell-block` | Decorative-block window stairwell, turned mahogany balusters |
-| `ref-front-door` | Wooden door + terracotta tile, mahogany rail, carved figurine |
-| `ref-bedroom-pole` | Mobility pole next to four-poster bed, wooden floor, burglar-bar window |
-| `ref-shower-grab` | Grab bar + handheld shower, marble subway tile, small high window |
-| `ref-hospital-bed` | Home hospital bed, mosquito net, bed pad, drop ceiling |
-| `ref-hallway-parquet` | Dark parquet hallway, yellow walls, hanging pendant |
-| `ref-ornate-mirror` | Carved wooden mirror reflecting kitchen window + cabinets |
-| `ref-held-hands-light` | Intergenerational held hands, pale shirt background |
-| `ref-held-hands-dark` | Same theme, darker arm crossed, sage sheet |
-| `ref-commode-bath` | Commode chair, basin, marble-tile bathroom |
-| `ref-stairwell-panel` | Stairwell with mahogany balusters + framed sepia panorama |
-| `ref-french-door` | Black-framed glass French door opening onto parquet living room |
-| `ref-bathroom-tub-grab` | Full bathroom with tub, grab bar, drop ceiling, shower curtain |
-| `ref-kitchen-window-2` | Sink + pothos + bougainvillea (second angle of `ref-kitchen-window`) |
-| `ref-front-door-2` | Second angle of `ref-front-door` |
+### 2. Catalogue on save
 
-## Scope
+In `BlogCoverGenerator.useThisImage()`, after `uploadBlogAsset` succeeds, also insert a row into `blog_media_assets` with the prompt, anchor, post id, and `source='generated'`. Failure to catalogue does NOT block the save — it just logs a warning, so a storage hiccup never breaks the existing flow.
 
-### 1. Recreate the 6 existing blog covers
+### 3. Backfill the 6 already-regenerated covers
 
-For each post, run `imagegen--edit_image` (Gemini 3 Pro Image — best at preserving the source photo's lighting and architecture) using the chosen anchor as the base. Output 1200x630 JPG. Overwrite the existing files in `public/blog-covers/<slug>.jpg` so OG share URLs and DB rows keep working without any change.
+One-time insert in the same migration: register each of the 6 `public/blog-covers/<slug>.jpg` files (and their corresponding posts) as `source='seeded'` rows so the library isn't empty on day one.
 
-Topic → anchor mapping:
-- Caring on a Public Holiday → `ref-kitchen-window` (calendar/holiday cue on counter)
-- Live-in vs Hourly Care → `ref-bedroom-pole` (made bed, folded linen, soft daylight)
-- Finding a Care Professional → `ref-held-hands-light` (caregiver + elder hands, neutral light)
-- Dementia Care Costs → `ref-hallway-parquet` (one open door, quiet hallway)
-- Paying for Care Without Going Broke → `ref-stairwell-panel` (notebook + pen on the landing ledge)
-- Preparing Your Home for Care → `ref-bathroom-tub-grab` (grab bar + tub, ordinary bathroom)
+### 4. New component `BlogMediaLibrary.tsx`
 
-I'll eyeball every output before committing and regenerate any that drift plasticky.
+Modal grid of all assets, newest first, with:
+- Search by prompt / tag / slug
+- Filter chips: All / Generated / Uploaded / Seeded
+- Click an asset → "Use as cover for this post" (writes URL to current post's `cover_image_url`) and "Copy URL" (for social reposts)
 
-### 2. Hero image on each article page
+Mounted from `AdminBlogEditorPage.tsx` next to the existing Upload / Generate buttons as a third button: **"Pick from library"**.
 
-In `src/pages/blog/BlogPostPage.tsx`, render `cover_image_url` as a full-width 16:9 hero above the title — rounded corners, `loading="eager"`, sensible mobile aspect. If a post has no cover, no hero. Pure presentation, no body-copy changes, no routing changes.
+### 5. Storage bucket
 
-### 3. "Generate cover from prompt" in the admin editor
+`blog-assets` already exists (the current uploader uses it). No bucket change needed — just confirm it's public so URLs work in OG share previews and social reposts.
 
-In `src/pages/admin/AdminBlogEditorPage.tsx`, beside the existing Upload/Replace buttons:
-- New "Generate from prompt" button → opens a small dialog
-- Textarea for the prompt, seeded from post title + description
-- Anchor picker — radio grid of the 16 thumbnails; default is "Auto-pick by topic" which selects based on the post's category and topic keywords
-- Hidden always-applied style preamble — injects the Tavara photo rulebook above and references the chosen anchor URL
-- Edge function `generate-marketing-image` gets one new optional field `referenceImageUrl`; when present it switches the model to `google/gemini-3-pro-image-preview` and uses image-to-image. Existing call sites without a reference keep working unchanged.
-- Output uploaded to the `blog-assets` Supabase bucket via existing `uploadBlogAsset`, then written into `coverImageUrl` for the post. Admin previews it inline before saving.
+## Out of scope (call out, not building)
 
-Every future cover the admin creates therefore inherits the Tavara photo rulebook automatically.
+- A standalone `/admin/media` page — the library is modal-only for now, surfaced where the admin actually needs it (the editor). Easy to promote later.
+- Tag auto-suggestion from the prompt — keep it manual / slug-based for v1.
+- Deletion UI — admins can delete via Supabase dashboard until we add it; preserves accidental-delete protection.
 
-### 4. Share previews — no work needed
+## Verification
 
-`supabase/functions/blog-share/index.ts` already serves per-post `og:title` + `og:image` from `cover_image_url`. Once the new files land in `public/blog-covers/`, WhatsApp/Facebook/LinkedIn unfurls show the new photo + the specific article title (not the generic Tavara home card). Crawler caches can take 24-48h; I can ping Facebook's URL debugger manually for any URL you want refreshed sooner.
+1. Generate a new cover on any post → confirm a row lands in `blog_media_assets` and the file exists in `blog-assets/covers/`.
+2. Open a different post → click "Pick from library" → that same image is selectable → save → confirm new post's `cover_image_url` matches.
+3. Copy URL from library → paste into a browser → image loads (proves it works for social reposts).
+4. Check the 6 backfilled seeded covers appear in the grid.
 
-## Out of scope (ask if you want any of these)
+## Files touched
 
-- Adding cover thumbnails to `/blog` index cards
-- Adding cover thumbnails to the admin list table
-- Changing typography/layout of the article body
-- Editing the body copy of any of the 6 posts
-- Touching routing, auth, registration, chat flow
-
-## Technical notes
-
-- Anchors: `public/blog-style-refs/<name>.jpg` (full) and `public/blog-style-refs/thumbs/<name>.jpg` (400px for the admin picker). Same-domain, cached, no Supabase storage write needed.
-- Covers: stay in `public/blog-covers/<slug>.jpg` (existing convention).
-- Admin-generated covers: go to the `blog-assets` Supabase bucket (already exists, already wired through `uploadBlogAsset`).
-- One-time recreation of the 6 covers: agent-side `imagegen--edit_image`, committed to repo.
-- Edge function `generate-marketing-image` change: one new optional field, backwards compatible, no DB migration, no RLS or grants change.
-- Guardrails respected: no edits to `src/App.tsx`, routing, `Navigation.tsx`, `AuthProvider.tsx`, `FamilyRegistration.tsx`, or anything in `src/pages/registration/`. Chat flow files untouched.
-
-## Verification before I tell you it's done
-
-1. Eyeball each of the 6 recreated covers; regenerate any that look plasticky/AI.
-2. Open `/blog/caring-on-a-public-holiday-trinidad-tobago` in preview (your 997x853 viewport) and on a mobile breakpoint; confirm the hero crops cleanly at 16:9.
-3. Open `/admin/blog/<that-id>`, click Generate from prompt, pick an anchor, confirm the output reads as Trinidad-real and that it saves into the post.
-4. Paste the live URL into WhatsApp web in a test chat; confirm the unfurl shows the new image + the specific post title (note 24-48h CDN cache for already-fetched URLs).
+- New migration: `blog_media_assets` table + RLS + grants + 6 seed inserts.
+- Edit: `src/components/admin/blog/BlogCoverGenerator.tsx` — insert metadata row after upload.
+- New: `src/components/admin/blog/BlogMediaLibrary.tsx` — modal grid + search/filter.
+- Edit: `src/pages/admin/AdminBlogEditorPage.tsx` — mount "Pick from library" button.
