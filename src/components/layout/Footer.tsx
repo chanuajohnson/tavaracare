@@ -30,7 +30,7 @@ export const Footer: React.FC = () => {
               It takes a village to care
             </p>
             <p className="text-gray-300 leading-relaxed">
-              Your trusted platform for coordinated care, caregiver well-being, and connected 
+              Your trusted platform for coordinated care, care professional well-being, and connected 
               support across families, professionals, and communities.
             </p>
           </div>
