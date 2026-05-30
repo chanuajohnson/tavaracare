@@ -40,6 +40,7 @@ import { BlogLinkValidationPanel } from "@/components/admin/blog/BlogLinkValidat
 import { getBlogShareUrl } from "@/lib/blog/shareUrl";
 import { SocialSharePanel } from "@/components/admin/blog/SocialSharePanel";
 import { BlogAudioRegenButton } from "@/components/admin/BlogAudioRegenButton";
+import { BlogCoverGenerator } from "@/components/admin/blog/BlogCoverGenerator";
 
 export default function AdminBlogEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -517,20 +518,29 @@ export default function AdminBlogEditorPage() {
                     if (f) handleCoverUpload(f);
                   }}
                 />
-                <Button size="sm" variant="outline" asChild>
-                  <label htmlFor="cover-upload" className="cursor-pointer">
-                    <Upload className="h-4 w-4 mr-1" /> {coverImageUrl ? "Replace" : "Upload"}
-                  </label>
-                </Button>
-                {coverImageUrl && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setCoverImageUrl(null)}
-                  >
-                    Remove
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" asChild>
+                    <label htmlFor="cover-upload" className="cursor-pointer">
+                      <Upload className="h-4 w-4 mr-1" /> {coverImageUrl ? "Replace" : "Upload"}
+                    </label>
                   </Button>
-                )}
+                  <BlogCoverGenerator
+                    slug={slug}
+                    title={title}
+                    description={description}
+                    category={category}
+                    onGenerated={(url) => setCoverImageUrl(url)}
+                  />
+                  {coverImageUrl && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setCoverImageUrl(null)}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
