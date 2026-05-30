@@ -29,6 +29,7 @@ import { generateAndStoreAiVariant } from "@/lib/blog/generateAiVariant";
 type MediaAsset = {
   id: string;
   public_url: string;
+  storage_path: string | null;
   source: string;
   prompt: string | null;
   anchor_id: string | null;
