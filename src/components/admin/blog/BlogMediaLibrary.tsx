@@ -10,9 +10,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Images, Copy, Loader2, Check } from "lucide-react";
+import { Images, Copy, Loader2, Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { BLOG_STYLE_ANCHORS, anchorPublicUrl } from "@/lib/blog/styleAnchors";
+import { generateAndStoreAiVariant } from "@/lib/blog/generateAiVariant";
 
 type MediaAsset = {
   id: string;
@@ -29,7 +31,15 @@ type Props = {
   onPick: (url: string) => void;
 };
 
-type Filter = "all" | "generated" | "uploaded" | "seeded";
+type Filter = "all" | "anchor_ai" | "generated" | "uploaded" | "seeded";
+
+const FILTER_LABELS: Record<Filter, string> = {
+  all: "All",
+  anchor_ai: "Anchor AI",
+  generated: "Generated",
+  uploaded: "Uploaded",
+  seeded: "Seeded",
+};
 
 /**
  * Reusable Media Library for blog covers. Lists every catalogued image so an
