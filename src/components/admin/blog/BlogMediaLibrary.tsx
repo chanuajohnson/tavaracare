@@ -348,22 +348,32 @@ export function BlogMediaLibrary({ onPick }: Props) {
                     >
                       {a.source === "anchor_ai" ? "Anchor AI" : a.source}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => copy(a)}
-                      className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-                      title="Copy URL"
-                    >
-                      {copiedId === a.id ? (
-                        <>
-                          <Check className="h-3 w-3" /> Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3 w-3" /> URL
-                        </>
-                      )}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => copy(a)}
+                        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                        title="Copy URL"
+                      >
+                        {copiedId === a.id ? (
+                          <>
+                            <Check className="h-3 w-3" /> Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3" /> URL
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRejectTarget(a)}
+                        className="text-muted-foreground hover:text-destructive inline-flex items-center"
+                        title="Delete with reason (teaches the AI)"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
                   </div>
                   {a.prompt && (
                     <p className="line-clamp-2 text-muted-foreground">{a.prompt}</p>
