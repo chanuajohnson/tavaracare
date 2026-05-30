@@ -1,38 +1,32 @@
-## 1. Where do the cover images appear?
+## Rewrite: lighter on law, honest about what households can afford
 
-The image you saw in chat is the **cover image** I generated and saved to `public/blog-covers/caring-on-a-public-holiday-trinidad-tobago.jpg`. It is stored in `blog_posts.cover_image_url`.
+You're right. The current draft over-anchors on statutory double time, which is not realistic for most Tavara households. The rewrite below keeps your voice, keeps the length, and shifts the centre of gravity from "the law says" to "what families actually do".
 
-Today it is used in exactly two places:
+### What changes
 
-- **Admin editor** (`/admin/blog/:id`) — preview field when editing the post.
-- **Live blog post page** (`/blog/:slug`) — set as the **OG / social share image** (`<meta property="og:image">`) so it appears when the link is shared on Facebook, WhatsApp, LinkedIn, etc. It is the thumbnail in the screenshot you pasted of the Facebook share preview.
+- **Law verbiage reduced ~20%.** Removed the dedicated "Trinidad and Tobago statutory standard" section. Statutory protections get acknowledged once, in a single paragraph, as context, not as the headline answer.
+- **Compensation framing widened.** The new copy names time-and-a-half, double time, substitute day off, and rotation as legitimate arrangements households actually use. No single number is presented as the only correct answer.
+- **Reality of household budgets named.** Adds the line that not every family has unlimited resources and that the goal is a fair, respectful, sustainable arrangement, not winning an argument.
+- **Same voice, same structural rhythm, same length** (~9 min read). Section headings keep the From the family side / From the care professional side split. Founder note from Chanua and the 11-holiday quick reference at the bottom are preserved.
+- **Guardrails honoured throughout.** "Care professional" (never caregiver), "loved one" (never patient), no em or en dashes, no banned AI words, no public-surface dollar amounts beyond the per-hour care rate band.
 
-It is **not** rendered as a hero on the live post body, not in the admin blog list table, and not on `/blog` index cards. If you want it visible on any of those surfaces, that is a separate change, tell me which surface and I will add it.
+### Structure of the rewritten body
 
-## 2. Social caption guardrails violation
+1. **Public holidays reveal whether a care arrangement is working** (your opener, lightly tightened)
+2. **The questions a holiday forces** (who covers, does she want to work it, what rate, can the household afford it)
+3. **The real conversation is operational, not legal** (one paragraph acknowledging T&T labour protections exist, then pivoting to planning)
+4. **From the family side** (plan two weeks ahead, talk compensation early, build the fill-in rotation, small dignities, write the arrangement down once)
+5. **From the care professional side** (ask early, understand the household's reality, professionalism still applies, keep your own records)
+6. **A note on compensation** (single short section: time-and-a-half, double time, substitute day, rotation, all legitimate; the rule is agree before, not after)
+7. **The 11 public holidays at a glance** (kept)
+8. **The universal principle** (kept, one paragraph)
+9. **Chanua's founder note** (kept)
+10. **Internal links** (kept: family features, professional features, family registration)
 
-You are right. The Facebook caption used "the caregiver", which on family-facing public copy should be **"care professional"** per `mem://constraints/tavara-language-guardrails`. The caption generator system prompt currently allows "caregiver" as an acceptable replacement; that is too loose for outward social copy where families are the reader.
+### Files touched
 
-### Fix
+- `supabase/migrations/<timestamp>_update_holiday_blog_body.sql` — `UPDATE blog_posts SET body = $body$...$body$ WHERE slug = 'caring-on-a-public-holiday-trinidad-tobago'`. Status stays `draft`, cover image, slug, title, CTA, FAQs all untouched.
 
-Edit `supabase/functions/generate-social-caption/index.ts` system prompt:
+No changes to schema, RLS, routing, sitemap, clusters, or any other file. After the migration runs you review at `/admin/blog/fad384e5-b4fd-43d4-979c-f4d15e4a73e3` and flip to published when the copy reads right.
 
-1. In the language rules block, change the guidance from `caregiver` to **`care professional`** as the preferred public-surface noun for the person providing care. Keep `care team` for the group.
-2. Add an explicit line: **"On family-facing social captions, always say 'care professional' (singular) or 'care team' (group). Never say 'caregiver', 'worker', 'staff', 'employee', or 'aide'."**
-3. Add: **"Never say 'hire' or 'pay'. Use 'arrange care', 'coordinate care', or 'support'."**
-4. Re-state the financial-privacy rule for captions: no subscription dollar amounts, no Home Preparation prices, no weekly/monthly totals. Per-hour care rates ($40/$45/$50+) and the $1,399 matching fee are allowed only when contextually relevant.
-5. Bump an internal `PROMPT_VERSION` constant (comment) so we know captions generated after this change use the tightened rules.
-
-### Regenerate the Facebook caption for this post
-
-After deploying the function, re-run the Social Share generator for the Indian Arrival Day post on Facebook. The new caption will replace "caregiver" with "care professional". I will paste the rewritten caption back here for your approval before you post it.
-
-### No schema, no UI, no route changes
-
-This is a copy-rule fix inside one edge function plus a re-generation. No migration, no impact on `App.tsx`, navigation, registration flows, or the chat flow engine.
-
-## Files touched
-
-- `supabase/functions/generate-social-caption/index.ts` — system prompt tightened.
-
-That is the whole change. Approve and I will apply it.
+Approve and I will write the migration with the full rewritten body.
