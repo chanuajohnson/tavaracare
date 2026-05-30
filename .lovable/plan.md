@@ -1,29 +1,58 @@
-## Problem
+# Plan: 5th T&T Blog Post — "Preparing Your Home for Care"
 
-Editing a guardrail at `/admin/language-guardrails` fails with:
-> new row violates row-level security policy for table "language_guardrails"
+Add one new blog post as a `draft` in the `blog_posts` table, visible at `/admin/blog` for review. No changes to onboarding components, pricing catalog, or any existing surface.
 
-## Root cause
+## Scope
 
-`useUpsertGuardrail` in `src/hooks/admin/useLanguageGuardrails.ts` calls `supabase.from('language_guardrails').upsert(payload)`. PostgREST translates `.upsert()` into `INSERT ... ON CONFLICT DO UPDATE`, so Postgres always evaluates the **INSERT WITH CHECK** policy — even when the row already exists and only an UPDATE is happening.
+**In scope**
+- New row in `blog_posts` (status=`draft`)
+- New cover image saved to `public/blog-covers/` and `src/assets/blog/`
+- Register slug in `src/lib/blog/clusters.ts` under `cost-and-planning`
+- Add URL to `public/sitemap.xml`
 
-The current INSERT policy requires `has_role(auth.uid(), 'admin')`. Whenever the WITH CHECK evaluation returns false (e.g. the admin session check momentarily fails, the user is editing under a non-admin role, or auth.uid() context isn't where the policy expects), the whole upsert is rejected — even for a pure edit.
+**Out of scope**
+- `CareEnvironmentIntroCard.tsx`, `CareSuppliesCard.tsx`, `CareEnvironmentJourneyStepContent.tsx`
+- `/admin/onboarding-checklist` and any onboarding logic
+- Pricing catalog, billable services, dollar amounts on public surfaces
 
-The UPDATE policy on its own is fine (`USING has_role(...)`), so doing a plain `.update().eq('id', ...)` for edits avoids the INSERT-policy path entirely.
+## Post specs
 
-## Fix
+- **Slug:** `preparing-your-home-for-care-trinidad-tobago`
+- **Title:** Preparing Your Home for Care (Trinidad & Tobago)
+- **Cluster:** `cost-and-planning`
+- **Category:** `Family Care Guides`
+- **Status:** `draft`
+- **Author:** Chanua Johnson, Tavara Care Coordinator & Founder
+- **Reading time:** auto via `estimateReadingTime`
+- **Cover image:** warm T&T living room, soft natural light, lived-in but ordered, no people, 16:9
+- **CTA:** "Talk to us about home preparation" → `/family/features-overview`
 
-In `src/hooks/admin/useLanguageGuardrails.ts`, change `useUpsertGuardrail` so:
+## Content outline
 
-- If `input.id` is present → `supabase.from('language_guardrails').update(payload).eq('id', input.id).select().single()` (only UPDATE policy runs).
-- If `input.id` is absent → `supabase.from('language_guardrails').insert(payload).select().single()` (only INSERT policy runs).
+1. Why home preparation matters (dignity, safety, caregiver effectiveness — not "cleaning")
+2. The home as a care environment — what shifts when a caregiver begins shifts
+3. Weekend walk-through families can do: airflow, hallway clearance, bathroom safety, medication zone, caregiver workspace
+4. Basic care supplies the family provides: gloves, monitoring devices, meds, food, personal care items, workspace access
+5. When to bring Tavara in to help coordinate a deeper reset — names the three support tiers **by name only** (Care Readiness Assessment, Guided Home Reset, Full Care Environment Reset). States pricing is shared privately during onboarding. **No dollar amounts.**
+6. Founder note from Chanua — short, warm, T&T voice
+7. Internal links: `senior-care-costs-trinidad-tobago-2026`, `paying-for-care-without-going-broke-trinidad`, `inside-tavara-onboarding-step-by-step`
 
-Keep the same `created_by` / `updated_by` audit fields and the same `onSuccess` / `onError` toast behavior. No other call sites or UI change.
+## Language guardrails applied
 
-No DB migration is needed — the existing policies are correct for the split path.
+- "loved one" not "patient"; "care team" not "staff"; "arrange care" not "hire"; "home preparation" not "clean-up"
+- No em/en-dashes; no "It's not just X, it's Y"
+- No banned words (delve, leverage, holistic, journey, landscape, transformative, seamless, robust, etc.)
+- British spellings; short paragraphs; at least one concrete T&T detail per 800 words
+- Frames Tavara as coordinating and managing vendors — never doing the cleaning work ourselves
 
-## Verification
+## Technical steps
 
-1. Log in as admin, edit the "patient → loved one" rule, change the body, click Save → toast "Guardrail saved", row updates, audit entry written.
-2. Create a brand-new word rule → still works via the insert branch.
-3. Toggle a rule on/off → unchanged (already uses `.update()`).
+1. Generate cover image (premium quality, 16:9, warm T&T home)
+2. `INSERT` into `blog_posts` via insert tool with `status='draft'`, no `published_at`
+3. Edit `src/lib/blog/clusters.ts` — add slug to `BLOG_CLUSTERS` under `cost-and-planning`
+4. Edit `public/sitemap.xml` — add `<url>` entry with `lastmod` 2026-05-30
+5. Verify draft appears at `/admin/blog`
+
+## What to confirm with you after
+
+Review the draft at `/admin/blog`. When you approve the copy, flip `status` to `published` and set `published_at`.
