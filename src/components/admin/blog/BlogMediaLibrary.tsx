@@ -83,6 +83,66 @@ export function BlogMediaLibrary({ onPick }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [backfilling, setBackfilling] = useState(false);
   const [backfillProgress, setBackfillProgress] = useState<{ done: number; total: number } | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<MediaAsset | null>(null);
+  const [rejectCategory, setRejectCategory] = useState<string>("off-brand");
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejecting, setRejecting] = useState(false);
+
+  const submitRejection = async () => {
+    if (!rejectTarget) return;
+    const reason = rejectReason.trim();
+    if (reason.length < 5) {
+      toast.error("Please tell us why (at least 5 characters) so the AI can learn.");
+      return;
+    }
+    setRejecting(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const path = rejectTarget.storage_path ?? storagePathFromUrl(rejectTarget.public_url);
+
+      // 1. Record the rejection so future generations can avoid this pattern.
+      const { error: insertErr } = await supabase.from("blog_media_rejections").insert({
+        asset_id: rejectTarget.id,
+        storage_path: path,
+        public_url: rejectTarget.public_url,
+        source: rejectTarget.source,
+        anchor_id: rejectTarget.anchor_id,
+        prompt: rejectTarget.prompt,
+        tags: rejectTarget.tags,
+        post_id: rejectTarget.post_id,
+        reason,
+        reason_category: rejectCategory,
+        rejected_by: userData.user?.id ?? null,
+      });
+      if (insertErr) throw insertErr;
+
+      // 2. Delete object from storage (best-effort).
+      if (path) {
+        const { error: storageErr } = await supabase.storage
+          .from("blog-assets")
+          .remove([path]);
+        if (storageErr) console.warn("[reject] storage delete failed:", storageErr);
+      }
+
+      // 3. Delete the catalogue row.
+      const { error: delErr } = await supabase
+        .from("blog_media_assets")
+        .delete()
+        .eq("id", rejectTarget.id);
+      if (delErr) throw delErr;
+
+      setAssets((prev) => prev.filter((a) => a.id !== rejectTarget.id));
+      toast.success("Deleted. The AI will avoid this pattern next time.");
+      setRejectTarget(null);
+      setRejectReason("");
+      setRejectCategory("off-brand");
+    } catch (e) {
+      console.error("[submitRejection]", e);
+      toast.error(e instanceof Error ? e.message : "Failed to delete");
+    } finally {
+      setRejecting(false);
+    }
+  };
 
   const reload = async () => {
     const { data, error } = await supabase
