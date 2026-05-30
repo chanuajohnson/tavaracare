@@ -41,6 +41,23 @@ type Props = {
   onPick: (url: string) => void;
 };
 
+const REJECTION_CATEGORIES: { value: string; label: string }[] = [
+  { value: "off-brand", label: "Off-brand / wrong style" },
+  { value: "wrong-subject", label: "Wrong subject / misses the point" },
+  { value: "low-quality", label: "Low quality / artifacts" },
+  { value: "unsafe", label: "Unsafe / inappropriate" },
+  { value: "duplicate", label: "Duplicate / redundant" },
+  { value: "other", label: "Other" },
+];
+
+/** Derive `<folder>/<file>` storage path from a Supabase public URL. */
+function storagePathFromUrl(url: string): string | null {
+  const marker = "/storage/v1/object/public/blog-assets/";
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  return decodeURIComponent(url.slice(idx + marker.length));
+}
+
 type Filter = "all" | "anchor_ai" | "generated" | "uploaded" | "seeded";
 
 const FILTER_LABELS: Record<Filter, string> = {
