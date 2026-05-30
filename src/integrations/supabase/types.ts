@@ -589,6 +589,65 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_media_assets: {
+        Row: {
+          anchor_id: string | null
+          created_at: string
+          created_by: string | null
+          height: number | null
+          id: string
+          mime_type: string | null
+          post_id: string | null
+          prompt: string | null
+          public_url: string
+          source: string
+          storage_path: string | null
+          tags: string[]
+          updated_at: string
+          width: number | null
+        }
+        Insert: {
+          anchor_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          post_id?: string | null
+          prompt?: string | null
+          public_url: string
+          source?: string
+          storage_path?: string | null
+          tags?: string[]
+          updated_at?: string
+          width?: number | null
+        }
+        Update: {
+          anchor_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          post_id?: string | null
+          prompt?: string | null
+          public_url?: string
+          source?: string
+          storage_path?: string | null
+          tags?: string[]
+          updated_at?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_media_assets_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_post_reactions: {
         Row: {
           created_at: string

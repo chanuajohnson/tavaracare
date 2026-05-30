@@ -114,6 +114,26 @@ export function BlogCoverGenerator({
       });
       const uploaded = await uploadBlogAsset(file, "covers");
       onGenerated(uploaded);
+
+      // Catalogue into the Media Library so the image is reusable on other
+      // posts and for social reposts. Failure here MUST NOT block the save.
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        await supabase.from("blog_media_assets").insert({
+          public_url: uploaded,
+          source: "generated",
+          prompt,
+          anchor_id: anchor.id,
+          mime_type: file.type,
+          width: 1200,
+          height: 630,
+          tags: [slug, category, anchor.id].filter(Boolean) as string[],
+          created_by: userData.user?.id ?? null,
+        });
+      } catch (catalogErr) {
+        console.warn("[BlogCoverGenerator] catalogue failed:", catalogErr);
+      }
+
       toast.success("Cover image saved — remember to Save the post");
       setOpen(false);
       setPreviewUrl(null);
