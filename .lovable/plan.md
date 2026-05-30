@@ -1,71 +1,26 @@
-# Reusable Media Library for generated covers
+## Show cover images on blog cards
 
-## What's happening today
+The `/blog` index currently renders `BlogCard` with only category, title, description, and author — no cover image. Every post has a `cover_image_url` (the ones you generate via BlogCoverGenerator + the seeded covers), so we just need to render it.
 
-The "Generate from prompt" tool already uploads the chosen image to the `blog-assets` Supabase storage bucket (`uploadBlogAsset(file, "covers")`) and writes that URL into `blog_posts.cover_image_url`. The file IS persisted — but only the post it was generated from knows about it. There's no index, no thumbnail grid, no way to reuse the same image on a different post or grab it for a social repost.
+### Change
 
-## Goal
+**`src/components/blog/BlogCard.tsx`** — add a 16:9 cover image at the top of the card when `post.cover_image_url` exists.
 
-Every generated cover gets catalogued the moment it's saved, and shows up in a Media Library the admin can browse from any post (and later, from any social-post tool).
+- Wrap in `aspect-[16/9]` container with `overflow-hidden rounded-t-lg bg-muted`
+- `<img src={post.cover_image_url} alt={post.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform" />`
+- If no cover, render nothing (no placeholder) so older posts without images degrade gracefully
+- Keep all existing card content (category badge, reading time, title, description, author row) unchanged
 
-## Implementation
+### How the images are created (for your cofounder)
 
-### 1. New table `blog_media_assets` (migration)
+1. Admin opens `/admin/blog/:id` → **BlogCoverGenerator** panel
+2. Picks a style anchor (`src/lib/blog/styleAnchors.ts`) — e.g. "held hands", "front door", "kitchen window"
+3. Clicks generate → calls `generate-marketing-image` edge function → OpenAI gpt-image-2 (1200x630, blog-cover style)
+4. "Use this image" uploads the PNG to the `blog-assets` Supabase bucket and writes the public URL to `blog_posts.cover_image_url`
+5. Also catalogues it in `blog_media_assets` (the new media library) so it can be reused on other posts or for social reposts via the "Pick from library" button
 
-Tracks every generated/uploaded image with metadata so it's searchable and reusable.
+### Out of scope
 
-Fields (besides standard id/created_at/updated_at):
-- `storage_path` text — path inside `blog-assets` bucket
-- `public_url` text — full public URL
-- `width`, `height` int
-- `mime_type` text
-- `source` text — `generated` | `uploaded` | `seeded`
-- `prompt` text nullable — the prompt used (for generated)
-- `anchor_id` text nullable — which style anchor was used
-- `post_id` uuid nullable — the post it was first attached to
-- `tags` text[] — slug, topic keywords, "social", etc.
-- `created_by` uuid — admin who created it
-
-RLS: admin-only select/insert/update/delete (uses existing `has_role(auth.uid(), 'admin')`).
-Grants: `authenticated` + `service_role`.
-
-### 2. Catalogue on save
-
-In `BlogCoverGenerator.useThisImage()`, after `uploadBlogAsset` succeeds, also insert a row into `blog_media_assets` with the prompt, anchor, post id, and `source='generated'`. Failure to catalogue does NOT block the save — it just logs a warning, so a storage hiccup never breaks the existing flow.
-
-### 3. Backfill the 6 already-regenerated covers
-
-One-time insert in the same migration: register each of the 6 `public/blog-covers/<slug>.jpg` files (and their corresponding posts) as `source='seeded'` rows so the library isn't empty on day one.
-
-### 4. New component `BlogMediaLibrary.tsx`
-
-Modal grid of all assets, newest first, with:
-- Search by prompt / tag / slug
-- Filter chips: All / Generated / Uploaded / Seeded
-- Click an asset → "Use as cover for this post" (writes URL to current post's `cover_image_url`) and "Copy URL" (for social reposts)
-
-Mounted from `AdminBlogEditorPage.tsx` next to the existing Upload / Generate buttons as a third button: **"Pick from library"**.
-
-### 5. Storage bucket
-
-`blog-assets` already exists (the current uploader uses it). No bucket change needed — just confirm it's public so URLs work in OG share previews and social reposts.
-
-## Out of scope (call out, not building)
-
-- A standalone `/admin/media` page — the library is modal-only for now, surfaced where the admin actually needs it (the editor). Easy to promote later.
-- Tag auto-suggestion from the prompt — keep it manual / slug-based for v1.
-- Deletion UI — admins can delete via Supabase dashboard until we add it; preserves accidental-delete protection.
-
-## Verification
-
-1. Generate a new cover on any post → confirm a row lands in `blog_media_assets` and the file exists in `blog-assets/covers/`.
-2. Open a different post → click "Pick from library" → that same image is selectable → save → confirm new post's `cover_image_url` matches.
-3. Copy URL from library → paste into a browser → image loads (proves it works for social reposts).
-4. Check the 6 backfilled seeded covers appear in the grid.
-
-## Files touched
-
-- New migration: `blog_media_assets` table + RLS + grants + 6 seed inserts.
-- Edit: `src/components/admin/blog/BlogCoverGenerator.tsx` — insert metadata row after upload.
-- New: `src/components/admin/blog/BlogMediaLibrary.tsx` — modal grid + search/filter.
-- Edit: `src/pages/admin/AdminBlogEditorPage.tsx` — mount "Pick from library" button.
+- No placeholder for posts missing a cover (you can backfill them from the media library)
+- No layout change to the index grid
+- No OG/social meta changes (already wired separately)

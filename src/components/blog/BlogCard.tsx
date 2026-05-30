@@ -16,7 +16,17 @@ export const BlogCard = ({ post }: { post: BlogPost }) => {
 
   return (
     <Link to={`/blog/${post.slug}`} className="block group">
-      <Card className="h-full transition-shadow hover:shadow-md">
+      <Card className="h-full transition-shadow hover:shadow-md overflow-hidden">
+        {post.cover_image_url && (
+          <div className="aspect-[16/9] overflow-hidden bg-muted">
+            <img
+              src={post.cover_image_url}
+              alt={post.title}
+              loading="lazy"
+              className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform"
+            />
+          </div>
+        )}
         <CardHeader className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Badge variant="secondary">{post.category}</Badge>
