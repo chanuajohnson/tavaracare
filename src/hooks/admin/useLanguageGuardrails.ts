@@ -67,11 +67,27 @@ export function useUpsertGuardrail() {
   return useMutation({
     mutationFn: async (input: Partial<LanguageGuardrail> & { id?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      const payload: any = { ...input, updated_by: user?.id ?? null };
-      if (!input.id) payload.created_by = user?.id ?? null;
+      if (input.id) {
+        // Strip server-managed fields so UPDATE only touches editable columns.
+        const { id, created_by, created_at, updated_at, ...rest } = input as any;
+        const payload: any = { ...rest, updated_by: user?.id ?? null };
+        const { data, error } = await supabase
+          .from(TABLE)
+          .update(payload)
+          .eq('id', id)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
+      const payload: any = {
+        ...input,
+        created_by: user?.id ?? null,
+        updated_by: user?.id ?? null,
+      };
       const { data, error } = await supabase
         .from(TABLE)
-        .upsert(payload)
+        .insert(payload)
         .select()
         .single();
       if (error) throw error;
