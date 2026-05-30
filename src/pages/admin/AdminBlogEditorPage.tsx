@@ -159,6 +159,20 @@ export default function AdminBlogEditorPage() {
     try {
       const url = await uploadBlogAsset(file, "covers");
       setCoverImageUrl(url);
+      // Catalogue into Media Library so plain uploads are reusable too.
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data: userData } = await supabase.auth.getUser();
+        await supabase.from("blog_media_assets").insert({
+          public_url: url,
+          source: "uploaded",
+          mime_type: file.type,
+          tags: [slug, category].filter(Boolean) as string[],
+          created_by: userData.user?.id ?? null,
+        });
+      } catch (catalogErr) {
+        console.warn("[AdminBlogEditor] catalogue failed:", catalogErr);
+      }
       toast.success("Cover uploaded");
     } catch (e: any) {
       toast.error(e.message ?? "Upload failed");
