@@ -116,7 +116,7 @@ export function BlogMediaLibrary({ onPick }: Props) {
         .from("blog_media_assets")
         .select("id, public_url, source, prompt, anchor_id, post_id, tags, created_at")
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(500);
       if (!cancelled) {
         if (error) toast.error(error.message);
         setAssets((data ?? []) as MediaAsset[]);
