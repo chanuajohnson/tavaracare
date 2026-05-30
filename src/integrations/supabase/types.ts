@@ -648,6 +648,54 @@ export type Database = {
           },
         ]
       }
+      blog_media_rejections: {
+        Row: {
+          anchor_id: string | null
+          asset_id: string | null
+          created_at: string
+          id: string
+          post_id: string | null
+          prompt: string | null
+          public_url: string | null
+          reason: string
+          reason_category: string | null
+          rejected_by: string | null
+          source: string | null
+          storage_path: string | null
+          tags: string[] | null
+        }
+        Insert: {
+          anchor_id?: string | null
+          asset_id?: string | null
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          prompt?: string | null
+          public_url?: string | null
+          reason: string
+          reason_category?: string | null
+          rejected_by?: string | null
+          source?: string | null
+          storage_path?: string | null
+          tags?: string[] | null
+        }
+        Update: {
+          anchor_id?: string | null
+          asset_id?: string | null
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          prompt?: string | null
+          public_url?: string | null
+          reason?: string
+          reason_category?: string | null
+          rejected_by?: string | null
+          source?: string | null
+          storage_path?: string | null
+          tags?: string[] | null
+        }
+        Relationships: []
+      }
       blog_post_reactions: {
         Row: {
           created_at: string

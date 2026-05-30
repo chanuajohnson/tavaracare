@@ -2,15 +2,25 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Images, Copy, Loader2, Check, Sparkles } from "lucide-react";
+import { Images, Copy, Loader2, Check, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { BLOG_STYLE_ANCHORS, anchorPublicUrl } from "@/lib/blog/styleAnchors";
@@ -19,6 +29,7 @@ import { generateAndStoreAiVariant } from "@/lib/blog/generateAiVariant";
 type MediaAsset = {
   id: string;
   public_url: string;
+  storage_path: string | null;
   source: string;
   prompt: string | null;
   anchor_id: string | null;
@@ -30,6 +41,23 @@ type MediaAsset = {
 type Props = {
   onPick: (url: string) => void;
 };
+
+const REJECTION_CATEGORIES: { value: string; label: string }[] = [
+  { value: "off-brand", label: "Off-brand / wrong style" },
+  { value: "wrong-subject", label: "Wrong subject / misses the point" },
+  { value: "low-quality", label: "Low quality / artifacts" },
+  { value: "unsafe", label: "Unsafe / inappropriate" },
+  { value: "duplicate", label: "Duplicate / redundant" },
+  { value: "other", label: "Other" },
+];
+
+/** Derive `<folder>/<file>` storage path from a Supabase public URL. */
+function storagePathFromUrl(url: string): string | null {
+  const marker = "/storage/v1/object/public/blog-assets/";
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  return decodeURIComponent(url.slice(idx + marker.length));
+}
 
 type Filter = "all" | "anchor_ai" | "generated" | "uploaded" | "seeded";
 
@@ -55,11 +83,71 @@ export function BlogMediaLibrary({ onPick }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [backfilling, setBackfilling] = useState(false);
   const [backfillProgress, setBackfillProgress] = useState<{ done: number; total: number } | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<MediaAsset | null>(null);
+  const [rejectCategory, setRejectCategory] = useState<string>("off-brand");
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejecting, setRejecting] = useState(false);
+
+  const submitRejection = async () => {
+    if (!rejectTarget) return;
+    const reason = rejectReason.trim();
+    if (reason.length < 5) {
+      toast.error("Please tell us why (at least 5 characters) so the AI can learn.");
+      return;
+    }
+    setRejecting(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const path = rejectTarget.storage_path ?? storagePathFromUrl(rejectTarget.public_url);
+
+      // 1. Record the rejection so future generations can avoid this pattern.
+      const { error: insertErr } = await supabase.from("blog_media_rejections").insert({
+        asset_id: rejectTarget.id,
+        storage_path: path,
+        public_url: rejectTarget.public_url,
+        source: rejectTarget.source,
+        anchor_id: rejectTarget.anchor_id,
+        prompt: rejectTarget.prompt,
+        tags: rejectTarget.tags,
+        post_id: rejectTarget.post_id,
+        reason,
+        reason_category: rejectCategory,
+        rejected_by: userData.user?.id ?? null,
+      });
+      if (insertErr) throw insertErr;
+
+      // 2. Delete object from storage (best-effort).
+      if (path) {
+        const { error: storageErr } = await supabase.storage
+          .from("blog-assets")
+          .remove([path]);
+        if (storageErr) console.warn("[reject] storage delete failed:", storageErr);
+      }
+
+      // 3. Delete the catalogue row.
+      const { error: delErr } = await supabase
+        .from("blog_media_assets")
+        .delete()
+        .eq("id", rejectTarget.id);
+      if (delErr) throw delErr;
+
+      setAssets((prev) => prev.filter((a) => a.id !== rejectTarget.id));
+      toast.success("Deleted. The AI will avoid this pattern next time.");
+      setRejectTarget(null);
+      setRejectReason("");
+      setRejectCategory("off-brand");
+    } catch (e) {
+      console.error("[submitRejection]", e);
+      toast.error(e instanceof Error ? e.message : "Failed to delete");
+    } finally {
+      setRejecting(false);
+    }
+  };
 
   const reload = async () => {
     const { data, error } = await supabase
       .from("blog_media_assets")
-      .select("id, public_url, source, prompt, anchor_id, post_id, tags, created_at")
+      .select("id, public_url, storage_path, source, prompt, anchor_id, post_id, tags, created_at")
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) toast.error(error.message);
@@ -114,7 +202,7 @@ export function BlogMediaLibrary({ onPick }: Props) {
       setLoading(true);
       const { data, error } = await supabase
         .from("blog_media_assets")
-        .select("id, public_url, source, prompt, anchor_id, post_id, tags, created_at")
+        .select("id, public_url, storage_path, source, prompt, anchor_id, post_id, tags, created_at")
         .order("created_at", { ascending: false })
         .limit(500);
       if (!cancelled) {
@@ -260,22 +348,32 @@ export function BlogMediaLibrary({ onPick }: Props) {
                     >
                       {a.source === "anchor_ai" ? "Anchor AI" : a.source}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => copy(a)}
-                      className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-                      title="Copy URL"
-                    >
-                      {copiedId === a.id ? (
-                        <>
-                          <Check className="h-3 w-3" /> Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3 w-3" /> URL
-                        </>
-                      )}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => copy(a)}
+                        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                        title="Copy URL"
+                      >
+                        {copiedId === a.id ? (
+                          <>
+                            <Check className="h-3 w-3" /> Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3" /> URL
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRejectTarget(a)}
+                        className="text-muted-foreground hover:text-destructive inline-flex items-center"
+                        title="Delete with reason (teaches the AI)"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
                   </div>
                   {a.prompt && (
                     <p className="line-clamp-2 text-muted-foreground">{a.prompt}</p>
@@ -291,6 +389,89 @@ export function BlogMediaLibrary({ onPick }: Props) {
           </div>
         )}
       </DialogContent>
+
+      <Dialog
+        open={!!rejectTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setRejectTarget(null);
+            setRejectReason("");
+            setRejectCategory("off-brand");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete and tell the AI why</DialogTitle>
+            <DialogDescription>
+              Your reason is saved against this anchor and added as an "avoid"
+              clause on the next generation, so the AI learns from rejections.
+            </DialogDescription>
+          </DialogHeader>
+          {rejectTarget && (
+            <div className="space-y-3">
+              <div className="aspect-[16/9] overflow-hidden rounded border bg-muted">
+                <img
+                  src={rejectTarget.public_url}
+                  alt={rejectTarget.prompt ?? "Asset preview"}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="reject-category">Category</Label>
+                <Select value={rejectCategory} onValueChange={setRejectCategory}>
+                  <SelectTrigger id="reject-category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REJECTION_CATEGORIES.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="reject-reason">
+                  Why is this not a good fit?
+                </Label>
+                <Textarea
+                  id="reject-reason"
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="e.g. Subject is cropped, doesn't show a caregiver, too clinical for a family-facing piece..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRejectTarget(null)}
+              disabled={rejecting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={submitRejection}
+              disabled={rejecting}
+            >
+              {rejecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Saving...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-1" /> Delete and teach AI
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

@@ -24,7 +24,29 @@ export async function generateAndStoreAiVariant(opts: {
   tags: string[];
   postId?: string | null;
 }): Promise<string | null> {
-  const styledPrompt = buildStyledImagePrompt(opts.prompt, opts.anchor);
+  let styledPrompt = buildStyledImagePrompt(opts.prompt, opts.anchor);
+
+  // Pull recent rejections for this anchor so the model learns what to avoid.
+  try {
+    const { data: rejections } = await supabase
+      .from("blog_media_rejections")
+      .select("reason, reason_category")
+      .eq("anchor_id", opts.anchor.id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    if (rejections && rejections.length > 0) {
+      const avoidList = rejections
+        .map((r) => {
+          const cat = r.reason_category ? `${r.reason_category}: ` : "";
+          return `"${cat}${(r.reason ?? "").slice(0, 140)}"`;
+        })
+        .join("; ");
+      styledPrompt += `\n\nAvoid these previously rejected patterns for this anchor: ${avoidList}.`;
+    }
+  } catch (e) {
+    console.warn("[generateAndStoreAiVariant] rejections fetch failed:", e);
+  }
+
   const { data, error } = await supabase.functions.invoke(
     "generate-marketing-image",
     {
