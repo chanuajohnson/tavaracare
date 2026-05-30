@@ -160,7 +160,7 @@ export default function AdminBlogEditorPage() {
     try {
       const url = await uploadBlogAsset(file, "covers");
       setCoverImageUrl(url);
-      // Catalogue into Media Library so plain uploads are reusable too.
+      // Catalogue the human upload into the Media Library.
       try {
         const { supabase } = await import("@/integrations/supabase/client");
         const { data: userData } = await supabase.auth.getUser();
@@ -175,6 +175,29 @@ export default function AdminBlogEditorPage() {
         console.warn("[AdminBlogEditor] catalogue failed:", catalogErr);
       }
       toast.success("Cover uploaded");
+
+      // Fire-and-forget: generate one AI-styled variant from the upload and
+      // save it to the library so future posts can reuse the on-brand version.
+      (async () => {
+        try {
+          const { pickAnchorForPost } = await import("@/lib/blog/styleAnchors");
+          const { generateAndStoreAiVariant } = await import("@/lib/blog/generateAiVariant");
+          const anchor = pickAnchorForPost(slug, title, description, category);
+          const variantUrl = await generateAndStoreAiVariant({
+            referenceImageUrl: url,
+            prompt: `Tavara-styled variant of admin upload for: ${title || slug || "blog cover"}`,
+            anchor,
+            folder: "covers/auto-ai",
+            source: "generated",
+            tags: [slug, category, anchor.id, "auto-from-upload"],
+          });
+          if (variantUrl) {
+            toast.success("AI variant added to library");
+          }
+        } catch (e) {
+          console.warn("[AdminBlogEditor] auto-AI variant failed:", e);
+        }
+      })();
     } catch (e: any) {
       toast.error(e.message ?? "Upload failed");
     }
