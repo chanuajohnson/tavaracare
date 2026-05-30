@@ -251,13 +251,14 @@ export function BlogMediaLibrary({ onPick }: Props) {
                   <div className="flex items-center justify-between gap-2">
                     <span
                       className={cn(
-                        "px-1.5 py-0.5 rounded text-[10px] font-medium capitalize",
+                        "px-1.5 py-0.5 rounded text-[10px] font-medium",
+                        a.source === "anchor_ai" && "bg-primary text-primary-foreground",
                         a.source === "generated" && "bg-primary/10 text-primary",
                         a.source === "uploaded" && "bg-secondary text-secondary-foreground",
                         a.source === "seeded" && "bg-muted text-muted-foreground",
                       )}
                     >
-                      {a.source}
+                      {a.source === "anchor_ai" ? "Anchor AI" : a.source}
                     </span>
                     <button
                       type="button"
