@@ -34,6 +34,7 @@ import {
 import { usePublishedPost, usePublishedPosts } from "@/lib/blog/api";
 import { getBlogShareUrlWithUtm } from "@/lib/blog/shareUrl";
 import { pickRelatedPosts } from "@/lib/blog/clusters";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 const extractFirstText = (node: any): string => {
   if (!node) return "";
