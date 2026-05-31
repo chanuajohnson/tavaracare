@@ -1198,7 +1198,7 @@ There are real reasons to need more cooking than the baseline:
 Two paths to handle this properly:
 
 1. **Add the Meal Support upgrade at onboarding.** This is a billable add-on through your Care Coordinator. It is named, scoped, agreed to by the nurse, and priced into the arrangement so no one is doing extra work for free.
-2. **Move up a subscription tier.** Active Care and Premium tiers unlock matching to nurses who are not just willing but trained and equipped for structured cooking. The coordinator will walk you through which tier fits your household.
+2. **Move up a subscription tier.** Active Care and Premium tiers match you with nurses who are not just willing but trained and equipped for structured cooking. The coordinator will walk you through which tier fits your household.
 
 If you are not sure which one is right, ask. We would much rather front-load that conversation than fix a resentful kitchen in month three.
 
