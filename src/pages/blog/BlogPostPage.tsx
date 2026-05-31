@@ -168,6 +168,8 @@ const BlogPostPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data: post, isLoading } = usePublishedPost(slug);
   const { data: allPosts = [] } = usePublishedPosts();
+  const { user } = useAuth();
+  const hideAudioForAdmin = user?.email?.toLowerCase() === "chanuajohnson3@gmail.com";
   const [copied, setCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
 
