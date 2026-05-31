@@ -34,6 +34,7 @@ import {
 import { usePublishedPost, usePublishedPosts } from "@/lib/blog/api";
 import { getBlogShareUrlWithUtm } from "@/lib/blog/shareUrl";
 import { pickRelatedPosts } from "@/lib/blog/clusters";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 const extractFirstText = (node: any): string => {
   if (!node) return "";
@@ -167,6 +168,8 @@ const BlogPostPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data: post, isLoading } = usePublishedPost(slug);
   const { data: allPosts = [] } = usePublishedPosts();
+  const { user } = useAuth();
+  const hideAudioForAdmin = user?.email?.toLowerCase() === "chanuajohnson3@gmail.com";
   const [copied, setCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
 
@@ -459,7 +462,7 @@ const BlogPostPage = () => {
               bodyOffset={bodyOffset}
               enabled={highlightEnabled}
             >
-              <BlogAudioPlayer postId={post.id} className="mb-10" />
+              {!hideAudioForAdmin && <BlogAudioPlayer postId={post.id} className="mb-10" />}
 
               <div className="prose-editorial prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-table:text-sm">
                 <CounterReset />
