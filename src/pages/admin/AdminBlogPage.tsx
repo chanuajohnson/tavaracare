@@ -64,6 +64,7 @@ export default function AdminBlogPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [confirmDelete, setConfirmDelete] = useState<BlogPost | null>(null);
+  const [aiDraftOpen, setAiDraftOpen] = useState(false);
 
   const categories = useMemo(
     () => Array.from(new Set(posts.map((p) => p.category))).sort(),
