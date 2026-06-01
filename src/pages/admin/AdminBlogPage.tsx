@@ -124,11 +124,16 @@ export default function AdminBlogPage() {
             <Button variant="outline" onClick={() => navigate("/admin/blog/analytics")}>
               View leaderboard
             </Button>
+            <Button variant="outline" onClick={() => setAiDraftOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-2" /> AI Draft
+            </Button>
             <Button onClick={() => navigate("/admin/blog/new")}>
               <Plus className="h-4 w-4 mr-2" /> New post
             </Button>
           </div>
         </div>
+
+        <AiDraftBlogDialog open={aiDraftOpen} onOpenChange={setAiDraftOpen} />
 
         <Tabs defaultValue="posts" className="space-y-6">
           <TabsList>
