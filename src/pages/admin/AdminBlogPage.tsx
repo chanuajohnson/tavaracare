@@ -31,9 +31,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Eye, EyeOff, Trash2, Copy } from "lucide-react";
+import { Plus, Pencil, Eye, EyeOff, Trash2, Copy, Sparkles } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BlogCommentsModeration } from "@/components/admin/BlogCommentsModeration";
+import { AiDraftBlogDialog } from "@/components/admin/blog/AiDraftBlogDialog";
 import {
   useAllPosts,
   useDeletePost,
@@ -63,6 +64,7 @@ export default function AdminBlogPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [confirmDelete, setConfirmDelete] = useState<BlogPost | null>(null);
+  const [aiDraftOpen, setAiDraftOpen] = useState(false);
 
   const categories = useMemo(
     () => Array.from(new Set(posts.map((p) => p.category))).sort(),
@@ -122,11 +124,16 @@ export default function AdminBlogPage() {
             <Button variant="outline" onClick={() => navigate("/admin/blog/analytics")}>
               View leaderboard
             </Button>
+            <Button variant="outline" onClick={() => setAiDraftOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-2" /> AI Draft
+            </Button>
             <Button onClick={() => navigate("/admin/blog/new")}>
               <Plus className="h-4 w-4 mr-2" /> New post
             </Button>
           </div>
         </div>
+
+        <AiDraftBlogDialog open={aiDraftOpen} onOpenChange={setAiDraftOpen} />
 
         <Tabs defaultValue="posts" className="space-y-6">
           <TabsList>
