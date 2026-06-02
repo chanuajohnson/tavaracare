@@ -52,10 +52,26 @@ export const AiDraftBlogDialog = ({ open, onOpenChange }: Props) => {
   const save = useSavePost();
   const { data: allPosts = [] } = useAllPosts();
 
+  const CTA_PRESETS: Array<{ id: string; label: string; href: string }> = [
+    { id: "urgent", label: "Find Care Now", href: "/urgent-families" },
+    { id: "family-reg", label: "Start Your Family Profile", href: "/registration/family" },
+    { id: "caregiver-reg", label: "Join as a Caregiver", href: "/registration/professional" },
+    { id: "readiness", label: "Take the Readiness Quiz", href: "/family/readiness-quiz" },
+    { id: "care-plans", label: "Explore Care Plans", href: "/family/care-management" },
+    { id: "live-in", label: "Learn About Live-In Care", href: "/services/live-in-care" },
+    { id: "dementia", label: "Dementia Care Support", href: "/services/dementia-care" },
+    { id: "post-surgery", label: "Post-Surgery Care", href: "/services/post-surgery-care" },
+    { id: "elder", label: "Elder Care Services", href: "/services/elder-care" },
+    { id: "pricing", label: "See Care Rates", href: "/family/care-management" },
+    { id: "whatsapp", label: "Message Tavara on WhatsApp", href: "https://wa.me/18687865357" },
+    { id: "custom", label: "Other (custom)", href: "" },
+  ];
+
   const [topic, setTopic] = useState("");
   const [angle, setAngle] = useState("");
   const [category, setCategory] = useState<string>("Family Care Guides");
   const [audience, setAudience] = useState("family");
+  const [ctaPresetId, setCtaPresetId] = useState<string>("urgent");
   const [ctaLabel, setCtaLabel] = useState("Find Care Now");
   const [ctaHref, setCtaHref] = useState("/urgent-families");
   const [referenceIds, setReferenceIds] = useState<string[]>([]);
@@ -212,15 +228,45 @@ export const AiDraftBlogDialog = ({ open, onOpenChange }: Props) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="cta-label">CTA label</Label>
-                <Input id="cta-label" value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cta-href">CTA href</Label>
-                <Input id="cta-href" value={ctaHref} onChange={(e) => setCtaHref(e.target.value)} />
-              </div>
+            <div className="space-y-2">
+              <Label>Call to action</Label>
+              <Select
+                value={ctaPresetId}
+                onValueChange={(v) => {
+                  setCtaPresetId(v);
+                  const preset = CTA_PRESETS.find((p) => p.id === v);
+                  if (preset && preset.id !== "custom") {
+                    setCtaLabel(preset.label);
+                    setCtaHref(preset.href);
+                  } else if (preset?.id === "custom") {
+                    setCtaLabel("");
+                    setCtaHref("");
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CTA_PRESETS.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.id === "custom" ? p.label : `${p.label} → ${p.href}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {ctaPresetId === "custom" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="cta-label" className="text-xs">CTA label</Label>
+                    <Input id="cta-label" value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} placeholder="e.g. Book a Free Consult" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="cta-href" className="text-xs">CTA href</Label>
+                    <Input id="cta-href" value={ctaHref} onChange={(e) => setCtaHref(e.target.value)} placeholder="/your-path or https://..." />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
