@@ -1,72 +1,51 @@
-## Goal
 
-Stop needing Lovable chat to author blog posts. Add a self-serve "AI Draft" flow on `/admin/blog` where you describe a topic + angle, and the system:
+## Problem 1: AI Draft fails with "Failed to send a request to the Edge Function"
 
-1. Researches existing posts in the DB for structure & voice
-2. Generates a guardrail-clean draft (title, slug, description, category, body markdown, FAQs, CTA, reading time)
-3. Lets you preview/edit before saving as a draft post in `blog_posts`
-4. Surfaces what supporting source files (`sitemap.xml`, `llms.txt`, `posts.ts`) still need a Lovable sync
+Console shows the real cause:
+> Request header field `x-app-version` is not allowed by Access-Control-Allow-Headers in preflight response
 
-Scope is admin-only and additive — no changes to existing blog rendering, posts.ts, guardrails table, or publishing flow.
+The `blog-ai-draft` edge function only allows `authorization, x-client-info, apikey, content-type` in its CORS preflight, but the Supabase JS client now sends additional headers (`x-app-version`, `x-supabase-client-platform`, etc.). Browser blocks the request before it ever reaches the function.
 
-## UI changes (admin only)
-
-`src/pages/admin/AdminBlogPage.tsx`
-- Add a third button next to "New post": **"AI Draft"** (Sparkles icon)
-- Clicking opens a new modal `AiDraftBlogDialog`
-
-`src/components/admin/blog/AiDraftBlogDialog.tsx` (new)
-- Form fields:
-  - **Topic** (required, textarea) — e.g. "What the nurse actually cooks"
-  - **Angle / key points** (textarea) — voice-note style brain dump
-  - **Category** (select, reuses existing 3 categories)
-  - **Target audience** (select: family / caregiver / community, default family)
-  - **CTA** (label + href, prefilled `Find Care Now → /urgent-families`)
-  - **Reference posts** (auto-picked top 3 from same category, shown as chips, removable)
-- "Generate draft" button → calls edge function, shows streaming/loading state
-- Result preview pane: editable title, slug, description, FAQs, full markdown body, reading time
-- Inline guardrail check: runs the existing banned-term scan from `language_guardrails` client-side against the generated body and flags hits before save
-- "Save as draft" → uses existing `useSavePost` mutation with `status: "draft"`; redirects to `/admin/blog/{id}` editor
-- "Regenerate" → re-calls edge fn with the same inputs + a "what to change" note
-
-## Edge function (new): `supabase/functions/blog-ai-draft/index.ts`
-
-- POST body: `{ topic, angle, category, audience, ctaLabel, ctaHref, referencePostIds[], revisionNote? }`
-- Auth: requires admin (verify via `user_roles`)
-- Pulls:
-  - The active guardrails from `language_guardrails` (banned terms + preferred replacements)
-  - Body + structure of `referencePostIds` from `blog_posts` (for voice/section pattern)
-  - The brand snippets at `docs/TAVARA_WRITING_STYLE.md` + `docs/TAVARA_LANGUAGE_GUARDRAILS.md` (inlined as constants so the function stays self-contained)
-- Calls Lovable AI Gateway (`LOVABLE_API_KEY`, model `google/gemini-2.5-flash`) with a structured-output JSON schema:
-  ```
-  { title, slug, description, body, faqs:[{q,a}], readingTime, suggestedCategory }
-  ```
-- Post-processing on the function side:
-  - Strip em/en-dashes (`—`, `–` → `, `)
-  - Reject any banned term match → return `{ violations: [...] }` so UI shows them
-  - Ensure slug is kebab-case, unique-ish (suffix with random 4 chars if collision)
-- Returns the draft JSON; **does not insert** — UI does the insert via existing `useSavePost`
-
-Secrets needed: `LOVABLE_API_KEY` (already enabled via Lovable Cloud).
-
-## Supporting files notice
-
-`posts.ts`, `public/sitemap.xml`, `public/llms.txt` are source-controlled and cannot be written from the browser. After a draft is published, the admin page shows a yellow callout: **"Ask Lovable to sync sitemap.xml, llms.txt, and posts.ts for this post"** with a copyable one-line prompt that includes the new slug. (Future enhancement: dynamic `/sitemap.xml` route reading from DB — out of scope for this plan.)
-
-## Files to add / edit
-
+**Fix:** widen `Access-Control-Allow-Headers` in `supabase/functions/blog-ai-draft/index.ts` to include the headers the modern Supabase client sends:
 ```
-Add:    supabase/functions/blog-ai-draft/index.ts
-Add:    src/components/admin/blog/AiDraftBlogDialog.tsx
-Edit:   src/pages/admin/AdminBlogPage.tsx        (button + dialog wiring only)
+authorization, x-client-info, apikey, content-type,
+x-app-version, x-supabase-client-platform, x-supabase-client-platform-version,
+x-supabase-client-runtime, x-supabase-client-runtime-version
 ```
 
-No DB migration. No routing changes. No edits to posts.ts, sitemap.xml, llms.txt, AuthProvider, chat flow, or registration files.
+No other logic change. This is a one-line CORS fix and unblocks generation.
 
-## Verification
+## Problem 2: CTA label + CTA href should be preset dropdowns
 
-1. Open `/admin/blog`, click "AI Draft", enter a topic, generate → preview renders within a few seconds
-2. Inline guardrail flags any banned term in red before save
-3. Save → new row appears in `blog_posts` with `status='draft'`, opens in existing editor
-4. Publish from the existing editor — post is live at `/blog/{slug}`
-5. Yellow sync-reminder callout appears with the slug ready to copy
+Right now both are free-text inputs, which is error-prone (typos, broken links, inconsistent voice). Convert to a single **CTA preset** dropdown that fills both label and href together, with an "Other (custom)" option that reveals the two text inputs for edge cases.
+
+Preset list (drawn from existing CTAs across the site, all on-brand and routes that exist):
+
+| Preset | Label | Href |
+|---|---|---|
+| Urgent care | Find Care Now | /urgent-families |
+| Family registration | Start Your Family Profile | /registration/family |
+| Caregiver registration | Join as a Caregiver | /registration/professional |
+| Family readiness quiz | Take the Readiness Quiz | /family/readiness-quiz |
+| Care plans | Explore Care Plans | /family/care-management |
+| Live-in care | Learn About Live-In Care | /services/live-in-care |
+| Dementia care | Dementia Care Support | /services/dementia-care |
+| Post-surgery care | Post-Surgery Care | /services/post-surgery-care |
+| Elder care | Elder Care Services | /services/elder-care |
+| Pricing | See Care Rates | /family/care-management |
+| WhatsApp Tavara | Message Tavara on WhatsApp | https://wa.me/18687865357 |
+| Other (custom) | (free text) | (free text) |
+
+Default selection: **Urgent care** (current behavior preserved).
+
+## Files to change
+
+1. `supabase/functions/blog-ai-draft/index.ts` — expand `corsHeaders.Access-Control-Allow-Headers`. No other changes.
+2. `src/components/admin/blog/AiDraftBlogDialog.tsx` — replace the two CTA `<Input>` fields with a `<Select>` of presets; show inline custom inputs only when "Other" is selected. The values still flow into the existing `ctaLabel` and `ctaHref` state, so the request body to the edge function and `saveDraft()` are unchanged.
+
+No DB migration, no changes to `AdminBlogPage.tsx`, the editor, posts.ts, sitemap.xml, or llms.txt.
+
+## Out of scope (deferred until you ask)
+
+- Adding an AI Draft panel directly on `/admin/blog/new` (your earlier "From /admin/blog/new directly" question was interrupted before you picked an option — happy to do that next, just confirm).
+- Making category itself dynamic / admin-managed. Categories still come from `BLOG_CATEGORIES` in `src/lib/blog/api.ts`.
