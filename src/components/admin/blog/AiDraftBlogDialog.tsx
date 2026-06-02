@@ -52,10 +52,26 @@ export const AiDraftBlogDialog = ({ open, onOpenChange }: Props) => {
   const save = useSavePost();
   const { data: allPosts = [] } = useAllPosts();
 
+  const CTA_PRESETS: Array<{ id: string; label: string; href: string }> = [
+    { id: "urgent", label: "Find Care Now", href: "/urgent-families" },
+    { id: "family-reg", label: "Start Your Family Profile", href: "/registration/family" },
+    { id: "caregiver-reg", label: "Join as a Caregiver", href: "/registration/professional" },
+    { id: "readiness", label: "Take the Readiness Quiz", href: "/family/readiness-quiz" },
+    { id: "care-plans", label: "Explore Care Plans", href: "/family/care-management" },
+    { id: "live-in", label: "Learn About Live-In Care", href: "/services/live-in-care" },
+    { id: "dementia", label: "Dementia Care Support", href: "/services/dementia-care" },
+    { id: "post-surgery", label: "Post-Surgery Care", href: "/services/post-surgery-care" },
+    { id: "elder", label: "Elder Care Services", href: "/services/elder-care" },
+    { id: "pricing", label: "See Care Rates", href: "/family/care-management" },
+    { id: "whatsapp", label: "Message Tavara on WhatsApp", href: "https://wa.me/18687865357" },
+    { id: "custom", label: "Other (custom)", href: "" },
+  ];
+
   const [topic, setTopic] = useState("");
   const [angle, setAngle] = useState("");
   const [category, setCategory] = useState<string>("Family Care Guides");
   const [audience, setAudience] = useState("family");
+  const [ctaPresetId, setCtaPresetId] = useState<string>("urgent");
   const [ctaLabel, setCtaLabel] = useState("Find Care Now");
   const [ctaHref, setCtaHref] = useState("/urgent-families");
   const [referenceIds, setReferenceIds] = useState<string[]>([]);
