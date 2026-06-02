@@ -228,15 +228,45 @@ export const AiDraftBlogDialog = ({ open, onOpenChange }: Props) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="cta-label">CTA label</Label>
-                <Input id="cta-label" value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cta-href">CTA href</Label>
-                <Input id="cta-href" value={ctaHref} onChange={(e) => setCtaHref(e.target.value)} />
-              </div>
+            <div className="space-y-2">
+              <Label>Call to action</Label>
+              <Select
+                value={ctaPresetId}
+                onValueChange={(v) => {
+                  setCtaPresetId(v);
+                  const preset = CTA_PRESETS.find((p) => p.id === v);
+                  if (preset && preset.id !== "custom") {
+                    setCtaLabel(preset.label);
+                    setCtaHref(preset.href);
+                  } else if (preset?.id === "custom") {
+                    setCtaLabel("");
+                    setCtaHref("");
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CTA_PRESETS.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.id === "custom" ? p.label : `${p.label} → ${p.href}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {ctaPresetId === "custom" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="cta-label" className="text-xs">CTA label</Label>
+                    <Input id="cta-label" value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} placeholder="e.g. Book a Free Consult" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="cta-href" className="text-xs">CTA href</Label>
+                    <Input id="cta-href" value={ctaHref} onChange={(e) => setCtaHref(e.target.value)} placeholder="/your-path or https://..." />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
