@@ -1,25 +1,26 @@
-## Real CORS culprit: `x-client-env`
+## Why activity won't load
 
-The previous fix added the `x-app-version` and `x-supabase-client-*` headers, but the browser console in your screenshot shows a different blocked header:
+The Activity tab runs two queries for the user:
+1. `session_analytics` filtered by `user_id` — this works (it has `idx_session_analytics_user_id`).
+2. `cta_engagement_tracking` filtered by `user_id`, ordered by `created_at desc`, limit 25 — this **times out**.
 
-> Request header field **`x-client-env`** is not allowed by Access-Control-Allow-Headers in preflight response.
+I checked `pg_indexes`: `cta_engagement_tracking` has only a primary-key index on `id`. The table is ~330k rows, so every Activity tab load does a full sequential scan + sort, which exceeds Postgres' statement timeout. That's the red "canceling statement due to statement timeout" error in the screenshot. It's not specific to Ana Maria — any user whose query hits the timeout will fail.
 
-That's why "Generate draft" still fails with "Failed to send a request to the Edge Function" — the preflight is rejected before the function runs.
+The "Login History" section already shows the last 10 sessions, so once Activity loads you'll see her prior logins below the most recent one.
 
 ## Fix
 
-Add `x-client-env` (and, defensively, `x-client-version`) to `Access-Control-Allow-Headers` in `supabase/functions/blog-ai-draft/index.ts`. Final allow-list:
+Add a composite index that matches the query shape:
 
+```sql
+CREATE INDEX idx_cta_engagement_user_created
+  ON public.cta_engagement_tracking (user_id, created_at DESC);
 ```
-authorization, x-client-info, x-client-env, x-client-version, apikey, content-type,
-x-app-version, x-supabase-client-platform, x-supabase-client-platform-version,
-x-supabase-client-runtime, x-supabase-client-runtime-version
-```
 
-One-line CORS change, no other logic touched. After deploy, "Generate draft" should reach the function.
+This turns the 25-row lookup into an index range scan and resolves in milliseconds. No UI, RLS, or app-code changes needed — `UserActivityPanel.tsx` already does the right query, it just had no index to use.
 
-## Files
-
-- `supabase/functions/blog-ai-draft/index.ts` — extend `corsHeaders["Access-Control-Allow-Headers"]` only.
-
-No DB, no UI, no other function changes.
+### Technical notes
+- Migration only (one `CREATE INDEX`). No table or policy changes.
+- Index is on `(user_id, created_at DESC)` so the `ORDER BY created_at DESC LIMIT 25` per user is served directly from the index.
+- I'm not running `CONCURRENTLY` because Lovable migrations run inside a transaction; a plain `CREATE INDEX` briefly locks writes to this analytics table, which is acceptable.
+- Optional follow-up (not in this change): consider a retention policy on `cta_engagement_tracking` if it keeps growing — 330k rows today, unbounded over time.
