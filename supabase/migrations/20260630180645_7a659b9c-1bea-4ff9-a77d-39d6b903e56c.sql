@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS idx_cta_engagement_user_created ON public.cta_engagement_tracking (user_id, created_at DESC);
