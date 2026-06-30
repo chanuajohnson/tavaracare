@@ -250,7 +250,7 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
                     <div className="text-xs font-medium">{last.page_views ?? 0}</div>
                   </div>
                 )}
-                </div>
+              </div>
             </div>
           )}
         </CardContent>
@@ -317,8 +317,7 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
                             {s.page_views ?? 0}
                           </TableCell>
                           <TableCell className="text-xs font-mono max-w-[180px] truncate">
-                            {s.exit_page || '—'}
-                            {s.inferred_from_activity && !s.exit_page ? 'Activity inferred' : ''}
+                            {s.exit_page || (s.inferred_from_activity ? 'Activity inferred' : '—')}
                           </TableCell>
                         </TableRow>
                       ))}
