@@ -1,26 +1,33 @@
-## Why activity won't load
+## What I found
 
-The Activity tab runs two queries for the user:
-1. `session_analytics` filtered by `user_id` — this works (it has `idx_session_analytics_user_id`).
-2. `cta_engagement_tracking` filtered by `user_id`, ordered by `created_at desc`, limit 25 — this **times out**.
+Ana Maria Aimey does have activity records, but she has zero rows in `session_analytics`:
 
-I checked `pg_indexes`: `cta_engagement_tracking` has only a primary-key index on `id`. The table is ~330k rows, so every Activity tab load does a full sequential scan + sort, which exceeds Postgres' statement timeout. That's the red "canceling statement due to statement timeout" error in the screenshot. It's not specific to Ana Maria — any user whose query hits the timeout will fail.
+- `cta_engagement_tracking`: 34 activity events across 3 session IDs
+- `session_analytics`: 0 login/session rows for her
+- The admin profile list is currently showing “last login” from `profiles.updated_at`, not from real login history
 
-The "Login History" section already shows the last 10 sessions, so once Activity loads you'll see her prior logins below the most recent one.
+That is why the Activity Trail shows rows, but “Last Login & Device” and “Login History” say no session data recorded.
 
-## Fix
+## Plan
 
-Add a composite index that matches the query shape:
+1. Update `UserActivityPanel.tsx` only.
+2. Keep the existing `session_analytics` query for users who have real session rows.
+3. Add a fallback that groups `cta_engagement_tracking` by `session_id` when `session_analytics` is empty.
+4. Render those grouped activity sessions in the Login History section so Ana Maria shows:
+   - first activity time as session start
+   - last activity time as session end
+   - event count as page/actions count
+   - device and browser from tracked `additional_data` when available
+5. Add a clear helper note in the login section when the row is inferred from activity tracking, so it is not mistaken for a Supabase auth login audit.
 
-```sql
-CREATE INDEX idx_cta_engagement_user_created
-  ON public.cta_engagement_tracking (user_id, created_at DESC);
+## Technical details
+
+The fallback will use Ana Maria’s existing tracked session IDs:
+
+```text
+77de2f1e-0fff-4a05-8284-8b1433c1a1e1
+f2f38c06-6c04-41f8-8910-50a2df22100d
+ea24ff1c-7423-4181-86e8-cc88f436ac80
 ```
 
-This turns the 25-row lookup into an index range scan and resolves in milliseconds. No UI, RLS, or app-code changes needed — `UserActivityPanel.tsx` already does the right query, it just had no index to use.
-
-### Technical notes
-- Migration only (one `CREATE INDEX`). No table or policy changes.
-- Index is on `(user_id, created_at DESC)` so the `ORDER BY created_at DESC LIMIT 25` per user is served directly from the index.
-- I'm not running `CONCURRENTLY` because Lovable migrations run inside a transaction; a plain `CREATE INDEX` briefly locks writes to this analytics table, which is acceptable.
-- Optional follow-up (not in this change): consider a retention policy on `cta_engagement_tracking` if it keeps growing — 330k rows today, unbounded over time.
+No database migration is needed for this display fix. The missing data is not caused by the new index anymore; it is caused by `session_analytics` never being populated in the app, while `cta_engagement_tracking` is populated.

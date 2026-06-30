@@ -36,6 +36,7 @@ interface SessionRow {
   browser: string | null;
   referrer: string | null;
   exit_page: string | null;
+  inferred_from_activity?: boolean;
 }
 
 interface ActivityRow {
@@ -45,6 +46,82 @@ interface ActivityRow {
   action_type: string | null;
   created_at: string;
   additional_data: any;
+}
+
+function buildSessionsFromActivity(rows: ActivityRow[]): SessionRow[] {
+  const grouped = new Map<string, ActivityRow[]>();
+  const inactivityGapMs = 30 * 60 * 1000;
+
+  rows.forEach((row) => {
+    if (!row.session_id) return;
+    const current = grouped.get(row.session_id) || [];
+    current.push(row);
+    grouped.set(row.session_id, current);
+  });
+
+  return Array.from(grouped.entries())
+    .flatMap(([sessionId, sessionRows]) => {
+      const sorted = [...sessionRows].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      );
+
+      const visits: ActivityRow[][] = [];
+      let currentVisit: ActivityRow[] = [];
+
+      sorted.forEach((row) => {
+        const previous = currentVisit[currentVisit.length - 1];
+        const gap = previous
+          ? new Date(row.created_at).getTime() - new Date(previous.created_at).getTime()
+          : 0;
+
+        if (previous && gap > inactivityGapMs) {
+          visits.push(currentVisit);
+          currentVisit = [row];
+          return;
+        }
+
+        currentVisit.push(row);
+      });
+
+      if (currentVisit.length > 0) visits.push(currentVisit);
+
+      return visits.map((visitRows, index) => {
+        const first = visitRows[0];
+        const last = visitRows[visitRows.length - 1];
+        const firstData = first?.additional_data || {};
+        const lastData = last?.additional_data || {};
+        const startedAt = first?.created_at || new Date().toISOString();
+        const endedAt = last?.created_at || startedAt;
+        const durationSeconds = Math.max(
+          0,
+          Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000),
+        );
+
+        return {
+          id: `activity-${sessionId}-${index}`,
+          session_id: sessionId,
+          started_at: startedAt,
+          ended_at: endedAt,
+          duration_seconds: durationSeconds || null,
+          page_views: visitRows.length,
+          device_type: lastData.device_type || firstData.device_type || null,
+          browser: lastData.browser || firstData.browser || null,
+          referrer: lastData.referrer || firstData.referrer || null,
+          exit_page:
+            lastData.page_path ||
+            lastData.current_path ||
+            lastData.path ||
+            lastData.url ||
+            null,
+          inferred_from_activity: true,
+        } satisfies SessionRow;
+      });
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.ended_at || b.started_at).getTime() -
+        new Date(a.ended_at || a.started_at).getTime(),
+    );
 }
 
 function DeviceIcon({ type }: { type: string | null }) {
@@ -77,7 +154,7 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
       setLoading(true);
       setError(null);
       try {
-        const [sessRes, actRes] = await Promise.all([
+        const [sessRes, actRes, sessionActivityRes] = await Promise.all([
           supabase
             .from('session_analytics')
             .select('*')
@@ -90,11 +167,25 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
             .limit(25),
+          supabase
+            .from('cta_engagement_tracking')
+            .select('id, session_id, feature_name, action_type, created_at, additional_data')
+            .eq('user_id', userId)
+            .not('session_id', 'is', null)
+            .order('created_at', { ascending: false })
+            .limit(200),
         ]);
         if (cancelled) return;
         if (sessRes.error) throw sessRes.error;
         if (actRes.error) throw actRes.error;
-        setSessions((sessRes.data || []) as SessionRow[]);
+        if (sessionActivityRes.error) throw sessionActivityRes.error;
+
+        const realSessions = (sessRes.data || []) as SessionRow[];
+        const fallbackSessions = buildSessionsFromActivity(
+          (sessionActivityRes.data || []) as ActivityRow[],
+        );
+
+        setSessions(realSessions.length > 0 ? realSessions : fallbackSessions);
         setActivity((actRes.data || []) as ActivityRow[]);
       } catch (e: any) {
         if (!cancelled) setError(e.message || 'Failed to load activity');
@@ -143,37 +234,51 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
           {!last ? (
             <p className="text-sm text-muted-foreground">No session data recorded yet.</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-              <div>
-                <div className="text-xs text-muted-foreground">Last sign-in</div>
-                <div className="font-medium">
-                  {formatDistanceToNow(new Date(last.started_at), { addSuffix: true })}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {format(new Date(last.started_at), 'PPp')}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Device / Browser</div>
-                <div className="flex items-center gap-2 font-medium">
-                  <DeviceIcon type={last.device_type} />
-                  <span className="capitalize">{last.device_type || 'Unknown'}</span>
-                  <span className="text-muted-foreground">·</span>
-                  <span>{last.browser || 'Unknown'}</span>
-                </div>
-              </div>
-              {last.referrer && (
-                <div className="md:col-span-2">
-                  <div className="text-xs text-muted-foreground">Referrer</div>
-                  <div className="font-mono text-xs truncate">{last.referrer}</div>
-                </div>
+            <div className="space-y-3">
+              {last.inferred_from_activity && (
+                <p className="text-xs text-muted-foreground">
+                  Login history is inferred from tracked dashboard activity because no session
+                  analytics rows were recorded for this user.
+                </p>
               )}
-              {last.exit_page && (
-                <div className="md:col-span-2">
-                  <div className="text-xs text-muted-foreground">Exit page</div>
-                  <div className="font-mono text-xs truncate">{last.exit_page}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <div className="text-xs text-muted-foreground">Last activity session</div>
+                  <div className="font-medium">
+                    {formatDistanceToNow(new Date(last.started_at), { addSuffix: true })}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {format(new Date(last.started_at), 'PPp')}
+                  </div>
                 </div>
-              )}
+                <div>
+                  <div className="text-xs text-muted-foreground">Device / Browser</div>
+                  <div className="flex items-center gap-2 font-medium">
+                    <DeviceIcon type={last.device_type} />
+                    <span className="capitalize">{last.device_type || 'Unknown'}</span>
+                    <span className="text-muted-foreground">·</span>
+                    <span>{last.browser || 'Unknown'}</span>
+                  </div>
+                </div>
+                {last.referrer && (
+                  <div className="md:col-span-2">
+                    <div className="text-xs text-muted-foreground">Referrer</div>
+                    <div className="font-mono text-xs truncate">{last.referrer}</div>
+                  </div>
+                )}
+                {last.exit_page && (
+                  <div className="md:col-span-2">
+                    <div className="text-xs text-muted-foreground">Exit page</div>
+                    <div className="font-mono text-xs truncate">{last.exit_page}</div>
+                  </div>
+                )}
+                {last.inferred_from_activity && (
+                  <div className="md:col-span-2">
+                    <div className="text-xs text-muted-foreground">Events in session</div>
+                    <div className="text-xs font-medium">{last.page_views ?? 0}</div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
@@ -199,6 +304,12 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
           </CardHeader>
           <CollapsibleContent>
             <CardContent>
+              {sessions.some((s) => s.inferred_from_activity) && (
+                <p className="mb-3 text-xs text-muted-foreground">
+                  These sessions are reconstructed from tracked activity events because the login
+                  session table has no rows for this user.
+                </p>
+              )}
               {sessions.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No login sessions recorded.</p>
               ) : (
@@ -234,7 +345,7 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
                             {s.page_views ?? 0}
                           </TableCell>
                           <TableCell className="text-xs font-mono max-w-[180px] truncate">
-                            {s.exit_page || '—'}
+                            {s.exit_page || (s.inferred_from_activity ? 'Activity inferred' : '—')}
                           </TableCell>
                         </TableRow>
                       ))}
