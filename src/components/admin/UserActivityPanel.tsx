@@ -86,38 +86,42 @@ function buildSessionsFromActivity(rows: ActivityRow[]): SessionRow[] {
       if (currentVisit.length > 0) visits.push(currentVisit);
 
       return visits.map((visitRows, index) => {
-      const first = visitRows[0];
-      const last = visitRows[visitRows.length - 1];
-      const firstData = first?.additional_data || {};
-      const lastData = last?.additional_data || {};
-      const startedAt = first?.created_at || new Date().toISOString();
-      const endedAt = last?.created_at || startedAt;
-      const durationSeconds = Math.max(
-        0,
-        Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000),
-      );
+        const first = visitRows[0];
+        const last = visitRows[visitRows.length - 1];
+        const firstData = first?.additional_data || {};
+        const lastData = last?.additional_data || {};
+        const startedAt = first?.created_at || new Date().toISOString();
+        const endedAt = last?.created_at || startedAt;
+        const durationSeconds = Math.max(
+          0,
+          Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000),
+        );
 
-      return {
-        id: `activity-${sessionId}-${index}`,
-        session_id: sessionId,
-        started_at: startedAt,
-        ended_at: endedAt,
-        duration_seconds: durationSeconds || null,
-        page_views: visitRows.length,
-        device_type: lastData.device_type || firstData.device_type || null,
-        browser: lastData.browser || firstData.browser || null,
-        referrer: lastData.referrer || firstData.referrer || null,
-        exit_page:
-          lastData.page_path ||
-          lastData.current_path ||
-          lastData.path ||
-          lastData.url ||
-          null,
-        inferred_from_activity: true,
-      } satisfies SessionRow;
+        return {
+          id: `activity-${sessionId}-${index}`,
+          session_id: sessionId,
+          started_at: startedAt,
+          ended_at: endedAt,
+          duration_seconds: durationSeconds || null,
+          page_views: visitRows.length,
+          device_type: lastData.device_type || firstData.device_type || null,
+          browser: lastData.browser || firstData.browser || null,
+          referrer: lastData.referrer || firstData.referrer || null,
+          exit_page:
+            lastData.page_path ||
+            lastData.current_path ||
+            lastData.path ||
+            lastData.url ||
+            null,
+          inferred_from_activity: true,
+        } satisfies SessionRow;
       });
     })
-    .sort((a, b) => new Date(b.ended_at || b.started_at).getTime() - new Date(a.ended_at || a.started_at).getTime());
+    .sort(
+      (a, b) =>
+        new Date(b.ended_at || b.started_at).getTime() -
+        new Date(a.ended_at || a.started_at).getTime(),
+    );
 }
 
 function DeviceIcon({ type }: { type: string | null }) {
