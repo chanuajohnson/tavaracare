@@ -50,6 +50,7 @@ interface ActivityRow {
 
 function buildSessionsFromActivity(rows: ActivityRow[]): SessionRow[] {
   const grouped = new Map<string, ActivityRow[]>();
+  const inactivityGapMs = 30 * 60 * 1000;
 
   rows.forEach((row) => {
     if (!row.session_id) return;
@@ -59,12 +60,34 @@ function buildSessionsFromActivity(rows: ActivityRow[]): SessionRow[] {
   });
 
   return Array.from(grouped.entries())
-    .map(([sessionId, sessionRows]) => {
+    .flatMap(([sessionId, sessionRows]) => {
       const sorted = [...sessionRows].sort(
         (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
       );
-      const first = sorted[0];
-      const last = sorted[sorted.length - 1];
+
+      const visits: ActivityRow[][] = [];
+      let currentVisit: ActivityRow[] = [];
+
+      sorted.forEach((row) => {
+        const previous = currentVisit[currentVisit.length - 1];
+        const gap = previous
+          ? new Date(row.created_at).getTime() - new Date(previous.created_at).getTime()
+          : 0;
+
+        if (previous && gap > inactivityGapMs) {
+          visits.push(currentVisit);
+          currentVisit = [row];
+          return;
+        }
+
+        currentVisit.push(row);
+      });
+
+      if (currentVisit.length > 0) visits.push(currentVisit);
+
+      return visits.map((visitRows, index) => {
+      const first = visitRows[0];
+      const last = visitRows[visitRows.length - 1];
       const firstData = first?.additional_data || {};
       const lastData = last?.additional_data || {};
       const startedAt = first?.created_at || new Date().toISOString();
@@ -75,12 +98,12 @@ function buildSessionsFromActivity(rows: ActivityRow[]): SessionRow[] {
       );
 
       return {
-        id: `activity-${sessionId}`,
+        id: `activity-${sessionId}-${index}`,
         session_id: sessionId,
         started_at: startedAt,
         ended_at: endedAt,
         duration_seconds: durationSeconds || null,
-        page_views: sessionRows.length,
+        page_views: visitRows.length,
         device_type: lastData.device_type || firstData.device_type || null,
         browser: lastData.browser || firstData.browser || null,
         referrer: lastData.referrer || firstData.referrer || null,
@@ -92,8 +115,9 @@ function buildSessionsFromActivity(rows: ActivityRow[]): SessionRow[] {
           null,
         inferred_from_activity: true,
       } satisfies SessionRow;
+      });
     })
-    .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
+    .sort((a, b) => new Date(b.ended_at || b.started_at).getTime() - new Date(a.ended_at || a.started_at).getTime());
 }
 
 function DeviceIcon({ type }: { type: string | null }) {
