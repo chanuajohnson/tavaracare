@@ -214,8 +214,11 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
             .not('session_id', 'is', null)
             .order('created_at', { ascending: false })
             .limit(200),
-          (supabase as any).rpc('admin_get_user_auth_history', {
-            target_user_id: userId,
+          supabase.functions.invoke('admin-users', {
+            body: {
+              action: 'auth-history',
+              user_id: userId,
+            },
           }),
         ]);
         if (cancelled) return;
@@ -231,7 +234,7 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
 
         setSessions(realSessions.length > 0 ? realSessions : fallbackSessions);
         setActivity((actRes.data || []) as ActivityRow[]);
-        setAuthHistory((authHistoryRes.data || []) as AuthHistoryRow[]);
+        setAuthHistory(((authHistoryRes.data as any)?.events || []) as AuthHistoryRow[]);
       } catch (e: any) {
         if (!cancelled) setError(e.message || 'Failed to load activity');
       } finally {
