@@ -165,53 +165,11 @@ Deno.serve(async (req) => {
       const user_id = body.user_id ?? new URL(req.url).searchParams.get("user_id");
       if (!user_id) throw new Error("Missing 'user_id'");
 
-      const { data: authUser, error: authUserError } = await admin.auth.admin.getUserById(user_id);
-      if (authUserError) throw authUserError;
-
-      const { data: auditRows, error: auditError } = await admin
-        .schema('auth')
-        .from('audit_log_entries')
-        .select('id, payload, created_at, ip_address')
-        .ilike('payload', `%${user_id}%`)
-        .order('created_at', { ascending: false })
-        .limit(200);
-      if (auditError) throw auditError;
-
-      const events = (auditRows || [])
-        .map((row: any) => {
-          const payload = row.payload || {};
-          const eventType = payload.action || 'auth_event';
-          if (!['login', 'logout', 'token_refreshed', 'token_revoked', 'user_signedup'].includes(eventType)) {
-            return null;
-          }
-
-          return {
-            id: String(row.id),
-            event_type: eventType,
-            occurred_at: row.created_at,
-            ip_address: row.ip_address || null,
-            actor_email: payload.actor_username || payload.traits?.user_email || authUser.user?.email || null,
-            provider: payload.traits?.provider || null,
-            auth_last_sign_in_at: authUser.user?.last_sign_in_at || null,
-            auth_created_at: authUser.user?.created_at || null,
-          };
-        })
-        .filter(Boolean);
-
-      if (authUser.user?.last_sign_in_at) {
-        events.unshift({
-          id: `auth-last-sign-in-${authUser.user.id}`,
-          event_type: 'current_last_sign_in',
-          occurred_at: authUser.user.last_sign_in_at,
-          ip_address: null,
-          actor_email: authUser.user.email || null,
-          provider: null,
-          auth_last_sign_in_at: authUser.user.last_sign_in_at,
-          auth_created_at: authUser.user.created_at || null,
-        });
-      }
-
-      events.sort((a: any, b: any) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime());
+      const { data: events, error: historyError } = await supa.rpc(
+        'admin_get_user_auth_history',
+        { target_user_id: user_id },
+      );
+      if (historyError) throw historyError;
 
       return new Response(JSON.stringify({ ok: true, events }), {
         headers: { ...cors, "content-type": "application/json" },
