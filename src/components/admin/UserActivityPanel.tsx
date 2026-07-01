@@ -59,8 +59,6 @@ interface AuthHistoryRow {
   auth_created_at: string | null;
 }
 
-const loginEventTypes = new Set(['login', 'user_signedup', 'current_last_sign_in']);
-
 function getAuthEventLabel(type: string): string {
   switch (type) {
     case 'current_last_sign_in':
@@ -169,16 +167,6 @@ function DeviceIcon({ type }: { type: string | null }) {
   if (t.includes('tablet')) return <Tablet className="h-3.5 w-3.5" />;
   if (t.includes('desktop')) return <Monitor className="h-3.5 w-3.5" />;
   return <Globe className="h-3.5 w-3.5" />;
-}
-
-function formatDuration(seconds: number | null): string {
-  if (!seconds || seconds <= 0) return '—';
-  if (seconds < 60) return `${seconds}s`;
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  if (m < 60) return s ? `${m}m ${s}s` : `${m}m`;
-  const h = Math.floor(m / 60);
-  return `${h}h ${m % 60}m`;
 }
 
 export function UserActivityPanel({ userId, userFullName }: UserActivityPanelProps) {
