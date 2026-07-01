@@ -7100,6 +7100,19 @@ export type Database = {
           years_of_experience: string
         }[]
       }
+      admin_get_user_auth_history: {
+        Args: { target_user_id: string }
+        Returns: {
+          actor_email: string
+          auth_created_at: string
+          auth_last_sign_in_at: string
+          event_type: string
+          id: string
+          ip_address: string
+          occurred_at: string
+          provider: string
+        }[]
+      }
       admin_get_user_journey_progress: {
         Args: { target_user_id: string }
         Returns: {

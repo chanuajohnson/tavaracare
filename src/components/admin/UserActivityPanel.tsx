@@ -18,7 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Monitor, Smartphone, Tablet, Globe, ChevronDown, Clock, MousePointerClick } from 'lucide-react';
+import { Monitor, Smartphone, Tablet, Globe, ChevronDown, Clock, MousePointerClick, ShieldCheck } from 'lucide-react';
 
 interface UserActivityPanelProps {
   userId: string;
@@ -46,6 +46,45 @@ interface ActivityRow {
   action_type: string | null;
   created_at: string;
   additional_data: any;
+}
+
+interface AuthHistoryRow {
+  id: string;
+  event_type: string;
+  occurred_at: string;
+  ip_address: string | null;
+  actor_email: string | null;
+  provider: string | null;
+  auth_last_sign_in_at: string | null;
+  auth_created_at: string | null;
+}
+
+const loginEventTypes = new Set(['login', 'user_signedup', 'current_last_sign_in']);
+
+function getAuthEventLabel(type: string): string {
+  switch (type) {
+    case 'current_last_sign_in':
+      return 'Current last sign-in';
+    case 'user_signedup':
+      return 'Account created';
+    case 'token_refreshed':
+      return 'Session refreshed';
+    case 'token_revoked':
+      return 'Session revoked';
+    case 'logout':
+      return 'Logout';
+    case 'login':
+      return 'Login';
+    default:
+      return type.replace(/_/g, ' ');
+  }
+}
+
+function getAuthLoginRows(rows: AuthHistoryRow[]): AuthHistoryRow[] {
+  const actualLoginRows = rows.filter((row) => row.event_type === 'login' || row.event_type === 'user_signedup');
+  if (actualLoginRows.length > 0) return actualLoginRows;
+
+  return rows.filter((row) => row.event_type === 'current_last_sign_in');
 }
 
 function buildSessionsFromActivity(rows: ActivityRow[]): SessionRow[] {
@@ -147,6 +186,7 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
   const [error, setError] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [activity, setActivity] = useState<ActivityRow[]>([]);
+  const [authHistory, setAuthHistory] = useState<AuthHistoryRow[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -154,7 +194,7 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
       setLoading(true);
       setError(null);
       try {
-        const [sessRes, actRes, sessionActivityRes] = await Promise.all([
+        const [sessRes, actRes, sessionActivityRes, authHistoryRes] = await Promise.all([
           supabase
             .from('session_analytics')
             .select('*')
@@ -174,11 +214,15 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
             .not('session_id', 'is', null)
             .order('created_at', { ascending: false })
             .limit(200),
+          (supabase as any).rpc('admin_get_user_auth_history', {
+            target_user_id: userId,
+          }),
         ]);
         if (cancelled) return;
         if (sessRes.error) throw sessRes.error;
         if (actRes.error) throw actRes.error;
         if (sessionActivityRes.error) throw sessionActivityRes.error;
+        if (authHistoryRes.error) throw authHistoryRes.error;
 
         const realSessions = (sessRes.data || []) as SessionRow[];
         const fallbackSessions = buildSessionsFromActivity(
@@ -187,6 +231,7 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
 
         setSessions(realSessions.length > 0 ? realSessions : fallbackSessions);
         setActivity((actRes.data || []) as ActivityRow[]);
+        setAuthHistory((authHistoryRes.data || []) as AuthHistoryRow[]);
       } catch (e: any) {
         if (!cancelled) setError(e.message || 'Failed to load activity');
       } finally {
@@ -219,6 +264,12 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
   }
 
   const last = sessions[0];
+  const authLoginRows = getAuthLoginRows(authHistory);
+  const latestAuthLogin =
+    authHistory.find((row) => row.event_type === 'current_last_sign_in') ||
+    authLoginRows[0] ||
+    null;
+  const authEventRows = authHistory.filter((row) => row.event_type !== 'current_last_sign_in');
 
   return (
     <div className="space-y-4">
@@ -231,8 +282,54 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {!last ? (
+          {!latestAuthLogin && !last ? (
             <p className="text-sm text-muted-foreground">No session data recorded yet.</p>
+          ) : latestAuthLogin ? (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Loaded from Supabase Auth. The app session table can be empty even when Supabase
+                has login records.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <div className="text-xs text-muted-foreground">Last Supabase sign-in</div>
+                  <div className="font-medium">
+                    {formatDistanceToNow(new Date(latestAuthLogin.occurred_at), { addSuffix: true })}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {format(new Date(latestAuthLogin.occurred_at), 'PPp')}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Provider / IP</div>
+                  <div className="font-medium">
+                    {latestAuthLogin.provider || 'Email'} · {latestAuthLogin.ip_address || 'IP not recorded'}
+                  </div>
+                  {latestAuthLogin.actor_email && (
+                    <div className="text-xs text-muted-foreground truncate">
+                      {latestAuthLogin.actor_email}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Device / Browser</div>
+                  <div className="flex items-center gap-2 font-medium">
+                    <DeviceIcon type={last?.device_type || null} />
+                    <span className="capitalize">{last?.device_type || 'Not captured by Auth'}</span>
+                    {last?.browser && (
+                      <>
+                        <span className="text-muted-foreground">·</span>
+                        <span>{last.browser}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Auth login records</div>
+                  <div className="font-medium">{authLoginRows.length}</div>
+                </div>
+              </div>
+            </div>
           ) : (
             <div className="space-y-3">
               {last.inferred_from_activity && (
@@ -284,15 +381,15 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
         </CardContent>
       </Card>
 
-      {/* Login History */}
+      {/* Supabase Login History */}
       <Card>
         <Collapsible defaultOpen>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">
-                Login History{' '}
+                Supabase Login History{' '}
                 <span className="text-xs font-normal text-muted-foreground">
-                  ({sessions.length})
+                  ({authLoginRows.length})
                 </span>
               </CardTitle>
               <CollapsibleTrigger asChild>
@@ -304,48 +401,103 @@ export function UserActivityPanel({ userId, userFullName }: UserActivityPanelPro
           </CardHeader>
           <CollapsibleContent>
             <CardContent>
-              {sessions.some((s) => s.inferred_from_activity) && (
+              {authLoginRows.length > 0 && (
                 <p className="mb-3 text-xs text-muted-foreground">
-                  These sessions are reconstructed from tracked activity events because the login
-                  session table has no rows for this user.
+                  These rows come directly from Supabase Auth audit history and include prior
+                  login/account-created events.
                 </p>
               )}
-              {sessions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No login sessions recorded.</p>
+              {authLoginRows.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No Supabase Auth login records found.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Started</TableHead>
-                        <TableHead>Duration</TableHead>
-                        <TableHead>Device</TableHead>
-                        <TableHead>Browser</TableHead>
-                        <TableHead className="text-right">Pages</TableHead>
-                        <TableHead>Exit page</TableHead>
+                        <TableHead>When</TableHead>
+                        <TableHead>Event</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Provider</TableHead>
+                        <TableHead>IP</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {sessions.map((s) => (
-                        <TableRow key={s.id}>
+                      {authLoginRows.map((row) => (
+                        <TableRow key={row.id}>
                           <TableCell className="text-xs whitespace-nowrap">
-                            {format(new Date(s.started_at), 'MMM d, yyyy HH:mm')}
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            {formatDuration(s.duration_seconds)}
+                            {format(new Date(row.occurred_at), 'MMM d, yyyy HH:mm:ss')}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-1.5 text-xs capitalize">
-                              <DeviceIcon type={s.device_type} />
-                              {s.device_type || '—'}
-                            </div>
+                            <Badge variant="outline" className="text-[10px]">
+                              {getAuthEventLabel(row.event_type)}
+                            </Badge>
                           </TableCell>
-                          <TableCell className="text-xs">{s.browser || '—'}</TableCell>
-                          <TableCell className="text-xs text-right">
-                            {s.page_views ?? 0}
+                          <TableCell className="text-xs">{row.actor_email || '—'}</TableCell>
+                          <TableCell className="text-xs capitalize">{row.provider || 'email'}</TableCell>
+                          <TableCell className="text-xs font-mono">
+                            {row.ip_address || '—'}
                           </TableCell>
-                          <TableCell className="text-xs font-mono max-w-[180px] truncate">
-                            {s.exit_page || (s.inferred_from_activity ? 'Activity inferred' : '—')}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
+
+      {/* Full Supabase Auth Log */}
+      <Card>
+        <Collapsible>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" />
+                Full Supabase Auth Log{' '}
+                <span className="text-xs font-normal text-muted-foreground">
+                  ({authEventRows.length})
+                </span>
+              </CardTitle>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent>
+              {authEventRows.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No auth audit events found.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>When</TableHead>
+                        <TableHead>Event</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Provider</TableHead>
+                        <TableHead>IP</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {authEventRows.map((row) => (
+                        <TableRow key={row.id}>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {format(new Date(row.occurred_at), 'MMM d, yyyy HH:mm:ss')}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-[10px]">
+                              {getAuthEventLabel(row.event_type)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs">{row.actor_email || '—'}</TableCell>
+                          <TableCell className="text-xs capitalize">{row.provider || '—'}</TableCell>
+                          <TableCell className="text-xs font-mono">
+                            {row.ip_address || '—'}
                           </TableCell>
                         </TableRow>
                       ))}
