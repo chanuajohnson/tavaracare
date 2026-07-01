@@ -161,6 +161,21 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "auth-history") {
+      const user_id = body.user_id ?? new URL(req.url).searchParams.get("user_id");
+      if (!user_id) throw new Error("Missing 'user_id'");
+
+      const { data: events, error: historyError } = await supa.rpc(
+        'admin_get_user_auth_history',
+        { target_user_id: user_id },
+      );
+      if (historyError) throw historyError;
+
+      return new Response(JSON.stringify({ ok: true, events }), {
+        headers: { ...cors, "content-type": "application/json" },
+      });
+    }
+
     throw new Error(`Unknown action '${action}'`);
   } catch (err) {
     console.error('Admin users function error:', err);
