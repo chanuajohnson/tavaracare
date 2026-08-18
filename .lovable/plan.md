@@ -1,33 +1,46 @@
-## What I found
+Save the live-in care enquiry response as a reusable WhatsApp nudge template
 
-Ana Maria Aimey does have activity records, but she has zero rows in `session_analytics`:
+## Goal
+Create a reusable WhatsApp nudge template in the admin template library so Chan can quickly respond to family enquiries about 24/7 live-in care, pricing, and next steps.
 
-- `cta_engagement_tracking`: 34 activity events across 3 session IDs
-- `session_analytics`: 0 login/session rows for her
-- The admin profile list is currently showing “last login” from `profiles.updated_at`, not from real login history
+## What will be built
+A single seeded `nudge_templates` row that can be selected from `/admin/nudges` (WhatsApp Template Manager) and the `SendNudgeModal` / `TemplateSelector` used across the admin user views.
 
-That is why the Activity Trail shows rows, but “Last Login & Device” and “Login History” say no session data recorded.
-
-## Plan
-
-1. Update `UserActivityPanel.tsx` only.
-2. Keep the existing `session_analytics` query for users who have real session rows.
-3. Add a fallback that groups `cta_engagement_tracking` by `session_id` when `session_analytics` is empty.
-4. Render those grouped activity sessions in the Login History section so Ana Maria shows:
-   - first activity time as session start
-   - last activity time as session end
-   - event count as page/actions count
-   - device and browser from tracked `additional_data` when available
-5. Add a clear helper note in the login section when the row is inferred from activity tracking, so it is not mistaken for a Supabase auth login audit.
-
-## Technical details
-
-The fallback will use Ana Maria’s existing tracked session IDs:
+## Template content
+- **Name:** Live-in Care Enquiry — Cost & Next Steps
+- **Role:** family
+- **Stage:** manual
+- **Message type:** whatsapp
+- **Message template:**
 
 ```text
-77de2f1e-0fff-4a05-8284-8b1433c1a1e1
-f2f38c06-6c04-41f8-8910-50a2df22100d
-ea24ff1c-7423-4181-86e8-cc88f436ac80
+Hi [Name]! 💙
+
+Thank you for reaching out about care for your loved one. I wanted to give you a clear picture of how live-in care works with us.
+
+A live-in caregiver stays in the home and provides consistent, around-the-clock support, with relief days built into the schedule so the care team stays fresh and your loved one is never left without coverage. Live-in arrangements start from $2,400 per week.
+
+There is also a one-time matching and placement fee of $1,399, which covers vetting, matching, home readiness prep, and getting the care team set up properly.
+
+If you prefer shift-based care instead, our care rates range from $40/hour for Standard support, $45/hour for Full Service, and $50+/hour for Premium care.
+
+To move forward, the next steps are:
+1. Complete your family profile at https://tavara.care/registration/family
+2. Book a care assessment so we can understand your loved one's routines and needs
+3. We will then match you with the right care team
+
+Once your profile is complete, we can schedule a quick call to discuss the best arrangement for your family.
+
+Let me know if you have any questions.
 ```
 
-No database migration is needed for this display fix. The missing data is not caused by the new index anymore; it is caused by `session_analytics` never being populated in the app, while `cta_engagement_tracking` is populated.
+The `[Name]` placeholder is already supported by the existing `populateTemplate` logic in `SendNudgeModal` and `TemplateSelector`.
+
+## Implementation
+1. Create a migration that inserts the template row into `public.nudge_templates` if a template with the same name does not already exist.
+2. No UI changes are required — the template will appear automatically in the existing admin template manager and send flows.
+
+## Verification
+- Query `public.nudge_templates` after migration to confirm the row exists.
+- Open `/admin/nudges` and confirm the template appears under the Family / Manual section.
+- Open a family user's nudge flow and confirm the template can be selected, personalized with `[Name]`, and opened in WhatsApp.
