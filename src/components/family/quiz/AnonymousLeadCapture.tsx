@@ -46,8 +46,8 @@ const phoneSchema = z
 interface AnonymousLeadCaptureProps {
   stage: ReadinessStage;
   stageDef: StageDefinition;
-  /** All quiz answers as { questionId: score } */
-  responses: Record<string, number>;
+  /** All quiz answers as { questionId: answer } — stored verbatim on the lead */
+  responses: Record<string, unknown>;
   /** The user's open-text reflection, if any */
   reflection?: string;
 }
