@@ -6,7 +6,7 @@ import { getFamilyReadinessStatus } from '@/hooks/family/completionCheckers';
 import { DashboardCaregiverMatches } from './DashboardCaregiverMatches';
 import { FamilyReadinessModal } from './FamilyReadinessModal';
 
-export const FamilyReadinessChecker = () => {
+export const MatchAccessGate = () => {
   const { user } = useAuth();
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -21,7 +21,7 @@ export const FamilyReadinessChecker = () => {
     try {
       setIsLoading(true);
       
-      console.log('🔍 [FamilyReadinessChecker] Starting readiness check', {
+      console.log('🔍 [MatchAccessGate] Starting readiness check', {
         userId: user.id,
         forceRefresh,
         timestamp: new Date().toISOString()
@@ -34,7 +34,7 @@ export const FamilyReadinessChecker = () => {
         fetchCareRecipientProfile(user.id)
       ]);
 
-      console.log('📊 [FamilyReadinessChecker] Data fetched', {
+      console.log('📊 [MatchAccessGate] Data fetched', {
         profile: profile ? 'exists' : 'null',
         assessment: assessment ? 'exists' : 'null', 
         story: story ? 'exists' : 'null'
@@ -43,7 +43,7 @@ export const FamilyReadinessChecker = () => {
       // Use completion checkers to determine readiness
       const status = getFamilyReadinessStatus(profile, assessment, story);
       
-      console.log('✅ [FamilyReadinessChecker] Readiness status determined:', {
+      console.log('✅ [MatchAccessGate] Readiness status determined:', {
         userId: user.id,
         registrationComplete: status.registrationComplete,
         careAssessmentComplete: status.careAssessmentComplete,
@@ -57,10 +57,10 @@ export const FamilyReadinessChecker = () => {
       
       // If user is ready but modal was showing, log successful transition
       if (status.allReady && showModal) {
-        console.log('🎉 [FamilyReadinessChecker] User became ready! Hiding modal.');
+        console.log('🎉 [MatchAccessGate] User became ready! Hiding modal.');
       }
     } catch (error) {
-      console.error('❌ [FamilyReadinessChecker] Error checking family readiness:', error);
+      console.error('❌ [MatchAccessGate] Error checking family readiness:', error);
       setIsReady(false);
       setShowModal(true);
     } finally {
@@ -70,7 +70,7 @@ export const FamilyReadinessChecker = () => {
 
   // Check readiness on mount and when user changes
   useEffect(() => {
-    console.log('🔄 [FamilyReadinessChecker] useEffect triggered', {
+    console.log('🔄 [MatchAccessGate] useEffect triggered', {
       hasUser: !!user,
       userId: user?.id
     });

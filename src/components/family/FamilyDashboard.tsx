@@ -12,7 +12,7 @@ import { useFamilyStage } from "@/hooks/useFamilyStage";
 import { FamilyReadinessQuickAccess } from "@/components/family/FamilyReadinessQuickAccess";
 import { readQuizProgress, countAnswered } from "@/data/familyReadinessQuiz";
 import { CaregiverReadinessCard } from "@/components/family/CaregiverReadinessCard";
-import { FamilyReadinessChecker } from "@/components/family/FamilyReadinessChecker";
+import { MatchAccessGate } from "@/components/family/MatchAccessGate";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
 import { DailyCareQuickView } from "@/components/family/DailyCareQuickView";
 import { SchedulingStatusBanner } from "@/components/family/SchedulingStatusBanner";
@@ -516,7 +516,7 @@ const FamilyDashboard = () => {
         </div>
 
         <div className="mt-8" id="family-caregiver-matches">
-          <FamilyReadinessChecker />
+          <MatchAccessGate />
         </div>
 
         <div className="mt-8">
