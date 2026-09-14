@@ -88,7 +88,7 @@ Then **best time to reach you:** Mornings / Afternoons / Evenings / Anytime
 - Show me what you recommend, with the pricing
 - Show me everything, including premium support
 
-Eight questions plus one conditional. Q1 no longer carries prior experience.
+Nine primary questions (Q1–Q9) plus one conditional (Q2b). No question is dropped to reach a lower count — every one carries an approved dimension. Q1 no longer carries prior experience.
 
 ---
 
@@ -148,7 +148,7 @@ Constraints override stage. Always.
 4. **Prior Care Experience = None** → education before assumption. Define terms, explain the employer and NIS side, assume no vocabulary.
 5. **Prior Care Experience = Agency or Multiple Arrangements** → ask what ended it before proposing anything; lead with reliability, continuity and backup cover; weight matching toward continuity.
 6. **Cost Presentation Preference** → obeyed literally. Only *"keep everything to essentials unless I ask"* suppresses optional recommendations. *"Lower-cost options first"* means ordering, not hiding.
-7. **Observed Platform Engagement = None, or Management Preference ≠ dashboard** → a dashboard notice is never evidence of receipt. Confirm on the family's chosen channel.
+7. **Channel delivery vs understanding** → critical or action-required information must be delivered through the family's selected communication channel(s). A dashboard publication alone is not confirmation that the family has seen or understood it, unless the dashboard is their stated primary management preference **and** observed engagement confirms active use. For "a combination", respect every selected channel and any identified primary channel. Receipt, engagement and understanding remain three separate concepts — only an understanding checkpoint (section F) evidences the third.
 8. **Journey Stage = Action or Established with two or more dimensions at their most cautious setting** → flag **PACE SUPPORT REQUIRED**, guidance line: *"Care is in motion. Introduce information and change gradually."* Optional-service surfacing is held until a coordinator clears it.
 
 The example family — Action, Low information capacity, High privacy, Low home change, essentials-only cost, no prior experience — trips rule 8 plus 1, 2, 3, 4 and 6. Care proceeds; every non-essential recommendation is held.
