@@ -2658,6 +2658,88 @@ export type Database = {
           },
         ]
       }
+      family_readiness_history: {
+        Row: {
+          created_at: string
+          dimension: string
+          id: string
+          new_value: string | null
+          notes: string | null
+          previous_value: string | null
+          profile_id: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          dimension: string
+          id?: string
+          new_value?: string | null
+          notes?: string | null
+          previous_value?: string | null
+          profile_id: string
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          dimension?: string
+          id?: string
+          new_value?: string | null
+          notes?: string | null
+          previous_value?: string | null
+          profile_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_readiness_history_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_understanding_checkpoints: {
+        Row: {
+          checkpoint_key: string
+          context: Json | null
+          created_at: string
+          id: string
+          profile_id: string
+          resolved_at: string | null
+          response: string | null
+          updated_at: string
+        }
+        Insert: {
+          checkpoint_key: string
+          context?: Json | null
+          created_at?: string
+          id?: string
+          profile_id: string
+          resolved_at?: string | null
+          response?: string | null
+          updated_at?: string
+        }
+        Update: {
+          checkpoint_key?: string
+          context?: Json | null
+          created_at?: string
+          id?: string
+          profile_id?: string
+          resolved_at?: string | null
+          response?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_understanding_checkpoints_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feature_interest_tracking: {
         Row: {
           action_type: string | null
@@ -4608,6 +4690,7 @@ export type Database = {
           background_check_status: string | null
           bio: string | null
           budget_preferences: string | null
+          care_journey_stage: string | null
           care_recipient_name: string | null
           care_schedule: string | null
           care_services: string[] | null
@@ -4637,6 +4720,7 @@ export type Database = {
           enable_community_notifications: boolean | null
           enable_job_alerts: boolean | null
           expected_rate: string | null
+          family_readiness_profile: Json | null
           first_name: string | null
           full_name: string | null
           handles_medical_equipment: boolean | null
@@ -4644,6 +4728,7 @@ export type Database = {
           hourly_rate: string | null
           id: string
           improvement_ideas: string | null
+          information_capacity: string | null
           involvement_preferences: string[] | null
           job_matching_criteria: string[] | null
           job_notification_method: string | null
@@ -4715,6 +4800,7 @@ export type Database = {
           background_check_status?: string | null
           bio?: string | null
           budget_preferences?: string | null
+          care_journey_stage?: string | null
           care_recipient_name?: string | null
           care_schedule?: string | null
           care_services?: string[] | null
@@ -4744,6 +4830,7 @@ export type Database = {
           enable_community_notifications?: boolean | null
           enable_job_alerts?: boolean | null
           expected_rate?: string | null
+          family_readiness_profile?: Json | null
           first_name?: string | null
           full_name?: string | null
           handles_medical_equipment?: boolean | null
@@ -4751,6 +4838,7 @@ export type Database = {
           hourly_rate?: string | null
           id: string
           improvement_ideas?: string | null
+          information_capacity?: string | null
           involvement_preferences?: string[] | null
           job_matching_criteria?: string[] | null
           job_notification_method?: string | null
@@ -4822,6 +4910,7 @@ export type Database = {
           background_check_status?: string | null
           bio?: string | null
           budget_preferences?: string | null
+          care_journey_stage?: string | null
           care_recipient_name?: string | null
           care_schedule?: string | null
           care_services?: string[] | null
@@ -4851,6 +4940,7 @@ export type Database = {
           enable_community_notifications?: boolean | null
           enable_job_alerts?: boolean | null
           expected_rate?: string | null
+          family_readiness_profile?: Json | null
           first_name?: string | null
           full_name?: string | null
           handles_medical_equipment?: boolean | null
@@ -4858,6 +4948,7 @@ export type Database = {
           hourly_rate?: string | null
           id?: string
           improvement_ideas?: string | null
+          information_capacity?: string | null
           involvement_preferences?: string[] | null
           job_matching_criteria?: string[] | null
           job_notification_method?: string | null
