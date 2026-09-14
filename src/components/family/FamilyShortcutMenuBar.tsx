@@ -76,8 +76,38 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareC
   return (
     <div className="bg-muted py-2 border-y">
       <Container>
-        <div className="flex items-center overflow-x-auto whitespace-nowrap py-1 gap-2">
-          <span className="text-sm font-medium text-muted-foreground mr-2">Quick Access:</span>
+        <div className="flex flex-col items-stretch py-1 gap-2 [&>a]:w-full [&>a>button]:w-full [&>a>button]:justify-start [&>button]:w-full [&>button]:justify-start">
+          <span className="text-sm font-medium text-muted-foreground">Quick Access:</span>
+
+          {/* Next Step: Complete Family Profile (registration) */}
+          {showRegistrationTodo && (
+            <Link
+              to="/registration/family"
+              onClick={() => handleTrackButtonClick('navigation_click', 'complete_registration')}
+            >
+              <Button variant="default" size="sm" className="flex items-center gap-1">
+                <ClipboardEdit className="h-4 w-4" />
+                <span>Complete Your Family Profile</span>
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          )}
+
+          {/* Next Step: Care Needs Assessment */}
+          {showAssessmentTodo && (
+            <Link
+              to="/family/care-assessment"
+              onClick={() => handleTrackButtonClick('navigation_click', 'care_assessment')}
+            >
+              <Button variant="outline" size="sm" className="flex items-center gap-1">
+                <FileCheck className="h-4 w-4" />
+                <span>Care Needs Assessment</span>
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          )}
+
+
           
 
           {/* Schedule Care - prominent amber button when in scheduling stage (hidden if caregiver assigned) */}
