@@ -55,6 +55,10 @@ export function FamilyShortcutMenuBar({ onCaregiverMatchesClick, onScheduleCareC
   console.log("[FamilyShortcutMenuBar] Story button check:", { careRecipient, showStoryButton, loading });
   const showRegistrationEdit = registrationStep?.completed;
   const showAssessmentEdit = careAssessmentStep?.completed;
+
+  // Incomplete next steps: registration -> assessment -> legacy story
+  const showRegistrationTodo = !registrationStep?.completed;
+  const showAssessmentTodo = !careAssessmentStep?.completed;
   
   // Check if caregiver has been assigned
   const hasCaregiverAssigned = caregiverAssignedStep?.completed;
