@@ -21,7 +21,7 @@ export const MatchAccessGate = () => {
     try {
       setIsLoading(true);
       
-      console.log('🔍 [MatchAccessGate] Starting readiness check', {
+      console.log('🔍 [MatchAccessGate] Starting care intake completeness check', {
         userId: user.id,
         forceRefresh,
         timestamp: new Date().toISOString()
@@ -43,7 +43,7 @@ export const MatchAccessGate = () => {
       // Use completion checkers to determine readiness
       const status = getFamilyReadinessStatus(profile, assessment, story);
       
-      console.log('✅ [MatchAccessGate] Readiness status determined:', {
+      console.log('✅ [MatchAccessGate] Intake completeness determined:', {
         userId: user.id,
         registrationComplete: status.registrationComplete,
         careAssessmentComplete: status.careAssessmentComplete,
@@ -60,7 +60,7 @@ export const MatchAccessGate = () => {
         console.log('🎉 [MatchAccessGate] User became ready! Hiding modal.');
       }
     } catch (error) {
-      console.error('❌ [MatchAccessGate] Error checking family readiness:', error);
+      console.error('❌ [MatchAccessGate] Error checking care intake completeness:', error);
       setIsReady(false);
       setShowModal(true);
     } finally {
