@@ -493,6 +493,16 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               </Card>
             )}
 
+            {/* Readiness snapshot — pacing guidance, never a score */}
+            {user.role === 'family' && (
+              <FamilyReadinessSnapshot
+                profileId={user.id}
+                familyName={user.full_name || undefined}
+              />
+            )}
+
+
+
             {/* Matching Status for Professional and Family Users */}
             {(user.role === 'professional' || user.role === 'family') && (
               <MatchingStatusToggle
