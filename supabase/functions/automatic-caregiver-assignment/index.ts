@@ -122,14 +122,13 @@ serve(async (req) => {
 
     console.log('Family user verified:', familyUser)
 
-    // Get available professional caregivers
+    // Get ALL available professional caregivers (ranking happens below)
     console.log('Fetching available professional caregivers...')
     const { data: caregivers, error: caregiversError } = await supabaseClient
       .from('profiles')
-      .select('id, full_name, professional_type, years_of_experience, care_types, available_for_matching')
+      .select('id, full_name, professional_type, years_of_experience, care_types, available_for_matching, address')
       .eq('role', 'professional')
       .eq('available_for_matching', true)
-      .limit(5)
 
     console.log('Caregivers query result:', { count: caregivers?.length, error: caregiversError })
     console.log('Available caregivers:', caregivers)
