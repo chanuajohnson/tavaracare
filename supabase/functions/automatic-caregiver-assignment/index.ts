@@ -107,7 +107,7 @@ serve(async (req) => {
     console.log('Verifying family user exists...')
     const { data: familyUser, error: familyUserError } = await supabaseClient
       .from('profiles')
-      .select('id, full_name, role')
+      .select('id, full_name, role, address, care_types')
       .eq('id', familyUserId)
       .eq('role', 'family')
       .single()
