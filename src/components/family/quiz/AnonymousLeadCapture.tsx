@@ -120,7 +120,7 @@ export const AnonymousLeadCapture: React.FC<AnonymousLeadCaptureProps> = ({
         contact_method: "whatsapp",
         whatsapp_number: phoneResult.data,
         client_stage: stage,
-        quiz_responses: responses,
+        quiz_responses: responses as unknown as Json,
         reflection: reflection || null,
         source_path: window.location.pathname,
       });
@@ -172,7 +172,7 @@ export const AnonymousLeadCapture: React.FC<AnonymousLeadCaptureProps> = ({
         contact_method: "email",
         email: emailResult.data.toLowerCase(),
         client_stage: stage,
-        quiz_responses: responses,
+        quiz_responses: responses as unknown as Json,
         reflection: reflection || null,
         source_path: window.location.pathname,
       });

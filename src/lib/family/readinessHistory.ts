@@ -34,7 +34,7 @@ const valueOf = (
   dim: ReadinessDimension
 ): string | null => {
   if (!profile) return null;
-  const v = (profile as Record<string, unknown>)[dim];
+  const v = (profile as unknown as Record<string, unknown>)[dim];
   if (v === undefined || v === null) return null;
   return Array.isArray(v) ? v.join(",") : String(v);
 };
