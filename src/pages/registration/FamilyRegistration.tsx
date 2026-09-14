@@ -630,7 +630,9 @@ const FamilyRegistration = ({ isDemo: isExternalDemo = false, onFormReady, realT
       
       toast.success(successMessage);
       
-      navigate('/dashboard/family');
+      // Readiness pacing questions come immediately after registration, before
+      // the dashboard. Every question there is skippable.
+      navigate('/family/readiness-quiz?from=registration');
     } catch (error: any) {
       console.error('Error updating profile:', error);
       toast.error(error.message || 'Failed to update profile. Please try again.');

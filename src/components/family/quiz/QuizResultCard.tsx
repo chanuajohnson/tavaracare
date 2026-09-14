@@ -21,8 +21,12 @@ interface QuizResultCardProps {
   onSaveStage: () => void;
   /** Final stage number (1-4) */
   stage: ReadinessStage;
-  /** Quiz responses by question id */
-  responses: Record<string, number>;
+  /**
+   * Raw answers by question id. Legacy numeric answers (1–4) are rendered by
+   * PreviousAnswersPanel; readiness-assessment answers are strings/arrays and
+   * are summarised elsewhere.
+   */
+  responses: Record<string, unknown>;
   /** Existing reflection from profile (signed-in users) */
   initialReflection?: ReadinessReflection | null;
   /** ISO timestamp of last completion (signed-in users only) */
@@ -47,6 +51,16 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
     initialReflection?.text || ""
   );
   const [retakeConfirmOpen, setRetakeConfirmOpen] = useState(false);
+
+  // Legacy quizzes stored a 1–4 score per question. Readiness-assessment
+  // answers are strings/arrays, so they're excluded from this panel.
+  const numericResponses = Object.entries(responses).reduce<Record<string, number>>(
+    (acc, [k, v]) => {
+      if (typeof v === "number" && v >= 1 && v <= 4) acc[k] = v;
+      return acc;
+    },
+    {}
+  );
 
   // Freshness messaging — only for signed-in users with a DB timestamp
   const freshness = (() => {
@@ -139,9 +153,9 @@ export const QuizResultCard: React.FC<QuizResultCardProps> = ({
         </div>
       )}
 
-      {/* See my answers — signed-in users with stored responses */}
-      {!isAnonymous && Object.keys(responses).length > 0 && (
-        <PreviousAnswersPanel responses={responses} />
+      {/* See my answers — legacy numeric responses only */}
+      {!isAnonymous && Object.keys(numericResponses).length > 0 && (
+        <PreviousAnswersPanel responses={numericResponses} />
       )}
 
       <div className="space-y-3">

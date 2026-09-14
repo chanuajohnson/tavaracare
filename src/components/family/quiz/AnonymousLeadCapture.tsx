@@ -1,3 +1,4 @@
+import type { Json } from "@/integrations/supabase/types";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -46,8 +47,8 @@ const phoneSchema = z
 interface AnonymousLeadCaptureProps {
   stage: ReadinessStage;
   stageDef: StageDefinition;
-  /** All quiz answers as { questionId: score } */
-  responses: Record<string, number>;
+  /** All quiz answers as { questionId: answer } — stored verbatim on the lead */
+  responses: Record<string, unknown>;
   /** The user's open-text reflection, if any */
   reflection?: string;
 }
@@ -120,7 +121,7 @@ export const AnonymousLeadCapture: React.FC<AnonymousLeadCaptureProps> = ({
         contact_method: "whatsapp",
         whatsapp_number: phoneResult.data,
         client_stage: stage,
-        quiz_responses: responses,
+        quiz_responses: responses as unknown as Json,
         reflection: reflection || null,
         source_path: window.location.pathname,
       });
@@ -172,7 +173,7 @@ export const AnonymousLeadCapture: React.FC<AnonymousLeadCaptureProps> = ({
         contact_method: "email",
         email: emailResult.data.toLowerCase(),
         client_stage: stage,
-        quiz_responses: responses,
+        quiz_responses: responses as unknown as Json,
         reflection: reflection || null,
         source_path: window.location.pathname,
       });

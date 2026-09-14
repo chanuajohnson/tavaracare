@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { FamilyReadinessSnapshot } from '@/components/admin/family/FamilyReadinessSnapshot';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -492,6 +493,16 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 </CardContent>
               </Card>
             )}
+
+            {/* Readiness snapshot — pacing guidance, never a score */}
+            {user.role === 'family' && (
+              <FamilyReadinessSnapshot
+                profileId={user.id}
+                familyName={user.full_name || undefined}
+              />
+            )}
+
+
 
             {/* Matching Status for Professional and Family Users */}
             {(user.role === 'professional' || user.role === 'family') && (

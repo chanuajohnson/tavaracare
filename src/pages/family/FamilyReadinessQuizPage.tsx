@@ -12,18 +12,23 @@ import { QuizQuestionCard } from "@/components/family/quiz/QuizQuestionCard";
 import { QuizResultCard } from "@/components/family/quiz/QuizResultCard";
 import { useFamilyStage, FAMILY_STAGE_CHANGED_EVENT } from "@/hooks/useFamilyStage";
 import {
-  readinessQuizQuestions,
   readinessStages,
-  scoreQuiz,
   READINESS_LOCAL_STORAGE_KEY,
-  READINESS_RESPONSES_LOCAL_KEY,
-  readQuizProgress,
-  writeQuizProgress,
-  clearQuizProgress,
-  countAnswered,
-  type ReadinessStage,
   type ReadinessReflection,
 } from "@/data/familyReadinessQuiz";
+import {
+  visibleQuestions,
+  deriveReadinessProfile,
+  journeyStageToLegacyStage,
+  readAssessmentProgress,
+  writeAssessmentProgress,
+  clearAssessmentProgress,
+  countAssessmentAnswered,
+  READINESS_ASSESSMENT_PROFILE_KEY,
+  type AssessmentAnswers,
+  type FamilyReadinessProfile,
+} from "@/data/familyReadinessAssessment";
+import { saveReadinessProfile, cacheProfileLocally } from "@/lib/family/readinessHistory";
 
 const AUTO_ADVANCE_MS = 250;
 
@@ -34,44 +39,48 @@ const FamilyReadinessQuizPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const viewParam = searchParams.get("view");
   const retakeParam = searchParams.get("retake");
+  const fromRegistration = searchParams.get("from") === "registration";
 
   const { stage: savedStage, hasStage, isLoading: stageLoading, clearStage } = useFamilyStage();
 
+  const [answers, setAnswers] = useState<AssessmentAnswers>({});
+  const [freeText, setFreeText] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<(ReadinessStage | undefined)[]>(
-    () => Array(readinessQuizQuestions.length).fill(undefined)
-  );
   const [showResult, setShowResult] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [resumePromptOpen, setResumePromptOpen] = useState(false);
   const [pendingProgress, setPendingProgress] = useState<{
-    answers: (ReadinessStage | undefined)[];
+    answers: AssessmentAnswers;
     currentIndex: number;
+    freeText?: string;
   } | null>(null);
   const [initialReflection, setInitialReflection] = useState<ReadinessReflection | null>(null);
-  const [savedResponses, setSavedResponses] = useState<Record<string, number>>({});
   const [assessedAt, setAssessedAt] = useState<string | null>(null);
 
-  const totalQuestions = readinessQuizQuestions.length;
-  const currentQuestion = readinessQuizQuestions[currentIndex];
+  // The visible set is answer-dependent (conditional Q2b).
+  const questions = useMemo(() => visibleQuestions(answers), [answers]);
+  const totalQuestions = questions.length;
+  const currentQuestion = questions[Math.min(currentIndex, totalQuestions - 1)];
   const isAnonymous = !user;
 
-  // Direct view=result mode — show their saved stage as the full result
   const viewResultMode = viewParam === "result" && hasStage;
-  // Result-first mode for authenticated returners (skipped if ?retake=1)
   const isRetakeRequested = retakeParam === "1";
   const resultFirstMode = !!user && hasStage && !isRetakeRequested;
 
-  const finalStage: ReadinessStage = useMemo(() => {
-    if (viewResultMode || resultFirstMode) return savedStage;
-    const numeric = answers.filter((a): a is ReadinessStage => !!a);
-    return scoreQuiz(numeric);
-  }, [answers, viewResultMode, resultFirstMode, savedStage]);
+  // Result presentation reuses the existing stage cards. The stage is derived
+  // from the journey question alone — never from service appetite.
+  const derivedProfile = useMemo<FamilyReadinessProfile | null>(() => {
+    if (viewResultMode || resultFirstMode) return null;
+    return deriveReadinessProfile(answers, { freeText });
+  }, [answers, freeText, viewResultMode, resultFirstMode]);
+
+  const finalStage =
+    viewResultMode || resultFirstMode
+      ? savedStage
+      : journeyStageToLegacyStage(derivedProfile?.current_journey_stage);
 
   const stageDef = readinessStages[finalStage];
 
-  // Fire readiness_quiz_completed exactly once per mount when results appear.
-  // PageViewTracker only re-fires on URL changes, so completion events were missed.
   const completionTrackedRef = useRef(false);
   useEffect(() => {
     if (!showResult || completionTrackedRef.current) return;
@@ -93,24 +102,31 @@ const FamilyReadinessQuizPage: React.FC = () => {
     trackEngagement("readiness_quiz_completed" as any, {
       ...utm,
       stage: finalStage,
+      journey_stage: derivedProfile?.current_journey_stage,
       viewMode: viewResultMode ? "result" : resultFirstMode ? "result_first" : "fresh",
     }).catch((e) => console.warn("[ReadinessQuiz] completion track failed", e));
-  }, [showResult, finalStage, viewResultMode, resultFirstMode, searchParams, trackEngagement]);
+  }, [
+    showResult,
+    finalStage,
+    derivedProfile,
+    viewResultMode,
+    resultFirstMode,
+    searchParams,
+    trackEngagement,
+  ]);
 
-
-  // On mount: handle ?retake=1 (clear in-progress, start fresh, no resume prompt)
+  // ?retake=1 — clear in-progress, start fresh, no resume prompt
   useEffect(() => {
     if (isRetakeRequested) {
-      clearQuizProgress();
-      setAnswers(Array(totalQuestions).fill(undefined));
+      clearAssessmentProgress();
+      setAnswers({});
+      setFreeText("");
       setCurrentIndex(0);
       setShowResult(false);
-      return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // On mount / when stage resolves: route signed-in returners to result-first
   useEffect(() => {
     if (isRetakeRequested) return;
     if (stageLoading) return;
@@ -120,27 +136,20 @@ const FamilyReadinessQuizPage: React.FC = () => {
       return;
     }
 
-    // Otherwise, look for in-progress quiz to offer resume
-    const progress = readQuizProgress();
-    if (
-      progress &&
-      progress.answers.length === totalQuestions &&
-      countAnswered(progress.answers) > 0 &&
-      countAnswered(progress.answers) < totalQuestions
-    ) {
+    const progress = readAssessmentProgress();
+    const answered = progress ? countAssessmentAnswered(progress.answers) : 0;
+    if (progress && answered > 0) {
       setPendingProgress({
         answers: progress.answers,
-        currentIndex: Math.min(
-          Math.max(progress.currentIndex, 0),
-          totalQuestions - 1
-        ),
+        currentIndex: Math.max(progress.currentIndex, 0),
+        freeText: progress.freeText,
       });
       setResumePromptOpen(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stageLoading, viewResultMode, resultFirstMode, isRetakeRequested]);
 
-  // Load existing reflection + responses + assessedAt from profile (signed-in) when viewing result
+  // Existing reflection + timestamp for the result view
   useEffect(() => {
     if (!user?.id || !showResult) return;
     let cancelled = false;
@@ -151,25 +160,9 @@ const FamilyReadinessQuizPage: React.FC = () => {
         .eq("id", user.id)
         .maybeSingle();
       if (error || cancelled) return;
-      const responses = data?.client_stage_quiz_responses as
-        | Record<string, unknown>
-        | null
-        | undefined;
+      const responses = data?.client_stage_quiz_responses as Record<string, unknown> | null;
       const r = responses?.reflection as ReadinessReflection | undefined;
       if (r?.text) setInitialReflection(r);
-
-      // Build a clean responses map (questionId -> score) for PreviousAnswersPanel
-      if (responses && typeof responses === "object") {
-        const cleaned: Record<string, number> = {};
-        for (const q of readinessQuizQuestions) {
-          const v = responses[q.id];
-          if (typeof v === "number" && v >= 1 && v <= 4) {
-            cleaned[q.id] = v;
-          }
-        }
-        setSavedResponses(cleaned);
-      }
-
       const ts = data?.client_stage_assessed_at as string | null | undefined;
       if (ts) setAssessedAt(ts);
     })();
@@ -178,110 +171,106 @@ const FamilyReadinessQuizPage: React.FC = () => {
     };
   }, [user?.id, showResult]);
 
-  const buildResponsesObject = (currentAnswers: (ReadinessStage | undefined)[]) => {
-    return readinessQuizQuestions.reduce<Record<string, number>>((acc, q, i) => {
-      const a = currentAnswers[i];
-      if (a) acc[q.id] = a;
-      return acc;
-    }, {});
-  };
+  const persist = async (finalAnswers: AssessmentAnswers, finalFreeText: string) => {
+    const profile = deriveReadinessProfile(finalAnswers, {
+      source: "initial_quiz",
+      freeText: finalFreeText,
+    });
 
-  const persistStage = async (
-    stage: ReadinessStage,
-    finalAnswers: (ReadinessStage | undefined)[]
-  ) => {
-    const responses = buildResponsesObject(finalAnswers);
-
+    cacheProfileLocally(profile);
     try {
-      localStorage.setItem(READINESS_LOCAL_STORAGE_KEY, String(stage));
       localStorage.setItem(
-        READINESS_RESPONSES_LOCAL_KEY,
-        JSON.stringify(responses)
+        READINESS_LOCAL_STORAGE_KEY,
+        String(journeyStageToLegacyStage(profile.current_journey_stage))
       );
     } catch {
-      // ignore storage failures
+      // ignore
     }
-
-    // Completed — clear any in-progress data
-    clearQuizProgress();
+    clearAssessmentProgress();
 
     if (user?.id) {
       setIsSaving(true);
       try {
-        const { error } = await supabase
-          .from("profiles")
-          .update({
-            client_stage: stage,
-            client_stage_assessed_at: new Date().toISOString(),
-            client_stage_quiz_responses: responses,
-          })
-          .eq("id", user.id);
-
-        if (error) {
-          console.error("[ReadinessQuiz] failed to save stage:", error);
-          toast.error("We couldn't save your stage just now — please try again.");
+        const { ok } = await saveReadinessProfile(user.id, profile, "initial_quiz");
+        if (!ok) {
+          toast.error("We couldn't save your answers just now — please try again.");
         } else {
-          toast.success("Saved. Your dashboard is now tailored to you.");
+          toast.success("Thank you. We'll pace things the way you asked.");
         }
       } finally {
         setIsSaving(false);
       }
     }
 
-    // Notify all mounted useFamilyStage() instances (dashboard banners, etc.)
-    // so the banner→quick-access transition happens without a refresh.
     try {
       window.dispatchEvent(new CustomEvent(FAMILY_STAGE_CHANGED_EVENT));
     } catch {
-      // ignore — non-browser env
+      // ignore
     }
   };
 
   const trackedQuestionsRef = useRef<Set<string>>(new Set());
 
-  const handleSelect = (score: ReadinessStage) => {
-    const next = [...answers];
-    next[currentIndex] = score;
-    setAnswers(next);
+  const trackAnswer = (questionId: string, value: unknown) => {
+    if (trackedQuestionsRef.current.has(questionId)) return;
+    trackedQuestionsRef.current.add(questionId);
+    trackEngagement("quiz_question_answered" as any, {
+      question_id: questionId,
+      question_index: currentIndex,
+      total_questions: totalQuestions,
+      answer_value: Array.isArray(value) ? value.join(",") : String(value),
+      is_anonymous: isAnonymous,
+    }).catch((e) => console.warn("[ReadinessQuiz] question track failed", e));
+  };
 
-    // Persist in-progress on every selection
-    writeQuizProgress(next, currentIndex);
-
-    // Fire per-question tracking once per question per mount (anon-safe)
-    const qKey = `${currentQuestion.id}:${currentIndex}`;
-    if (!trackedQuestionsRef.current.has(qKey)) {
-      trackedQuestionsRef.current.add(qKey);
-      const utm: Record<string, string> = {};
-      for (const k of [
-        "utm_source", "utm_medium", "utm_campaign", "utm_content",
-        "utm_term", "utm_referrer_source", "utm_referrer_campaign", "utm_referrer_content",
-      ]) {
-        const v = searchParams.get(k);
-        if (v) utm[k] = v;
-      }
-      trackEngagement("quiz_question_answered" as any, {
-        ...utm,
-        question_id: currentQuestion.id,
-        question_index: currentIndex,
-        total_questions: totalQuestions,
-        answer_value: score,
-        is_anonymous: isAnonymous,
-      }).catch((e) => console.warn("[ReadinessQuiz] question track failed", e));
+  const advance = (nextAnswers: AssessmentAnswers, nextFreeText: string) => {
+    const nextVisible = visibleQuestions(nextAnswers);
+    if (currentIndex < nextVisible.length - 1) {
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      writeAssessmentProgress(nextAnswers, nextIndex, nextFreeText);
+    } else {
+      setShowResult(true);
+      persist(nextAnswers, nextFreeText);
     }
+  };
 
-    setTimeout(() => {
-      if (currentIndex < totalQuestions - 1) {
-        const nextIndex = currentIndex + 1;
-        setCurrentIndex(nextIndex);
-        writeQuizProgress(next, nextIndex);
-      } else {
-        const stage = scoreQuiz(
-          next.filter((a): a is ReadinessStage => !!a)
-        );
-        setShowResult(true);
-        persistStage(stage, next);
-      }
-    }, AUTO_ADVANCE_MS);
+  const handleSelect = (value: string | string[]) => {
+    if (!currentQuestion) return;
+    const next = { ...answers, [currentQuestion.id]: value };
+    setAnswers(next);
+    writeAssessmentProgress(next, currentIndex, freeText);
+    trackAnswer(currentQuestion.id, value);
+
+    const needsContinue =
+      currentQuestion.kind === "multi" ||
+      !!currentQuestion.followUp ||
+      !!currentQuestion.freeText;
+    if (needsContinue) return;
+
+    setTimeout(() => advance(next, freeText), AUTO_ADVANCE_MS);
+  };
+
+  const handleFollowUpSelect = (value: string) => {
+    if (!currentQuestion?.followUp) return;
+    const next = { ...answers, [currentQuestion.followUp.id]: value };
+    setAnswers(next);
+    writeAssessmentProgress(next, currentIndex, freeText);
+  };
+
+  const handleFreeTextChange = (value: string) => {
+    setFreeText(value);
+    writeAssessmentProgress(answers, currentIndex, value);
+  };
+
+  const handleContinue = () => advance(answers, freeText);
+
+  const handleSkip = () => {
+    if (!currentQuestion) return;
+    const next = { ...answers };
+    delete next[currentQuestion.id];
+    setAnswers(next);
+    advance(next, freeText);
   };
 
   const handleBack = () => {
@@ -293,22 +282,22 @@ const FamilyReadinessQuizPage: React.FC = () => {
   };
 
   const handleRetake = async () => {
-    clearQuizProgress();
-    setAnswers(Array(totalQuestions).fill(undefined));
+    clearAssessmentProgress();
+    try {
+      localStorage.removeItem(READINESS_ASSESSMENT_PROFILE_KEY);
+    } catch {
+      // ignore
+    }
+    setAnswers({});
+    setFreeText("");
     setCurrentIndex(0);
     setShowResult(false);
     setInitialReflection(null);
-    setSavedResponses({});
     setAssessedAt(null);
-    // Clear saved stage immediately so abandoning mid-retake doesn't leave a
-    // stale dashboard card behind. If the DB write fails, surface a toast but
-    // still proceed to Q1 — the local state has already been wiped.
     const ok = await clearStage();
     if (!ok) {
       toast.error("Couldn't clear your previous result — please try again.");
     }
-    // Navigate to ?retake=1 so result-first mode is bypassed and any existing
-    // ?view=result query param is cleared.
     navigate("/family/readiness-quiz?retake=1", { replace: true });
   };
 
@@ -319,14 +308,17 @@ const FamilyReadinessQuizPage: React.FC = () => {
   const handleResumeContinue = () => {
     if (!pendingProgress) return;
     setAnswers(pendingProgress.answers);
-    setCurrentIndex(pendingProgress.currentIndex);
+    setFreeText(pendingProgress.freeText ?? "");
+    const visible = visibleQuestions(pendingProgress.answers);
+    setCurrentIndex(Math.min(pendingProgress.currentIndex, visible.length - 1));
     setResumePromptOpen(false);
     setPendingProgress(null);
   };
 
   const handleResumeStartOver = () => {
-    clearQuizProgress();
-    setAnswers(Array(totalQuestions).fill(undefined));
+    clearAssessmentProgress();
+    setAnswers({});
+    setFreeText("");
     setCurrentIndex(0);
     setResumePromptOpen(false);
     setPendingProgress(null);
@@ -334,14 +326,11 @@ const FamilyReadinessQuizPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Always-on quiz view event — fires exactly once per mount, independent
-          of result-state, so funnel analytics can see who actually lands here. */}
       <PageViewTracker
         actionType="readiness_quiz_view"
         journeyStage="pre-onboarding"
         additionalData={{ initial_mode: resultFirstMode ? "result_first" : "fresh" }}
       />
-      {/* Separate completion event, only fired when results render. */}
       {showResult && (
         <PageViewTracker
           actionType="readiness_quiz_completed"
@@ -349,19 +338,13 @@ const FamilyReadinessQuizPage: React.FC = () => {
           additionalData={{ stage: finalStage, viewMode: viewResultMode ? "result" : "fresh" }}
         />
       )}
-      {/* Funnel attribution: the readiness quiz is the soft on-ramp for family
-          registration, so we also emit family_registration_page_view here so the
-          admin Acquisition Funnel Card counts quiz landers as registration-page
-          intent. Fires once per mount. */}
       <PageViewTracker
         actionType="family_registration_page_view"
         journeyStage="registration"
         additionalData={{ source: "readiness_quiz" }}
       />
 
-
       <div className="container max-w-2xl px-4 py-8 sm:py-12">
-        {/* Header */}
         <div className="text-center mb-8 space-y-2">
           <p className="text-xs uppercase tracking-widest text-primary font-semibold">
             Tavara Care Readiness Check
@@ -369,23 +352,30 @@ const FamilyReadinessQuizPage: React.FC = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
             {showResult
               ? "Here's where you are right now"
-              : "Let's get a feel for where you are"}
+              : "Help us understand where you are"}
           </h1>
           {!showResult && (
             <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              Six quick questions — about 60 seconds. There's no right or wrong.
+              A few short questions, so we can pace this right for you. No wrong
+              answers, and you can change any of these later.
+            </p>
+          )}
+          {!showResult && fromRegistration && (
+            <p className="text-xs text-muted-foreground">
+              Thanks for registering. This is the last step, and you can skip any
+              question.
             </p>
           )}
         </div>
 
-        {/* Resume prompt */}
         {resumePromptOpen && pendingProgress && !showResult && (
           <div className="mb-6 rounded-lg border border-primary/30 bg-primary/5 p-4">
             <p className="text-sm font-medium text-foreground">
               Pick up where you left off?
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              You answered {countAnswered(pendingProgress.answers)} of {totalQuestions} last time.
+              You answered {countAssessmentAnswered(pendingProgress.answers)} question
+              {countAssessmentAnswered(pendingProgress.answers) === 1 ? "" : "s"} last time.
             </p>
             <div className="flex gap-2 mt-3">
               <Button size="sm" onClick={handleResumeContinue}>
@@ -398,31 +388,36 @@ const FamilyReadinessQuizPage: React.FC = () => {
           </div>
         )}
 
-        {/* Sticky progress dots */}
         {!showResult && !resumePromptOpen && (
           <div className="sticky top-2 z-10 flex justify-center mb-6">
             <div className="bg-background/80 backdrop-blur-sm rounded-full px-4 py-2 border border-border/60 shadow-sm">
-              <QuizProgressDots
-                total={totalQuestions}
-                currentIndex={currentIndex}
-              />
+              <QuizProgressDots total={totalQuestions} currentIndex={currentIndex} />
             </div>
           </div>
         )}
 
-        {/* Body */}
         {!resumePromptOpen && (
           <div className="relative min-h-[420px]">
             <AnimatePresence mode="wait">
-              {!showResult ? (
+              {!showResult && currentQuestion ? (
                 <QuizQuestionCard
                   key={currentQuestion.id}
                   question={currentQuestion}
                   questionNumber={currentIndex + 1}
                   totalQuestions={totalQuestions}
-                  selectedScore={answers[currentIndex]}
+                  value={answers[currentQuestion.id]}
+                  followUpValue={
+                    currentQuestion.followUp
+                      ? (answers[currentQuestion.followUp.id] as string | undefined)
+                      : undefined
+                  }
+                  freeText={freeText}
                   canGoBack={currentIndex > 0}
                   onSelect={handleSelect}
+                  onFollowUpSelect={handleFollowUpSelect}
+                  onFreeTextChange={handleFreeTextChange}
+                  onContinue={handleContinue}
+                  onSkip={handleSkip}
                   onBack={handleBack}
                 />
               ) : (
@@ -434,11 +429,7 @@ const FamilyReadinessQuizPage: React.FC = () => {
                   onRetake={handleRetake}
                   onSaveStage={handleSaveStageAnonymous}
                   stage={finalStage}
-                  responses={
-                    viewResultMode || resultFirstMode
-                      ? savedResponses
-                      : buildResponsesObject(answers)
-                  }
+                  responses={(derivedProfile?.raw_answers ?? {}) as Record<string, unknown>}
                   initialReflection={initialReflection}
                   assessedAt={assessedAt}
                 />
@@ -447,11 +438,9 @@ const FamilyReadinessQuizPage: React.FC = () => {
           </div>
         )}
 
-        {/* Reassurance footer */}
         {!showResult && !resumePromptOpen && (
           <p className="text-center text-xs text-muted-foreground mt-8">
-            We use this only to tailor your experience. You can retake it
-            anytime.
+            We use this only to pace your experience. You can update it anytime.
           </p>
         )}
       </div>
