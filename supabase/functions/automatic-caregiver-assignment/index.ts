@@ -107,7 +107,7 @@ serve(async (req) => {
     console.log('Verifying family user exists...')
     const { data: familyUser, error: familyUserError } = await supabaseClient
       .from('profiles')
-      .select('id, full_name, role')
+      .select('id, full_name, role, address, care_types')
       .eq('id', familyUserId)
       .eq('role', 'family')
       .single()
@@ -122,14 +122,13 @@ serve(async (req) => {
 
     console.log('Family user verified:', familyUser)
 
-    // Get available professional caregivers
+    // Get ALL available professional caregivers (ranking happens below)
     console.log('Fetching available professional caregivers...')
     const { data: caregivers, error: caregiversError } = await supabaseClient
       .from('profiles')
-      .select('id, full_name, professional_type, years_of_experience, care_types, available_for_matching')
+      .select('id, full_name, professional_type, years_of_experience, care_types, available_for_matching, address')
       .eq('role', 'professional')
       .eq('available_for_matching', true)
-      .limit(5)
 
     console.log('Caregivers query result:', { count: caregivers?.length, error: caregiversError })
     console.log('Available caregivers:', caregivers)
@@ -179,15 +178,97 @@ serve(async (req) => {
       )
     }
 
-    // Create automatic assignments for top 3 caregivers
-    console.log('Creating assignments for top 3 caregivers...')
-    const assignmentsToCreate = caregivers.slice(0, 3).map((caregiver, index) => {
+    // ---- Location + care-needs ranking -------------------------------------
+    // Trinidad & Tobago regional grouping: caregivers in the same town score
+    // highest, same region next, everything else falls back to care-needs only.
+    const REGIONS: Record<string, string[]> = {
+      south: ['palmiste', 'san fernando', 'vistabella', 'marabella', 'gasparillo', 'princes town', 'princess town', 'debe', 'penal', 'siparia', 'point fortin', 'la romaine', 'cocoyea', 'ste madeleine', 'fyzabad', 'manahambre'],
+      central: ['chaguanas', 'couva', 'freeport', 'california', 'claxton bay', 'cunupia', 'longdenville', 'charlieville', 'mc bean', 'preysal', 'gran couva', 'caroni', 'calcutta', 'chase village', 'edinburgh'],
+      east: ['arima', 'd\'abadie', 'dabadie', 'sangre grande', 'tunapuna', 'trincity', 'piarco', 'arouca', 'valsayn', 'st augustine', 'curepe', 'san juan', 'tacarigua', 'malabar', 'la horquetta', 'wallerfield'],
+      north: ['port of spain', 'woodbrook', 'maraval', 'diego martin', 'diamond vale', 'petit valley', 'st james', 'westmoorings', 'cascade', 'st ann', 'belmont', 'laventille', 'carenage', 'glencoe', 'chaguaramas'],
+      tobago: ['tobago', 'scarborough', 'crown point', 'roxborough', 'canaan', 'bon accord'],
+    }
+
+    const normalize = (value?: string | null) =>
+      (value || '').toLowerCase().replace(/[^a-z\s']/g, ' ').replace(/\s+/g, ' ').trim()
+
+    const townsIn = (address?: string | null) => {
+      const text = normalize(address)
+      if (!text) return [] as string[]
+      const hits: string[] = []
+      for (const towns of Object.values(REGIONS)) {
+        for (const town of towns) if (text.includes(town)) hits.push(town)
+      }
+      return hits
+    }
+
+    const regionOf = (address?: string | null) => {
+      const text = normalize(address)
+      if (!text) return null
+      for (const [region, towns] of Object.entries(REGIONS)) {
+        if (towns.some((town) => text.includes(town))) return region
+      }
+      return null
+    }
+
+    const familyTowns = townsIn(familyUser.address)
+    const familyRegion = regionOf(familyUser.address)
+    const familyCareTypes: string[] = Array.isArray(familyUser.care_types) ? familyUser.care_types : []
+
+    const ranked = caregivers
+      .map((caregiver: any) => {
+        const caregiverTowns = townsIn(caregiver.address)
+        const caregiverRegion = regionOf(caregiver.address)
+        const caregiverCareTypes: string[] = Array.isArray(caregiver.care_types) ? caregiver.care_types : []
+
+        // Location component (max 40)
+        let locationScore = 0
+        let locationReason = 'location unknown'
+        if (familyTowns.length && caregiverTowns.some((town) => familyTowns.includes(town))) {
+          locationScore = 40
+          locationReason = `same area (${caregiverTowns[0]})`
+        } else if (familyRegion && caregiverRegion === familyRegion) {
+          locationScore = 28
+          locationReason = `same region (${familyRegion})`
+        } else if (familyRegion && caregiverRegion) {
+          locationScore = 8
+          locationReason = `different region (${caregiverRegion})`
+        } else {
+          locationScore = 14
+        }
+
+        // Care-needs overlap component (max 40)
+        let careScore = 20
+        let careReason = 'care needs not specified'
+        if (familyCareTypes.length && caregiverCareTypes.length) {
+          const overlap = familyCareTypes.filter((type) => caregiverCareTypes.includes(type))
+          careScore = Math.round((overlap.length / familyCareTypes.length) * 40)
+          careReason = `${overlap.length} of ${familyCareTypes.length} care needs covered`
+        }
+
+        // Experience component (max 20)
+        const years = parseInt(String(caregiver.years_of_experience || '').replace(/[^0-9]/g, ''), 10)
+        const experienceScore = Number.isFinite(years) ? Math.min(years * 4, 20) : 8
+
+        const total = Math.max(40, Math.min(99, locationScore + careScore + experienceScore))
+        return {
+          caregiver,
+          total,
+          explanation: `Matched on ${locationReason}, ${careReason}`,
+        }
+      })
+      .sort((a, b) => b.total - a.total)
+
+    console.log('Ranked caregivers:', ranked.map((r) => ({ name: r.caregiver.full_name, score: r.total, why: r.explanation })))
+
+    // Create automatic assignments for top 3 ranked caregivers
+    const assignmentsToCreate = ranked.slice(0, 3).map((entry, index) => {
       const assignment = {
         family_user_id: familyUserId,
-        caregiver_id: caregiver.id,
+        caregiver_id: entry.caregiver.id,
         assignment_type: 'automatic' as const,
-        match_score: 85 - (index * 5), // Descending scores: 85, 80, 75
-        match_explanation: `Automatic match based on care needs and caregiver availability (rank ${index + 1})`,
+        match_score: entry.total,
+        match_explanation: `${entry.explanation} (rank ${index + 1})`,
         status: 'active',
         is_active: true
       }
