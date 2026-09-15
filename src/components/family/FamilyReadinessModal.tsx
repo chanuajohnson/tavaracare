@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, CheckCircle2, Circle, User, ClipboardList, Heart, ArrowRight, Unlock } from 'lucide-react';
+import { Sparkles, CheckCircle2, Circle, User, ClipboardList, Heart, ArrowRight, Unlock, Compass } from 'lucide-react';
 import { fetchFamilyProfile, fetchCareAssessment, fetchCareRecipientProfile } from '@/hooks/family/dataFetchers';
 import { getFamilyReadinessStatus } from '@/hooks/family/completionCheckers';
+import { useFamilyReadiness } from '@/hooks/family/useFamilyReadiness';
 
 interface FamilyReadinessModalProps {
   open: boolean;
@@ -21,6 +22,8 @@ export const FamilyReadinessModal = ({
 }: FamilyReadinessModalProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  // Pacing answers are helpful, never a requirement for match access.
+  const { profile: readinessProfile, refresh: refreshReadiness } = useFamilyReadiness();
   const [isLoading, setIsLoading] = useState(true);
   const [readinessChecks, setReadinessChecks] = useState({
     registrationComplete: false,
@@ -66,8 +69,16 @@ export const FamilyReadinessModal = ({
   useEffect(() => {
     if (open && user) {
       checkStatus();
+      refreshReadiness();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, user]);
+
+  const readinessAnswered = !!readinessProfile;
+
+  const handleReadinessAction = () => {
+    navigate('/family/readiness-quiz');
+  };
 
   const handleRegistrationAction = () => {
     navigate('/registration/family');
@@ -230,6 +241,43 @@ export const FamilyReadinessModal = ({
                     </span>
                     <span className="sm:hidden">
                       {readinessChecks.storyComplete ? 'View' : 'Add'}
+                    </span>
+                    <ArrowRight className="h-2 w-2 sm:h-3 sm:w-3 flex-shrink-0" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Care Readiness Check - helpful, never required for matches */}
+              <div className="flex items-center justify-between p-2 sm:p-4 bg-white/70 rounded-lg border border-white/50 shadow-sm gap-2">
+                <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                  {readinessAnswered ? (
+                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
+                  ) : (
+                    <Circle className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-800 text-xs sm:text-base truncate">Care Readiness Check</p>
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">How you'd like us to pace things - Optional</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-1 flex-shrink-0">
+                  {readinessAnswered && (
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 text-xs hidden sm:inline-flex">
+                      Complete
+                    </Badge>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReadinessAction}
+                    className="flex items-center space-x-1 text-xs px-2 py-1 sm:px-3 sm:py-2 h-8 sm:h-10"
+                  >
+                    <Compass className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span className="hidden sm:inline whitespace-nowrap">
+                      {readinessAnswered ? 'Review' : 'Answer'}
+                    </span>
+                    <span className="sm:hidden">
+                      {readinessAnswered ? 'View' : 'Start'}
                     </span>
                     <ArrowRight className="h-2 w-2 sm:h-3 sm:w-3 flex-shrink-0" />
                   </Button>

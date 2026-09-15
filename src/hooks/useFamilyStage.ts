@@ -72,7 +72,9 @@ export const useFamilyStage = (): UseFamilyStageResult => {
   const load = useCallback(async () => {
     setIsLoading(true);
 
-    // 1) Try DB if signed in
+    // 1) Signed in → their own record is the ONLY source of truth. Falling back
+    // to localStorage here showed brand-new families a leftover result from a
+    // previous session or account on the same browser.
     if (user?.id) {
       const { data, error } = await supabase
         .from("profiles")
@@ -80,10 +82,22 @@ export const useFamilyStage = (): UseFamilyStageResult => {
         .eq("id", user.id)
         .maybeSingle();
 
-      if (!error && data?.client_stage) {
-        const dbStage = data.client_stage as ReadinessStage;
-        setStage(dbStage);
-        setHasStage(true);
+      if (!error) {
+        if (data?.client_stage) {
+          const dbStage = data.client_stage as ReadinessStage;
+          setStage(dbStage);
+          setHasStage(true);
+          setIsLoading(false);
+          return;
+        }
+
+        // No saved result on the account — quietly drop any stale cached value
+        // so it can never be presented as this family's answer.
+        if (readLocalStage() !== null) {
+          wipeLocalReadinessKeys();
+        }
+        setStage(1);
+        setHasStage(false);
         setIsLoading(false);
         return;
       }

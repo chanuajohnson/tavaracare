@@ -66,8 +66,12 @@ export const useFamilyReadiness = (profileId?: string): UseFamilyReadinessResult
       .eq("id", targetId)
       .maybeSingle();
 
-    if (!error && data?.family_readiness_profile) {
-      setProfile(data.family_readiness_profile as unknown as FamilyReadinessProfile);
+    if (!error) {
+      // Signed-in family: their own record is the only source of truth. A
+      // cached profile from an earlier session must never stand in for it.
+      setProfile(
+        (data?.family_readiness_profile as unknown as FamilyReadinessProfile) ?? null
+      );
     } else {
       setProfile(readLocalProfile());
     }
