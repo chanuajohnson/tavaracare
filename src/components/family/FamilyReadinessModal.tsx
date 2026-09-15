@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, CheckCircle2, Circle, User, ClipboardList, Heart, ArrowRight, Unlock } from 'lucide-react';
+import { Sparkles, CheckCircle2, Circle, User, ClipboardList, Heart, ArrowRight, Unlock, Compass } from 'lucide-react';
 import { fetchFamilyProfile, fetchCareAssessment, fetchCareRecipientProfile } from '@/hooks/family/dataFetchers';
 import { getFamilyReadinessStatus } from '@/hooks/family/completionCheckers';
+import { useFamilyReadiness } from '@/hooks/family/useFamilyReadiness';
 
 interface FamilyReadinessModalProps {
   open: boolean;
@@ -21,6 +22,8 @@ export const FamilyReadinessModal = ({
 }: FamilyReadinessModalProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  // Pacing answers are helpful, never a requirement for match access.
+  const { profile: readinessProfile, refresh: refreshReadiness } = useFamilyReadiness();
   const [isLoading, setIsLoading] = useState(true);
   const [readinessChecks, setReadinessChecks] = useState({
     registrationComplete: false,
