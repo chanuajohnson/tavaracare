@@ -136,18 +136,12 @@ export const readinessStages: Record<ReadinessStage, StageDefinition> = {
     iconTextClass: "text-green-700",
     badgeText: "Just starting",
     nextSteps: [
-      { label: "Find a caregiver", href: "/family/matching" },
       {
         label: "Tell us about your loved one",
         href: "/family/story",
-        variant: "outline",
-      },
-      {
-        label: "Chat with TAV first",
-        href: "/",
-        variant: "outline",
       },
     ],
+
     reflectionPlaceholder:
       "e.g. \"I just need someone to help me get started — I don't even know what I need yet…\"",
   },
