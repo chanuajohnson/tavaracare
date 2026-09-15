@@ -137,8 +137,13 @@ export const readinessStages: Record<ReadinessStage, StageDefinition> = {
     badgeText: "Just starting",
     nextSteps: [
       {
+        label: "Complete your care assessment",
+        href: "/family/care-assessment",
+      },
+      {
         label: "Tell us about your loved one",
         href: "/family/story",
+        variant: "outline",
       },
     ],
 
