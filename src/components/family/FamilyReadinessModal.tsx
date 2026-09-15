@@ -69,8 +69,16 @@ export const FamilyReadinessModal = ({
   useEffect(() => {
     if (open && user) {
       checkStatus();
+      refreshReadiness();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, user]);
+
+  const readinessAnswered = !!readinessProfile;
+
+  const handleReadinessAction = () => {
+    navigate('/family/readiness-quiz');
+  };
 
   const handleRegistrationAction = () => {
     navigate('/registration/family');
