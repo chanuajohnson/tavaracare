@@ -23,6 +23,17 @@ localStorage.removeItem('tavara_readiness_assessment_progress');
 localStorage.removeItem('tavara_family_readiness_stage');
 ```
 
+### chanuajohnson4@gmail.com — checked, and it needs fixing before you test
+
+That address is in a half-deleted state. The login still exists (created 14 Sep, last signed in 14 Sep, id `d547fa30-…`) but its **profile record is gone**. Everything readiness-related is genuinely null: no readiness profile, no journey stage, no information capacity, no history rows, no checkpoints, no care needs, no loved one's story, no caregiver matches, no quiz lead.
+
+The problem is the missing profile record, not leftover data. Signing in with it will land you in an account with nothing to write to, so registration and the readiness save will misbehave for reasons that have nothing to do with this build. Two clean options:
+
+- Delete the login fully in admin user management, then sign up again with the same address (cleanest, and it exercises the real registration path).
+- Or use a different fresh address, e.g. chanuajohnson5@gmail.com.
+
+Either way, clear the three localStorage keys above first, because that browser may still hold the earlier run.
+
 Expected profile state before starting, for a fresh family:
 - `family_readiness_profile` = null
 - `care_journey_stage` = null
