@@ -65,7 +65,9 @@ const FamilyReadinessQuizPage: React.FC = () => {
 
   const viewResultMode = viewParam === "result" && hasStage;
   const isRetakeRequested = retakeParam === "1";
-  const resultFirstMode = !!user && hasStage && !isRetakeRequested;
+  // Coming straight out of registration always starts at question one, even if
+  // this browser happens to hold a result from an earlier session or account.
+  const resultFirstMode = !!user && hasStage && !isRetakeRequested && !fromRegistration;
 
   // Result presentation reuses the existing stage cards. The stage is derived
   // from the journey question alone — never from service appetite.
