@@ -179,10 +179,16 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       const updatedSteps = steps.map(step => {
         let completed = false;
         let accessible = step.accessible;
+
+        
         
         switch (step.id) {
           case 1: // Enhanced Profile completion
             completed = calculateRegistrationCompletion(profile);
+            break;
+          case 18: // Care Readiness Check (family pacing questionnaire)
+            completed = hasReadinessProfile;
+            accessible = true;
             break;
           case 2: // Care assessment
             completed = !!careAssessment;
