@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, Circle } from "lucide-react";
 import { useStoredJourneyProgress } from "@/hooks/useStoredJourneyProgress";
+import { useSharedFamilyJourneyData } from "@/hooks/useSharedFamilyJourneyData";
 import type { UserRole } from "@/types/userRoles";
 
 interface MiniJourneyProgressProps {
@@ -12,19 +13,22 @@ interface MiniJourneyProgressProps {
 }
 
 export const MiniJourneyProgress: React.FC<MiniJourneyProgressProps> = ({ userId, userRole }) => {
-  console.log('🎯 MiniJourneyProgress rendering for:', { userId, userRole });
-  
-  const { loading, completionPercentage, nextStep, steps, currentStage } = useStoredJourneyProgress(userId, userRole);
+  const isFamily = userRole === 'family';
 
-  console.log('📊 MiniJourneyProgress data received:', {
-    userId,
-    userRole,
-    loading,
-    completionPercentage,
-    stepsCount: steps.length,
-    currentStage,
-    nextStepTitle: nextStep?.title
-  });
+  // Family progress comes from the canonical live calculation (same source as the
+  // family dashboard, admin Journey tab and TAV). Stored snapshots are stale.
+  const familyLive = useSharedFamilyJourneyData(isFamily ? userId : '');
+  const stored = useStoredJourneyProgress(isFamily ? '' : userId, userRole);
+
+  const { loading, completionPercentage, nextStep, steps, currentStage } = isFamily
+    ? {
+        loading: familyLive.loading,
+        completionPercentage: familyLive.completionPercentage,
+        nextStep: familyLive.nextStep,
+        steps: familyLive.steps,
+        currentStage: familyLive.journeyStage
+      }
+    : stored;
 
   if (loading) {
     return (

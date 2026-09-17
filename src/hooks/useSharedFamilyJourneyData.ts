@@ -283,6 +283,11 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
               navigate(isCompleted ? '/family/story?edit=true' : '/family/story');
             };
             break;
+          case 18:
+            action = () => {
+              navigate(hasReadinessProfile ? '/family/readiness-quiz?view=result' : '/family/readiness-quiz');
+            };
+            break;
           case 9:
             action = () => navigate('/family/care-management');
             break;
