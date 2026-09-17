@@ -105,25 +105,38 @@ export const calculateUserProgress = async (user: any): Promise<UserProgress> =>
     userStepCount++;
   }
 
-  // Steps 10-11: Onboarding checklist
+  // Steps 10-11: Onboarding checklist.
+  // The table is keyed by `family_id` only (no user_id/user_type columns), and the
+  // meeting/start dates live under the post_onboarding_* keys — same as
+  // useSharedFamilyJourneyData.
   const { data: checklist } = await supabase
-    .from('onboarding_checklists' as any)
+    .from('onboarding_checklists')
     .select('checked_items')
-    .eq('user_id', user.id)
-    .eq('user_type', 'family')
+    .eq('family_id', user.id)
     .maybeSingle();
 
-  const checkedItems = (checklist as any)?.checked_items as Record<string, any> | null;
+  const rawItems = (checklist as any)?.checked_items;
+  const checkedItems = (typeof rawItems === 'string' ? JSON.parse(rawItems) : rawItems) as Record<string, any> | null;
 
   // Step 10: Initial Family Meeting
-  if (checkedItems?.introduction_date) {
+  if (checkedItems?.post_onboarding_1_date) {
     stepCompletionData[10] = true;
     userStepCount++;
   }
 
   // Step 11: Care Begins
-  if (checkedItems?.care_start_date) {
+  if (checkedItems?.post_onboarding_3_date) {
     stepCompletionData[11] = true;
+    userStepCount++;
+  }
+
+  // Step 18: Care Readiness Check (family pacing questionnaire)
+  const readinessProfile = user.family_readiness_profile;
+  const hasReadiness =
+    !!(readinessProfile && typeof readinessProfile === 'object' && Object.keys(readinessProfile).length > 0) ||
+    !!user.client_stage;
+  if (hasReadiness) {
+    stepCompletionData[18] = true;
     userStepCount++;
   }
 
