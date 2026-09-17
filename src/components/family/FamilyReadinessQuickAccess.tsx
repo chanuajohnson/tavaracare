@@ -6,23 +6,44 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, RefreshCw, Sparkles } from "lucide-react";
 import { useFamilyStage } from "@/hooks/useFamilyStage";
-import { readinessStages } from "@/data/familyReadinessQuiz";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useSharedFamilyJourneyData } from "@/hooks/useSharedFamilyJourneyData";
+import { readinessStages, type StageNextStep } from "@/data/familyReadinessQuiz";
 import { cn } from "@/lib/utils";
 import { RetakeConfirmDialog } from "@/components/family/quiz/RetakeConfirmDialog";
 
 /**
  * Persistent "Your readiness" card on the family dashboard. Replaces the
- * `ReadinessQuizBanner` once a stage is set. Mirrors the result-screen CTAs
- * so families always have a path back to their next best step.
+ * `ReadinessQuizBanner` once a stage is set. CTAs are completion-aware: a family
+ * that already finished a step is never told to do it again.
  */
 export const FamilyReadinessQuickAccess: React.FC = () => {
   const { stage, hasStage, isLoading, clearStage } = useFamilyStage();
+  const { user } = useAuth();
+  const journey = useSharedFamilyJourneyData(user?.id || "");
   const [resetOpen, setResetOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
   if (isLoading || !hasStage) return null;
 
   const stageDef = readinessStages[stage];
+
+  const isStepDone = (id: number) =>
+    journey.steps.find((s) => s.id === id)?.completed === true;
+
+  const assessmentDone = isStepDone(2);
+  const storyDone = isStepDone(3);
+
+  // Drop CTAs pointing at work the family has already finished.
+  const visibleNextSteps: StageNextStep[] = stageDef.nextSteps.filter((step) => {
+    if (step.href.includes("/family/care-assessment")) return !assessmentDone;
+    if (step.href.includes("/family/story")) return !storyDone;
+    return true;
+  });
+
+  const nextSteps: StageNextStep[] = visibleNextSteps.length
+    ? visibleNextSteps
+    : [{ label: "View your care team", href: "/family/care-management" }];
 
   const handleResetConfirm = async () => {
     setResetOpen(false);
