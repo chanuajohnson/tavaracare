@@ -120,7 +120,7 @@ export const FamilyReadinessQuickAccess: React.FC = () => {
           </p>
 
           <div className="flex flex-wrap gap-2">
-            {stageDef.nextSteps.map((step) => (
+            {nextSteps.map((step) => (
               <Button
                 key={step.href + step.label}
                 asChild

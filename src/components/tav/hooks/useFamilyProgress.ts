@@ -154,36 +154,37 @@ export const useFamilyProgress = () => {
     checkFormCompletion();
   }, [userId, location.pathname]);
 
-  // Helper function to get proper button text for each step
+  // Helper function to get proper button text for each step.
+  // Step ids follow the canonical list in src/data/familyJourneySteps.ts.
   const getButtonText = (step: any) => {
-    if (!step.accessible && step.step_number !== 7) {
+    if (!step.accessible && step.id !== 4) {
       return "Complete Above Steps";
     }
-    
-    switch (step.step_number || step.id) {
-      case 1:
+
+    switch (step.id) {
+      case 1: // Profile / registration
         return step.completed ? "Edit Profile" : "Complete Profile";
-      case 2:
-        return step.completed ? "Edit Registration" : "Complete Registration";
-      case 5: // Care Assessment
+      case 18: // Care Readiness Check
+        return step.completed ? "View Result" : "Take Readiness Check";
+      case 2: // Care Assessment
         return step.completed ? "Edit Assessment" : "Start Assessment";
-      case 6: // Legacy Story
+      case 3: // Legacy Story
         return step.completed ? "Edit Story" : "Create Story";
-      case 7: // Caregiver Matches
+      case 4: // Caregiver Matches
         if (!step.accessible) {
           return "Complete Prerequisites";
         }
         return "View Matches";
-      case 8: // Medications
+      case 5: // Medications
         return step.completed ? "Edit Medications" : "Add Medications";
-      case 9: // Meals
+      case 6: // Meals
         return step.completed ? "Edit Meals" : "Add Meals";
-      case 10: // Schedule Visit
+      case 7: // Schedule Visit
         if (step.completed && enhancedData.visitDetails) {
           return "Cancel Visit";
         }
         return step.completed ? "Visit Scheduled" : "Schedule Visit";
-      case 14: // Choose Path
+      case 17: // Choose Path
         return step.completed ? "Edit Selection" : "Choose Path";
       default:
         return step.completed ? "View" : "Continue";
