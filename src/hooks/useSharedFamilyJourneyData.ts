@@ -70,7 +70,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       // Get comprehensive profile data for enhanced registration completion check
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, phone_number, address, care_recipient_name, relationship, care_types, care_schedule, budget_preferences, caregiver_type, visit_scheduling_status, visit_scheduled_date, visit_notes')
+        .select('full_name, phone_number, address, care_recipient_name, relationship, care_types, care_schedule, budget_preferences, caregiver_type, visit_scheduling_status, visit_scheduled_date, visit_notes, family_readiness_profile, client_stage')
         .eq('id', userId)
         .maybeSingle();
 
