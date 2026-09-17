@@ -89,14 +89,22 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
             fullName: profile?.full_name
           });
 
-          const [careAssessment, careRecipient, carePlans, medications, mealPlans] = await Promise.all([
+          const [careAssessment, careRecipient, carePlans] = await Promise.all([
             supabase.from('care_needs_family').select('id').eq('profile_id', userId).maybeSingle(),
             supabase.from('care_recipient_profiles').select('*').eq('user_id', userId).maybeSingle(),
-            supabase.from('care_plans').select('id, title').eq('family_id', userId),
-            supabase.from('medications').select('id').eq('care_plan_id', userId),
-            supabase.from('meal_plans').select('id').eq('care_plan_id', userId)
+            supabase.from('care_plans').select('id, title').eq('family_id', userId)
           ]);
-          
+
+          // Medications and meal plans hang off the family's CARE PLANS, not the
+          // family user id — querying by userId meant these steps never ticked.
+          const carePlanIds = (carePlans.data || []).map(cp => cp.id);
+          const [medications, mealPlans] = carePlanIds.length
+            ? await Promise.all([
+                supabase.from('medications').select('id').in('care_plan_id', carePlanIds),
+                supabase.from('meal_plans').select('id').in('care_plan_id', carePlanIds)
+              ])
+            : [{ data: [] as any[] }, { data: [] as any[] }];
+
           completionData = {
             profile,
             careAssessment: careAssessment.data,
