@@ -175,6 +175,14 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
         console.error('Error parsing family checklist:', e);
       }
 
+      // Care Readiness Check (family pacing questionnaire) — answered at least once
+      const readinessProfile = (profile as any)?.family_readiness_profile;
+      const hasReadinessProfile = !!(
+        readinessProfile &&
+        typeof readinessProfile === 'object' &&
+        Object.keys(readinessProfile).length > 0
+      ) || !!(profile as any)?.client_stage;
+
       // Update step completion status with enhanced registration logic
       const updatedSteps = steps.map(step => {
         let completed = false;
