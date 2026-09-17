@@ -235,12 +235,18 @@ export const TavaraAssistantPanel: React.FC = () => {
   // Auto-CLOSE TAV when navigating onto a silent route while the panel is open
   // (e.g. blog post → CTA → back to blog). Without this, the panel that was
   // auto-opened on the registration page stays open when the reader returns.
+  // IMPORTANT: this must only run on an ACTUAL navigation. Depending on
+  // `state.isOpen` made it fire the instant the user opened the panel, so every
+  // click on the bubble opened and immediately closed TAV.
+  const previousPathRef = React.useRef(location.pathname);
   useEffect(() => {
-    if (isSilentRoute && state.isOpen) {
+    if (previousPathRef.current === location.pathname) return;
+    previousPathRef.current = location.pathname;
+    if (isSilentRoute) {
       setShowGreeting(false);
       closePanel();
     }
-  }, [location.pathname, isSilentRoute, state.isOpen, closePanel]);
+  }, [location.pathname, isSilentRoute, closePanel]);
 
   // Auto-open for nudges (suppressed on silent routes — bubble indicator still updates)
   useEffect(() => {

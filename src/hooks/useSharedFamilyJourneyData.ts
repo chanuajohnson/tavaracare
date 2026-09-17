@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { getFamilyJourneySteps } from '@/data/familyJourneySteps';
 
 interface JourneyStep {
   id: number;
@@ -26,155 +27,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
   const [loading, setLoading] = useState(true);
   const [journeyStage, setJourneyStage] = useState<'foundation' | 'scheduling' | 'care_environment' | 'trial' | 'conversion' | 'active'>('foundation');
 
-  const [steps, setSteps] = useState<JourneyStep[]>([
-    // Foundation Steps (1-6)
-    { 
-      id: 1, 
-      title: "Complete Your Profile", 
-      description: "Add your contact information and care preferences.", 
-      completed: false, 
-      category: 'foundation',
-      accessible: true
-    },
-    { 
-      id: 2, 
-      title: "Complete Initial Care Assessment", 
-      description: "Help us understand your care needs better.", 
-      completed: false, 
-      category: 'foundation',
-      accessible: true
-    },
-    { 
-      id: 3, 
-      title: "Complete Your Loved One's Legacy Story", 
-      description: "Because care is more than tasks—our Legacy Story feature honors the voices, memories, and wisdom of those we care for.", 
-      completed: false, 
-      optional: true,
-      category: 'foundation',
-      accessible: true
-    },
-    { 
-      id: 4, 
-      title: "See Your Instant Caregiver Matches", 
-      description: "Now that your loved one's profile is complete, unlock personalized caregiver recommendations.", 
-      completed: false, 
-      category: 'foundation',
-      accessible: false
-    },
-    { 
-      id: 5, 
-      title: "Set Up Medication Management", 
-      description: "Add medications and set up schedules for your care plan.", 
-      completed: false, 
-      category: 'foundation',
-      accessible: true
-    },
-    { 
-      id: 6, 
-      title: "Set Up Meal Management", 
-      description: "Plan meals and create grocery lists for your care plan.", 
-      completed: false, 
-      category: 'foundation',
-      accessible: true
-    },
-    // Scheduling Steps (7-8)
-    { 
-      id: 7, 
-      title: "Get Started with Care", 
-      description: "Begin your care journey with a scheduled visit from our care coordinators", 
-      completed: false, 
-      category: 'foundation',
-      accessible: true
-    },
-    { 
-      id: 8, 
-      title: "Confirm Your Visit", 
-      description: "Your visit has been scheduled and confirmed with our care coordinator.", 
-      completed: false, 
-      category: 'scheduling',
-      accessible: false
-    },
-    // Care Coordination Steps (9-11)
-    {
-      id: 9,
-      title: "Care Team Confirmed",
-      description: "A care team member has been selected and coordinated for your family. View your care team.",
-      completed: false,
-      category: 'scheduling',
-      accessible: false
-    },
-    {
-      id: 10,
-      title: "Initial Family Meeting",
-      description: "Meet and greet with your care team member at your home.",
-      completed: false,
-      category: 'scheduling',
-      accessible: false
-    },
-    {
-      id: 11,
-      title: "Care Begins",
-      description: "Your care team begins providing support. View your care plan for schedules and details.",
-      completed: false,
-      category: 'scheduling',
-      accessible: false
-    },
-    // Care Environment Steps (12-13)
-    {
-      id: 12,
-      title: "Care Readiness Assessment",
-      description: "A home walkthrough completed by your care team during their first week to assess readiness for sustainable caregiving.",
-      completed: false,
-      category: 'care_environment',
-      accessible: false
-    },
-    {
-      id: 13,
-      title: "Home Environment Optimization",
-      description: "Guided or full care environment coordination to prepare your home for safe, comfortable caregiving.",
-      completed: false,
-      optional: true,
-      category: 'care_environment',
-      accessible: false
-    },
-    // Trial Steps (14-16)
-    { 
-      id: 14, 
-      title: "Schedule Trial Day (Optional)", 
-      description: "Choose a trial date with your matched caregiver. This is an optional step before choosing your care model.", 
-      completed: false, 
-      optional: true,
-      category: 'trial',
-      accessible: false
-    },
-    { 
-      id: 15, 
-      title: "Pay for Trial Day (Optional)", 
-      description: "Complete payment for an optional 8-hour caregiver trial experience.", 
-      completed: false, 
-      optional: true,
-      category: 'trial',
-      accessible: false
-    },
-    { 
-      id: 16, 
-      title: "Begin Your Trial (Optional)", 
-      description: "Your caregiver begins the scheduled trial session.", 
-      completed: false, 
-      optional: true,
-      category: 'trial',
-      accessible: false
-    },
-    // Conversion Step (17)
-    { 
-      id: 17, 
-      title: "Rate & Choose Your Path", 
-      description: "Choose your care model — view subscription plans or hire directly.", 
-      completed: false, 
-      category: 'conversion',
-      accessible: false
-    }
-  ]);
+  const [steps, setSteps] = useState<JourneyStep[]>(getFamilyJourneySteps());
 
   // Enhanced registration completion logic - matches useEnhancedJourneyProgress
   const calculateRegistrationCompletion = (profile: any) => {
@@ -217,7 +70,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       // Get comprehensive profile data for enhanced registration completion check
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, phone_number, address, care_recipient_name, relationship, care_types, care_schedule, budget_preferences, caregiver_type, visit_scheduling_status, visit_scheduled_date, visit_notes')
+        .select('full_name, phone_number, address, care_recipient_name, relationship, care_types, care_schedule, budget_preferences, caregiver_type, visit_scheduling_status, visit_scheduled_date, visit_notes, family_readiness_profile, client_stage')
         .eq('id', userId)
         .maybeSingle();
 
@@ -322,14 +175,28 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
         console.error('Error parsing family checklist:', e);
       }
 
+      // Care Readiness Check (family pacing questionnaire) — answered at least once
+      const readinessProfile = (profile as any)?.family_readiness_profile;
+      const hasReadinessProfile = !!(
+        readinessProfile &&
+        typeof readinessProfile === 'object' &&
+        Object.keys(readinessProfile).length > 0
+      ) || !!(profile as any)?.client_stage;
+
       // Update step completion status with enhanced registration logic
       const updatedSteps = steps.map(step => {
         let completed = false;
         let accessible = step.accessible;
+
+        
         
         switch (step.id) {
           case 1: // Enhanced Profile completion
             completed = calculateRegistrationCompletion(profile);
+            break;
+          case 18: // Care Readiness Check (family pacing questionnaire)
+            completed = hasReadinessProfile;
+            accessible = true;
             break;
           case 2: // Care assessment
             completed = !!careAssessment;
@@ -414,6 +281,11 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
             action = () => {
               const isCompleted = !!(careRecipient && careRecipient.full_name);
               navigate(isCompleted ? '/family/story?edit=true' : '/family/story');
+            };
+            break;
+          case 18:
+            action = () => {
+              navigate(hasReadinessProfile ? '/family/readiness-quiz?view=result' : '/family/readiness-quiz');
             };
             break;
           case 9:

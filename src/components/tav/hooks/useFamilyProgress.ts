@@ -154,36 +154,37 @@ export const useFamilyProgress = () => {
     checkFormCompletion();
   }, [userId, location.pathname]);
 
-  // Helper function to get proper button text for each step
+  // Helper function to get proper button text for each step.
+  // Step ids follow the canonical list in src/data/familyJourneySteps.ts.
   const getButtonText = (step: any) => {
-    if (!step.accessible && step.step_number !== 7) {
+    if (!step.accessible && step.id !== 4) {
       return "Complete Above Steps";
     }
-    
-    switch (step.step_number || step.id) {
-      case 1:
+
+    switch (step.id) {
+      case 1: // Profile / registration
         return step.completed ? "Edit Profile" : "Complete Profile";
-      case 2:
-        return step.completed ? "Edit Registration" : "Complete Registration";
-      case 5: // Care Assessment
+      case 18: // Care Readiness Check
+        return step.completed ? "View Result" : "Take Readiness Check";
+      case 2: // Care Assessment
         return step.completed ? "Edit Assessment" : "Start Assessment";
-      case 6: // Legacy Story
+      case 3: // Legacy Story
         return step.completed ? "Edit Story" : "Create Story";
-      case 7: // Caregiver Matches
+      case 4: // Caregiver Matches
         if (!step.accessible) {
           return "Complete Prerequisites";
         }
         return "View Matches";
-      case 8: // Medications
+      case 5: // Medications
         return step.completed ? "Edit Medications" : "Add Medications";
-      case 9: // Meals
+      case 6: // Meals
         return step.completed ? "Edit Meals" : "Add Meals";
-      case 10: // Schedule Visit
+      case 7: // Schedule Visit
         if (step.completed && enhancedData.visitDetails) {
           return "Cancel Visit";
         }
         return step.completed ? "Visit Scheduled" : "Schedule Visit";
-      case 14: // Choose Path
+      case 17: // Choose Path
         return step.completed ? "Edit Selection" : "Choose Path";
       default:
         return step.completed ? "View" : "Continue";
@@ -198,13 +199,14 @@ export const useFamilyProgress = () => {
       return enhancedStep.action;
     }
     
-    // Fallback actions if step doesn't have action property
-    switch (step.step_number || step.id) {
-      case 1:
-        return () => navigate('/dashboard/family');
-      case 2:
+    // Fallback actions if step doesn't have action property.
+    // Step ids follow the canonical list in src/data/familyJourneySteps.ts.
+    switch (step.id) {
+      case 1: // Profile / registration
         return () => navigate('/registration/family');
-      case 5: // Care Assessment
+      case 18: // Care Readiness Check
+        return () => navigate(step.completed ? '/family/readiness-quiz?view=result' : '/family/readiness-quiz');
+      case 2: // Care Assessment
         return () => {
           if (step.completed) {
             navigate('/family/care-assessment?mode=edit');
@@ -212,7 +214,7 @@ export const useFamilyProgress = () => {
             navigate('/family/care-assessment');
           }
         };
-      case 6: // Legacy Story
+      case 3: // Legacy Story
         return () => {
           if (step.completed) {
             navigate('/family/story?mode=edit');
@@ -220,9 +222,9 @@ export const useFamilyProgress = () => {
             navigate('/family/story');
           }
         };
-      case 7: // Caregiver Matches
+      case 4: // Caregiver Matches
         return () => enhancedData.setShowCaregiverMatchingModal(true);
-      case 8: // Medications
+      case 5: // Medications
         return () => {
           if (enhancedData.carePlans.length > 0) {
             navigate(`/family/care-management/${enhancedData.carePlans[0].id}/medications`);
@@ -230,7 +232,7 @@ export const useFamilyProgress = () => {
             navigate('/family/care-management/create');
           }
         };
-      case 9: // Meals
+      case 6: // Meals
         return () => {
           if (enhancedData.carePlans.length > 0) {
             navigate(`/family/care-management/${enhancedData.carePlans[0].id}/meals`);
@@ -238,7 +240,7 @@ export const useFamilyProgress = () => {
             navigate('/family/care-management/create');
           }
         };
-      case 10: // Schedule Visit
+      case 7: // Schedule Visit
         return () => {
           if (step.completed && enhancedData.visitDetails) {
             enhancedData.setShowCancelVisitModal(true);
@@ -246,7 +248,7 @@ export const useFamilyProgress = () => {
             enhancedData.setShowScheduleModal(true);
           }
         };
-      case 14: // Choose Path
+      case 17: // Choose Path
         return () => navigate('/family/care-model-selection');
       default:
         return () => navigate('/dashboard/family');
