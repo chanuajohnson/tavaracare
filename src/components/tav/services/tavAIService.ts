@@ -8,6 +8,14 @@ export interface TAVMessage {
   timestamp: number;
 }
 
+export interface TAVJourneyContext {
+  completionPercentage?: number;
+  journeyStage?: string;
+  nextStepTitle?: string;
+  completedStepTitles?: string[];
+  remainingStepTitles?: string[];
+}
+
 export interface TAVConversationContext {
   currentPage: string;
   currentForm?: string;
@@ -16,6 +24,8 @@ export interface TAVConversationContext {
   sessionId: string;
   caregiverContext?: any; // Added for caregiver chat support
   isDemoMode?: boolean; // Added for demo mode support
+  userId?: string; // Signed-in user, used for memory and journey context
+  journeyContext?: TAVJourneyContext; // Live journey position from the canonical calculation
 }
 
 export class TAVAIService {
