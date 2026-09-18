@@ -40,7 +40,21 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
 
   // Check if we're in demo mode
   const isDemoRoute = location.pathname.startsWith('/demo/');
-  
+
+  // Live journey position for signed-in families, from the canonical journey calculation
+  const { user } = useAuth();
+  const familyJourney = useSharedFamilyJourneyData(role === 'family' && user?.id ? user.id : '');
+
+  const journeyContext = role === 'family' && user?.id && !familyJourney.loading
+    ? {
+        completionPercentage: familyJourney.completionPercentage,
+        journeyStage: familyJourney.journeyStage,
+        nextStepTitle: familyJourney.nextStep?.title,
+        completedStepTitles: familyJourney.steps.filter(s => s.completed).map(s => s.title),
+        remainingStepTitles: familyJourney.steps.filter(s => !s.completed).map(s => s.title)
+      }
+    : undefined;
+
   // TAV AI conversation context
   const tavContext = {
     currentPage: location.pathname,
@@ -51,7 +65,9 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
     }, {} as Record<string, any>),
     userRole: role || undefined,
     sessionId,
-    isDemoMode: isDemoRoute
+    isDemoMode: isDemoRoute,
+    userId: user?.id,
+    journeyContext
   };
 
   const tavaraState = useTavaraState();

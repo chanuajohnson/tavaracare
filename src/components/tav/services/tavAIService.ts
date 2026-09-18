@@ -71,6 +71,7 @@ export class TAVAIService {
           message,
           context,
           conversationHistory,
+          userId: context.userId,
           enableStreaming: false,
           enableMemory: true
         }
