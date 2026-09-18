@@ -10,7 +10,7 @@ const corsHeaders = {
 };
 
 // Get environment variables
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -33,6 +33,14 @@ interface ConversationContext {
   caregiverContext?: any;
   previousConversations?: ChatMessage[];
   userPreferences?: Record<string, any>;
+  // Live journey position for a signed-in family (from the canonical journey calculation)
+  journeyContext?: {
+    completionPercentage?: number;
+    journeyStage?: string;
+    nextStepTitle?: string;
+    completedStepTitles?: string[];
+    remainingStepTitles?: string[];
+  };
 }
 
 interface MemoryEntry {
@@ -124,26 +132,30 @@ serve(async (req) => {
       { role: 'user', content: message }
     ];
 
-    // Call OpenAI with latest model
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call the Lovable AI Gateway (no separate provider account needed)
+    if (!lovableApiKey) {
+      throw new Error('LOVABLE_API_KEY is not configured for this project');
+    }
+
+    const openAIResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openAIApiKey}`
+        'Lovable-API-Key': lovableApiKey,
+        'X-Lovable-AIG-SDK': 'fetch'
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini", // Latest available model
+        model: 'openai/gpt-6-astra',
         messages,
-        temperature: 0.8, // Higher for more personality
-        max_tokens: 500,
-        presence_penalty: 0.6,
-        frequency_penalty: 0.3,
+        reasoning_effort: 'low',
+        max_completion_tokens: 900,
         stream: enableStreaming
       }),
     });
 
     if (!openAIResponse.ok) {
-      throw new Error(`OpenAI API error: ${openAIResponse.statusText}`);
+      const detail = await openAIResponse.text().catch(() => '');
+      throw new Error(`AI Gateway error ${openAIResponse.status}: ${detail.substring(0, 300)}`);
     }
 
     let responseContent = "";
@@ -355,6 +367,27 @@ CURRENT CONTEXT:
 
   if (context.currentForm) {
     prompt += `\n- Current form: ${context.currentForm}`;
+  }
+
+  const journey = context.journeyContext;
+  if (journey && (journey.completionPercentage !== undefined || journey.nextStepTitle)) {
+    prompt += `\n\nTHIS FAMILY'S LIVE POSITION (accurate, from their own record — use it instead of speaking generally):`;
+    if (journey.completionPercentage !== undefined) {
+      prompt += `\n- Overall progress: ${journey.completionPercentage}% complete`;
+    }
+    if (journey.journeyStage) {
+      prompt += `\n- Current stage: ${journey.journeyStage}`;
+    }
+    if (journey.completedStepTitles?.length) {
+      prompt += `\n- Already done: ${journey.completedStepTitles.join(', ')}`;
+    }
+    if (journey.nextStepTitle) {
+      prompt += `\n- Next step: ${journey.nextStepTitle}`;
+    }
+    if (journey.remainingStepTitles?.length) {
+      prompt += `\n- Still open: ${journey.remainingStepTitles.join(', ')}`;
+    }
+    prompt += `\n- NEVER ask them to redo something listed as already done. Point to the next step by name.`;
   }
 
   if (context.caregiverContext) {
