@@ -10,7 +10,7 @@ const corsHeaders = {
 };
 
 // Get environment variables
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -33,6 +33,14 @@ interface ConversationContext {
   caregiverContext?: any;
   previousConversations?: ChatMessage[];
   userPreferences?: Record<string, any>;
+  // Live journey position for a signed-in family (from the canonical journey calculation)
+  journeyContext?: {
+    completionPercentage?: number;
+    journeyStage?: string;
+    nextStepTitle?: string;
+    completedStepTitles?: string[];
+    remainingStepTitles?: string[];
+  };
 }
 
 interface MemoryEntry {
