@@ -369,6 +369,27 @@ CURRENT CONTEXT:
     prompt += `\n- Current form: ${context.currentForm}`;
   }
 
+  const journey = context.journeyContext;
+  if (journey && (journey.completionPercentage !== undefined || journey.nextStepTitle)) {
+    prompt += `\n\nTHIS FAMILY'S LIVE POSITION (accurate, from their own record — use it instead of speaking generally):`;
+    if (journey.completionPercentage !== undefined) {
+      prompt += `\n- Overall progress: ${journey.completionPercentage}% complete`;
+    }
+    if (journey.journeyStage) {
+      prompt += `\n- Current stage: ${journey.journeyStage}`;
+    }
+    if (journey.completedStepTitles?.length) {
+      prompt += `\n- Already done: ${journey.completedStepTitles.join(', ')}`;
+    }
+    if (journey.nextStepTitle) {
+      prompt += `\n- Next step: ${journey.nextStepTitle}`;
+    }
+    if (journey.remainingStepTitles?.length) {
+      prompt += `\n- Still open: ${journey.remainingStepTitles.join(', ')}`;
+    }
+    prompt += `\n- NEVER ask them to redo something listed as already done. Point to the next step by name.`;
+  }
+
   if (context.caregiverContext) {
     const caregiver = context.caregiverContext;
     prompt += `\n\nCAREGIVER CHAT FACILITATION:
