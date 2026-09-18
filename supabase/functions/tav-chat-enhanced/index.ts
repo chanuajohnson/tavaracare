@@ -132,26 +132,30 @@ serve(async (req) => {
       { role: 'user', content: message }
     ];
 
-    // Call OpenAI with latest model
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call the Lovable AI Gateway (no separate provider account needed)
+    if (!lovableApiKey) {
+      throw new Error('LOVABLE_API_KEY is not configured for this project');
+    }
+
+    const openAIResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openAIApiKey}`
+        'Lovable-API-Key': lovableApiKey,
+        'X-Lovable-AIG-SDK': 'fetch'
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini", // Latest available model
+        model: 'openai/gpt-6-astra',
         messages,
-        temperature: 0.8, // Higher for more personality
-        max_tokens: 500,
-        presence_penalty: 0.6,
-        frequency_penalty: 0.3,
+        reasoning_effort: 'low',
+        max_completion_tokens: 900,
         stream: enableStreaming
       }),
     });
 
     if (!openAIResponse.ok) {
-      throw new Error(`OpenAI API error: ${openAIResponse.statusText}`);
+      const detail = await openAIResponse.text().catch(() => '');
+      throw new Error(`AI Gateway error ${openAIResponse.status}: ${detail.substring(0, 300)}`);
     }
 
     let responseContent = "";
