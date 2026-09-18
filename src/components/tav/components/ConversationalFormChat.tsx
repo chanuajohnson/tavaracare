@@ -9,6 +9,8 @@ import { formFieldTracker, FieldCompletionStatus } from '@/utils/formFieldTracke
 import { sectionBasedFormTracker, FormSectionData } from '@/utils/sectionBasedFormTracker';
 import { useLocation } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
 
 interface ConversationalFormChatProps {
   role: 'family' | 'professional' | 'community' | null;
