@@ -73,6 +73,7 @@ import CarePlanDetailPage from "@/pages/family/care-management/CarePlanDetailPag
 import CreateCarePlanPage from "@/pages/family/care-management/CreateCarePlanPage";
 import CareJourneyProgressPage from "@/pages/family/CareJourneyProgressPage";
 import FamilyOnboardingChecklistPage from "@/pages/family/FamilyOnboardingChecklistPage";
+import FamilyCareCostsPage from "@/pages/family/FamilyCareCostsPage";
 import CareLogUpgradePage from "@/pages/family/CareLogUpgradePage";
 import FamilyReadinessQuizPage from "@/pages/family/FamilyReadinessQuizPage";
 
