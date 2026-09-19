@@ -98,6 +98,16 @@ function ProfessionalContextBanner({ from }: { from?: string | null }) {
   );
 }
 
+// Focused post-login return: only these gated family pages may be returned to.
+const RETURN_TO_ALLOWLIST = [
+  '/family/care-costs',
+  '/family/onboarding-checklist',
+  '/family/readiness-quiz',
+  '/family/story',
+  '/family/care-assessment',
+];
+const RETURN_TO_KEY = 'TAVARA_RETURN_TO_PATH';
+
 export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -106,8 +116,29 @@ export default function AuthPage() {
   const [resetEmail, setResetEmail] = useState("");
   const [activeTab, setActiveTab] = useState("login");
 
+  // Remember a requested page (e.g. /family/care-costs) before sign-in
+  useEffect(() => {
+    const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+    if (returnTo && RETURN_TO_ALLOWLIST.includes(returnTo)) {
+      sessionStorage.setItem(RETURN_TO_KEY, returnTo);
+    }
+  }, []);
+
   useEffect(() => {
     if (user) {
+      const stored = sessionStorage.getItem(RETURN_TO_KEY);
+      if (stored && RETURN_TO_ALLOWLIST.includes(stored)) {
+        sessionStorage.removeItem(RETURN_TO_KEY);
+        console.log("[AuthPage] Returning user to requested page:", stored);
+        navigate(stored, { replace: true });
+        // Re-assert once in case the global redirect lands on the dashboard first
+        const t = setTimeout(() => {
+          if (window.location.pathname !== stored) {
+            navigate(stored, { replace: true });
+          }
+        }, 700);
+        return () => clearTimeout(t);
+      }
       console.log("[AuthPage] User already logged in, AuthProvider will handle redirection");
       return;
     }
@@ -128,6 +159,7 @@ if (action === 'verification-pending') {
 }
 
   }, [user, navigate]);
+
 
   const handleLogin = async (email: string, password: string) => {
     try {
