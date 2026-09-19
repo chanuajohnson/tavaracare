@@ -94,7 +94,7 @@ export default function FamilyCareCostsPage() {
           </CardHeader>
           <CardContent>
             <Button asChild>
-              <Link to="/auth">Sign in to continue</Link>
+              <Link to="/auth?returnTo=/family/care-costs">Sign in to continue</Link>
             </Button>
           </CardContent>
         </Card>
