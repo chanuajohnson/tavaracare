@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,15 @@ import { useTracking } from "@/hooks/useTracking";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Lock } from "lucide-react";
 import { QuizProgressDots } from "@/components/family/quiz/QuizProgressDots";
 import { QuizQuestionCard } from "@/components/family/quiz/QuizQuestionCard";
 import { QuizResultCard } from "@/components/family/quiz/QuizResultCard";
@@ -34,7 +43,7 @@ const AUTO_ADVANCE_MS = 250;
 
 const FamilyReadinessQuizPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { trackEngagement } = useTracking();
   const [searchParams] = useSearchParams();
   const viewParam = searchParams.get("view");
