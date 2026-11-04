@@ -335,6 +335,61 @@ const FamilyReadinessQuizPage: React.FC = () => {
     setPendingProgress(null);
   };
 
+  // Readiness answers are saved to a family profile, so the check is only ever
+  // available to signed-in people. Unauthenticated visitors are asked to sign
+  // in or create a family account first, and come back to the same page after.
+  if (authLoading) {
+    return (
+      <div className="container mx-auto max-w-2xl px-4 py-16 space-y-4">
+        <Skeleton className="h-8 w-64 mx-auto" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto max-w-lg px-4 py-16">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Lock className="h-5 w-5 text-primary" />
+                <CardTitle>Sign in to take the readiness check</CardTitle>
+              </div>
+              <CardDescription>
+                This check is saved to your family profile so we can pace things from your answers.
+                It takes about 3 minutes, and you can change any answer later.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button asChild className="w-full">
+                <Link to="/auth?tab=signup&role=family&returnTo=/family/readiness-quiz">
+                  Create a family account
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link to="/auth?returnTo=/family/readiness-quiz">I already have an account</Link>
+              </Button>
+              <p className="text-xs text-muted-foreground pt-1">
+                Prefer to talk first? Message us on WhatsApp at{" "}
+                <a
+                  href="https://wa.me/18687865357"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  1868 786 5357
+                </a>
+                .
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <PageViewTracker
