@@ -398,6 +398,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           </TabsList>
 
           <TabsContent value="profile" className="space-y-4">
+            {user.role === 'family' && <SocialConsentToggle userId={user.id} />}
             {/* Basic Profile Information */}
             <Card>
               <CardHeader>
