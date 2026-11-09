@@ -29,6 +29,24 @@ type LibraryPhoto = { id: string; scene_id: string; url: string; focus_y: number
 const SCENE_LABELS: Record<SceneId, string> = { hook: "1. Hook", map: "2. Map", needs: "3. Care needs", schedule: "4. Schedule", cta: "5. Ending" };
 const RATE_BANDS = ["$40/hr", "$45/hr", "$50+/hr"];
 
+// Blog imagery: same-origin paths for our own covers so the canvas stays exportable.
+function toLoadableUrl(u: string): string {
+  return u.replace(/^https?:\/\/(www\.)?tavara\.care/, "");
+}
+async function blobImage(url: string): Promise<{ img: HTMLImageElement; src: string } | null> {
+  try {
+    const res = await fetch(toLoadableUrl(url));
+    if (!res.ok) return null;
+    const src = URL.createObjectURL(await res.blob());
+    return { img: await loadImage(src), src };
+  } catch { return null; }
+}
+function shuffled<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
 function readPalette(): { palette: Palette; font: string } {
   const cs = getComputedStyle(document.documentElement);
   const v = (n: string, f: string) => { const x = cs.getPropertyValue(n).trim(); return x ? `hsl(${x})` : f; };
@@ -66,6 +84,9 @@ const ReelStudioPage: React.FC = () => {
   const [images, setImages] = useState<ReelAssets["photos"]>({});
   const [library, setLibrary] = useState<(LibraryPhoto & { preview?: string })[]>([]);
   const [audioOn, setAudioOn] = useState(true);
+  const [blogPool, setBlogPool] = useState<{ url: string; img: HTMLImageElement; src: string }[]>([]);
+  const [useBlogPhotos, setUseBlogPhotos] = useState(true);
+  const [blogAssign, setBlogAssign] = useState<Partial<Record<SceneId, number>>>({});
   const [showRate, setShowRate] = useState(false);
   const [rateBand, setRateBand] = useState(RATE_BANDS[0]);
   const [playing, setPlaying] = useState(false);
@@ -96,7 +117,26 @@ const ReelStudioPage: React.FC = () => {
       setCandidates(data ?? []);
     });
     loadLibrary();
+    (async () => {
+      const [{ data: posts }, { data: media }] = await Promise.all([
+        (supabase as any).from("blog_posts").select("cover_image_url").eq("status", "published").not("cover_image_url", "is", null),
+        (supabase as any).from("blog_media_assets").select("public_url").not("public_url", "is", null),
+      ]);
+      const urls = Array.from(new Set([...(posts ?? []).map((p: any) => p.cover_image_url), ...(media ?? []).map((m: any) => m.public_url)].filter(Boolean))) as string[];
+      const loaded = (await Promise.all(urls.map(async (url) => { const r = await blobImage(url); return r ? { url, ...r } : null; }))).filter(Boolean) as { url: string; img: HTMLImageElement; src: string }[];
+      setBlogPool(loaded);
+    })();
   }, [isAdmin, loadLibrary]);
+
+  // Give every scene a different blog photo; reshuffle on demand so reels never look the same.
+  const shuffleBlogPhotos = useCallback(() => {
+    if (!blogPool.length) return;
+    const order = shuffled(blogPool.map((_, i) => i));
+    const next: Partial<Record<SceneId, number>> = {};
+    TIMELINE.forEach(({ id }, i) => { next[id] = order[i % order.length]; });
+    setBlogAssign(next);
+  }, [blogPool]);
+  useEffect(() => { shuffleBlogPhotos(); }, [shuffleBlogPhotos, selectedRef]);
 
   useEffect(() => {
     if (!selectedRef || preset === "general_recruit") { setNeed(undefined); setText(defaultText()); return; }
@@ -112,7 +152,14 @@ const ReelStudioPage: React.FC = () => {
     preset, need: preset === "general_recruit" ? undefined : need, text, photos,
     rateBand: showRate ? rateBand : undefined, audio: { enabled: audioOn, volume: 0.6 },
   }), [preset, need, text, photos, showRate, rateBand, audioOn]);
-  const assets: ReelAssets = useMemo(() => ({ photos: images, palette: theme.palette, font: theme.font }), [images, theme]);
+  const assets: ReelAssets = useMemo(() => {
+    const merged: ReelAssets["photos"] = {};
+    for (const { id } of TIMELINE) {
+      const idx = blogAssign[id];
+      merged[id] = images[id] ?? (useBlogPhotos && idx !== undefined ? blogPool[idx]?.img : undefined);
+    }
+    return { photos: merged, palette: theme.palette, font: theme.font };
+  }, [images, theme, blogAssign, blogPool, useBlogPhotos]);
 
   const caption = useMemo(() => buildCaption(spec.need, spec.rateBand), [spec]);
   const issues = useMemo(() => {
@@ -263,8 +310,13 @@ const ReelStudioPage: React.FC = () => {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle>3. Scene photos</CardTitle><CardDescription>Stock or brand photos only. Never photos of the loved one.</CardDescription></CardHeader>
+              <CardHeader><CardTitle>3. Scene photos</CardTitle><CardDescription>Your blog photos rotate through the scenes automatically, a different one each time. Upload or pick your own to override a scene. Never use photos of the loved one.</CardDescription></CardHeader>
               <CardContent className="space-y-5">
+                <div className="flex flex-wrap items-center gap-3 rounded-md border p-3">
+                  <Switch id="blogphotos" checked={useBlogPhotos} onCheckedChange={setUseBlogPhotos} />
+                  <Label htmlFor="blogphotos" className="flex-1">Use blog photos ({blogPool.length} found)</Label>
+                  <Button size="sm" variant="outline" onClick={shuffleBlogPhotos} disabled={!useBlogPhotos || !blogPool.length}>Shuffle photos</Button>
+                </div>
                 {TIMELINE.map(({ id }) => (
                   <div key={id} className="space-y-2 border-b pb-4 last:border-0">
                     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -282,6 +334,15 @@ const ReelStudioPage: React.FC = () => {
                       <div className="space-y-1">
                         <Label className="text-xs">Vertical focus</Label>
                         <Slider value={[photos[id]!.focusY * 100]} min={0} max={100} step={1} onValueChange={([v]) => setPhotos((p) => ({ ...p, [id]: { ...p[id]!, focusY: v / 100 } }))} />
+                      </div>
+                    )}
+                    {useBlogPhotos && blogPool.length > 0 && !photos[id] && (
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {blogPool.map((b, i) => (
+                          <button key={b.url} type="button" aria-label="Use this blog photo" onClick={() => setBlogAssign((p) => ({ ...p, [id]: i }))} className={`h-16 w-10 shrink-0 rounded overflow-hidden border-2 ${blogAssign[id] === i ? "border-primary" : "border-transparent"}`}>
+                            <img src={b.src} alt="Blog photo" className="h-full w-full object-cover" />
+                          </button>
+                        ))}
                       </div>
                     )}
                     {library.length > 0 && (
