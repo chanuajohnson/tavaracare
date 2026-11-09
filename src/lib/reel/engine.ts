@@ -106,20 +106,32 @@ function drawScene(ctx: CanvasRenderingContext2D, id: SceneId, lt: number, spec:
     const p = easeOutCubic(ease(lt, 0.6, 0.85));
     headline(ctx, [s.label, s.hours, T.startLabel].filter(Boolean), 1160, 56, ink, font, p);
   } else {
-    const pulse = 1 + 0.04 * Math.sin(lt * Math.PI * 6);
-    const end = headline(ctx, [T.cta1], 760, 104, ink, font, easeOutCubic(ease(lt, 0, 0.25)));
-    headline(ctx, [T.cta2], end + 20, 56, ink, font, easeOutCubic(ease(lt, 0.1, 0.35)));
-    ctx.save(); ctx.translate(REEL_W / 2, 1300); ctx.scale(pulse, pulse);
-    ctx.font = `700 48px ${font}`; const w = ctx.measureText(T.ctaBody).width + 100;
-    roundRect(ctx, -w / 2, -60, w, 120, 60); ctx.fillStyle = P.primary; ctx.fill();
-    ctx.fillStyle = P.onPrimary; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(T.ctaBody, 0, 2); ctx.restore();
+    // Ending: question, then three invitations, each with its own link button.
+    const pulse = 1 + 0.03 * Math.sin(lt * Math.PI * 6);
+    let y = SAFE_TOP + 20;
     if (spec.need?.urgency === "urgent") {
-      ctx.font = `700 44px ${font}`; const bw = ctx.measureText("Needed soon").width + 64;
-      roundRect(ctx, (REEL_W - bw) / 2, 620, bw, 80, 40); ctx.fillStyle = P.accent; ctx.fill();
-      ctx.fillStyle = P.ink; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("Needed soon", REEL_W / 2, 662);
+      ctx.font = `700 40px ${font}`; const bw = ctx.measureText("Needed soon").width + 56;
+      roundRect(ctx, (REEL_W - bw) / 2, y, bw, 72, 36); ctx.fillStyle = P.accent; ctx.fill();
+      ctx.fillStyle = P.ink; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("Needed soon", REEL_W / 2, y + 38);
+      y += 100;
     }
-    ctx.font = `700 64px ${font}`; ctx.fillStyle = ink; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-    ctx.fillText("Tavara", REEL_W / 2, REEL_H - SAFE_BOTTOM - 20);
+    y = headline(ctx, [T.cta1], y, 88, ink, font, easeOutCubic(ease(lt, 0, 0.15)));
+    y = headline(ctx, [T.ctaSub], y + 6, 46, ink, font, easeOutCubic(ease(lt, 0.05, 0.2)));
+    const blocks: [string, string, number][] = [[T.cta2, T.ctaBody, 0.15], [T.cta3, T.cta3Body, 0.35], [T.cta4, T.cta4Body, 0.55]];
+    for (const [label, link, at] of blocks) {
+      const p = easeOutCubic(ease(lt, at, at + 0.15)); if (p <= 0) { y += 230; continue; }
+      y = headline(ctx, [label], y + 34, 44, ink, font, p);
+      // Link button: shrink text until it fits
+      let size = 40; ctx.font = `700 ${size}px ${font}`;
+      while (ctx.measureText(link).width > REEL_W - 240 && size > 26) { size -= 2; ctx.font = `700 ${size}px ${font}`; }
+      const w = ctx.measureText(link).width + 70, h = size + 48;
+      ctx.save(); ctx.globalAlpha = p; ctx.translate(REEL_W / 2, y + 10 + h / 2); if (at === 0.15) ctx.scale(pulse, pulse);
+      roundRect(ctx, -w / 2, -h / 2, w, h, h / 2); ctx.fillStyle = P.primary; ctx.fill();
+      ctx.fillStyle = P.onPrimary; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(link, 0, 2); ctx.restore();
+      y += h + 20;
+    }
+    ctx.font = `700 56px ${font}`; ctx.fillStyle = ink; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    ctx.fillText("Tavara", REEL_W / 2, REEL_H - SAFE_BOTTOM + 40);
   }
 }
 
