@@ -21,8 +21,13 @@ export type ReelText = {
   scheduleTitle: string;
   startLabel: string;
   cta1: string;
+  ctaSub: string;
   cta2: string;
-  ctaBody: string;
+  ctaBody: string; // caregiver registration link
+  cta3: string;
+  cta3Body: string; // urgent families link
+  cta4: string;
+  cta4Body: string; // family registration link
 };
 
 export type ScenePhoto = { url: string; focusY: number };
@@ -77,11 +82,17 @@ export function defaultText(need?: ReelSafeNeed): ReelText {
     scheduleTitle: "Care schedule",
     startLabel: need?.urgency === "urgent" ? "Start: as soon as possible" : need?.urgency === "soon" ? "Start: this week" : "Start: flexible",
     cta1: "Could this be you?",
-    cta2: "Join the Tavara care team",
-    ctaBody: LEARN_MORE_URL,
+    ctaSub: "Are you a caregiver who can provide care in this home?",
+    cta2: "Join the Tavara care team. Register here to be matched:",
+    ctaBody: "tavara.care/auth?tab=signup&role=professional",
+    cta3: "Browse families in urgent need of care:",
+    cta3Body: LEARN_MORE_URL,
+    cta4: "Family needing a caregiver? Register here:",
+    cta4Body: "tavara.care/auth?tab=signup&role=family",
   };
 }
 
 export const TEXT_LIMITS: Record<keyof ReelText, number> = {
-  hook1: 40, hook2: 40, needsTitle: 30, scheduleTitle: 30, startLabel: 36, cta1: 32, cta2: 40, ctaBody: 48,
+  hook1: 40, hook2: 40, needsTitle: 30, scheduleTitle: 30, startLabel: 36,
+  cta1: 32, ctaSub: 64, cta2: 64, ctaBody: 60, cta3: 56, cta3Body: 60, cta4: 56, cta4Body: 60,
 };
