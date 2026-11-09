@@ -7585,6 +7585,7 @@ export type Database = {
         | "within_week"
         | "within_month"
         | "planning_ahead"
+        | "flexible"
       chatbot_message_type: "text" | "option" | "handoff" | "form"
       chatbot_sender_type: "user" | "bot" | "human_agent"
       chatbot_status: "active" | "completed" | "abandoned"
@@ -7765,6 +7766,7 @@ export const Constants = {
         "within_week",
         "within_month",
         "planning_ahead",
+        "flexible",
       ],
       chatbot_message_type: ["text", "option", "handoff", "form"],
       chatbot_sender_type: ["user", "bot", "human_agent"],

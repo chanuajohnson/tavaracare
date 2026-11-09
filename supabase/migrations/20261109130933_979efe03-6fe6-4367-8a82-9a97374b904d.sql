@@ -1,0 +1,1 @@
+ALTER TYPE public.care_urgency ADD VALUE IF NOT EXISTS 'flexible';
