@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
+import { SocialConsentToggle } from './SocialConsentToggle';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle, FileText, Download, Share, Shield, Eye, Trash2, Pill, ExternalLink } from 'lucide-react';
