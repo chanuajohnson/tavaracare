@@ -46,3 +46,16 @@ describe("caption", () => {
   test("no banned words", () => expect(findBannedWords(c)).toEqual([]));
   test("banned detector works", () => expect(findBannedWords("hire a worker for the patient")).toEqual(["hire", "patient", "worker"]));
 });
+
+describe("caption content", () => {
+  const need = redact({ requestRef: "TV-2611-08A", area: "East Trinidad", region: "East Trinidad", careTypes: ["Diabetes support", "Recovery support"], skills: ["Personal care", "Medication support", "Meal preparation"], qualifications: ["Trained caregiver"], schedule: "mon_fri_8am_4pm,sat_sun_8am_4pm", urgency: "standard" });
+  const c = buildCaption(need);
+  test("lists every care need", () => { for (const n of ["Diabetes support", "Recovery support", "Personal care", "Medication support", "Meal preparation"]) expect(c).toContain(n); });
+  test("states schedule and 8-hour shifts", () => { expect(c).toContain("7 days a week"); expect(c).toContain("8-hour shifts"); });
+  test("has both invitations and all four links", () => {
+    expect(c).toContain("https://tavara.care/auth?tab=signup&role=professional");
+    expect(c).toContain("https://tavara.care/urgent-families");
+    expect(c).toContain("https://tavara.care/auth?tab=signup&role=family");
+    expect(c).toContain("https://tavara.care/urgent-caregivers");
+  });
+});
