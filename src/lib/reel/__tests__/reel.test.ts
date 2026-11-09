@@ -1,3 +1,4 @@
+// @ts-ignore bun test runner types
 import { describe, expect, test } from "bun:test";
 import { sceneAt } from "../spec";
 import { redact, generalizeArea, containsUnsafe, summarizeSchedule } from "../redact";
