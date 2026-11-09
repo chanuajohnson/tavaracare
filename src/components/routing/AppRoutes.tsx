@@ -115,6 +115,7 @@ import DemoFamilyStory from "@/pages/demo/DemoFamilyStory";
 import MarketingKit from "@/pages/marketing/MarketingKit";
 import GenerateMarketingAssets from "@/pages/admin/GenerateMarketingAssets";
 import VideoStudioPage from "@/pages/admin/VideoStudioPage";
+import ReelStudioPage from "@/pages/admin/ReelStudioPage";
 import FlyerLocations from "@/pages/admin/FlyerLocations";
 import UrgentCaregiversPage from "@/pages/UrgentCaregiversPage";
 import UrgentFamiliesPage from "@/pages/UrgentFamiliesPage";
@@ -260,6 +261,7 @@ export const AppRoutes = () => {
       <Route path="/marketing-kit" element={<MarketingKit />} />
       <Route path="/admin/generate-marketing" element={<GenerateMarketingAssets />} />
       <Route path="/admin/video-studio" element={<VideoStudioPage />} />
+      <Route path="/admin/reels" element={<ReelStudioPage />} />
       <Route path="/admin/flyer-locations" element={<FlyerLocations />} />
       
       {/* Demo Routes */}

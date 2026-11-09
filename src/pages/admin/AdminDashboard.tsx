@@ -333,6 +333,15 @@ export default function AdminDashboard() {
           <Film className="h-6 w-6" />
           <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Video Studio</span>
         </Button>
+
+        <Button
+          onClick={() => navigate('/admin/reels')}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <Film className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight line-clamp-2 px-1">Reel Studio</span>
+        </Button>
       </div>
 
       {/* Pending Scheduling Requests Alert */}
