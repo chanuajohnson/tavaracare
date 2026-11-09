@@ -4709,6 +4709,7 @@ export type Database = {
           community_motivation: string | null
           community_roles: string[] | null
           commute_mode: string | null
+          consent_social_at: string | null
           contribution_interests: string[] | null
           created_at: string | null
           custom_availability_alerts: string | null
@@ -4720,6 +4721,7 @@ export type Database = {
           enable_community_notifications: boolean | null
           enable_job_alerts: boolean | null
           expected_rate: string | null
+          family_consent_social: boolean
           family_readiness_profile: Json | null
           first_name: string | null
           full_name: string | null
@@ -4759,6 +4761,7 @@ export type Database = {
           provides_housekeeping: boolean | null
           provides_transportation: boolean | null
           ready_for_admin_scheduling: boolean | null
+          reel_ref: string | null
           registration_skipped: boolean | null
           relationship: string | null
           role: Database["public"]["Enums"]["user_role"]
@@ -4819,6 +4822,7 @@ export type Database = {
           community_motivation?: string | null
           community_roles?: string[] | null
           commute_mode?: string | null
+          consent_social_at?: string | null
           contribution_interests?: string[] | null
           created_at?: string | null
           custom_availability_alerts?: string | null
@@ -4830,6 +4834,7 @@ export type Database = {
           enable_community_notifications?: boolean | null
           enable_job_alerts?: boolean | null
           expected_rate?: string | null
+          family_consent_social?: boolean
           family_readiness_profile?: Json | null
           first_name?: string | null
           full_name?: string | null
@@ -4869,6 +4874,7 @@ export type Database = {
           provides_housekeeping?: boolean | null
           provides_transportation?: boolean | null
           ready_for_admin_scheduling?: boolean | null
+          reel_ref?: string | null
           registration_skipped?: boolean | null
           relationship?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -4929,6 +4935,7 @@ export type Database = {
           community_motivation?: string | null
           community_roles?: string[] | null
           commute_mode?: string | null
+          consent_social_at?: string | null
           contribution_interests?: string[] | null
           created_at?: string | null
           custom_availability_alerts?: string | null
@@ -4940,6 +4947,7 @@ export type Database = {
           enable_community_notifications?: boolean | null
           enable_job_alerts?: boolean | null
           expected_rate?: string | null
+          family_consent_social?: boolean
           family_readiness_profile?: Json | null
           first_name?: string | null
           full_name?: string | null
@@ -4979,6 +4987,7 @@ export type Database = {
           provides_housekeeping?: boolean | null
           provides_transportation?: boolean | null
           ready_for_admin_scheduling?: boolean | null
+          reel_ref?: string | null
           registration_skipped?: boolean | null
           relationship?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -5147,6 +5156,57 @@ export type Database = {
           preparation_time?: number | null
           servings?: number | null
           title?: string
+        }
+        Relationships: []
+      }
+      reel_exports: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          preset: string
+          request_ref: string
+          spec: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          preset: string
+          request_ref: string
+          spec: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          preset?: string
+          request_ref?: string
+          spec?: Json
+        }
+        Relationships: []
+      }
+      reel_photo_library: {
+        Row: {
+          created_at: string
+          focus_y: number
+          id: string
+          scene_id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          focus_y?: number
+          id?: string
+          scene_id: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          focus_y?: number
+          id?: string
+          scene_id?: string
+          url?: string
         }
         Relationships: []
       }
@@ -7297,6 +7357,7 @@ export type Database = {
           issue: string
         }[]
       }
+      ensure_reel_ref: { Args: { _profile_id: string }; Returns: string }
       format_whatsapp_number: {
         Args: { country_code_input?: string; phone_input: string }
         Returns: string
@@ -7374,6 +7435,7 @@ export type Database = {
           years_of_experience: string
         }[]
       }
+      get_reel_safe_need: { Args: { ref: string }; Returns: Json }
       get_unmatched_family_count: { Args: never; Returns: number }
       get_user_profile_secure: {
         Args: { target_user_id: string }
@@ -7437,7 +7499,23 @@ export type Database = {
       }
       is_account_limited: { Args: { _uid: string }; Returns: boolean }
       is_current_user_admin: { Args: never; Returns: boolean }
+      list_reel_candidates: {
+        Args: never
+        Returns: {
+          area: string
+          care_type: string
+          request_ref: string
+        }[]
+      }
       recalculate_all_journey_progress: { Args: never; Returns: string }
+      reel_need_categories: { Args: { _needs: string[] }; Returns: string[] }
+      reel_town_region: {
+        Args: { _address: string }
+        Returns: {
+          region: string
+          town: string
+        }[]
+      }
       reschedule_visit_booking: {
         Args: {
           booking_id: string
