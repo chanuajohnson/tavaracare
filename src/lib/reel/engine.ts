@@ -33,7 +33,7 @@ function background(ctx: CanvasRenderingContext2D, scene: SceneId, localT: numbe
   if (img) {
     coverImage(ctx, img, spec.photos[scene]?.focusY ?? 0.5, 1 + 0.08 * localT);
     const g = ctx.createLinearGradient(0, 0, 0, REEL_H);
-    g.addColorStop(0, "rgba(0,0,0,0.15)"); g.addColorStop(0.55, "rgba(0,0,0,0.35)"); g.addColorStop(1, "rgba(0,0,0,0.75)");
+    g.addColorStop(0, "rgba(0,0,0,0.55)"); g.addColorStop(0.55, "rgba(0,0,0,0.45)"); g.addColorStop(1, "rgba(0,0,0,0.75)");
     ctx.fillStyle = g; ctx.fillRect(0, 0, REEL_W, REEL_H);
   }
 }
