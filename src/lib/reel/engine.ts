@@ -190,7 +190,7 @@ function drawScene(ctx: CanvasRenderingContext2D, id: SceneId, lt: number, spec:
     y = headline(ctx, [T.cta1], y, 88, ink, font, easeOutCubic(ease(lt, 0, 0.15)));
     y = headline(ctx, [T.ctaSub], y + 6, 46, ink, font, easeOutCubic(ease(lt, 0.05, 0.2)));
     // Three clear cards so viewers can see at a glance where they fit: audience card, other audience, WhatsApp.
-    const tagFor = (link: string) => /join-as-caregiver/.test(link) ? "FOR CAREGIVERS" : "FOR FAMILIES";
+    const tagFor = (link: string) => /\/(?:join-as-caregiver|caregiver)(?:$|[?#])/.test(link) ? "FOR CAREGIVERS" : "FOR FAMILIES";
     const cards: [string, string, string][] = [
       [tagFor(T.ctaBody), T.cta2, T.ctaBody],
       [tagFor(T.cta4Body), T.cta4, T.cta4Body],

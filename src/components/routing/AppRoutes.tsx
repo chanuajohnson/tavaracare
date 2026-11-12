@@ -1,5 +1,6 @@
 
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
+import { PUBLIC_ROUTE_ALIASES } from "@/utils/publicRoutes";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { RouteErrorBoundary } from "@/components/common/RouteErrorBoundary";
 import Index from "@/pages/Index";
