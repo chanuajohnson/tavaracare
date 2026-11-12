@@ -23,7 +23,7 @@ import { containsUnsafe, redact } from "@/lib/reel/redact";
 import { buildCaption, buildCaregiverCaption, findBannedWords } from "@/lib/reel/caption";
 import { drawFrame, type Palette, type ReelAssets } from "@/lib/reel/engine";
 import { download, recordReel, renderStill } from "@/lib/reel/export";
-import { buildFounderCaption, defaultFounderScript } from "@/lib/reel/founderStory";
+import { buildFounderCaption, defaultFounderScript, DEFAULT_FOUNDER_STORY } from "@/lib/reel/founderStory";
 import { estimateNarrationSeconds, isVoiceoverDurationValid, pickVoiceRecordingMime, readAudioDuration, VOICEOVER_ACCEPT, VOICEOVER_MAX_BYTES, voiceoverExtension } from "@/lib/reel/voiceover";
 
 type Candidate = { request_ref: string; area: string; care_type: string };
@@ -112,6 +112,14 @@ const ReelStudioPage: React.FC = () => {
   const [recording, setRecording] = useState(false);
   const [script, setScript] = useState(defaultFounderScript());
   const [founderCaption, setFounderCaption] = useState(true);
+  const [story, setStory] = useState(DEFAULT_FOUNDER_STORY);
+  type VoicePreset = { id: string; name: string; script: string; caption_story: string; voice_path: string | null; voice_duration: number | null; created_at: string };
+  const [presets, setPresets] = useState<VoicePreset[]>([]);
+  const [presetName, setPresetName] = useState("");
+  const loadPresets = useCallback(async () => {
+    const { data } = await (supabase as any).from("reel_voice_presets").select("*").order("created_at", { ascending: false });
+    setPresets(data ?? []);
+  }, []);
   const recRef = useRef<MediaRecorder | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement>(null);
 
@@ -145,6 +153,27 @@ const ReelStudioPage: React.FC = () => {
       window.setTimeout(() => { if (rec.state === "recording") rec.stop(); }, REEL_DURATION * 1000);
     } catch { toast.error("Microphone access was blocked. Allow the microphone in your browser, or upload a recording instead."); }
   };
+  const savePreset = async () => {
+    const name = presetName.trim() || `Founder voiceover ${new Date().toLocaleDateString()}`;
+    const { error } = await (supabase as any).from("reel_voice_presets").insert({ name, script, caption_story: story, voice_path: voicePath, voice_duration: voiceDuration, created_by: user!.id });
+    if (error) return toast.error("Could not save: " + error.message);
+    setPresetName(""); loadPresets();
+    toast.success(voicePath ? `"${name}" saved with your voiceover and caption story.` : `"${name}" saved (script and caption story only, no recording yet).`);
+  };
+  const applyPreset = async (p: VoicePreset) => {
+    setScript(p.script); if (p.caption_story) setStory(p.caption_story); setFounderCaption(true);
+    if (p.voice_path) {
+      const { data } = await supabase.storage.from("reel-voiceovers").download(p.voice_path);
+      if (data) setVoice(data, p.voice_path, p.voice_duration);
+      else toast.error("The recording for this preset could not be found.");
+    } else setVoice(null, null, null);
+    toast.success(`Using "${p.name}" on this reel.`);
+  };
+  const deletePreset = async (p: VoicePreset) => {
+    if (!window.confirm(`Delete "${p.name}"? Reels you already exported are not affected.`)) return;
+    await (supabase as any).from("reel_voice_presets").delete().eq("id", p.id);
+    loadPresets(); toast.success("Preset deleted.");
+  };
   const stopRecording = () => { if (recRef.current?.state === "recording") recRef.current.stop(); };
 
   useEffect(() => {
@@ -167,7 +196,7 @@ const ReelStudioPage: React.FC = () => {
     const { data } = await (supabase as any).from("reel_exports").select("id, request_ref, preset, spec, is_primary, created_at").order("is_primary", { ascending: false }).order("created_at", { ascending: false }).limit(100);
     setSaved(data ?? []);
   }, []);
-  useEffect(() => { if (isAdmin) loadSaved(); }, [isAdmin, loadSaved]);
+  useEffect(() => { if (isAdmin) { loadSaved(); loadPresets(); } }, [isAdmin, loadSaved, loadPresets]);
   const [caregivers, setCaregivers] = useState<Candidate[] | null>(null);
   useEffect(() => {
     if (!isAdmin) return;
@@ -239,7 +268,7 @@ const ReelStudioPage: React.FC = () => {
   }, [images, theme, blogAssign, blogPool, useBlogPhotos]);
 
   const standardCaption = useMemo(() => isCaregiver ? buildCaregiverCaption(spec.need, WHATSAPP_CHANNEL_URL) : buildCaption(spec.need, spec.rateBand, WHATSAPP_CHANNEL_URL), [spec, isCaregiver]);
-  const caption = useMemo(() => founderCaption ? buildFounderCaption(spec.need, spec.rateBand, WHATSAPP_CHANNEL_URL, isCaregiver) : standardCaption, [founderCaption, standardCaption, spec, isCaregiver]);
+  const caption = useMemo(() => founderCaption ? buildFounderCaption(spec.need, spec.rateBand, WHATSAPP_CHANNEL_URL, isCaregiver, story) : standardCaption, [founderCaption, standardCaption, spec, isCaregiver, story]);
   const issues = useMemo(() => {
     const all = [...Object.values(text), caption].join(" \n ");
     const out: string[] = [];
@@ -297,7 +326,7 @@ const ReelStudioPage: React.FC = () => {
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
 
   const logExport = async () => {
-    await (supabase as any).from("reel_exports").insert({ request_ref: ref, preset, spec: { ...spec, photos: Object.keys(photos), voiceover: voicePath ? { path: voicePath, duration: voiceDuration, script } : undefined, founderCaption }, created_by: user!.id });
+    await (supabase as any).from("reel_exports").insert({ request_ref: ref, preset, spec: { ...spec, photos: Object.keys(photos), voiceover: voicePath ? { path: voicePath, duration: voiceDuration, script } : undefined, founderCaption, founderStory: story }, created_by: user!.id });
     loadSaved();
   };
   const saveReel = async () => {
@@ -312,6 +341,7 @@ const ReelStudioPage: React.FC = () => {
     if (sp.rateBand) { setShowRate(true); setRateBand(sp.rateBand); } else setShowRate(false);
     if (sp.audio) setAudioOn(!!sp.audio.enabled);
     setFounderCaption(sp.founderCaption ?? false);
+    setStory(sp.founderStory || DEFAULT_FOUNDER_STORY);
     setVoice(null, null, null);
     if (sp.voiceover?.script) setScript(sp.voiceover.script);
     if (sp.voiceover?.path) {
@@ -469,6 +499,36 @@ const ReelStudioPage: React.FC = () => {
                 <div className="flex items-center gap-3 pt-2 border-t">
                   <Switch id="founder" checked={founderCaption} onCheckedChange={setFounderCaption} />
                   <Label htmlFor="founder">Use my founder story in the caption (Build and Bloom)</Label>
+                </div>
+                {founderCaption && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label htmlFor="story">Founder story (top of caption)</Label>
+                      <Button size="sm" variant="ghost" onClick={() => setStory(DEFAULT_FOUNDER_STORY)}>Reset to default</Button>
+                    </div>
+                    <Textarea id="story" value={story} onChange={(e) => setStory(e.target.value)} rows={10} />
+                    <p className="text-xs text-muted-foreground">The family's care needs, links and the "not a financial investment" note are added below this automatically.</p>
+                  </div>
+                )}
+                <div className="space-y-2 pt-2 border-t">
+                  <Label>Save for reuse</Label>
+                  <p className="text-xs text-muted-foreground">Saves your script, founder story and recording together, so you can use them on any reel.</p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Input value={presetName} onChange={(e) => setPresetName(e.target.value)} placeholder="Name, e.g. Founder story v1" maxLength={60} />
+                    <Button variant="secondary" onClick={savePreset}><Save className="h-4 w-4 mr-2" />Save voiceover and caption</Button>
+                  </div>
+                  {presets.length > 0 && <div className="space-y-2">
+                    {presets.map((p) => (
+                      <div key={p.id} className="flex flex-wrap items-center gap-2 rounded-md border p-2">
+                        <div className="flex-1 min-w-[160px]">
+                          <p className="text-sm font-medium">{p.name}</p>
+                          <p className="text-xs text-muted-foreground">{p.voice_path ? `Recording ${Number(p.voice_duration ?? 0).toFixed(1)}s` : "No recording"} · {new Date(p.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => applyPreset(p)}><FolderOpen className="h-4 w-4 mr-1" />Use</Button>
+                        <Button size="sm" variant="ghost" aria-label="Delete preset" onClick={() => deletePreset(p)}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    ))}
+                  </div>}
                 </div>
               </CardContent>
             </Card>
