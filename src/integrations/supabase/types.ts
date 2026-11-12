@@ -7506,6 +7506,23 @@ export type Database = {
       }
       is_account_limited: { Args: { _uid: string }; Returns: boolean }
       is_current_user_admin: { Args: never; Returns: boolean }
+      list_public_available_caregivers: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          care_services: string[]
+          caregiver_id: string
+          description: string
+          display_order: number
+          featured_image_url: string
+          first_name: string
+          headline: string
+          is_featured: boolean
+          location: string
+          spotlight_id: string
+          years_of_experience: string
+        }[]
+      }
       list_reel_candidates: {
         Args: never
         Returns: {
