@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Play, Pause, Download, Copy, Image as ImageIcon, Film, Upload, Trash2, Star, Save, FolderOpen } from "lucide-react";
+import { Loader2, Play, Pause, Download, Copy, Image as ImageIcon, Film, Upload, Trash2, Star, Save, FolderOpen, Mic, Square } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -23,6 +23,8 @@ import { containsUnsafe, redact } from "@/lib/reel/redact";
 import { buildCaption, buildCaregiverCaption, findBannedWords } from "@/lib/reel/caption";
 import { drawFrame, type Palette, type ReelAssets } from "@/lib/reel/engine";
 import { download, recordReel, renderStill } from "@/lib/reel/export";
+import { buildFounderCaption, defaultFounderScript } from "@/lib/reel/founderStory";
+import { estimateNarrationSeconds, isVoiceoverDurationValid, pickVoiceRecordingMime, readAudioDuration, VOICEOVER_ACCEPT, VOICEOVER_MAX_BYTES, voiceoverExtension } from "@/lib/reel/voiceover";
 
 type Candidate = { request_ref: string; area: string; care_type: string };
 type SavedReel = { id: string; request_ref: string; preset: string; spec: any; is_primary: boolean; created_at: string };
@@ -103,6 +105,47 @@ const ReelStudioPage: React.FC = () => {
   const exportCanvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>();
   const theme = useMemo(readPalette, []);
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+  const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
+  const [voicePath, setVoicePath] = useState<string | null>(null);
+  const [voiceDuration, setVoiceDuration] = useState<number | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [script, setScript] = useState(defaultFounderScript());
+  const [founderCaption, setFounderCaption] = useState(true);
+  const recRef = useRef<MediaRecorder | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement>(null);
+
+  const setVoice = useCallback((blob: Blob | null, path: string | null, duration: number | null) => {
+    setVoiceUrl((old) => { if (old) URL.revokeObjectURL(old); return blob ? URL.createObjectURL(blob) : null; });
+    setVoiceBlob(blob); setVoicePath(path); setVoiceDuration(duration);
+  }, []);
+
+  const acceptVoice = async (blob: Blob) => {
+    if (blob.size > VOICEOVER_MAX_BYTES) return toast.error("That recording is over 15 MB. Please use a shorter clip.");
+    let duration: number;
+    try { duration = await readAudioDuration(blob); } catch (e: any) { return toast.error(e.message); }
+    if (!isVoiceoverDurationValid(duration)) return toast.error(`Your voiceover is ${duration.toFixed(1)} seconds. Keep it to ${REEL_DURATION} seconds so it is not cut off.`);
+    const type = blob.type || "audio/webm";
+    const path = `${crypto.randomUUID()}.${voiceoverExtension(type)}`;
+    const { error } = await supabase.storage.from("reel-voiceovers").upload(path, blob, { contentType: type });
+    if (error) return toast.error("Could not save your voiceover: " + error.message);
+    setVoice(blob, path, duration);
+    toast.success(`Voiceover saved (${duration.toFixed(1)} seconds). Press play to hear it with the reel.`);
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      const mime = pickVoiceRecordingMime();
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      const chunks: Blob[] = [];
+      rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+      rec.onstop = () => { stream.getTracks().forEach((tr) => tr.stop()); setRecording(false); acceptVoice(new Blob(chunks, { type: rec.mimeType || mime || "audio/webm" })); };
+      recRef.current = rec; rec.start(); setRecording(true);
+      window.setTimeout(() => { if (rec.state === "recording") rec.stop(); }, REEL_DURATION * 1000);
+    } catch { toast.error("Microphone access was blocked. Allow the microphone in your browser, or upload a recording instead."); }
+  };
+  const stopRecording = () => { if (recRef.current?.state === "recording") recRef.current.stop(); };
 
   useEffect(() => {
     if (authLoading) return;
@@ -175,6 +218,7 @@ const ReelStudioPage: React.FC = () => {
       const safe = redact(data);
       if (preset === "urgent_need") safe.urgency = "urgent";
       setNeed(safe);
+      setScript(defaultFounderScript(safe));
       const pending = pendingRef.current?.ref === selectedRef ? pendingRef.current : null;
       pendingRef.current = null;
       setText((previous) => pending ? { ...defaultText(safe), ...pending.text } : ({ ...(caregiverMode ? defaultCaregiverText(safe) : defaultText(safe)), whatsappTitle: previous.whatsappTitle, whatsappBody: previous.whatsappBody }));
@@ -194,7 +238,8 @@ const ReelStudioPage: React.FC = () => {
     return { photos: merged, palette: theme.palette, font: theme.font };
   }, [images, theme, blogAssign, blogPool, useBlogPhotos]);
 
-  const caption = useMemo(() => isCaregiver ? buildCaregiverCaption(spec.need, WHATSAPP_CHANNEL_URL) : buildCaption(spec.need, spec.rateBand, WHATSAPP_CHANNEL_URL), [spec, isCaregiver]);
+  const standardCaption = useMemo(() => isCaregiver ? buildCaregiverCaption(spec.need, WHATSAPP_CHANNEL_URL) : buildCaption(spec.need, spec.rateBand, WHATSAPP_CHANNEL_URL), [spec, isCaregiver]);
+  const caption = useMemo(() => founderCaption ? buildFounderCaption(spec.need, spec.rateBand, WHATSAPP_CHANNEL_URL, isCaregiver) : standardCaption, [founderCaption, standardCaption, spec, isCaregiver]);
   const issues = useMemo(() => {
     const all = [...Object.values(text), caption].join(" \n ");
     const out: string[] = [];
@@ -203,6 +248,7 @@ const ReelStudioPage: React.FC = () => {
     if (/https?:\/\/|whatsapp\.com\//i.test(text.whatsappBody)) out.push("Keep links off the video. The channel link is already in the caption.");
     return out;
   }, [text, caption]);
+  const scriptSeconds = estimateNarrationSeconds(script);
 
   // Draw preview whenever time or spec changes
   useEffect(() => { const c = canvasRef.current; if (c) drawFrame(c.getContext("2d")!, t, spec, assets); }, [t, spec, assets]);
@@ -216,7 +262,9 @@ const ReelStudioPage: React.FC = () => {
       setT(nt); rafRef.current = requestAnimationFrame(loop);
     };
     rafRef.current = requestAnimationFrame(loop);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+    const a = previewAudioRef.current;
+    if (a && voiceUrl) { a.currentTime = Math.min(t, a.duration || t); a.play().catch(() => {}); }
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); previewAudioRef.current?.pause(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing]);
 
@@ -249,7 +297,7 @@ const ReelStudioPage: React.FC = () => {
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
 
   const logExport = async () => {
-    await (supabase as any).from("reel_exports").insert({ request_ref: ref, preset, spec: { ...spec, photos: Object.keys(photos) }, created_by: user!.id });
+    await (supabase as any).from("reel_exports").insert({ request_ref: ref, preset, spec: { ...spec, photos: Object.keys(photos), voiceover: voicePath ? { path: voicePath, duration: voiceDuration, script } : undefined, founderCaption }, created_by: user!.id });
     loadSaved();
   };
   const saveReel = async () => {
@@ -263,6 +311,15 @@ const ReelStudioPage: React.FC = () => {
     setPlaying(false); setT(0);
     if (sp.rateBand) { setShowRate(true); setRateBand(sp.rateBand); } else setShowRate(false);
     if (sp.audio) setAudioOn(!!sp.audio.enabled);
+    setFounderCaption(sp.founderCaption ?? false);
+    setVoice(null, null, null);
+    if (sp.voiceover?.script) setScript(sp.voiceover.script);
+    if (sp.voiceover?.path) {
+      supabase.storage.from("reel-voiceovers").download(sp.voiceover.path).then(({ data }) => {
+        if (data) setVoice(data, sp.voiceover.path, sp.voiceover.duration ?? null);
+        else toast.error("This reel's voiceover could not be found. Record it again if needed.");
+      });
+    }
     if (r.request_ref === "general") { pendingRef.current = null; setPreset(r.preset as ReelSpec["preset"]); setSelectedRef(""); setTimeout(() => setText(restoredText), 0); }
     else { pendingRef.current = { text: restoredText, ref: r.request_ref }; setPreset(r.preset as ReelSpec["preset"]); setSelectedRef(r.request_ref); }
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -286,7 +343,7 @@ const ReelStudioPage: React.FC = () => {
     if (issues.length) return toast.error("Fix the wording issues before exporting.");
     setPlaying(false); setExporting(0);
     try {
-      const { blob, ext } = await recordReel(exportCanvasRef.current!, spec, assets, setExporting);
+      const { blob, ext } = await recordReel(exportCanvasRef.current!, spec, assets, setExporting, voiceBlob);
       download(blob, `tavara-${ref}-${stamp}.${ext}`);
       await logExport();
       toast.success(ext === "mp4" ? "Video downloaded." : "Video downloaded as WebM. Convert it to MP4 before posting to Instagram.");
@@ -391,6 +448,32 @@ const ReelStudioPage: React.FC = () => {
             </Card>
 
             <Card>
+              <CardHeader><CardTitle>Your voiceover</CardTitle><CardDescription>Record your own voice or upload a clip, up to {REEL_DURATION} seconds. It plays with the preview and is mixed into the exported video. The sound cues get quieter under your voice.</CardDescription></CardHeader>
+              <CardContent className="space-y-3">
+                <Label htmlFor="script">Script to read</Label>
+                <Textarea id="script" value={script} onChange={(e) => setScript(e.target.value)} rows={4} />
+                <p className={`text-xs ${scriptSeconds > REEL_DURATION ? "text-destructive" : "text-muted-foreground"}`}>About {Math.round(scriptSeconds)} seconds at a relaxed pace{scriptSeconds > REEL_DURATION ? `. Trim it to fit ${REEL_DURATION} seconds.` : "."}</p>
+                <div className="flex flex-wrap gap-2">
+                  {recording
+                    ? <Button variant="destructive" onClick={stopRecording}><Square className="h-4 w-4 mr-2" />Stop recording</Button>
+                    : <Button onClick={startRecording}><Mic className="h-4 w-4 mr-2" />Record my voice</Button>}
+                  <Button variant="outline" asChild>
+                    <label className="cursor-pointer"><Upload className="h-4 w-4 mr-2" />Upload audio
+                      <input type="file" accept={VOICEOVER_ACCEPT} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) acceptVoice(f); }} />
+                    </label>
+                  </Button>
+                  {voiceUrl && <Button variant="ghost" onClick={() => setVoice(null, null, null)}><Trash2 className="h-4 w-4 mr-2" />Remove voiceover</Button>}
+                </div>
+                {recording && <p className="text-sm text-destructive">Recording… it stops automatically at {REEL_DURATION} seconds.</p>}
+                {voiceUrl && <div className="space-y-1"><audio controls src={voiceUrl} className="w-full" /><p className="text-xs text-muted-foreground">Voiceover ready ({voiceDuration?.toFixed(1)} seconds). It is saved privately with this reel when you save or export.</p></div>}
+                <div className="flex items-center gap-3 pt-2 border-t">
+                  <Switch id="founder" checked={founderCaption} onCheckedChange={setFounderCaption} />
+                  <Label htmlFor="founder">Use my founder story in the caption (Build and Bloom)</Label>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
               <CardHeader><CardTitle>3. Scene photos</CardTitle><CardDescription>Your blog photos rotate through the scenes automatically, a different one each time. Upload or pick your own to override a scene. Never use photos of the loved one.</CardDescription></CardHeader>
               <CardContent className="space-y-5">
                 <div className="flex flex-wrap items-center gap-3 rounded-md border p-3">
@@ -475,7 +558,7 @@ const ReelStudioPage: React.FC = () => {
             <Card>
               <CardHeader><CardTitle>Caption</CardTitle></CardHeader>
               <CardContent className="space-y-3">
-                <Textarea value={caption} readOnly rows={7} />
+                <Textarea value={caption} readOnly rows={founderCaption ? 14 : 7} />
                 <Button variant="outline" onClick={() => { navigator.clipboard.writeText(caption); toast.success("Caption copied."); }}><Copy className="h-4 w-4 mr-2" />Copy caption</Button>
               </CardContent>
             </Card>
@@ -500,6 +583,7 @@ const ReelStudioPage: React.FC = () => {
         </div>
       </div>
 
+      {voiceUrl && <audio ref={previewAudioRef} src={voiceUrl} className="hidden" />}
       <canvas ref={exportCanvasRef} width={REEL_W} height={REEL_H} className="hidden" />
       <Dialog open={exporting !== null}>
         <DialogContent className="[&>button]:hidden">
