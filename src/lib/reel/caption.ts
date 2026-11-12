@@ -85,3 +85,18 @@ export function buildCaption(need?: ReelSafeNeed, rateBand?: string, whatsappUrl
   lines.push(["#TavaraCare", "#NursesTT", "#CaregiversTT", tag(need.region), "#HomeCareTT"].join(" "));
   return lines.join("\n").slice(0, 2200);
 }
+
+/** Caption for the caregiver-available reel. Only safe labels, never names or contacts. */
+export function buildCaregiverCaption(c?: ReelSafeNeed, whatsappUrl?: string): string {
+  if (!c) return buildCaption(undefined, undefined, whatsappUrl);
+  const sched = summarizeSchedule(c.schedule);
+  const lines = [`📍 ${c.area}: a ${(c.qualifications[0] ?? "caregiver").toLowerCase()} is ready to support a family`, ""];
+  if (c.qualifications.length) { lines.push("Training & experience:"); for (const q of c.qualifications) lines.push(`• ${q}`); lines.push(""); }
+  lines.push("Care they provide:");
+  for (const s of c.skills) lines.push(`• ${s}`);
+  if (!c.skills.length) lines.push("• Details shared when you are matched");
+  lines.push("", `🗓️ Available: ${sched.label}${sched.hours ? `, ${sched.hours}` : ""}`, "⏱️ Care is arranged in full 8-hour shifts", "");
+  lines.push(...invitationBlock(), "", ...whatsappBlock(whatsappUrl));
+  lines.push(["#TavaraCare", "#CaregiversTT", tag(c.region), "#HomeCareTT"].join(" "));
+  return lines.join("\n").slice(0, 2200);
+}
