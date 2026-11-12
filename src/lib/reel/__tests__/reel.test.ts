@@ -72,8 +72,8 @@ describe("caption content", () => {
 
 describe("friendly reel links", () => {
   const text = defaultText();
-  test("caregiver link uses the existing welcome page", () => expect(text.ctaBody).toBe("tavara.care/join-as-caregiver"));
-  test("family link has no query string", () => expect(text.cta4Body).toBe("tavara.care/auth"));
+  test("caregiver link uses the short alias", () => expect(text.ctaBody).toBe("tavara.care/caregiver"));
+  test("family link uses the short alias with no query string", () => expect(text.cta4Body).toBe("tavara.care/register"));
 });
 
 describe("map and care card layout", () => {

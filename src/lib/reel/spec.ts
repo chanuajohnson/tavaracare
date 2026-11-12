@@ -97,7 +97,7 @@ export function defaultText(need?: ReelSafeNeed): ReelText {
     cta1: "Could this be you?",
     ctaSub: "Are you a caregiver who can provide care in this home?",
     cta2: "Caregiver or nurse? Join the care team",
-    ctaBody: "tavara.care/join-as-caregiver",
+    ctaBody: CAREGIVER_DISPLAY_URL,
     cta3: "Browse families in urgent need of care:",
     cta3Body: LEARN_MORE_URL,
     cta4: "Need care at home? Register your family",

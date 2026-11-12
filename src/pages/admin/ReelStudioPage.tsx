@@ -258,11 +258,13 @@ const ReelStudioPage: React.FC = () => {
   };
   const openSaved = (r: SavedReel) => {
     const sp = r.spec ?? {};
+    const baseText = r.preset === "caregiver_available" ? defaultCaregiverText() : defaultText();
+    const restoredText = normalizeReelTextLinks({ ...baseText, ...(sp.text ?? {}) });
     setPlaying(false); setT(0);
     if (sp.rateBand) { setShowRate(true); setRateBand(sp.rateBand); } else setShowRate(false);
     if (sp.audio) setAudioOn(!!sp.audio.enabled);
-    if (r.request_ref === "general") { pendingRef.current = null; setPreset(r.preset as ReelSpec["preset"]); setSelectedRef(""); setTimeout(() => setText({ ...defaultText(), ...(sp.text ?? {}) }), 0); }
-    else { pendingRef.current = { text: sp.text ?? {}, ref: r.request_ref }; setPreset(r.preset as ReelSpec["preset"]); setSelectedRef(r.request_ref); }
+    if (r.request_ref === "general") { pendingRef.current = null; setPreset(r.preset as ReelSpec["preset"]); setSelectedRef(""); setTimeout(() => setText(restoredText), 0); }
+    else { pendingRef.current = { text: restoredText, ref: r.request_ref }; setPreset(r.preset as ReelSpec["preset"]); setSelectedRef(r.request_ref); }
     window.scrollTo({ top: 0, behavior: "smooth" });
     toast.success("Saved reel opened. Photos reshuffle, so pick them again if needed.");
   };
