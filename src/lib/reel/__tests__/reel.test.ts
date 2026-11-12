@@ -74,6 +74,15 @@ describe("friendly reel links", () => {
   const text = defaultText();
   test("caregiver link uses the short alias", () => expect(text.ctaBody).toBe("tavara.care/caregiver"));
   test("family link uses the short alias with no query string", () => expect(text.cta4Body).toBe("tavara.care/register"));
+  test("reopening an older reel upgrades both legacy links", () => {
+    const restored = normalizeReelTextLinks({
+      ...text,
+      ctaBody: "https://tavara.care/join-as-caregiver",
+      cta4Body: "https://tavara.care/auth?tab=signup",
+    });
+    expect(restored.ctaBody).toBe("tavara.care/caregiver");
+    expect(restored.cta4Body).toBe("tavara.care/register");
+  });
 });
 
 describe("map and care card layout", () => {
