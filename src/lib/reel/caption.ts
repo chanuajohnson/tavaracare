@@ -40,13 +40,21 @@ function invitationBlock(): string[] {
   ];
 }
 
-export function buildCaption(need?: ReelSafeNeed, rateBand?: string): string {
+function whatsappBlock(url?: string): string[] {
+  const clean = url?.trim();
+  if (!clean) return [];
+  const href = /^https?:\/\//.test(clean) ? clean : `https://${clean}`;
+  return ["📱 Families and caregivers can join the Tavara WhatsApp channel for new care matches and updates:", href, ""];
+}
+
+export function buildCaption(need?: ReelSafeNeed, rateBand?: string, whatsappUrl?: string): string {
   if (!need) {
     return [
       "Families across Trinidad & Tobago are looking for steady, trusted care.",
       "",
       ...invitationBlock(),
       "",
+      ...whatsappBlock(whatsappUrl),
       "#TavaraCare #NursesTT #CaregiversTT #HomeCareTT",
     ].join("\n").slice(0, 2200);
   }
@@ -61,6 +69,10 @@ export function buildCaption(need?: ReelSafeNeed, rateBand?: string): string {
   for (const c of need.careTypes) lines.push(`• ${c}`);
   for (const s of need.skills) lines.push(`• ${s}`);
   if (!need.careTypes.length && !need.skills.length) lines.push("• Details shared when you are matched");
+  if (need.requirements.length) {
+    lines.push("", "Caregiver requirements:");
+    for (const r of need.requirements) lines.push(`• ${r}`);
+  }
   lines.push("");
   lines.push(`🗓️ Schedule: ${sched.label}${sched.hours ? `, ${sched.hours}` : ""}`);
   lines.push("⏱️ Care is arranged in full 8-hour shifts");
@@ -69,6 +81,7 @@ export function buildCaption(need?: ReelSafeNeed, rateBand?: string): string {
   lines.push("");
   lines.push(...invitationBlock());
   lines.push("");
+  lines.push(...whatsappBlock(whatsappUrl));
   lines.push(["#TavaraCare", "#NursesTT", "#CaregiversTT", tag(need.region), "#HomeCareTT"].join(" "));
   return lines.join("\n").slice(0, 2200);
 }

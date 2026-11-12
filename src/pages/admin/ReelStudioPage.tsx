@@ -161,12 +161,13 @@ const ReelStudioPage: React.FC = () => {
     return { photos: merged, palette: theme.palette, font: theme.font };
   }, [images, theme, blogAssign, blogPool, useBlogPhotos]);
 
-  const caption = useMemo(() => buildCaption(spec.need, spec.rateBand), [spec]);
+  const caption = useMemo(() => buildCaption(spec.need, spec.rateBand, spec.text.whatsappBody), [spec]);
   const issues = useMemo(() => {
     const all = [...Object.values(text), caption].join(" \n ");
     const out: string[] = [];
     const unsafe = containsUnsafe(Object.values(text).join(" ")); if (unsafe) out.push(`Text contains a ${unsafe}.`);
     const banned = findBannedWords(all); if (banned.length) out.push(`Avoid these words: ${banned.join(", ")}.`);
+    if (text.whatsappBody.trim() && !/^(https?:\/\/)?(www\.)?whatsapp\.com\/channel\/\S+$/i.test(text.whatsappBody.trim())) out.push("Paste the full WhatsApp channel invite link.");
     return out;
   }, [text, caption]);
 

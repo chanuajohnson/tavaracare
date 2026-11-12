@@ -131,7 +131,7 @@ function drawScene(ctx: CanvasRenderingContext2D, id: SceneId, lt: number, spec:
       headline(ctx, ["Choose a family request", "to place the pin"], 1510, 42, P.ink, font, p); ctx.globalAlpha = 1;
     }
   } else if (id === "needs") {
-    const items = [...(spec.need?.careTypes ?? []), ...(spec.need?.skills ?? []), ...(spec.need?.qualifications ?? [])].slice(0, 8);
+    const items = [...(spec.need?.careTypes ?? []), ...(spec.need?.skills ?? [])].slice(0, 8);
     const layout = layoutCareCard(items, (label, size) => { ctx.font = `600 ${size}px ${font}`; return ctx.measureText(label).width; });
     const { cardY, cardH } = layout;
     ctx.globalAlpha = easeOutCubic(ease(lt, 0, 0.12));
@@ -146,6 +146,23 @@ function drawScene(ctx: CanvasRenderingContext2D, id: SceneId, lt: number, spec:
       const isCareType = i < (spec.need?.careTypes.length ?? 0);
       ctx.globalAlpha = appear;
       chip(ctx, item, layout, isCareType ? P.primary : P.muted, isCareType ? P.onPrimary : P.ink, font);
+      ctx.globalAlpha = 1;
+    }
+  } else if (id === "requirements") {
+    const items = [...(spec.need?.qualifications ?? []), ...(spec.need?.requirements ?? [])].slice(0, 10);
+    const layout = layoutCareCard(items, (label, size) => { ctx.font = `600 ${size}px ${font}`; return ctx.measureText(label).width; });
+    const { cardY, cardH } = layout;
+    ctx.globalAlpha = easeOutCubic(ease(lt, 0, 0.12));
+    roundRect(ctx, 80, cardY, REEL_W - 160, cardH, 48); ctx.fillStyle = P.bg; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.font = `700 72px ${font}`; ctx.fillStyle = P.ink; ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText(T.requirementsTitle, 140, cardY + 60, REEL_W - 280);
+    if (!items.length) {
+      headline(ctx, spec.need ? ["No extra requirements listed."] : ["Choose a family request above.", "Their caregiver requirements will appear here."], cardY + 210, 44, P.ink, font, ease(lt, 0.1, 0.35));
+    }
+    for (const row of layout.rows) for (const item of row) {
+      const appear = ease(lt, 0.12 + item.index * 0.06, 0.18 + item.index * 0.06); if (appear <= 0) continue;
+      ctx.globalAlpha = appear;
+      chip(ctx, item, layout, item.index < (spec.need?.qualifications.length ?? 0) ? P.muted : P.primary, item.index < (spec.need?.qualifications.length ?? 0) ? P.ink : P.onPrimary, font);
       ctx.globalAlpha = 1;
     }
   } else if (id === "schedule") {
@@ -184,6 +201,16 @@ function drawScene(ctx: CanvasRenderingContext2D, id: SceneId, lt: number, spec:
       roundRect(ctx, -w / 2, -h / 2, w, h, h / 2); ctx.fillStyle = P.primary; ctx.fill();
       ctx.fillStyle = P.onPrimary; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(link, 0, 2); ctx.restore();
       y += h + 20;
+    }
+    if (T.whatsappBody.trim()) {
+      const p = easeOutCubic(ease(lt, 0.7, 0.88));
+      headline(ctx, [T.whatsappTitle], REEL_H - SAFE_BOTTOM - 200, 42, ink, font, p);
+      const link = T.whatsappBody.trim().replace(/^https?:\/\//, "");
+      let size = 36; ctx.font = `700 ${size}px ${font}`;
+      while (ctx.measureText(link).width > REEL_W - 240 && size > 24) { size -= 2; ctx.font = `700 ${size}px ${font}`; }
+      const w = ctx.measureText(link).width + 64, h = size + 44, wy = REEL_H - SAFE_BOTTOM - 70;
+      ctx.save(); ctx.globalAlpha = p; roundRect(ctx, (REEL_W - w) / 2, wy - h / 2, w, h, h / 2); ctx.fillStyle = P.primary; ctx.fill();
+      ctx.fillStyle = P.onPrimary; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(link, REEL_W / 2, wy + 2); ctx.restore();
     }
     ctx.font = `700 56px ${font}`; ctx.fillStyle = ink; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
     ctx.fillText("Tavara", REEL_W / 2, REEL_H - SAFE_BOTTOM + 40);
