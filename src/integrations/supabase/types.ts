@@ -5216,6 +5216,42 @@ export type Database = {
         }
         Relationships: []
       }
+      reel_voice_presets: {
+        Row: {
+          caption_story: string
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          script: string
+          updated_at: string
+          voice_duration: number | null
+          voice_path: string | null
+        }
+        Insert: {
+          caption_story?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          script?: string
+          updated_at?: string
+          voice_duration?: number | null
+          voice_path?: string | null
+        }
+        Update: {
+          caption_story?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          script?: string
+          updated_at?: string
+          voice_duration?: number | null
+          voice_path?: string | null
+        }
+        Relationships: []
+      }
       registration_progress: {
         Row: {
           care_type: string[] | null
