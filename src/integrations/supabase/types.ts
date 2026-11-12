@@ -5167,6 +5167,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          is_primary: boolean
           preset: string
           request_ref: string
           spec: Json
@@ -5175,6 +5176,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_primary?: boolean
           preset: string
           request_ref: string
           spec: Json
@@ -5183,6 +5185,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_primary?: boolean
           preset?: string
           request_ref?: string
           spec?: Json

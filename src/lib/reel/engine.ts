@@ -189,29 +189,36 @@ function drawScene(ctx: CanvasRenderingContext2D, id: SceneId, lt: number, spec:
     }
     y = headline(ctx, [T.cta1], y, 88, ink, font, easeOutCubic(ease(lt, 0, 0.15)));
     y = headline(ctx, [T.ctaSub], y + 6, 46, ink, font, easeOutCubic(ease(lt, 0.05, 0.2)));
-    const blocks: [string, string, number][] = [[T.cta2, T.ctaBody, 0.15], [T.cta3, T.cta3Body, 0.35], [T.cta4, T.cta4Body, 0.55]];
-    for (const [label, link, at] of blocks) {
-      const p = easeOutCubic(ease(lt, at, at + 0.15)); if (p <= 0) { y += 230; continue; }
-      y = headline(ctx, [label], y + 34, 44, ink, font, p);
-      // Link button: shrink text until it fits
-      let size = 40; ctx.font = `700 ${size}px ${font}`;
-      while (ctx.measureText(link).width > REEL_W - 240 && size > 26) { size -= 2; ctx.font = `700 ${size}px ${font}`; }
-      const w = ctx.measureText(link).width + 70, h = size + 48;
-      ctx.save(); ctx.globalAlpha = p; ctx.translate(REEL_W / 2, y + 10 + h / 2); if (at === 0.15) ctx.scale(pulse, pulse);
-      roundRect(ctx, -w / 2, -h / 2, w, h, h / 2); ctx.fillStyle = P.primary; ctx.fill();
-      ctx.fillStyle = P.onPrimary; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(link, 0, 2); ctx.restore();
-      y += h + 20;
-    }
-    if (T.whatsappBody.trim()) {
-      const p = easeOutCubic(ease(lt, 0.7, 0.88));
-      headline(ctx, [T.whatsappTitle], REEL_H - SAFE_BOTTOM - 200, 42, ink, font, p);
-      const link = T.whatsappBody.trim();
-      let size = 36; ctx.font = `700 ${size}px ${font}`;
-      while (ctx.measureText(link).width > REEL_W - 240 && size > 24) { size -= 2; ctx.font = `700 ${size}px ${font}`; }
-      const w = ctx.measureText(link).width + 64, h = size + 44, wy = REEL_H - SAFE_BOTTOM - 70;
-      ctx.save(); ctx.globalAlpha = p; roundRect(ctx, (REEL_W - w) / 2, wy - h / 2, w, h, h / 2); ctx.fillStyle = P.primary; ctx.fill();
-      ctx.fillStyle = P.onPrimary; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(link, REEL_W / 2, wy + 2); ctx.restore();
-    }
+    // Three clear cards so viewers can see at a glance where they fit: audience card, other audience, WhatsApp.
+    const tagFor = (link: string) => /join-as-caregiver/.test(link) ? "FOR CAREGIVERS" : "FOR FAMILIES";
+    const cards: [string, string, string][] = [
+      [tagFor(T.ctaBody), T.cta2, T.ctaBody],
+      [tagFor(T.cta4Body), T.cta4, T.cta4Body],
+      ["WHATSAPP CHANNEL", T.whatsappTitle, T.whatsappBody],
+    ];
+    const cardH = 270, gap = 28, cx = 90, cw = REEL_W - 180;
+    let cy = Math.max(y + 30, 560);
+    cards.forEach(([tagText, label, link], i) => {
+      const p = easeOutCubic(ease(lt, 0.15 + i * 0.18, 0.3 + i * 0.18));
+      if (p > 0 && (label.trim() || link.trim())) {
+        ctx.save(); ctx.globalAlpha = p; ctx.translate((1 - p) * 80, 0);
+        roundRect(ctx, cx, cy, cw, cardH, 36); ctx.fillStyle = P.bg; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = P.muted; ctx.stroke();
+        roundRect(ctx, cx, cy, 18, cardH, 9); ctx.fillStyle = P.primary; ctx.fill();
+        ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.font = `800 32px ${font}`; ctx.fillStyle = P.primary; ctx.fillText(tagText, cx + 56, cy + 30);
+        ctx.font = `700 42px ${font}`; ctx.fillStyle = P.ink;
+        wrapText(ctx, label, cw - 100).slice(0, 2).forEach((l, k) => ctx.fillText(l, cx + 56, cy + 78 + k * 48));
+        let size = 34; ctx.font = `700 ${size}px ${font}`;
+        while (ctx.measureText(link).width > cw - 160 && size > 22) { size -= 2; ctx.font = `700 ${size}px ${font}`; }
+        const lw = ctx.measureText(link).width + 56, lh = size + 30, ly = cy + cardH - lh - 24;
+        const sc = i === 0 ? 1 + 0.02 * Math.sin(lt * Math.PI * 6) : 1;
+        ctx.translate(cx + 56 + lw / 2, ly + lh / 2); ctx.scale(sc, sc);
+        roundRect(ctx, -lw / 2, -lh / 2, lw, lh, lh / 2); ctx.fillStyle = P.primary; ctx.fill();
+        ctx.fillStyle = P.onPrimary; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(link, 0, 2);
+        ctx.restore();
+      }
+      cy += cardH + gap;
+    });
     ctx.font = `700 56px ${font}`; ctx.fillStyle = ink; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
     ctx.fillText("Tavara", REEL_W / 2, REEL_H - SAFE_BOTTOM + 40);
   }

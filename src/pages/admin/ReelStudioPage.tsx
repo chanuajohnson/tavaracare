@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Play, Pause, Download, Copy, Image as ImageIcon, Film, Upload, Trash2 } from "lucide-react";
+import { Loader2, Play, Pause, Download, Copy, Image as ImageIcon, Film, Upload, Trash2, Star, Save, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -25,6 +25,7 @@ import { drawFrame, type Palette, type ReelAssets } from "@/lib/reel/engine";
 import { download, recordReel, renderStill } from "@/lib/reel/export";
 
 type Candidate = { request_ref: string; area: string; care_type: string };
+type SavedReel = { id: string; request_ref: string; preset: string; spec: any; is_primary: boolean; created_at: string };
 type LibraryPhoto = { id: string; scene_id: string; url: string; focus_y: number };
 
 const SCENE_LABELS: Record<SceneId, string> = { hook: "1. Hook", map: "2. Map", needs: "3. Care needs", requirements: "4. Caregiver requirements", schedule: "5. Schedule", cta: "6. Ending" };
@@ -117,6 +118,13 @@ const ReelStudioPage: React.FC = () => {
   }, []);
 
   const isCaregiver = preset === "caregiver_available";
+  const [saved, setSaved] = useState<SavedReel[]>([]);
+  const pendingRef = useRef<{ text: ReelText; ref: string } | null>(null);
+  const loadSaved = useCallback(async () => {
+    const { data } = await (supabase as any).from("reel_exports").select("id, request_ref, preset, spec, is_primary, created_at").order("is_primary", { ascending: false }).order("created_at", { ascending: false }).limit(100);
+    setSaved(data ?? []);
+  }, []);
+  useEffect(() => { if (isAdmin) loadSaved(); }, [isAdmin, loadSaved]);
   const [caregivers, setCaregivers] = useState<Candidate[] | null>(null);
   useEffect(() => {
     if (!isAdmin) return;
@@ -125,7 +133,7 @@ const ReelStudioPage: React.FC = () => {
       setCaregivers(data ?? []);
     });
   }, [isAdmin]);
-  useEffect(() => { setSelectedRef(""); }, [isCaregiver]);
+  useEffect(() => { if (!pendingRef.current) setSelectedRef(""); }, [isCaregiver]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -167,7 +175,9 @@ const ReelStudioPage: React.FC = () => {
       const safe = redact(data);
       if (preset === "urgent_need") safe.urgency = "urgent";
       setNeed(safe);
-      setText((previous) => ({ ...(caregiverMode ? defaultCaregiverText(safe) : defaultText(safe)), whatsappTitle: previous.whatsappTitle, whatsappBody: previous.whatsappBody }));
+      const pending = pendingRef.current?.ref === selectedRef ? pendingRef.current : null;
+      pendingRef.current = null;
+      setText((previous) => pending ? { ...defaultText(safe), ...pending.text } : ({ ...(caregiverMode ? defaultCaregiverText(safe) : defaultText(safe)), whatsappTitle: previous.whatsappTitle, whatsappBody: previous.whatsappBody }));
     });
   }, [selectedRef, preset]);
 
@@ -240,7 +250,35 @@ const ReelStudioPage: React.FC = () => {
 
   const logExport = async () => {
     await (supabase as any).from("reel_exports").insert({ request_ref: ref, preset, spec: { ...spec, photos: Object.keys(photos) }, created_by: user!.id });
+    loadSaved();
   };
+  const saveReel = async () => {
+    if (issues.length) return toast.error("Fix the wording issues before saving.");
+    await logExport(); toast.success("Reel saved. Find it under Saved reels.");
+  };
+  const openSaved = (r: SavedReel) => {
+    const sp = r.spec ?? {};
+    setPlaying(false); setT(0);
+    if (sp.rateBand) { setShowRate(true); setRateBand(sp.rateBand); } else setShowRate(false);
+    if (sp.audio) setAudioOn(!!sp.audio.enabled);
+    if (r.request_ref === "general") { pendingRef.current = null; setPreset(r.preset as ReelSpec["preset"]); setSelectedRef(""); setTimeout(() => setText({ ...defaultText(), ...(sp.text ?? {}) }), 0); }
+    else { pendingRef.current = { text: sp.text ?? {}, ref: r.request_ref }; setPreset(r.preset as ReelSpec["preset"]); setSelectedRef(r.request_ref); }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    toast.success("Saved reel opened. Photos reshuffle, so pick them again if needed.");
+  };
+  const deleteSaved = async (r: SavedReel) => {
+    if (!window.confirm("Delete this saved reel? The video you downloaded is not affected.")) return;
+    const { error } = await (supabase as any).from("reel_exports").delete().eq("id", r.id);
+    if (error) return toast.error("Could not delete: " + error.message);
+    loadSaved(); toast.success("Saved reel deleted.");
+  };
+  const makePrimary = async (r: SavedReel) => {
+    await (supabase as any).from("reel_exports").update({ is_primary: false }).eq("request_ref", r.request_ref);
+    const { error } = await (supabase as any).from("reel_exports").update({ is_primary: !r.is_primary }).eq("id", r.id);
+    if (error) return toast.error("Could not update: " + error.message);
+    loadSaved(); toast.success(r.is_primary ? "No longer the main reel." : `Main reel set for ${r.request_ref}.`);
+  };
+  const PRESET_LABEL: Record<string, string> = { new_match_needed: "Family needs care", urgent_need: "Urgent family", caregiver_available: "Caregiver available", general_recruit: "General" };
 
   const exportVideo = async () => {
     if (issues.length) return toast.error("Fix the wording issues before exporting.");
@@ -416,6 +454,23 @@ const ReelStudioPage: React.FC = () => {
             </Card>
 
             <Card>
+              <CardHeader><CardTitle>Saved reels</CardTitle><CardDescription>Every export and save lands here. Open one to edit and re-export, star it as the main reel for that family or caregiver, or delete it.</CardDescription></CardHeader>
+              <CardContent className="space-y-2">
+                {saved.length === 0 ? <p className="text-sm text-muted-foreground">No saved reels yet. Use "Save reel" or export a video.</p> : saved.map((r) => (
+                  <div key={r.id} className={`flex flex-wrap items-center gap-2 rounded-md border p-3 ${r.is_primary ? "border-primary bg-primary/5" : ""}`}>
+                    <div className="flex-1 min-w-[180px]">
+                      <p className="font-medium text-sm">{r.is_primary && <Star className="inline h-4 w-4 mr-1 fill-primary text-primary" />}{r.request_ref} · {PRESET_LABEL[r.preset] ?? r.preset}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString()}{r.spec?.text?.hook1 ? ` · "${r.spec.text.hook1}"` : ""}</p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => openSaved(r)}><FolderOpen className="h-4 w-4 mr-1" />Open</Button>
+                    {r.request_ref !== "general" && <Button size="sm" variant={r.is_primary ? "default" : "outline"} onClick={() => makePrimary(r)}><Star className="h-4 w-4 mr-1" />{r.is_primary ? "Main reel" : "Make main"}</Button>}
+                    <Button size="sm" variant="ghost" aria-label="Delete saved reel" onClick={() => deleteSaved(r)}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
               <CardHeader><CardTitle>Caption</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <Textarea value={caption} readOnly rows={7} />
@@ -436,6 +491,7 @@ const ReelStudioPage: React.FC = () => {
             {issues.length > 0 && <div className="max-w-[360px] mx-auto text-sm text-destructive space-y-1">{issues.map((i) => <p key={i}>{i}</p>)}</div>}
             <div className="grid grid-cols-1 gap-2 max-w-[360px] mx-auto">
               <Button onClick={exportVideo} disabled={exporting !== null || (preset !== "general_recruit" && !need)}><Download className="h-4 w-4 mr-2" />Export video</Button>
+              <Button variant="secondary" onClick={saveReel} disabled={preset !== "general_recruit" && !need}><Save className="h-4 w-4 mr-2" />Save reel (no download)</Button>
               <Button variant="outline" onClick={exportStills} disabled={preset !== "general_recruit" && !need}><ImageIcon className="h-4 w-4 mr-2" />Download 3 still images</Button>
             </div>
           </div>
