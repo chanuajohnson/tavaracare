@@ -1,8 +1,10 @@
 
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { PUBLIC_ROUTE_ALIAS_PATHS } from '@/utils/publicRoutes';
 
 const VALID_ROUTE_PATTERNS = [
+  ...PUBLIC_ROUTE_ALIAS_PATHS,
   // Exact matches
   '/',
   '/auth',

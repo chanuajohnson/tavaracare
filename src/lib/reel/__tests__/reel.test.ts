@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { sceneAt } from "../spec";
 import { redact, generalizeArea, containsUnsafe, summarizeSchedule } from "../redact";
 import { buildCaption, findBannedWords } from "../caption";
-import { defaultText } from "../spec";
+import { defaultText, normalizeReelTextLinks } from "../spec";
 import { layoutCareCard } from "../engine";
 import { reelLocationPoint, TRINIDAD_OUTLINE, TOBAGO_OUTLINE } from "../geo";
 
@@ -57,9 +57,9 @@ describe("caption content", () => {
   test("lists every care need", () => { for (const n of ["Diabetes support", "Recovery support", "Personal care", "Medication support", "Meal preparation"]) expect(c).toContain(n); });
   test("states schedule and 8-hour shifts", () => { expect(c).toContain("7 days a week"); expect(c).toContain("8-hour shifts"); });
   test("has both invitations and all four links", () => {
-    expect(c).toContain("https://tavara.care/join-as-caregiver");
+    expect(c).toContain("https://tavara.care/caregiver");
     expect(c).toContain("https://tavara.care/urgent-families");
-    expect(c).toContain("https://tavara.care/auth");
+    expect(c).toContain("https://tavara.care/register");
     expect(c).toContain("https://tavara.care/urgent-caregivers");
   });
   test("includes every safe caregiver requirement and the channel invite", () => {
@@ -72,8 +72,17 @@ describe("caption content", () => {
 
 describe("friendly reel links", () => {
   const text = defaultText();
-  test("caregiver link uses the existing welcome page", () => expect(text.ctaBody).toBe("tavara.care/join-as-caregiver"));
-  test("family link has no query string", () => expect(text.cta4Body).toBe("tavara.care/auth"));
+  test("caregiver link uses the short alias", () => expect(text.ctaBody).toBe("tavara.care/caregiver"));
+  test("family link uses the short alias with no query string", () => expect(text.cta4Body).toBe("tavara.care/register"));
+  test("reopening an older reel upgrades both legacy links", () => {
+    const restored = normalizeReelTextLinks({
+      ...text,
+      ctaBody: "https://tavara.care/join-as-caregiver",
+      cta4Body: "https://tavara.care/auth?tab=signup",
+    });
+    expect(restored.ctaBody).toBe("tavara.care/caregiver");
+    expect(restored.cta4Body).toBe("tavara.care/register");
+  });
 });
 
 describe("map and care card layout", () => {
@@ -112,6 +121,6 @@ describe("caregiver reel", () => {
   test("hook speaks to families", () => {
     const t = defaultCaregiverText(cg);
     expect(t.hook2).toContain("South Trinidad");
-    expect(t.ctaBody).toBe("tavara.care/auth");
+    expect(t.ctaBody).toBe("tavara.care/register");
   });
 });

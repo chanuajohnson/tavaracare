@@ -1,6 +1,13 @@
 // Reel Studio: types, timeline and defaults.
 // Rendering is a pure function of time; everything here is deterministic.
 
+import { PUBLIC_PATHS } from "@/utils/publicRoutes";
+import { PRODUCTION_BASE_URL } from "@/utils/urlConstants";
+
+const PRODUCTION_DISPLAY_DOMAIN = PRODUCTION_BASE_URL.replace(/^https?:\/\//, "");
+const CAREGIVER_DISPLAY_URL = `${PRODUCTION_DISPLAY_DOMAIN}${PUBLIC_PATHS.caregiverJoin}`;
+const FAMILY_DISPLAY_URL = `${PRODUCTION_DISPLAY_DOMAIN}${PUBLIC_PATHS.familyRegister}`;
+
 export type SceneId = "hook" | "map" | "needs" | "requirements" | "schedule" | "cta";
 
 export type ReelSafeNeed = {
@@ -90,11 +97,11 @@ export function defaultText(need?: ReelSafeNeed): ReelText {
     cta1: "Could this be you?",
     ctaSub: "Are you a caregiver who can provide care in this home?",
     cta2: "Caregiver or nurse? Join the care team",
-    ctaBody: "tavara.care/join-as-caregiver",
+    ctaBody: CAREGIVER_DISPLAY_URL,
     cta3: "Browse families in urgent need of care:",
     cta3Body: LEARN_MORE_URL,
     cta4: "Need care at home? Register your family",
-    cta4Body: "tavara.care/auth",
+    cta4Body: FAMILY_DISPLAY_URL,
     whatsappTitle: "New matches and updates for everyone",
     whatsappBody: "Search \"Tavara.Care\" in WhatsApp Channels",
   };
@@ -124,10 +131,18 @@ export function defaultCaregiverText(c?: ReelSafeNeed): ReelText {
     cta1: "Does your family need care?",
     ctaSub: "Register your loved one's needs and we will arrange a match.",
     cta2: "Need care at home? Register your family",
-    ctaBody: "tavara.care/auth",
+    ctaBody: FAMILY_DISPLAY_URL,
     cta3: "Browse caregivers ready to start:",
     cta3Body: "tavara.care/urgent-caregivers",
     cta4: "Caregiver or nurse? Join the care team",
-    cta4Body: "tavara.care/join-as-caregiver",
+    cta4Body: CAREGIVER_DISPLAY_URL,
   };
+}
+
+/** Upgrade links in saved reels without changing any other edited wording. */
+export function normalizeReelTextLinks(text: ReelText): ReelText {
+  const normalize = (value: string) => value
+    .replace(/(?:https?:\/\/)?(?:www\.)?tavara\.care\/join-as-caregiver/gi, CAREGIVER_DISPLAY_URL)
+    .replace(/(?:https?:\/\/)?(?:www\.)?tavara\.care\/auth(?:\?tab=signup)?/gi, FAMILY_DISPLAY_URL);
+  return { ...text, ctaBody: normalize(text.ctaBody), cta4Body: normalize(text.cta4Body) };
 }

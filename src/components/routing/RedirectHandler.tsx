@@ -6,9 +6,11 @@ import { ensureUserProfile } from '@/lib/profile-utils';
 import { UserRole } from '@/types/database';
 import { toast } from 'sonner';
 import { setAuthFlowFlag, clearAuthFlowFlag, AUTH_FLOW_FLAGS, hasAuthFlowFlag } from '@/utils/authFlowUtils';
+import { PUBLIC_ROUTE_ALIAS_PATHS } from '@/utils/publicRoutes';
 
 const REDIRECT_TIMEOUT = 10000; // Increased to 10 seconds for email verification
 const VALID_ROUTES = [
+  ...PUBLIC_ROUTE_ALIAS_PATHS,
   '/', '/auth', '/features', '/about', '/faq',
   '/registration/family', '/registration/professional', '/registration/community',
   '/dashboard/family', '/dashboard/professional', '/dashboard/community', '/dashboard/admin',

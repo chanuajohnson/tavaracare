@@ -11,3 +11,6 @@
 - [x] Explain the family consent filter and keep anonymous family reels consent-only.
 - [x] Add a consent-gated caregiver-available reel with safe area, skills and availability.
 - [x] Test both reel directions and check the build.
+- [x] Add /caregiver and /register as aliases without changing any existing route.
+- [x] Use the friendly links in new and reopened saved reels and captions.
+- [x] Test both aliases, their original destinations, and the reel checks.

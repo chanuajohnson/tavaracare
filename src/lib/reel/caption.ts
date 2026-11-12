@@ -1,5 +1,7 @@
 import type { ReelSafeNeed } from "./spec";
 import { summarizeSchedule } from "./redact";
+import { PUBLIC_PATHS } from "@/utils/publicRoutes";
+import { PRODUCTION_BASE_URL } from "@/utils/urlConstants";
 
 // Tavara language guardrails: these never go in public copy.
 export const BANNED_CAPTION_WORDS = [
@@ -14,10 +16,10 @@ export function findBannedWords(text: string): string[] {
 
 // All links use the production domain.
 export const LINKS = {
-  caregiverSignup: "https://tavara.care/join-as-caregiver",
-  urgentFamilies: "https://tavara.care/urgent-families",
-  familySignup: "https://tavara.care/auth",
-  urgentCaregivers: "https://tavara.care/urgent-caregivers",
+  caregiverSignup: `${PRODUCTION_BASE_URL}${PUBLIC_PATHS.caregiverJoin}`,
+  urgentFamilies: `${PRODUCTION_BASE_URL}${PUBLIC_PATHS.urgentFamilies}`,
+  familySignup: `${PRODUCTION_BASE_URL}${PUBLIC_PATHS.familyRegister}`,
+  urgentCaregivers: `${PRODUCTION_BASE_URL}${PUBLIC_PATHS.urgentCaregivers}`,
 };
 
 const tag = (s: string) => "#" + s.replace(/&/g, "and").replace(/[^a-z0-9]/gi, "");
