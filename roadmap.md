@@ -18,3 +18,5 @@
 - [x] Add the short founder script and full Build and Bloom caption without dropping care needs or calls to action.
 - [x] Restore voiceovers with saved reels and test narration limits, caption content, and the build.
 - [x] Provide clear non-investment participation wording for all three portfolio projects, with Trinidad and Tobago legal review flagged.
+
+- [ ] Save reusable caption story and voiceover presets in Reel Studio; make caption story editable.
