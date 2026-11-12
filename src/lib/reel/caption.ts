@@ -44,7 +44,7 @@ function whatsappBlock(url?: string): string[] {
   const clean = url?.trim();
   if (!clean) return [];
   const href = /^https?:\/\//.test(clean) ? clean : `https://${clean}`;
-  return ["📱 Families and caregivers can join the Tavara WhatsApp channel for new care matches and updates:", href, ""];
+  return ["📱 Families and caregivers can join the Tavara.Care WhatsApp channel for new care matches and updates:", href, ""];
 }
 
 export function buildCaption(need?: ReelSafeNeed, rateBand?: string, whatsappUrl?: string): string {
