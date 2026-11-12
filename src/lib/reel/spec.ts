@@ -101,7 +101,7 @@ export function defaultText(need?: ReelSafeNeed): ReelText {
     cta3: "Browse families in urgent need of care:",
     cta3Body: LEARN_MORE_URL,
     cta4: "Need care at home? Register your family",
-    cta4Body: "tavara.care/auth",
+    cta4Body: FAMILY_DISPLAY_URL,
     whatsappTitle: "New matches and updates for everyone",
     whatsappBody: "Search \"Tavara.Care\" in WhatsApp Channels",
   };
@@ -131,7 +131,7 @@ export function defaultCaregiverText(c?: ReelSafeNeed): ReelText {
     cta1: "Does your family need care?",
     ctaSub: "Register your loved one's needs and we will arrange a match.",
     cta2: "Need care at home? Register your family",
-    ctaBody: "tavara.care/auth",
+    ctaBody: FAMILY_DISPLAY_URL,
     cta3: "Browse caregivers ready to start:",
     cta3Body: "tavara.care/urgent-caregivers",
     cta4: "Caregiver or nurse? Join the care team",

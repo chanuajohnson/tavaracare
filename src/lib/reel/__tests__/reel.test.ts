@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { sceneAt } from "../spec";
 import { redact, generalizeArea, containsUnsafe, summarizeSchedule } from "../redact";
 import { buildCaption, findBannedWords } from "../caption";
-import { defaultText } from "../spec";
+import { defaultText, normalizeReelTextLinks } from "../spec";
 import { layoutCareCard } from "../engine";
 import { reelLocationPoint, TRINIDAD_OUTLINE, TOBAGO_OUTLINE } from "../geo";
 
