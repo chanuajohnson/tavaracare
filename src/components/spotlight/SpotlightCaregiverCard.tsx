@@ -44,10 +44,10 @@ export const SpotlightCaregiverCard = ({
   // Use firstName if available, otherwise extract from name
   const displayName = firstName || name.split(" ")[0] || "Caregiver";
   // Get both initials from full name (e.g., "Carlene Williams" → "CW")
-  const nameParts = name.split(" ");
+  const nameParts = name.trim().split(/\s+/).filter(Boolean);
   const initials = nameParts.length >= 2 
     ? `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase()
-    : name[0]?.toUpperCase() || "C";
+    : nameParts[0]?.[0]?.toUpperCase() || "C";
 
   return (
     <Card className={cn("overflow-hidden border-border/50 bg-card hover:shadow-lg transition-shadow", className)}>

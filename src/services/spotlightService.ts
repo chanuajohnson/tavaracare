@@ -8,6 +8,7 @@ export interface SpotlightCaregiver {
   featuredImageUrl?: string;
   displayOrder: number;
   isActive: boolean;
+  isFeatured?: boolean;
   profile: {
     id: string;
     fullName: string;
@@ -36,59 +37,33 @@ export interface CaregiverTestimonial {
 }
 
 export const spotlightService = {
+  /**
+   * Everyone marked "available for matching", featured spotlight caregivers first.
+   * Uses a safe public list: first name, photo, general area, services, experience only.
+   */
   async getActiveSpotlightCaregivers(): Promise<SpotlightCaregiver[]> {
-    const { data, error } = await supabase
-      .from("caregiver_spotlight")
-      .select(`
-        id,
-        caregiver_id,
-        headline,
-        description,
-        featured_image_url,
-        display_order,
-        is_active,
-        profiles:caregiver_id (
-          id,
-          full_name,
-          first_name,
-          avatar_url,
-          address,
-          location,
-          phone_number,
-          care_services,
-          years_of_experience,
-          available_for_matching
-        )
-      `)
-      .eq("is_active", true)
-      .order("display_order", { ascending: true });
-
+    const { data, error } = await (supabase as any).rpc("list_public_available_caregivers");
     if (error) {
-      console.error("Error fetching spotlight caregivers:", error);
+      console.error("Error fetching available caregivers:", error);
       throw error;
     }
-
-    // Filter to only include caregivers marked as available for matching in admin
-    const filtered = (data || []).filter((item: any) => item.profiles?.available_for_matching === true);
-
-    return filtered.map((item: any) => ({
-      id: item.id,
+    return ((data as any[]) || []).map((raw: any, index: number) => ({ ...raw, first_name: (raw.first_name || "").trim() || "Caregiver" })).map((item: any, index: number) => ({
+      id: item.spotlight_id || item.caregiver_id,
       caregiverId: item.caregiver_id,
-      headline: item.headline,
-      description: item.description,
-      featuredImageUrl: item.featured_image_url,
-      displayOrder: item.display_order,
-      isActive: item.is_active,
+      headline: item.headline || "Caregiver ready to start",
+      description: item.description || undefined,
+      featuredImageUrl: item.featured_image_url || undefined,
+      displayOrder: item.display_order ?? 1000 + index,
+      isActive: true,
+      isFeatured: !!item.is_featured,
       profile: {
-        id: item.profiles?.id || item.caregiver_id,
-        fullName: item.profiles?.full_name || "Unknown",
-        firstName: item.profiles?.first_name || item.profiles?.full_name?.split(' ')[0] || "Caregiver",
-        avatarUrl: item.profiles?.avatar_url,
-        address: item.profiles?.address,
-        location: item.profiles?.location,
-        phoneNumber: item.profiles?.phone_number,
-        caregiverSpecialties: item.profiles?.care_services || [],
-        yearsOfExperience: item.profiles?.years_of_experience,
+        id: item.caregiver_id,
+        fullName: item.first_name || "Caregiver",
+        firstName: item.first_name || "Caregiver",
+        avatarUrl: item.avatar_url && !/^(undefined|null)$/i.test(item.avatar_url) ? item.avatar_url : undefined,
+        location: item.location || undefined,
+        caregiverSpecialties: item.care_services || [],
+        yearsOfExperience: item.years_of_experience || undefined,
       },
     }));
   },
