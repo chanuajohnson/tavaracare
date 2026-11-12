@@ -3,6 +3,9 @@ import { describe, expect, test } from "bun:test";
 import { sceneAt } from "../spec";
 import { redact, generalizeArea, containsUnsafe, summarizeSchedule } from "../redact";
 import { buildCaption, findBannedWords } from "../caption";
+import { defaultText } from "../spec";
+import { layoutCareCard } from "../engine";
+import { reelLocationPoint, TRINIDAD_OUTLINE, TOBAGO_OUTLINE } from "../geo";
 
 describe("privacy", () => {
   const raw = {
@@ -53,9 +56,39 @@ describe("caption content", () => {
   test("lists every care need", () => { for (const n of ["Diabetes support", "Recovery support", "Personal care", "Medication support", "Meal preparation"]) expect(c).toContain(n); });
   test("states schedule and 8-hour shifts", () => { expect(c).toContain("7 days a week"); expect(c).toContain("8-hour shifts"); });
   test("has both invitations and all four links", () => {
-    expect(c).toContain("https://tavara.care/auth?tab=signup&role=professional");
+    expect(c).toContain("https://tavara.care/join-as-caregiver");
     expect(c).toContain("https://tavara.care/urgent-families");
-    expect(c).toContain("https://tavara.care/auth?tab=signup&role=family");
+    expect(c).toContain("https://tavara.care/auth");
     expect(c).toContain("https://tavara.care/urgent-caregivers");
+  });
+});
+
+describe("friendly reel links", () => {
+  const text = defaultText();
+  test("caregiver link uses the existing welcome page", () => expect(text.ctaBody).toBe("tavara.care/join-as-caregiver"));
+  test("family link has no query string", () => expect(text.cta4Body).toBe("tavara.care/auth"));
+});
+
+describe("map and care card layout", () => {
+  test("uses detailed real island outlines", () => {
+    expect(TRINIDAD_OUTLINE.length).toBeGreaterThan(100);
+    expect(TOBAGO_OUTLINE.length).toBeGreaterThan(30);
+  });
+  test("does not place a pin before a family is chosen", () => expect(reelLocationPoint()).toBeNull());
+  test("uses Maloney only when that safe town label is available", () => {
+    const regional = reelLocationPoint("East Trinidad", "East Trinidad")!;
+    const town = reelLocationPoint("Maloney area", "East Trinidad")!;
+    expect(town).not.toEqual(regional);
+  });
+  test("keeps all eight care chips inside the white card", () => {
+    const items = ["Continence care", "Diabetes support", "Mobility support", "Recovery support", "Personal care", "Medication support", "Mobility assistance", "Meal preparation"];
+    const layout = layoutCareCard(items, (label, size) => label.length * size * 0.55);
+    const placed = layout.rows.flat();
+    expect(placed).toHaveLength(8);
+    for (const chip of placed) {
+      expect(chip.x).toBeGreaterThanOrEqual(140);
+      expect(chip.x + chip.width).toBeLessThanOrEqual(940);
+      expect(chip.y + layout.chipH).toBeLessThanOrEqual(layout.cardY + layout.cardH - 60);
+    }
   });
 });

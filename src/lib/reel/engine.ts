@@ -1,6 +1,7 @@
 // Pure canvas renderer: drawFrame(ctx, t, spec, assets) gives the same frame for the same input.
 import { REEL_H, REEL_W, SAFE_BOTTOM, SAFE_TOP, sceneAt, TIMELINE, type ReelSpec, type SceneId } from "./spec";
 import { DAYS, summarizeSchedule } from "./redact";
+import { projectGeo, reelLocationPoint, TRINIDAD_OUTLINE, TOBAGO_OUTLINE, type LonLat } from "./geo";
 
 export type Palette = { primary: string; accent: string; ink: string; bg: string; muted: string; onPrimary: string };
 export type ReelAssets = { photos: Partial<Record<SceneId, HTMLImageElement>>; palette: Palette; font: string };
@@ -47,21 +48,57 @@ function headline(ctx: CanvasRenderingContext2D, lines: string[], y: number, siz
   return yy;
 }
 
-// Rough Trinidad & Tobago outlines in reel coordinates (stylized, not to scale).
-const TRINIDAD: [number, number][] = [[250,760],[420,700],[640,690],[830,700],[860,760],[820,880],[830,1060],[860,1200],[780,1260],[560,1250],[360,1290],[220,1270],[300,1200],[360,1100],[340,960],[300,860]];
-const TOBAGO: [number, number][] = [[760,520],[880,470],[930,490],[860,560],[770,570]];
-const PINS: Record<string, [number, number]> = {
-  "North West Trinidad": [380, 780], "East Trinidad": [650, 790], "Central Trinidad": [480, 980],
-  "South Trinidad": [470, 1170], "Tobago": [850, 515], "Trinidad & Tobago": [560, 950],
-};
+function islandPath(ctx: CanvasRenderingContext2D, points: LonLat[]) {
+  ctx.beginPath();
+  points.forEach((point, i) => {
+    const [x, y] = projectGeo(point);
+    if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+  });
+  ctx.closePath();
+}
 
-function poly(ctx: CanvasRenderingContext2D, pts: [number, number][]) { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); }
+export type CareChip = { label: string; index: number; x: number; y: number; width: number };
+export type CareCardLayout = { cardY: number; cardH: number; chipsY: number; chipH: number; fontSize: number; rows: CareChip[][] };
 
-function chip(ctx: CanvasRenderingContext2D, label: string, x: number, y: number, bg: string, fg: string, font: string) {
-  ctx.font = `600 44px ${font}`; const w = ctx.measureText(label).width + 64;
-  roundRect(ctx, x, y, w, 88, 44); ctx.fillStyle = bg; ctx.fill();
-  ctx.fillStyle = fg; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(label, x + 32, y + 46);
-  return w;
+/** Fit every real care item inside the card, shrinking type before adding another row. */
+export function layoutCareCard(items: string[], measure: (label: string, size: number) => number): CareCardLayout {
+  const maxW = REEL_W - 280, gap = 20;
+  let chosen: Omit<CareCardLayout, "cardY" | "cardH" | "chipsY"> & { contentH: number } | undefined;
+  for (let fontSize = 44; fontSize >= 32; fontSize -= 2) {
+    const chipH = Math.round(fontSize * 1.45 + 24);
+    const rows: CareChip[][] = [];
+    let row: CareChip[] = [], x = 0;
+    items.forEach((label, index) => {
+      const width = Math.min(maxW, measure(label, fontSize) + 64);
+      if (row.length && x + width > maxW) { rows.push(row); row = []; x = 0; }
+      row.push({ label, index, x, y: 0, width });
+      x += width + gap;
+    });
+    if (row.length) rows.push(row);
+    const contentH = rows.length ? rows.length * chipH + (rows.length - 1) * gap : 0;
+    chosen = { chipH, fontSize, rows, contentH };
+    if (rows.length <= 5) break;
+  }
+  const layout = chosen!;
+  const cardH = Math.max(420, 250 + layout.contentH);
+  const cardY = Math.round((REEL_H - cardH) / 2 + 20);
+  const chipsY = cardY + 190;
+  layout.rows.forEach((row, r) => row.forEach((chip) => {
+    chip.x += 140;
+    chip.y = chipsY + r * (layout.chipH + gap);
+  }));
+  return { cardY, cardH, chipsY, chipH: layout.chipH, fontSize: layout.fontSize, rows: layout.rows };
+}
+
+function chip(ctx: CanvasRenderingContext2D, item: CareChip, layout: CareCardLayout, bg: string, fg: string, font: string) {
+  roundRect(ctx, item.x, item.y, item.width, layout.chipH, layout.chipH / 2); ctx.fillStyle = bg; ctx.fill();
+  let size = layout.fontSize;
+  ctx.font = `600 ${size}px ${font}`;
+  while (ctx.measureText(item.label).width > item.width - 56 && size > 26) {
+    size -= 2; ctx.font = `600 ${size}px ${font}`;
+  }
+  ctx.fillStyle = fg; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+  ctx.fillText(item.label, item.x + 28, item.y + layout.chipH / 2 + 2);
 }
 
 function drawScene(ctx: CanvasRenderingContext2D, id: SceneId, lt: number, spec: ReelSpec, a: ReelAssets) {
@@ -72,27 +109,45 @@ function drawScene(ctx: CanvasRenderingContext2D, id: SceneId, lt: number, spec:
     headline(ctx, [T.hook1, T.hook2], 1000, 96, ink, font, easeOutCubic(ease(lt, 0.05, 0.4)));
   } else if (id === "map") {
     headline(ctx, [spec.need?.area ?? "Trinidad & Tobago"], SAFE_TOP + 40, 88, ink, font, easeOutCubic(ease(lt, 0, 0.25)));
-    ctx.fillStyle = hasPhoto ? "rgba(255,255,255,0.9)" : P.muted; poly(ctx, TRINIDAD); ctx.fill(); poly(ctx, TOBAGO); ctx.fill();
-    const [px, py] = PINS[spec.need?.region ?? ""] ?? PINS["Trinidad & Tobago"];
-    const drop = easeOutBack(ease(lt, 0.15, 0.45)); const y = py - (1 - drop) * 400;
-    const ring = ease(lt, 0.45, 1); ctx.strokeStyle = P.primary; ctx.lineWidth = 8; ctx.globalAlpha = 1 - ring;
-    ctx.beginPath(); ctx.arc(px, py, 40 + ring * 180, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
-    ctx.fillStyle = P.primary; ctx.beginPath(); ctx.arc(px, y - 70, 50, Math.PI, 0); ctx.lineTo(px, y); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = P.onPrimary; ctx.beginPath(); ctx.arc(px, y - 70, 20, 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    ctx.fillStyle = P.bg; ctx.strokeStyle = P.primary; ctx.lineWidth = 5; ctx.globalAlpha = 0.96;
+    ctx.shadowColor = P.primary; ctx.shadowBlur = 28;
+    for (const island of [TRINIDAD_OUTLINE, TOBAGO_OUTLINE]) {
+      islandPath(ctx, island); ctx.fill(); ctx.globalAlpha = 0.28; ctx.stroke(); ctx.globalAlpha = 0.96;
+    }
+    ctx.restore();
+    const point = reelLocationPoint(spec.need?.area, spec.need?.region);
+    if (point) {
+      const [px, py] = point;
+      const drop = easeOutBack(ease(lt, 0.15, 0.45)); const y = py - (1 - drop) * 400;
+      const ring = ease(lt, 0.45, 1); ctx.strokeStyle = P.primary; ctx.lineWidth = 8; ctx.globalAlpha = 1 - ring;
+      ctx.beginPath(); ctx.arc(px, py, 40 + ring * 180, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
+      ctx.fillStyle = P.primary; ctx.beginPath(); ctx.arc(px, y - 70, 50, Math.PI, 0); ctx.lineTo(px, y); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = P.onPrimary; ctx.beginPath(); ctx.arc(px, y - 70, 20, 0, Math.PI * 2); ctx.fill();
+      headline(ctx, ["General area only, never a street address"], 1510, 38, ink, font, ease(lt, 0.4, 0.7));
+    } else {
+      const p = easeOutCubic(ease(lt, 0.15, 0.4));
+      ctx.globalAlpha = p; roundRect(ctx, 150, 1480, REEL_W - 300, 150, 32); ctx.fillStyle = P.bg; ctx.fill();
+      headline(ctx, ["Choose a family request", "to place the pin"], 1510, 42, P.ink, font, p); ctx.globalAlpha = 1;
+    }
   } else if (id === "needs") {
-    const cardY = 560, cardH = 900;
+    const items = [...(spec.need?.careTypes ?? []), ...(spec.need?.skills ?? []), ...(spec.need?.qualifications ?? [])].slice(0, 8);
+    const layout = layoutCareCard(items, (label, size) => { ctx.font = `600 ${size}px ${font}`; return ctx.measureText(label).width; });
+    const { cardY, cardH } = layout;
     ctx.globalAlpha = easeOutCubic(ease(lt, 0, 0.12));
     roundRect(ctx, 80, cardY, REEL_W - 160, cardH, 48); ctx.fillStyle = P.bg; ctx.fill(); ctx.globalAlpha = 1;
     ctx.font = `700 72px ${font}`; ctx.fillStyle = P.ink; ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText(T.needsTitle, 140, cardY + 60);
-    const items = [...(spec.need?.careTypes ?? []), ...(spec.need?.skills ?? []), ...(spec.need?.qualifications ?? [])].slice(0, 8);
-    let x = 140, y = cardY + 190;
-    items.forEach((label, i) => {
-      const appear = ease(lt, 0.15 + i * 0.075, 0.15 + i * 0.075 + 0.06); if (appear <= 0) return;
-      ctx.font = `600 44px ${font}`; const w = ctx.measureText(label).width + 64; if (x + w > REEL_W - 140) { x = 140; y += 110; }
-      ctx.globalAlpha = appear; chip(ctx, label, x, y, i < (spec.need?.careTypes.length ?? 0) ? P.primary : P.muted, i < (spec.need?.careTypes.length ?? 0) ? P.onPrimary : P.ink, font);
-      if (appear < 1) { ctx.fillStyle = "rgba(0,0,0,0.35)"; ctx.beginPath(); ctx.arc(x + w / 2, y + 44, 30 * (1 - appear) + 10, 0, Math.PI * 2); ctx.fill(); }
-      ctx.globalAlpha = 1; x += w + 20;
-    });
+    if (!items.length) {
+      headline(ctx, ["Choose a family request above.", "Their care needs will appear here."], cardY + 210, 44, P.muted, font, ease(lt, 0.1, 0.35));
+    }
+    for (const row of layout.rows) for (const item of row) {
+      const i = item.index;
+      const appear = ease(lt, 0.15 + i * 0.075, 0.15 + i * 0.075 + 0.06); if (appear <= 0) continue;
+      const isCareType = i < (spec.need?.careTypes.length ?? 0);
+      ctx.globalAlpha = appear;
+      chip(ctx, item, layout, isCareType ? P.primary : P.muted, isCareType ? P.onPrimary : P.ink, font);
+      ctx.globalAlpha = 1;
+    }
   } else if (id === "schedule") {
     const s = summarizeSchedule(spec.need?.schedule ?? "");
     headline(ctx, [T.scheduleTitle], SAFE_TOP + 80, 88, ink, font, easeOutCubic(ease(lt, 0, 0.2)));

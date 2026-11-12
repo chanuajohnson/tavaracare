@@ -84,11 +84,11 @@ export function defaultText(need?: ReelSafeNeed): ReelText {
     cta1: "Could this be you?",
     ctaSub: "Are you a caregiver who can provide care in this home?",
     cta2: "Join the Tavara care team. Register here to be matched:",
-    ctaBody: "tavara.care/auth?tab=signup&role=professional",
+    ctaBody: "tavara.care/join-as-caregiver",
     cta3: "Browse families in urgent need of care:",
     cta3Body: LEARN_MORE_URL,
-    cta4: "Family needing a caregiver? Register here:",
-    cta4Body: "tavara.care/auth?tab=signup&role=family",
+    cta4: "Family needing a caregiver? Create your account:",
+    cta4Body: "tavara.care/auth",
   };
 }
 
