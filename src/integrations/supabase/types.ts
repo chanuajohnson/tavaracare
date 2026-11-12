@@ -4757,6 +4757,7 @@ export type Database = {
           preferred_contact_method: string | null
           preferred_visit_type: string | null
           preferred_work_locations: string | null
+          professional_consent_social: boolean
           professional_type: string | null
           provides_housekeeping: boolean | null
           provides_transportation: boolean | null
@@ -4870,6 +4871,7 @@ export type Database = {
           preferred_contact_method?: string | null
           preferred_visit_type?: string | null
           preferred_work_locations?: string | null
+          professional_consent_social?: boolean
           professional_type?: string | null
           provides_housekeeping?: boolean | null
           provides_transportation?: boolean | null
@@ -4983,6 +4985,7 @@ export type Database = {
           preferred_contact_method?: string | null
           preferred_visit_type?: string | null
           preferred_work_locations?: string | null
+          professional_consent_social?: boolean
           professional_type?: string | null
           provides_housekeeping?: boolean | null
           provides_transportation?: boolean | null
@@ -7435,6 +7438,7 @@ export type Database = {
           years_of_experience: string
         }[]
       }
+      get_reel_safe_caregiver: { Args: { ref: string }; Returns: Json }
       get_reel_safe_need: { Args: { ref: string }; Returns: Json }
       get_unmatched_family_count: { Args: never; Returns: number }
       get_user_profile_secure: {
@@ -7500,6 +7504,14 @@ export type Database = {
       is_account_limited: { Args: { _uid: string }; Returns: boolean }
       is_current_user_admin: { Args: never; Returns: boolean }
       list_reel_candidates: {
+        Args: never
+        Returns: {
+          area: string
+          care_type: string
+          request_ref: string
+        }[]
+      }
+      list_reel_caregiver_candidates: {
         Args: never
         Returns: {
           area: string

@@ -99,3 +99,19 @@ describe("map and care card layout", () => {
     }
   });
 });
+
+import { buildCaregiverCaption } from "../caption";
+import { defaultCaregiverText } from "../spec";
+describe("caregiver reel", () => {
+  const cg = redact({ requestRef: "TV-2611-ABC", area: "South Trinidad", region: "South Trinidad", careTypes: [], skills: ["Medication support", "Mobility assistance"], qualifications: ["Certified nursing assistant", "3-5 years' experience"], requirements: [], schedule: "mon_fri_8am_4pm", urgency: "standard" });
+  const c = buildCaregiverCaption(cg);
+  test("caption lists skills and training, no banned words", () => {
+    for (const x of ["Medication support", "Mobility assistance", "Certified nursing assistant"]) expect(c).toContain(x);
+    expect(findBannedWords(c)).toEqual([]);
+  });
+  test("hook speaks to families", () => {
+    const t = defaultCaregiverText(cg);
+    expect(t.hook2).toContain("South Trinidad");
+    expect(t.ctaBody).toBe("tavara.care/auth");
+  });
+});

@@ -8,6 +8,6 @@
 - [x] Add an editable bold WhatsApp channel invitation to the ending and caption.
 - [x] Set the real WhatsApp channel invite URL and use the searchable channel name on screen.
 - [x] Test the expanded care scene and ending, then check the build.
-- [ ] Explain the family consent filter and keep anonymous family reels consent-only.
-- [ ] Add a consent-gated caregiver-available reel with safe area, skills and availability.
-- [ ] Test both reel directions and check the build.
+- [x] Explain the family consent filter and keep anonymous family reels consent-only.
+- [x] Add a consent-gated caregiver-available reel with safe area, skills and availability.
+- [x] Test both reel directions and check the build.

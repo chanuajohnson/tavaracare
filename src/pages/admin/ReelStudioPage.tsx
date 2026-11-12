@@ -15,12 +15,12 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  defaultText, REEL_DURATION, REEL_H, REEL_W, STILL_TIMES, TEXT_LIMITS, TIMELINE,
+  defaultCaregiverText, defaultText, REEL_DURATION, REEL_H, REEL_W, STILL_TIMES, TEXT_LIMITS, TIMELINE,
   type ReelSafeNeed, type ReelSpec, type ReelText, type SceneId,
   WHATSAPP_CHANNEL_URL,
 } from "@/lib/reel/spec";
 import { containsUnsafe, redact } from "@/lib/reel/redact";
-import { buildCaption, findBannedWords } from "@/lib/reel/caption";
+import { buildCaption, buildCaregiverCaption, findBannedWords } from "@/lib/reel/caption";
 import { drawFrame, type Palette, type ReelAssets } from "@/lib/reel/engine";
 import { download, recordReel, renderStill } from "@/lib/reel/export";
 
@@ -116,6 +116,17 @@ const ReelStudioPage: React.FC = () => {
     setLibrary(withPreview);
   }, []);
 
+  const isCaregiver = preset === "caregiver_available";
+  const [caregivers, setCaregivers] = useState<Candidate[] | null>(null);
+  useEffect(() => {
+    if (!isAdmin) return;
+    (supabase as any).rpc("list_reel_caregiver_candidates").then(({ data, error }: any) => {
+      if (error) toast.error("Could not load caregivers: " + error.message);
+      setCaregivers(data ?? []);
+    });
+  }, [isAdmin]);
+  useEffect(() => { setSelectedRef(""); }, [isCaregiver]);
+
   useEffect(() => {
     if (!isAdmin) return;
     (supabase as any).rpc("list_reel_candidates").then(({ data, error }: any) => {
@@ -150,12 +161,13 @@ const ReelStudioPage: React.FC = () => {
       setText((previous) => ({ ...defaultText(), whatsappTitle: previous.whatsappTitle, whatsappBody: previous.whatsappBody }));
       return;
     }
-    (supabase as any).rpc("get_reel_safe_need", { ref: selectedRef }).then(({ data, error }: any) => {
-      if (error || !data) { toast.error("That family's summary is not available."); return; }
+    const caregiverMode = preset === "caregiver_available";
+    (supabase as any).rpc(caregiverMode ? "get_reel_safe_caregiver" : "get_reel_safe_need", { ref: selectedRef }).then(({ data, error }: any) => {
+      if (error || !data) { toast.error(caregiverMode ? "That caregiver's summary is not available." : "That family's summary is not available."); return; }
       const safe = redact(data);
       if (preset === "urgent_need") safe.urgency = "urgent";
       setNeed(safe);
-      setText((previous) => ({ ...defaultText(safe), whatsappTitle: previous.whatsappTitle, whatsappBody: previous.whatsappBody }));
+      setText((previous) => ({ ...(caregiverMode ? defaultCaregiverText(safe) : defaultText(safe)), whatsappTitle: previous.whatsappTitle, whatsappBody: previous.whatsappBody }));
     });
   }, [selectedRef, preset]);
 
@@ -172,7 +184,7 @@ const ReelStudioPage: React.FC = () => {
     return { photos: merged, palette: theme.palette, font: theme.font };
   }, [images, theme, blogAssign, blogPool, useBlogPhotos]);
 
-  const caption = useMemo(() => buildCaption(spec.need, spec.rateBand, WHATSAPP_CHANNEL_URL), [spec]);
+  const caption = useMemo(() => isCaregiver ? buildCaregiverCaption(spec.need, WHATSAPP_CHANNEL_URL) : buildCaption(spec.need, spec.rateBand, WHATSAPP_CHANNEL_URL), [spec, isCaregiver]);
   const issues = useMemo(() => {
     const all = [...Object.values(text), caption].join(" \n ");
     const out: string[] = [];
@@ -272,13 +284,30 @@ const ReelStudioPage: React.FC = () => {
                     <SelectContent>
                       <SelectItem value="new_match_needed">A family needs care</SelectItem>
                       <SelectItem value="urgent_need">Urgent: care needed soon</SelectItem>
+                      <SelectItem value="caregiver_available">A caregiver is available</SelectItem>
                       <SelectItem value="general_recruit">General: join the care team</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                {preset !== "general_recruit" && (
+                {isCaregiver && (
+                  <div className="space-y-2">
+                    <Label>Available caregiver</Label>
+                    {caregivers === null ? <p className="text-sm text-muted-foreground">Loading…</p> : caregivers.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No caregivers are listed yet. A caregiver appears here once they are available for matching and you switch on "Caregiver agreed to an anonymous social post" on their profile in User Management (Profile tab).</p>
+                    ) : (
+                      <Select value={selectedRef} onValueChange={setSelectedRef}>
+                        <SelectTrigger><SelectValue placeholder="Pick a caregiver" /></SelectTrigger>
+                        <SelectContent>
+                          {caregivers.map((c) => <SelectItem key={c.request_ref} value={c.request_ref}>{c.request_ref} · {c.area} · {c.care_type}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                )}
+                {preset !== "general_recruit" && !isCaregiver && (
                   <div className="space-y-2">
                     <Label>Family request</Label>
+                    <p className="text-xs text-muted-foreground">Only families whose "agreed to an anonymous social post" switch is on appear here ({candidates?.length ?? 0} so far).</p>
                     {candidates === null ? <p className="text-sm text-muted-foreground">Loading…</p> : candidates.length === 0 ? (
                       <p className="text-sm text-muted-foreground">No families have agreed to social posts yet. Switch it on from a family's profile in User Management (Profile tab) once they agree.</p>
                     ) : (

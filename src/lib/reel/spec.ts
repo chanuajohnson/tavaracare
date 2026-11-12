@@ -37,7 +37,7 @@ export type ReelText = {
 export type ScenePhoto = { url: string; focusY: number };
 
 export type ReelSpec = {
-  preset: "new_match_needed" | "urgent_need" | "general_recruit";
+  preset: "new_match_needed" | "urgent_need" | "general_recruit" | "caregiver_available";
   need?: ReelSafeNeed;
   text: ReelText;
   photos: Partial<Record<SceneId, ScenePhoto>>;
@@ -108,3 +108,26 @@ export const TEXT_LIMITS: Record<keyof ReelText, number> = {
 
 /** Full channel invite link. Lives in the caption (tappable), never on screen. */
 export const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbALSFFKgsO0yyEfAA1H";
+
+/** Flip side: a caregiver is available in an area. Same safe summary shape, caregiver-facing words. */
+export function defaultCaregiverText(c?: ReelSafeNeed): ReelText {
+  const area = c?.area ?? "your area";
+  const who = (c?.qualifications?.[0] ?? "caregiver").toLowerCase();
+  return {
+    ...defaultText(c),
+    hook1: `A ${who}`.slice(0, 40),
+    hook2: `is ready in ${area}.`.slice(0, 40),
+    needsTitle: "Care they provide",
+    requirementsTitle: "Training & experience",
+    scheduleTitle: "Available",
+    startLabel: "Ready to start",
+    cta1: "Does your family need care?",
+    ctaSub: "Register your loved one's needs and we will arrange a match.",
+    cta2: "Family needing a caregiver? Create your account:",
+    ctaBody: "tavara.care/auth",
+    cta3: "Browse caregivers ready to start:",
+    cta3Body: "tavara.care/urgent-caregivers",
+    cta4: "Caregiver too? Join the Tavara care team:",
+    cta4Body: "tavara.care/join-as-caregiver",
+  };
+}
