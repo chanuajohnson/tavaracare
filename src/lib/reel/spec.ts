@@ -31,7 +31,7 @@ export type ReelText = {
   cta4: string;
   cta4Body: string; // family registration link
   whatsappTitle: string;
-  whatsappBody: string; // admin pastes the WhatsApp channel invite URL here
+  whatsappBody: string; // short on-screen instruction (no URL: nobody can tap or type a long link from a video)
 };
 
 export type ScenePhoto = { url: string; focusY: number };
@@ -96,7 +96,7 @@ export function defaultText(need?: ReelSafeNeed): ReelText {
     cta4: "Family needing a caregiver? Create your account:",
     cta4Body: "tavara.care/auth",
     whatsappTitle: "Families & caregivers: join Tavara.Care on WhatsApp",
-    whatsappBody: "https://whatsapp.com/channel/0029VbALSFFKgsO0yyEfAA1H",
+    whatsappBody: "Search \"Tavara.Care\" in WhatsApp Channels",
   };
 }
 
@@ -105,3 +105,6 @@ export const TEXT_LIMITS: Record<keyof ReelText, number> = {
   cta1: 32, ctaSub: 64, cta2: 64, ctaBody: 60, cta3: 56, cta3Body: 60, cta4: 56, cta4Body: 60,
   whatsappTitle: 64, whatsappBody: 120,
 };
+
+/** Full channel invite link. Lives in the caption (tappable), never on screen. */
+export const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbALSFFKgsO0yyEfAA1H";

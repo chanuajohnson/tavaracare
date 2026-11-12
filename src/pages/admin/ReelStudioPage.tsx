@@ -30,7 +30,7 @@ const SCENE_LABELS: Record<SceneId, string> = { hook: "1. Hook", map: "2. Map", 
 const TEXT_FIELD_LABELS: Partial<Record<keyof ReelText, string>> = {
   requirementsTitle: "Requirements scene title",
   whatsappTitle: "WhatsApp channel invitation",
-  whatsappBody: "WhatsApp channel invite link",
+  whatsappBody: "WhatsApp line on screen (no links)",
 };
 const RATE_BANDS = ["$40/hr", "$45/hr", "$50+/hr"];
 
@@ -171,13 +171,13 @@ const ReelStudioPage: React.FC = () => {
     return { photos: merged, palette: theme.palette, font: theme.font };
   }, [images, theme, blogAssign, blogPool, useBlogPhotos]);
 
-  const caption = useMemo(() => buildCaption(spec.need, spec.rateBand, spec.text.whatsappBody), [spec]);
+  const caption = useMemo(() => buildCaption(spec.need, spec.rateBand, WHATSAPP_CHANNEL_URL), [spec]);
   const issues = useMemo(() => {
     const all = [...Object.values(text), caption].join(" \n ");
     const out: string[] = [];
     const unsafe = containsUnsafe(Object.values(text).join(" ")); if (unsafe) out.push(`Text contains a ${unsafe}.`);
     const banned = findBannedWords(all); if (banned.length) out.push(`Avoid these words: ${banned.join(", ")}.`);
-    if (text.whatsappBody.trim() && !/^(https?:\/\/)?(www\.)?whatsapp\.com\/channel\/\S+$/i.test(text.whatsappBody.trim())) out.push("Paste the full WhatsApp channel invite link.");
+    if (/https?:\/\/|whatsapp\.com\//i.test(text.whatsappBody)) out.push("Keep links off the video. The channel link is already in the caption.");
     return out;
   }, [text, caption]);
 
@@ -299,7 +299,7 @@ const ReelStudioPage: React.FC = () => {
                 {(Object.keys(TEXT_LIMITS) as (keyof ReelText)[]).map((k) => (
                   <div key={k} className={`space-y-1 ${k === "whatsappBody" ? "sm:col-span-2" : ""}`}>
                     <Label className="text-xs capitalize">{TEXT_FIELD_LABELS[k] ?? k.replace(/([A-Z0-9])/g, " $1")}</Label>
-                    <Input value={text[k]} maxLength={TEXT_LIMITS[k]} placeholder={k === "whatsappBody" ? "https://whatsapp.com/channel/..." : undefined} onChange={(e) => setText((p) => ({ ...p, [k]: e.target.value }))} />
+                    <Input value={text[k]} maxLength={TEXT_LIMITS[k]} placeholder={k === "whatsappBody" ? 'Search "Tavara.Care" in WhatsApp Channels' : undefined} onChange={(e) => setText((p) => ({ ...p, [k]: e.target.value }))} />
                     <p className="text-[11px] text-muted-foreground text-right">{text[k].length}/{TEXT_LIMITS[k]}</p>
                   </div>
                 ))}
