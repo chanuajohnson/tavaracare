@@ -138,7 +138,7 @@ function drawScene(ctx: CanvasRenderingContext2D, id: SceneId, lt: number, spec:
     roundRect(ctx, 80, cardY, REEL_W - 160, cardH, 48); ctx.fillStyle = P.bg; ctx.fill(); ctx.globalAlpha = 1;
     ctx.font = `700 72px ${font}`; ctx.fillStyle = P.ink; ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText(T.needsTitle, 140, cardY + 60);
     if (!items.length) {
-      headline(ctx, ["Choose a family request above.", "Their care needs will appear here."], cardY + 210, 44, P.muted, font, ease(lt, 0.1, 0.35));
+      headline(ctx, ["Choose a family request above.", "Their care needs will appear here."], cardY + 210, 44, P.ink, font, ease(lt, 0.1, 0.35));
     }
     for (const row of layout.rows) for (const item of row) {
       const i = item.index;
