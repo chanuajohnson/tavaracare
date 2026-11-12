@@ -14,9 +14,9 @@ export function findBannedWords(text: string): string[] {
 
 // All links use the production domain.
 export const LINKS = {
-  caregiverSignup: "https://tavara.care/auth?tab=signup&role=professional",
+  caregiverSignup: "https://tavara.care/join-as-caregiver",
   urgentFamilies: "https://tavara.care/urgent-families",
-  familySignup: "https://tavara.care/auth?tab=signup&role=family",
+  familySignup: "https://tavara.care/auth",
   urgentCaregivers: "https://tavara.care/urgent-caregivers",
 };
 
