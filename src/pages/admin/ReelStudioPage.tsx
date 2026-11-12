@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import {
   defaultText, REEL_DURATION, REEL_H, REEL_W, STILL_TIMES, TEXT_LIMITS, TIMELINE,
   type ReelSafeNeed, type ReelSpec, type ReelText, type SceneId,
+  WHATSAPP_CHANNEL_URL,
 } from "@/lib/reel/spec";
 import { containsUnsafe, redact } from "@/lib/reel/redact";
 import { buildCaption, findBannedWords } from "@/lib/reel/caption";
