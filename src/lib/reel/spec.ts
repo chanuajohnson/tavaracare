@@ -1,6 +1,13 @@
 // Reel Studio: types, timeline and defaults.
 // Rendering is a pure function of time; everything here is deterministic.
 
+import { PUBLIC_PATHS } from "@/utils/publicRoutes";
+import { PRODUCTION_BASE_URL } from "@/utils/urlConstants";
+
+const PRODUCTION_DISPLAY_DOMAIN = PRODUCTION_BASE_URL.replace(/^https?:\/\//, "");
+const CAREGIVER_DISPLAY_URL = `${PRODUCTION_DISPLAY_DOMAIN}${PUBLIC_PATHS.caregiverJoin}`;
+const FAMILY_DISPLAY_URL = `${PRODUCTION_DISPLAY_DOMAIN}${PUBLIC_PATHS.familyRegister}`;
+
 export type SceneId = "hook" | "map" | "needs" | "requirements" | "schedule" | "cta";
 
 export type ReelSafeNeed = {

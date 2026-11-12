@@ -57,9 +57,9 @@ describe("caption content", () => {
   test("lists every care need", () => { for (const n of ["Diabetes support", "Recovery support", "Personal care", "Medication support", "Meal preparation"]) expect(c).toContain(n); });
   test("states schedule and 8-hour shifts", () => { expect(c).toContain("7 days a week"); expect(c).toContain("8-hour shifts"); });
   test("has both invitations and all four links", () => {
-    expect(c).toContain("https://tavara.care/join-as-caregiver");
+    expect(c).toContain("https://tavara.care/caregiver");
     expect(c).toContain("https://tavara.care/urgent-families");
-    expect(c).toContain("https://tavara.care/auth");
+    expect(c).toContain("https://tavara.care/register");
     expect(c).toContain("https://tavara.care/urgent-caregivers");
   });
   test("includes every safe caregiver requirement and the channel invite", () => {

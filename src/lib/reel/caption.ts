@@ -1,5 +1,7 @@
 import type { ReelSafeNeed } from "./spec";
 import { summarizeSchedule } from "./redact";
+import { PUBLIC_PATHS } from "@/utils/publicRoutes";
+import { PRODUCTION_BASE_URL } from "@/utils/urlConstants";
 
 // Tavara language guardrails: these never go in public copy.
 export const BANNED_CAPTION_WORDS = [

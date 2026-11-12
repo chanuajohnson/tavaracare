@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  defaultCaregiverText, defaultText, REEL_DURATION, REEL_H, REEL_W, STILL_TIMES, TEXT_LIMITS, TIMELINE,
+  defaultCaregiverText, defaultText, normalizeReelTextLinks, REEL_DURATION, REEL_H, REEL_W, STILL_TIMES, TEXT_LIMITS, TIMELINE,
   type ReelSafeNeed, type ReelSpec, type ReelText, type SceneId,
   WHATSAPP_CHANNEL_URL,
 } from "@/lib/reel/spec";

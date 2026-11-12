@@ -132,6 +132,10 @@ export const AppRoutes = () => {
     <RouteErrorBoundary>
       <Routes>
       {/* Public Routes */}
+      {/* Additive short links for shared material. Existing destinations stay unchanged. */}
+      {PUBLIC_ROUTE_ALIASES.map(({ path, target }) => (
+        <Route key={path} path={path} element={<Navigate to={target} replace />} />
+      ))}
       <Route path="/" element={<Index />} />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
