@@ -89,13 +89,13 @@ export function defaultText(need?: ReelSafeNeed): ReelText {
     startLabel: need?.urgency === "urgent" ? "Start: as soon as possible" : need?.urgency === "soon" ? "Start: this week" : "Start: flexible",
     cta1: "Could this be you?",
     ctaSub: "Are you a caregiver who can provide care in this home?",
-    cta2: "Join the Tavara care team. Register here to be matched:",
+    cta2: "Caregiver or nurse? Join the care team",
     ctaBody: "tavara.care/join-as-caregiver",
     cta3: "Browse families in urgent need of care:",
     cta3Body: LEARN_MORE_URL,
-    cta4: "Family needing a caregiver? Create your account:",
+    cta4: "Need care at home? Register your family",
     cta4Body: "tavara.care/auth",
-    whatsappTitle: "Families & caregivers: join Tavara.Care on WhatsApp",
+    whatsappTitle: "New matches and updates for everyone",
     whatsappBody: "Search \"Tavara.Care\" in WhatsApp Channels",
   };
 }
@@ -123,11 +123,11 @@ export function defaultCaregiverText(c?: ReelSafeNeed): ReelText {
     startLabel: "Ready to start",
     cta1: "Does your family need care?",
     ctaSub: "Register your loved one's needs and we will arrange a match.",
-    cta2: "Family needing a caregiver? Create your account:",
+    cta2: "Need care at home? Register your family",
     ctaBody: "tavara.care/auth",
     cta3: "Browse caregivers ready to start:",
     cta3Body: "tavara.care/urgent-caregivers",
-    cta4: "Caregiver too? Join the Tavara care team:",
+    cta4: "Caregiver or nurse? Join the care team",
     cta4Body: "tavara.care/join-as-caregiver",
   };
 }
