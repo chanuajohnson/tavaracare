@@ -26,7 +26,7 @@ import { download, recordReel, renderStill } from "@/lib/reel/export";
 type Candidate = { request_ref: string; area: string; care_type: string };
 type LibraryPhoto = { id: string; scene_id: string; url: string; focus_y: number };
 
-const SCENE_LABELS: Record<SceneId, string> = { hook: "1. Hook", map: "2. Map", needs: "3. Care needs", schedule: "4. Schedule", cta: "5. Ending" };
+const SCENE_LABELS: Record<SceneId, string> = { hook: "1. Hook", map: "2. Map", needs: "3. Care needs", requirements: "4. Caregiver requirements", schedule: "5. Schedule", cta: "6. Ending" };
 const RATE_BANDS = ["$40/hr", "$45/hr", "$50+/hr"];
 
 // Blog imagery: same-origin paths for our own covers so the canvas stays exportable.
@@ -246,7 +246,7 @@ const ReelStudioPage: React.FC = () => {
       <DashboardHeader breadcrumbItems={[{ label: "Admin Dashboard", path: "/dashboard/admin" }, { label: "Reel Studio", path: "/admin/reels" }]} />
       <div className="container max-w-6xl py-6 px-4">
         <h1 className="text-2xl md:text-3xl font-bold mb-1 flex items-center gap-2"><Film className="h-7 w-7" /> Reel Studio</h1>
-        <p className="text-muted-foreground mb-6">Make a 15-second vertical video telling nurses and caregivers that a family needs care. Only families who agreed to social posts appear, and no names, addresses or diagnoses are ever shown.</p>
+        <p className="text-muted-foreground mb-6">Make an {REEL_DURATION}-second vertical video telling nurses and caregivers that a family needs care. Only families who agreed to social posts appear, and no names, addresses or diagnoses are ever shown.</p>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
           <div className="space-y-6 order-2 lg:order-1">
@@ -406,7 +406,7 @@ const ReelStudioPage: React.FC = () => {
         <DialogContent className="[&>button]:hidden">
           <DialogHeader>
             <DialogTitle>Recording your reel</DialogTitle>
-            <DialogDescription>Keep this tab open and in front until it finishes. This takes about 15 seconds.</DialogDescription>
+            <DialogDescription>Keep this tab open and in front until it finishes. This takes about {REEL_DURATION} seconds.</DialogDescription>
           </DialogHeader>
           <div className="h-2 rounded bg-muted overflow-hidden"><div className="h-full bg-primary transition-all" style={{ width: `${Math.round((exporting ?? 0) * 100)}%` }} /></div>
         </DialogContent>

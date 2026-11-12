@@ -4,9 +4,10 @@ import { REEL_DURATION, REEL_FPS, type ReelSpec } from "./spec";
 import { summarizeSchedule } from "./redact";
 
 export function cuesFor(spec: ReelSpec) {
-  const chips = (spec.need?.careTypes.length ?? 0) + (spec.need?.skills.length ?? 0) + (spec.need?.qualifications.length ?? 0);
+  const chips = (spec.need?.careTypes.length ?? 0) + (spec.need?.skills.length ?? 0);
+  const requirements = (spec.need?.qualifications.length ?? 0) + (spec.need?.requirements.length ?? 0);
   const days = summarizeSchedule(spec.need?.schedule ?? "").days.filter(Boolean).length;
-  return buildCues(chips, days);
+  return buildCues(chips, days, requirements);
 }
 
 export function pickMime(): string {
