@@ -13,7 +13,7 @@ export function defaultFounderScript(need?: ReelSafeNeed): string {
 }
 
 export const DEFAULT_FOUNDER_STORY = [
-  "I am a millennial in my forties, rebuilding after a global crisis while caring for ageing parents, raising the next generation, tending the land, and showing up for friends and family. As a teenager in convent, I was determined my purpose was to be a homemaker. Now I have come full circle. I chose this life, and it is a calling, but it is hard, and much of this work is unpaid and unseen.",
+  "I am a millennial in my forties, rebuilding after a global crisis while caring for ageing parents, raising the next generation, tending the land, and showing up for friends and family. As a teenager in convent, I was determined my purpose was to be a homemaker. Now I have come full circle. I chose this life, and it is a calling, but it is hard, and much of this work is unseen, and paid in love rather than money.",
   "Seven years ago, given the gift of time on the outskirts of a global crisis, I found myself in a position where working remotely was the only way. I attempted to move my engineering skills into tech. Those roles asked for experience I had not yet had, coming from a background in plant work in oil and gas. So I built a portfolio by scratching my own itches.",
   "Tavara came from needing better care coordination. The Garden Ohm grew from my love of plants and home. NuaChat came from another need I could not ignore. They were too late to make my career change easier, but they can help other people now.",
   "Tavara is live. This anonymous appeal, shared with permission, is part of that portfolio. Every use, share, and piece of feedback is a proof point.",
