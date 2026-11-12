@@ -12,13 +12,14 @@ export function defaultFounderScript(need?: ReelSafeNeed): string {
   return `${opening} I built Tavara while caring for ageing parents, raising the next generation, and growing The Garden Ohm. It is live and part of my portfolio. Use it, share it, and help this work bloom.`;
 }
 
-const FOUNDER_STORY = [
-  "I am a millennial in my forties, rebuilding after a global crisis while caring for ageing parents, raising the next generation, tending the land, and showing up for friends. I love this life. Much of the work is unpaid and unseen.",
-  "Seven years ago, I tried to move into tech. Roles asked for experience I had not been given the chance to gain, so I built a portfolio by scratching my own itches.",
+export const DEFAULT_FOUNDER_STORY = [
+  "I am a millennial in my forties, rebuilding after a global crisis while caring for ageing parents, raising the next generation, tending the land, and showing up for friends and family. My prayers once involved being a homemaker. I love this life. Much of this work is unpaid and unseen.",
+  "Seven years ago, given the gift of time on the outskirts of a global crisis, I found myself in a position where working remotely was the only way. I attempted to move my engineering skills into tech. Those roles asked for experience I had not yet had, coming from a background in plant work in oil and gas. So I built a portfolio by scratching my own itches.",
   "Tavara came from needing better care coordination. The Garden Ohm grew from my love of plants and home. NuaChat came from another need I could not ignore. They were too late to make my career change easier, but they can help other people now.",
   "Tavara is live. This anonymous appeal, shared with permission, is part of that portfolio. Every use, share, and piece of feedback is a proof point.",
   "Build and Bloom. That is The Garden Ohm's line, and it fits here too. Use it, share it, and help this work bloom.",
 ].join("\n\n");
+const FOUNDER_STORY = DEFAULT_FOUNDER_STORY;
 
 function founderInvitationBlock(whatsappUrl?: string): string[] {
   const lines = [
@@ -37,8 +38,9 @@ export function buildFounderCaption(
   rateBand?: string,
   whatsappUrl?: string,
   caregiver = false,
+  story: string = FOUNDER_STORY,
 ): string {
-  const lines = [FOUNDER_STORY, ""];
+  const lines = [story.trim() || FOUNDER_STORY, ""];
   if (need) {
     const who = need.qualifications[0] ?? "caregiver";
     lines.push(caregiver
