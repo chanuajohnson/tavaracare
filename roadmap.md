@@ -6,5 +6,8 @@
 - [x] Render representative frames, run reel tests, and check the build log.
 - [x] Include the family's transportation, gender preference, certification and reliability requirements without exposing private wording.
 - [x] Add an editable bold WhatsApp channel invitation to the ending and caption.
-- [ ] Set the real WhatsApp channel invite URL. Blocker: the channel invite link has not been supplied.
+- [x] Set the real WhatsApp channel invite URL and use the searchable channel name on screen.
 - [x] Test the expanded care scene and ending, then check the build.
+- [ ] Explain the family consent filter and keep anonymous family reels consent-only.
+- [ ] Add a consent-gated caregiver-available reel with safe area, skills and availability.
+- [ ] Test both reel directions and check the build.
