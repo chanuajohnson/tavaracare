@@ -205,7 +205,7 @@ function drawScene(ctx: CanvasRenderingContext2D, id: SceneId, lt: number, spec:
     if (T.whatsappBody.trim()) {
       const p = easeOutCubic(ease(lt, 0.7, 0.88));
       headline(ctx, [T.whatsappTitle], REEL_H - SAFE_BOTTOM - 200, 42, ink, font, p);
-      const link = T.whatsappBody.trim().replace(/^https?:\/\//, "");
+      const link = T.whatsappBody.trim();
       let size = 36; ctx.font = `700 ${size}px ${font}`;
       while (ctx.measureText(link).width > REEL_W - 240 && size > 24) { size -= 2; ctx.font = `700 ${size}px ${font}`; }
       const w = ctx.measureText(link).width + 64, h = size + 44, wy = REEL_H - SAFE_BOTTOM - 70;
