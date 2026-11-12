@@ -60,7 +60,7 @@ export const spotlightService = {
         id: item.caregiver_id,
         fullName: item.first_name || "Caregiver",
         firstName: item.first_name || "Caregiver",
-        avatarUrl: item.avatar_url || undefined,
+        avatarUrl: item.avatar_url && !/^(undefined|null)$/i.test(item.avatar_url) ? item.avatar_url : undefined,
         location: item.location || undefined,
         caregiverSpecialties: item.care_services || [],
         yearsOfExperience: item.years_of_experience || undefined,
