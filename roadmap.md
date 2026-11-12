@@ -20,3 +20,4 @@
 - [x] Provide clear non-investment participation wording for all three portfolio projects, with Trinidad and Tobago legal review flagged.
 
 - [ ] Save reusable caption story and voiceover presets in Reel Studio; make caption story editable.
+- [ ] Update founder story: homemaker prayer, friends and family, remote work during global crisis, oil and gas plant engineering background.
