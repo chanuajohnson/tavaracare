@@ -95,8 +95,8 @@ export function defaultText(need?: ReelSafeNeed): ReelText {
     cta3Body: LEARN_MORE_URL,
     cta4: "Family needing a caregiver? Create your account:",
     cta4Body: "tavara.care/auth",
-    whatsappTitle: "Families & caregivers: join us on WhatsApp",
-    whatsappBody: "",
+    whatsappTitle: "Families & caregivers: join Tavara.Care on WhatsApp",
+    whatsappBody: "https://whatsapp.com/channel/0029VbALSFFKgsO0yyEfAA1H",
   };
 }
 

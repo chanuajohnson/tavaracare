@@ -23,7 +23,8 @@ export function projectGeo([lon, lat]: LonLat): [number, number] {
 
 const REGION_COORDS: Record<string, LonLat> = {
   "North West Trinidad": [-61.51, 10.66],
-  "East Trinidad": [-61.25, 10.58],
+  "East-West Corridor": [-61.36, 10.63],
+  "East Trinidad": [-61.10, 10.58],
   "Central Trinidad": [-61.39, 10.44],
   "South Trinidad": [-61.46, 10.20],
   "Tobago": [-60.68, 11.25],
