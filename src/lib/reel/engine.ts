@@ -202,7 +202,7 @@ function drawScene(ctx: CanvasRenderingContext2D, id: SceneId, lt: number, spec:
       const p = easeOutCubic(ease(lt, 0.15 + i * 0.18, 0.3 + i * 0.18));
       if (p > 0 && (label.trim() || link.trim())) {
         ctx.save(); ctx.globalAlpha = p; ctx.translate((1 - p) * 80, 0);
-        roundRect(ctx, cx, cy, cw, cardH, 36); ctx.fillStyle = P.bg; ctx.fill();
+        roundRect(ctx, cx, cy, cw, cardH, 36); ctx.fillStyle = P.bg; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = P.muted; ctx.stroke();
         roundRect(ctx, cx, cy, 18, cardH, 9); ctx.fillStyle = P.primary; ctx.fill();
         ctx.textAlign = "left"; ctx.textBaseline = "top";
         ctx.font = `800 32px ${font}`; ctx.fillStyle = P.primary; ctx.fillText(tagText, cx + 56, cy + 30);
