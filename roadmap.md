@@ -14,7 +14,7 @@
 - [x] Add /caregiver and /register as aliases without changing any existing route.
 - [x] Use the friendly links in new and reopened saved reels and captions.
 - [x] Test both aliases, their original destinations, and the reel checks.
-- [ ] Add private record-or-upload founder narration, preview it, and mix it into video exports.
-- [ ] Add the short founder script and full Build and Bloom caption without dropping care needs or calls to action.
-- [ ] Restore voiceovers with saved reels and test narration limits, caption content, and the build.
-- [ ] Provide clear non-investment participation wording for all three portfolio projects, with Trinidad and Tobago legal review flagged.
+- [x] Add private record-or-upload founder narration, preview it, and mix it into video exports.
+- [x] Add the short founder script and full Build and Bloom caption without dropping care needs or calls to action.
+- [x] Restore voiceovers with saved reels and test narration limits, caption content, and the build.
+- [x] Provide clear non-investment participation wording for all three portfolio projects, with Trinidad and Tobago legal review flagged.
