@@ -12,7 +12,8 @@ describe("friendly public routes", () => {
   });
 
   test("the existing /family page is not repurposed as an alias", () => {
-    expect(PUBLIC_ROUTE_ALIASES.some(({ path }) => path === "/family")).toBe(false);
+    const aliasPaths: string[] = PUBLIC_ROUTE_ALIASES.map(({ path }) => path);
+    expect(aliasPaths).not.toContain("/family");
     expect(PUBLIC_PATHS.familyRegister).toBe("/register");
   });
 });
