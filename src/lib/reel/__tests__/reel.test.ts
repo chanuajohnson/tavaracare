@@ -112,6 +112,6 @@ describe("caregiver reel", () => {
   test("hook speaks to families", () => {
     const t = defaultCaregiverText(cg);
     expect(t.hook2).toContain("South Trinidad");
-    expect(t.ctaBody).toBe("tavara.care/auth");
+    expect(t.ctaBody).toBe("tavara.care/register");
   });
 });

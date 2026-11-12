@@ -135,6 +135,14 @@ export function defaultCaregiverText(c?: ReelSafeNeed): ReelText {
     cta3: "Browse caregivers ready to start:",
     cta3Body: "tavara.care/urgent-caregivers",
     cta4: "Caregiver or nurse? Join the care team",
-    cta4Body: "tavara.care/join-as-caregiver",
+    cta4Body: CAREGIVER_DISPLAY_URL,
   };
+}
+
+/** Upgrade links in saved reels without changing any other edited wording. */
+export function normalizeReelTextLinks(text: ReelText): ReelText {
+  const normalize = (value: string) => value
+    .replace(/(?:https?:\/\/)?(?:www\.)?tavara\.care\/join-as-caregiver/gi, CAREGIVER_DISPLAY_URL)
+    .replace(/(?:https?:\/\/)?(?:www\.)?tavara\.care\/auth(?:\?tab=signup)?/gi, FAMILY_DISPLAY_URL);
+  return { ...text, ctaBody: normalize(text.ctaBody), cta4Body: normalize(text.cta4Body) };
 }
