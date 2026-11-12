@@ -124,6 +124,7 @@ import TestimonialManagementPage from "@/pages/admin/TestimonialManagementPage";
 import CampaignLinksPage from "@/pages/admin/CampaignLinksPage";
 import AdminFamilyCarePlansPage from "@/pages/admin/AdminFamilyCarePlansPage";
 import JoinAsCaregiver from "@/pages/JoinAsCaregiver";
+import JoinAsFamily from "@/pages/JoinAsFamily";
 
 export const AppRoutes = () => {
   const { user } = useAuth();
@@ -149,6 +150,7 @@ export const AppRoutes = () => {
       <Route path="/urgent-caregivers" element={<UrgentCaregiversPage />} />
       <Route path="/urgent-families" element={<UrgentFamiliesPage />} />
       <Route path="/join-as-caregiver" element={<JoinAsCaregiver />} />
+      <Route path="/join-as-family" element={<JoinAsFamily />} />
       <Route path="/onboarding-guide" element={<OnboardingGuidePage />} />
       <Route path="/blog" element={<BlogIndexPage />} />
       <Route path="/blog/:slug" element={<BlogPostPage />} />

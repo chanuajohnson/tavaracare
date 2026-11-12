@@ -7,8 +7,8 @@ describe("friendly public routes", () => {
     expect(PUBLIC_ROUTE_ALIASES.find(({ path }) => path === "/caregiver")?.target).toBe("/join-as-caregiver");
   });
 
-  test("/register opens the existing sign-up tab", () => {
-    expect(PUBLIC_ROUTE_ALIASES.find(({ path }) => path === "/register")?.target).toBe("/auth?tab=signup");
+  test("/register opens the family welcome page", () => {
+    expect(PUBLIC_ROUTE_ALIASES.find(({ path }) => path === "/register")?.target).toBe("/join-as-family");
   });
 
   test("the existing /family page is not repurposed as an alias", () => {

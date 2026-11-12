@@ -11,7 +11,7 @@ export const PUBLIC_PATHS = {
 
 export const PUBLIC_ROUTE_ALIASES = [
   { path: PUBLIC_PATHS.caregiverJoin, target: "/join-as-caregiver" },
-  { path: PUBLIC_PATHS.familyRegister, target: "/auth?tab=signup" },
+  { path: PUBLIC_PATHS.familyRegister, target: "/join-as-family" },
 ] as const;
 
 export const PUBLIC_ROUTE_ALIAS_PATHS = PUBLIC_ROUTE_ALIASES.map(({ path }) => path);
