@@ -27,6 +27,11 @@ type Candidate = { request_ref: string; area: string; care_type: string };
 type LibraryPhoto = { id: string; scene_id: string; url: string; focus_y: number };
 
 const SCENE_LABELS: Record<SceneId, string> = { hook: "1. Hook", map: "2. Map", needs: "3. Care needs", requirements: "4. Caregiver requirements", schedule: "5. Schedule", cta: "6. Ending" };
+const TEXT_FIELD_LABELS: Partial<Record<keyof ReelText, string>> = {
+  requirementsTitle: "Requirements scene title",
+  whatsappTitle: "WhatsApp channel invitation",
+  whatsappBody: "WhatsApp channel invite link",
+};
 const RATE_BANDS = ["$40/hr", "$45/hr", "$50+/hr"];
 
 // Blog imagery: same-origin paths for our own covers so the canvas stays exportable.
@@ -139,12 +144,17 @@ const ReelStudioPage: React.FC = () => {
   useEffect(() => { shuffleBlogPhotos(); }, [shuffleBlogPhotos, selectedRef]);
 
   useEffect(() => {
-    if (!selectedRef || preset === "general_recruit") { setNeed(undefined); setText(defaultText()); return; }
+    if (!selectedRef || preset === "general_recruit") {
+      setNeed(undefined);
+      setText((previous) => ({ ...defaultText(), whatsappTitle: previous.whatsappTitle, whatsappBody: previous.whatsappBody }));
+      return;
+    }
     (supabase as any).rpc("get_reel_safe_need", { ref: selectedRef }).then(({ data, error }: any) => {
       if (error || !data) { toast.error("That family's summary is not available."); return; }
       const safe = redact(data);
       if (preset === "urgent_need") safe.urgency = "urgent";
-      setNeed(safe); setText(defaultText(safe));
+      setNeed(safe);
+      setText((previous) => ({ ...defaultText(safe), whatsappTitle: previous.whatsappTitle, whatsappBody: previous.whatsappBody }));
     });
   }, [selectedRef, preset]);
 
@@ -287,9 +297,9 @@ const ReelStudioPage: React.FC = () => {
               <CardHeader><CardTitle>2. Edit the words</CardTitle><CardDescription>Everything on screen can be changed.</CardDescription></CardHeader>
               <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {(Object.keys(TEXT_LIMITS) as (keyof ReelText)[]).map((k) => (
-                  <div key={k} className="space-y-1">
-                    <Label className="text-xs capitalize">{k.replace(/([A-Z0-9])/g, " $1")}</Label>
-                    <Input value={text[k]} maxLength={TEXT_LIMITS[k]} onChange={(e) => setText((p) => ({ ...p, [k]: e.target.value }))} />
+                  <div key={k} className={`space-y-1 ${k === "whatsappBody" ? "sm:col-span-2" : ""}`}>
+                    <Label className="text-xs capitalize">{TEXT_FIELD_LABELS[k] ?? k.replace(/([A-Z0-9])/g, " $1")}</Label>
+                    <Input value={text[k]} maxLength={TEXT_LIMITS[k]} placeholder={k === "whatsappBody" ? "https://whatsapp.com/channel/..." : undefined} onChange={(e) => setText((p) => ({ ...p, [k]: e.target.value }))} />
                     <p className="text-[11px] text-muted-foreground text-right">{text[k].length}/{TEXT_LIMITS[k]}</p>
                   </div>
                 ))}
