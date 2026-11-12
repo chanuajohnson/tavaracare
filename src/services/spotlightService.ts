@@ -47,7 +47,7 @@ export const spotlightService = {
       console.error("Error fetching available caregivers:", error);
       throw error;
     }
-    return ((data as any[]) || []).map((item: any, index: number) => ({
+    return ((data as any[]) || []).map((raw: any, index: number) => ({ ...raw, first_name: (raw.first_name || "").trim() || "Caregiver" })).map((item: any, index: number) => ({
       id: item.spotlight_id || item.caregiver_id,
       caregiverId: item.caregiver_id,
       headline: item.headline || "Caregiver ready to start",
