@@ -2,6 +2,7 @@ import { drawFrame, type ReelAssets } from "./engine";
 import { buildCues, scheduleAudio } from "./audio";
 import { REEL_DURATION, REEL_FPS, type ReelSpec } from "./spec";
 import { summarizeSchedule } from "./redact";
+import { shouldIncludeAudioTrack } from "./voiceover";
 
 export function cuesFor(spec: ReelSpec) {
   const chips = (spec.need?.careTypes.length ?? 0) + (spec.need?.skills.length ?? 0);
@@ -16,13 +17,15 @@ export function pickMime(): string {
 }
 
 export async function recordReel(
-  canvas: HTMLCanvasElement, spec: ReelSpec, assets: ReelAssets, onProgress?: (p: number) => void,
+  canvas: HTMLCanvasElement, spec: ReelSpec, assets: ReelAssets, onProgress?: (p: number) => void, voiceover?: Blob | null,
 ): Promise<{ blob: Blob; ext: "mp4" | "webm" }> {
   const ctx = canvas.getContext("2d")!;
   const stream = canvas.captureStream(REEL_FPS);
   const ac = new AudioContext(); await ac.resume();
   const dest = ac.createMediaStreamDestination();
-  if (spec.audio.enabled) dest.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
+  let voiceBuffer: AudioBuffer | null = null;
+  if (voiceover) voiceBuffer = await ac.decodeAudioData(await voiceover.arrayBuffer());
+  if (shouldIncludeAudioTrack(spec.audio.enabled, !!voiceBuffer)) dest.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
   const mime = pickMime();
   const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
   const chunks: Blob[] = [];
@@ -31,7 +34,12 @@ export async function recordReel(
   drawFrame(ctx, 0, spec, assets);
   rec.start(250);
   const start = performance.now(); const acStart = ac.currentTime + 0.02;
-  if (spec.audio.enabled) scheduleAudio(ac, dest, acStart, cuesFor(spec), spec.audio.volume);
+  if (spec.audio.enabled) scheduleAudio(ac, dest, acStart, cuesFor(spec), voiceBuffer ? spec.audio.volume * 0.35 : spec.audio.volume);
+  if (voiceBuffer) {
+    const src = ac.createBufferSource(); src.buffer = voiceBuffer;
+    const g = ac.createGain(); g.gain.value = 1; src.connect(g).connect(dest);
+    src.start(acStart, 0, Math.min(voiceBuffer.duration, REEL_DURATION));
+  }
   await new Promise<void>((resolve) => {
     const tick = () => {
       const t = (performance.now() - start) / 1000;

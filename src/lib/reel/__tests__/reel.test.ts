@@ -124,3 +124,21 @@ describe("caregiver reel", () => {
     expect(t.ctaBody).toBe("tavara.care/register");
   });
 });
+
+import { buildFounderCaption, defaultFounderScript } from "../founderStory";
+import { isVoiceoverDurationValid, shouldIncludeAudioTrack } from "../voiceover";
+describe("founder voiceover", () => {
+  const n = redact({ requestRef: "TV-1", area: "East-West Corridor", region: "East-West Corridor", careTypes: ["Recovery support"], skills: ["Personal care"], qualifications: ["Trained caregiver"], requirements: ["Own car required"], schedule: "mon_fri_8am_4pm", urgency: "urgent" });
+  test("voiceover up to 18 seconds is accepted, longer rejected", () => {
+    expect(isVoiceoverDurationValid(18)).toBe(true);
+    expect(isVoiceoverDurationValid(19)).toBe(false);
+  });
+  test("voice is recorded even when tap sounds are off", () => expect(shouldIncludeAudioTrack(false, true)).toBe(true));
+  test("founder caption keeps care needs and states no investment or equity", () => {
+    const c = buildFounderCaption(n, undefined, "https://whatsapp.com/channel/X");
+    for (const x of ["Recovery support", "Personal care", "Own car required", "Build and Bloom", "NuaChat", "The Garden Ohm", "not a financial investment", "https://tavara.care/caregiver", "https://whatsapp.com/channel/X"]) expect(c).toContain(x);
+    expect(c).not.toMatch(/[—–]/);
+    expect(findBannedWords(c)).toEqual([]);
+  });
+  test("default script mentions area", () => expect(defaultFounderScript(n)).toContain("East-West Corridor"));
+});
