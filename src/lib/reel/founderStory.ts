@@ -13,12 +13,13 @@ export function defaultFounderScript(need?: ReelSafeNeed): string {
 }
 
 export const DEFAULT_FOUNDER_STORY = [
-  "I am a millennial in my forties, rebuilding after a global crisis while caring for ageing parents, raising the next generation, tending the land, and showing up for friends and family. As a teenager in Couva convent, at the time among other dreams I recall envisioning life as a homemaker. Now I have come full circle. I chose this life, and it is a calling, even as discovering much of this work is emotional, unseen, and paid in love.",
-  "Seven years ago, given the gift of time on the outskirts of a global crisis, I found myself in a position where working remotely was the only way. I attempted to move my engineering skills into tech. Those roles asked for experience I had not yet had, coming from a background in plant work in oil and gas. So I set out to build a portfolio by scratching my own itches.",
+  "I am a millennial in my forties, rebuilding after a global crisis while caring for ageing parents, raising the next generation, tending the land, and showing up for friends and family. As a teenager in Couva convent, at the time among other dreams I recall my purpose was to be a homemaker. Now I have come full circle. I chose this life, and it is a calling, even as I discover that much of this work is emotional, unseen, and paid in love.",
+  "Seven years ago, given the gift of time and on the outskirts of a global crisis, I found myself in a position where working remotely was the only way. I attempted to move my engineering skills into tech. Those roles asked for experience I had not yet had, coming from a background in plant work in oil and gas. So I set out to build a portfolio by scratching my own itches.",
   "Two years ago, I took Tavara from being built in private into the public space, because it needs users. I thought by Carnival that year we would be jumping up and users would be streaming in. Funnily enough, we had to resell our Carnival costumes. We did not play mass. Tavara is still being built and refined.",
-  "Tavara came from needing better care coordination. The Garden Ohm grew from my love of plants and home. NuaChat came from another need I could not ignore. They were too late to make my career change easier, but they can help other people now.",
-  "Tavara is live. This anonymous appeal, shared with permission, is part of that portfolio. Every use, share, and piece of feedback is a proof point.",
-  "Build and Bloom. That is The Garden Ohm's line, and it fits here too. Use it, share it, and help this work bloom.",
+  "Tavara came from needing better care coordination. The Garden Ohm grew from my love of growth, and from making nature, plants and gardens easy to reach for those who cannot get to them on their own, including the people I coordinate care for. NuaChat came from another need I could not ignore. They were too late to meet my needs a couple of years ago, but they can help other people now.",
+  "Tavara is live. It is a care coordination platform and it forms part of my portfolio. Every use, share, and piece of feedback is a proof point.",
+  "This is not a test run. Real families in Trinidad and Tobago are arranging care through Tavara today, and real caregivers are being matched with them. The family in this post is a real household with a real need, shared anonymously and with their permission. You are not being counted as a number. When you use Tavara, it is because you or someone you love needs care, and we show up for that.",
+  "Build and Bloom. Use it, share it, and help this work bloom.",
 ].join("\n\n");
 const FOUNDER_STORY = DEFAULT_FOUNDER_STORY;
 
