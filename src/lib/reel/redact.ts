@@ -4,7 +4,7 @@
 import type { ReelSafeNeed } from "./spec";
 
 const ALLOWED_KEYS: (keyof ReelSafeNeed)[] = [
-  "requestRef", "area", "region", "careTypes", "skills", "qualifications", "schedule", "urgency",
+  "requestRef", "area", "region", "careTypes", "skills", "qualifications", "requirements", "schedule", "urgency",
 ];
 
 // Diagnosis wording that must never appear (care categories are used instead).
@@ -44,6 +44,7 @@ export function redact(raw: Record<string, unknown>): ReelSafeNeed {
     careTypes: cleanList(raw.careTypes),
     skills: cleanList(raw.skills),
     qualifications: cleanList(raw.qualifications),
+    requirements: cleanList(raw.requirements),
     schedule: String(pick(raw.schedule, "")).replace(/[^a-z0-9_,]/gi, ""),
     urgency,
   };

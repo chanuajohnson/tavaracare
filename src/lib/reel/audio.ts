@@ -2,11 +2,12 @@
 export type CueType = "click" | "chime" | "pop" | "tick";
 export type Cue = { t: number; type: CueType };
 
-export function buildCues(chipCount: number, dayCount: number): Cue[] {
+export function buildCues(chipCount: number, dayCount: number, requirementCount = 0): Cue[] {
   const cues: Cue[] = [{ t: 0.2, type: "chime" }, { t: 3.1, type: "pop" }];
-  for (let i = 0; i < Math.min(chipCount, 8); i++) cues.push({ t: 6.1 + i * 0.3, type: "click" });
-  for (let i = 0; i < dayCount; i++) cues.push({ t: 10.0 + i * 0.18, type: "tick" });
-  cues.push({ t: 12.3, type: "chime" });
+  for (let i = 0; i < Math.min(chipCount, 8); i++) cues.push({ t: 5.9 + i * 0.25, type: "click" });
+  for (let i = 0; i < Math.min(requirementCount, 10); i++) cues.push({ t: 8.9 + i * 0.22, type: "click" });
+  for (let i = 0; i < dayCount; i++) cues.push({ t: 12.4 + i * 0.18, type: "tick" });
+  cues.push({ t: 14.8, type: "chime" });
   return cues;
 }
 

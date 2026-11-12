@@ -11,7 +11,7 @@ describe("privacy", () => {
   const raw = {
     requestRef: "TV-2611-08A", area: "Building #5, 2-3 East Maloney Gardens", region: "East Trinidad",
     careTypes: ["Memory care", "Dementia"], skills: ["Personal care", "Call 868 221 5310"],
-    qualifications: ["RN or RNA"], schedule: "mon_fri_8am_4pm", urgency: "urgent",
+    qualifications: ["RN or RNA"], requirements: ["Own car required", "Call 868 221 5310"], schedule: "mon_fri_8am_4pm", urgency: "urgent",
     full_name: "Merle Myers", phone_number: "447817801392", email: "x@y.com",
   };
   const out = redact(raw) as any;
@@ -23,6 +23,7 @@ describe("privacy", () => {
   test("street address replaced by fallback", () => expect(out.area).toBe("Trinidad & Tobago"));
   test("diagnosis wording removed", () => { expect(out.careTypes).toEqual(["Memory care"]); expect(blob.toLowerCase()).not.toContain("dementia"); });
   test("phone inside a chip removed", () => expect(out.skills).toEqual(["Personal care"]));
+  test("phone inside a requirement removed", () => expect(out.requirements).toEqual(["Own car required"]));
   test("town only with 3+ families", () => {
     expect(generalizeArea("Chaguanas", "Central Trinidad", 3)).toBe("Chaguanas area");
     expect(generalizeArea("Chaguanas", "Central Trinidad", 2)).toBe("Central Trinidad");
@@ -31,7 +32,7 @@ describe("privacy", () => {
 });
 
 describe("scene timing", () => {
-  test.each([[0, "hook"], [2.5, "map"], [5.5, "needs"], [9.5, "schedule"], [12, "cta"], [15, "cta"]])("t=%p -> %p", (t, id) => {
+  test.each([[0, "hook"], [2.5, "map"], [5.5, "needs"], [8.5, "requirements"], [12, "schedule"], [14.5, "cta"], [18, "cta"]])("t=%p -> %p", (t, id) => {
     expect(sceneAt(t as number).id).toBe(id as string);
   });
 });
@@ -60,6 +61,12 @@ describe("caption content", () => {
     expect(c).toContain("https://tavara.care/urgent-families");
     expect(c).toContain("https://tavara.care/auth");
     expect(c).toContain("https://tavara.care/urgent-caregivers");
+  });
+  test("includes every safe caregiver requirement and the channel invite", () => {
+    const withRequirements = { ...need, requirements: ["Own car required", "Female caregiver preferred", "First aid certification required", "References required", "Relevant care experience", "Background checks accepted", "Reliable and punctual", "Respectful care essential"] };
+    const caption = buildCaption(withRequirements, undefined, "https://whatsapp.com/channel/ABC123");
+    for (const requirement of withRequirements.requirements) expect(caption).toContain(requirement);
+    expect(caption).toContain("https://whatsapp.com/channel/ABC123");
   });
 });
 

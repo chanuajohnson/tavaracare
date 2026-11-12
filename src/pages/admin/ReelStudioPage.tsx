@@ -26,7 +26,12 @@ import { download, recordReel, renderStill } from "@/lib/reel/export";
 type Candidate = { request_ref: string; area: string; care_type: string };
 type LibraryPhoto = { id: string; scene_id: string; url: string; focus_y: number };
 
-const SCENE_LABELS: Record<SceneId, string> = { hook: "1. Hook", map: "2. Map", needs: "3. Care needs", schedule: "4. Schedule", cta: "5. Ending" };
+const SCENE_LABELS: Record<SceneId, string> = { hook: "1. Hook", map: "2. Map", needs: "3. Care needs", requirements: "4. Caregiver requirements", schedule: "5. Schedule", cta: "6. Ending" };
+const TEXT_FIELD_LABELS: Partial<Record<keyof ReelText, string>> = {
+  requirementsTitle: "Requirements scene title",
+  whatsappTitle: "WhatsApp channel invitation",
+  whatsappBody: "WhatsApp channel invite link",
+};
 const RATE_BANDS = ["$40/hr", "$45/hr", "$50+/hr"];
 
 // Blog imagery: same-origin paths for our own covers so the canvas stays exportable.
@@ -139,12 +144,17 @@ const ReelStudioPage: React.FC = () => {
   useEffect(() => { shuffleBlogPhotos(); }, [shuffleBlogPhotos, selectedRef]);
 
   useEffect(() => {
-    if (!selectedRef || preset === "general_recruit") { setNeed(undefined); setText(defaultText()); return; }
+    if (!selectedRef || preset === "general_recruit") {
+      setNeed(undefined);
+      setText((previous) => ({ ...defaultText(), whatsappTitle: previous.whatsappTitle, whatsappBody: previous.whatsappBody }));
+      return;
+    }
     (supabase as any).rpc("get_reel_safe_need", { ref: selectedRef }).then(({ data, error }: any) => {
       if (error || !data) { toast.error("That family's summary is not available."); return; }
       const safe = redact(data);
       if (preset === "urgent_need") safe.urgency = "urgent";
-      setNeed(safe); setText(defaultText(safe));
+      setNeed(safe);
+      setText((previous) => ({ ...defaultText(safe), whatsappTitle: previous.whatsappTitle, whatsappBody: previous.whatsappBody }));
     });
   }, [selectedRef, preset]);
 
@@ -161,12 +171,13 @@ const ReelStudioPage: React.FC = () => {
     return { photos: merged, palette: theme.palette, font: theme.font };
   }, [images, theme, blogAssign, blogPool, useBlogPhotos]);
 
-  const caption = useMemo(() => buildCaption(spec.need, spec.rateBand), [spec]);
+  const caption = useMemo(() => buildCaption(spec.need, spec.rateBand, spec.text.whatsappBody), [spec]);
   const issues = useMemo(() => {
     const all = [...Object.values(text), caption].join(" \n ");
     const out: string[] = [];
     const unsafe = containsUnsafe(Object.values(text).join(" ")); if (unsafe) out.push(`Text contains a ${unsafe}.`);
     const banned = findBannedWords(all); if (banned.length) out.push(`Avoid these words: ${banned.join(", ")}.`);
+    if (text.whatsappBody.trim() && !/^(https?:\/\/)?(www\.)?whatsapp\.com\/channel\/\S+$/i.test(text.whatsappBody.trim())) out.push("Paste the full WhatsApp channel invite link.");
     return out;
   }, [text, caption]);
 
@@ -246,7 +257,7 @@ const ReelStudioPage: React.FC = () => {
       <DashboardHeader breadcrumbItems={[{ label: "Admin Dashboard", path: "/dashboard/admin" }, { label: "Reel Studio", path: "/admin/reels" }]} />
       <div className="container max-w-6xl py-6 px-4">
         <h1 className="text-2xl md:text-3xl font-bold mb-1 flex items-center gap-2"><Film className="h-7 w-7" /> Reel Studio</h1>
-        <p className="text-muted-foreground mb-6">Make a 15-second vertical video telling nurses and caregivers that a family needs care. Only families who agreed to social posts appear, and no names, addresses or diagnoses are ever shown.</p>
+        <p className="text-muted-foreground mb-6">Make an {REEL_DURATION}-second vertical video telling nurses and caregivers that a family needs care. Only families who agreed to social posts appear, and no names, addresses or diagnoses are ever shown.</p>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
           <div className="space-y-6 order-2 lg:order-1">
@@ -286,9 +297,9 @@ const ReelStudioPage: React.FC = () => {
               <CardHeader><CardTitle>2. Edit the words</CardTitle><CardDescription>Everything on screen can be changed.</CardDescription></CardHeader>
               <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {(Object.keys(TEXT_LIMITS) as (keyof ReelText)[]).map((k) => (
-                  <div key={k} className="space-y-1">
-                    <Label className="text-xs capitalize">{k.replace(/([A-Z0-9])/g, " $1")}</Label>
-                    <Input value={text[k]} maxLength={TEXT_LIMITS[k]} onChange={(e) => setText((p) => ({ ...p, [k]: e.target.value }))} />
+                  <div key={k} className={`space-y-1 ${k === "whatsappBody" ? "sm:col-span-2" : ""}`}>
+                    <Label className="text-xs capitalize">{TEXT_FIELD_LABELS[k] ?? k.replace(/([A-Z0-9])/g, " $1")}</Label>
+                    <Input value={text[k]} maxLength={TEXT_LIMITS[k]} placeholder={k === "whatsappBody" ? "https://whatsapp.com/channel/..." : undefined} onChange={(e) => setText((p) => ({ ...p, [k]: e.target.value }))} />
                     <p className="text-[11px] text-muted-foreground text-right">{text[k].length}/{TEXT_LIMITS[k]}</p>
                   </div>
                 ))}
@@ -406,7 +417,7 @@ const ReelStudioPage: React.FC = () => {
         <DialogContent className="[&>button]:hidden">
           <DialogHeader>
             <DialogTitle>Recording your reel</DialogTitle>
-            <DialogDescription>Keep this tab open and in front until it finishes. This takes about 15 seconds.</DialogDescription>
+            <DialogDescription>Keep this tab open and in front until it finishes. This takes about {REEL_DURATION} seconds.</DialogDescription>
           </DialogHeader>
           <div className="h-2 rounded bg-muted overflow-hidden"><div className="h-full bg-primary transition-all" style={{ width: `${Math.round((exporting ?? 0) * 100)}%` }} /></div>
         </DialogContent>
